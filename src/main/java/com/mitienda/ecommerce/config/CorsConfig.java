@@ -18,7 +18,9 @@ public class CorsConfig {
         // Permitir peticiones desde el frontend
         configuration.setAllowedOrigins(Arrays.asList(
                 "http://localhost:3000",
-                "https://frontend-sistema-ventas-eight.vercel.app"));
+                "https://frontend-sistema-ventas-eight.vercel.app",
+                "https://frontend-sistema-ventas-8u2xm2x4o-rodrimrx-s-projects.vercel.app"
+            ));
 
         // Métodos HTTP permitidos (AGREGADO PATCH)
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
