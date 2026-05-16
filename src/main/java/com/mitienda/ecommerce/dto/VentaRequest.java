@@ -1,0 +1,87 @@
+package com.mitienda.ecommerce.dto;
+
+import com.mitienda.ecommerce.models.MetodoPago;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;  // ← ESTA LÍNEA FALTABA
+import java.util.List;
+
+/**
+ * DTO para crear venta directa (sin pedido previo)
+ * Soporta dos modos:
+ * 1. Cliente registrado: Se envía idCliente
+ * 2. Cliente rápido: Se envían nombreClienteDirecto y celularClienteDirecto
+ */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class VentaRequest {
+
+    // OPCIÓN 1: Cliente registrado (ID de la tabla clientes)
+    private Long idCliente;
+
+    // OPCIÓN 2: Cliente rápido (datos directos)
+    @Size(max = 100, message = "El nombre no puede exceder 100 caracteres")
+    private String nombreClienteDirecto;
+
+    @Size(max = 20, message = "El celular no puede exceder 20 caracteres")
+    private String celularClienteDirecto;
+
+    @NotNull(message = "El método de pago es obligatorio")
+    private MetodoPago metodoPago;
+
+    @Size(max = 100, message = "La referencia no puede exceder 100 caracteres")
+    private String referenciaPago;
+
+    @NotNull(message = "Los productos son obligatorios")
+    @Size(min = 1, message = "Debe incluir al menos un producto")
+    private List<ItemVentaRequest> items;
+
+    /**
+     * Valida que se haya proporcionado al menos una forma de identificar al cliente
+     */
+    public boolean tieneCliente() {
+        return idCliente != null || (nombreClienteDirecto != null && !nombreClienteDirecto.trim().isEmpty());
+    }
+
+    /**
+     * Determina si es una venta con cliente registrado
+     */
+    public boolean esClienteRegistrado() {
+        return idCliente != null;
+    }
+
+    /**
+     * Determina si es una venta con cliente rápido
+     */
+    public boolean esClienteRapido() {
+        return !esClienteRegistrado() && nombreClienteDirecto != null && !nombreClienteDirecto.trim().isEmpty();
+    }
+
+    /**
+     * Clase interna para items de la venta
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ItemVentaRequest {
+
+        @NotNull(message = "El ID del producto es obligatorio")
+        private Long idProducto;
+
+        @NotNull(message = "La cantidad es obligatoria")
+        @Min(value = 1, message = "La cantidad debe ser al menos 1")
+        private Integer cantidad;
+
+        // Precio con descuento aplicado (opcional)
+        private BigDecimal precioUnitarioConDescuento;
+
+        // Porcentaje de descuento aplicado (opcional, para auditoría)
+        private BigDecimal descuentoPorcentaje;
+    }
+}
