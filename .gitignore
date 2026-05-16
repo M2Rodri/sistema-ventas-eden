@@ -4,3 +4,4 @@ application-prod.properties
 target/
 uploads/
 target/
+application-dev.properties
