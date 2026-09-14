@@ -39,6 +39,9 @@ function ComprobanteContent() {
         throw new Error('ID de venta inválido');
       }
 
+      // Promise.all a proposito, no allSettled: un comprobante sin su venta
+      // (o al reves) seria un documento incompleto. Aca es preferible fallar
+      // entero y mostrar el error que emitir un comprobante a medias.
       const [comp, ventaData] = await Promise.all([
         getComprobanteByVenta(idVenta),
         getVentaById(idVenta)
@@ -170,8 +173,8 @@ function ComprobanteContent() {
             <div>
               <h3 className="font-bold text-gray-700 mb-3 text-lg border-b pb-2">Datos del Cliente:</h3>
               <p className="mb-1"><span className="font-semibold">Nombre:</span> {venta.nombreCliente}</p>
-              {venta.celularCliente && (
-                <p className="mb-1"><span className="font-semibold">Celular:</span> {venta.celularCliente}</p>
+              {venta.telefonoCliente && (
+                <p className="mb-1"><span className="font-semibold">Celular:</span> {venta.telefonoCliente}</p>
               )}
               {!venta.esClienteRegistrado && (
                 <p className="text-sm text-blue-600 mt-2">(Cliente rápido)</p>
@@ -180,7 +183,7 @@ function ComprobanteContent() {
             <div className="text-right">
               <h3 className="font-bold text-gray-700 mb-3 text-lg border-b pb-2">Datos de la Venta:</h3>
               <p className="mb-1"><span className="font-semibold">Fecha:</span> {formatDate(venta.fechaVenta)}</p>
-              <p className="mb-1"><span className="font-semibold">Método de Pago:</span> {getMetodoPagoLabel(venta.metodoPago)}</p>
+              <p className="mb-1"><span className="font-semibold">Método de Pago:</span> {getMetodoPagoLabel(venta.metodoPago ?? "")}</p>
               <p className="mb-1"><span className="font-semibold">Vendedor:</span> {venta.nombreUsuario || 'Sistema'}</p>
               <p className="mb-1"><span className="font-semibold">Venta #:</span> {venta.id}</p>
             </div>
@@ -203,7 +206,7 @@ function ComprobanteContent() {
                   <tr key={index} className="hover:bg-gray-50">
                     <td className="px-4 py-3">
                       <div className="font-medium text-gray-900">{detalle.nombreProducto}</div>
-                      <div className="text-xs text-gray-500">Código: {detalle.codigoProducto}</div>
+                      <div className="text-xs text-gray-500">Código: {detalle.skuProducto}</div>
                     </td>
                     <td className="px-4 py-3 text-center font-medium text-gray-900">{detalle.cantidad}</td>
                     <td className="px-4 py-3 text-right text-gray-900">

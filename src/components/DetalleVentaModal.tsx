@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, User, Calendar, CreditCard, Package, AlertCircle, FileText, Printer, Download } from 'lucide-react';
+import { X, User, Calendar, CreditCard, Package, AlertCircle, FileText } from 'lucide-react';
 import { Venta } from '@/types/venta';
 import ComprobanteModal from '@/components/ComprobanteModal';
 
@@ -54,7 +54,9 @@ export default function DetalleVentaModal({ isOpen, onClose, venta }: DetalleVen
       TRANSFERENCIA: '🏦',
       QR: '📱',
     };
-    return icons[venta.metodoPago] || '💰';
+    // metodoPago puede venir vacío (venta sin cobros) o como "VARIOS"
+    // cuando la venta se pagó con más de un método.
+    return icons[venta.metodoPago ?? ''] || '💰';
   };
 
   const getMetodoPagoLabel = (metodo: string) => {
@@ -71,23 +73,14 @@ export default function DetalleVentaModal({ isOpen, onClose, venta }: DetalleVen
     setShowComprobanteModal(true);
   };
 
-  // SIMULACIÓN: Imprimir comprobante
-  const handleImprimirComprobante = () => {
-    console.log('🖨️ SIMULACIÓN: Imprimiendo comprobante de venta #', venta.id);
-    alert('✅ Abriendo ventana de impresión...\n\n📄 Comprobante preparado para venta #' + venta.id);
-  };
-
-  // SIMULACIÓN: Descargar PDF
-  const handleDescargarPDF = () => {
-    console.log('📥 SIMULACIÓN: Descargando PDF de venta #', venta.id);
-    const nombreArchivo = `Comprobante_Venta_${venta.id}_${new Date().toISOString().split('T')[0]}.pdf`;
-    alert('✅ Descarga iniciada!\n\n📄 Archivo: ' + nombreArchivo);
-  };
-
-  // SIMULACIÓN: Observaciones (no vienen del backend aún)
-  const observacionesSimuladas = venta.id % 3 === 0 
-    ? 'Cliente solicitó entrega a domicilio. Dirección confirmada por WhatsApp.'
-    : '';
+  // Antes había acá dos botones simulados: "Imprimir Comprobante" y
+  // "Descargar PDF", que solo mostraban un alert. Se quitaron porque
+  // "Ver Comprobante" ya abre el comprobante real, y desde ahí se imprime
+  // o se guarda como PDF con el diálogo del navegador.
+  //
+  // También había una observación inventada que aparecía en toda venta cuyo
+  // id fuera múltiplo de 3. La tabla ventas no tiene columna de
+  // observaciones, así que la sección se eliminó.
 
   const estadoBadge = getEstadoBadge();
 
@@ -127,7 +120,7 @@ export default function DetalleVentaModal({ isOpen, onClose, venta }: DetalleVen
                   </span>
                 )}
               </div>
-              <p className="text-sm text-gray-600">{venta.celularCliente || 'Sin teléfono'}</p>
+              <p className="text-sm text-gray-600">{venta.telefonoCliente || 'Sin teléfono'}</p>
             </div>
 
             {/* Vendedor */}
@@ -156,7 +149,7 @@ export default function DetalleVentaModal({ isOpen, onClose, venta }: DetalleVen
               </div>
               <p className="text-gray-900 flex items-center gap-2">
                 <span>{getMetodoPagoIcon()}</span>
-                {getMetodoPagoLabel(venta.metodoPago)}
+                {getMetodoPagoLabel(venta.metodoPago ?? "")}
               </p>
             </div>
           </div>
@@ -199,7 +192,7 @@ export default function DetalleVentaModal({ isOpen, onClose, venta }: DetalleVen
                       {/* NUEVA COLUMNA: Código del producto */}
                       <td className="px-4 py-3">
                         <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded text-gray-700">
-                          {detalle.codigoProducto}
+                          {detalle.skuProducto}
                         </span>
                       </td>
                       <td className="px-4 py-3">
@@ -253,43 +246,12 @@ export default function DetalleVentaModal({ isOpen, onClose, venta }: DetalleVen
             </div>
           )}
 
-          {/* NUEVA SECCIÓN: Observaciones */}
-          <div className="px-6 pb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <FileText className="text-blue-600" size={20} />
-              <h3 className="font-semibold text-gray-900">Observaciones</h3>
-            </div>
-            <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
-              {observacionesSimuladas ? (
-                <p className="text-sm text-gray-700">{observacionesSimuladas}</p>
-              ) : (
-                <p className="text-sm text-gray-500 italic">Sin observaciones</p>
-              )}
-            </div>
-          </div>
-
           {/* Botones */}
           <div className="flex gap-3 p-6 border-t border-gray-200 bg-gray-50">
             
             {/* NUEVOS BOTONES: Imprimir y Descargar (solo para ventas COMPLETADAS) */}
             {venta.estado === 'COMPLETADA' && (
               <>
-                <button
-                  onClick={handleImprimirComprobante}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
-                >
-                  <Printer size={20} />
-                  Imprimir Comprobante
-                </button>
-
-                <button
-                  onClick={handleDescargarPDF}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
-                >
-                  <Download size={20} />
-                  Descargar PDF
-                </button>
-
                 <button
                   onClick={handleVerComprobante}
                   className="flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"

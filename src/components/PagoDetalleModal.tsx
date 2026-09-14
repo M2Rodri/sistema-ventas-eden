@@ -166,7 +166,7 @@ export default function PagoDetalleModal({ pago, venta, onClose }: PagoDetalleMo
                 <div className="flex items-center gap-2">
                   <Phone size={16} className="text-gray-400" />
                   <span className="text-sm text-gray-600">Celular:</span>
-                  <span className="text-sm font-medium text-gray-900">{venta.celularCliente}</span>
+                  <span className="text-sm font-medium text-gray-900">{venta.telefonoCliente}</span>
                 </div>
               </div>
             </div>
@@ -181,7 +181,7 @@ export default function PagoDetalleModal({ pago, venta, onClose }: PagoDetalleMo
                   <div key={index} className="flex justify-between items-start py-2 border-b border-gray-100 last:border-0">
                     <div className="flex-1">
                       <p className="text-sm font-medium text-gray-900">{detalle.nombreProducto}</p>
-                      <p className="text-xs text-gray-500 font-mono">{detalle.codigoProducto}</p>
+                      <p className="text-xs text-gray-500 font-mono">{detalle.skuProducto}</p>
                       <p className="text-xs text-gray-600 mt-1">
                         Cantidad: {detalle.cantidad} × {formatCurrency(detalle.precioUnitario)}
                       </p>

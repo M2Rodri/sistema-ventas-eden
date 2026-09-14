@@ -3,35 +3,14 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { BACKEND_URL } from '@/lib/api';
+// Se usa el tipo compartido en lugar de una copia local: las interfaces
+// duplicadas de esta página habían quedado desactualizadas (seguían con
+// precioUnitario y sin marca, firmeza ni materialNucleo).
+import { Producto, ImagenProducto } from '@/types/producto';
 import { useSearchParams } from 'next/navigation';
-import { FiFilter, FiChevronLeft, FiChevronRight, FiShoppingCart } from 'react-icons/fi';
+import { FiFilter, FiShoppingCart } from 'react-icons/fi';
 import { MdStar, MdStarBorder, MdStarHalf, MdVisibility, MdViewInAr } from 'react-icons/md';
-
-// Asumiendo interfaces DTO (ajusta según tu frontend)
-interface ImagenProductoDTO {
-  id: number; // Asegúrate que coincida con el tipo en el backend
-  urlImagen: string; // Nombre exacto del campo en el DTO
-  esPrincipal: boolean;
-  orden: number;
-}
-
-interface ProductoResponse {
-  id: number;
-  sku: string;
-  nombre: string;
-  descripcion: string;
-  modelo?: string;
-  idCategoria: number;
-  nombreCategoria: string;
-  calidad?: string;
-  precioUnitario: number; // BigDecimal en backend -> number en frontend
-  precioVenta: number; // BigDecimal en backend -> number en frontend
-  peso?: number; // BigDecimal en backend -> number en frontend
-  dimensiones?: string;
-  tipoProducto: string; // Asegúrate de que este tipo sea serializable si lo usas directamente
-  activo: boolean;
-  imagenes: ImagenProductoDTO[];
-}
 
 interface CategoriaResponse {
   id: number;
@@ -42,26 +21,20 @@ interface CategoriaResponse {
 }
 
 // Componente para cada tarjeta de producto
-const ProductoCard = ({ producto }: { producto: ProductoResponse }) => {
+const ProductoCard = ({ producto }: { producto: Producto }) => {
   const imagenPrincipal = producto.imagenes?.[0]?.urlImagen || '/images/placeholder-imagen.jpg'; // Cambiado a ruta dentro de public/
   const precioVenta = producto.precioVenta;
-  const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
   const productoHref = `/tienda/productos/${producto.id}`;
   const ar3dHref = `/tienda/visualizacion-3d-ar?id=${producto.id}`;
 
-  // Calcular estrellas de calificación (ejemplo con 4.5 estrellas)
-  const rating = 4.5; // Este valor podría venir del backend o ser calculado
-  const fullStars = Math.floor(rating);
-  const hasHalfStar = rating % 1 >= 0.5;
-  const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
 
-  // Generar etiquetas dinámicas (ej: Oferta, Nuevo)
+  // Generar etiquetas dinámicas (ej: Promocion, Nuevo)
   const etiquetas: { texto: string; clase: string }[] = [];
-  // Ejemplo: Si el producto tiene un descuento, mostrar "Oferta"
+  // Ejemplo: Si el producto tiene un descuento, mostrar "Promocion"
   // Esta lógica dependerá de tu backend o de cómo definas promociones
   // if (producto.tieneDescuento) {
-  //   etiquetas.push({ texto: "Oferta", clase: "bg-secondary-600" });
+  //   etiquetas.push({ texto: "Promocion", clase: "bg-secondary-600" });
   // }
   // if (producto.esNuevo) {
   //   etiquetas.push({ texto: "Nuevo", clase: "bg-primary-600" });
@@ -104,28 +77,35 @@ const ProductoCard = ({ producto }: { producto: ProductoResponse }) => {
           <span className="text-2xl font-bold text-primary-600">Bs. {precioVenta.toFixed(2)}</span>
         </div>
 
-        {/* Calificación */}
-        <div className="flex items-center text-secondary-600">
-          {[...Array(fullStars)].map((_, i) => (
-            <MdStar key={`full-${i}`} className="text-lg" />
-          ))}
-          {hasHalfStar && <MdStarHalf key="half" className="text-lg" />}
-          {[...Array(emptyStars)].map((_, i) => (
-            <MdStarBorder key={`empty-${i}`} className="text-lg text-gray-300" />
-          ))}
-        </div>
 
-        {/* Beneficios (placeholder) */}
-        <div className="my-4 space-y-2 text-xs text-gray-600">
-          <p className="flex items-center gap-2">
-            <FiShoppingCart className="text-base text-primary-600" /> Envíos
-          </p>
-          <p className="flex items-center gap-2">
-            <MdVisibility className="text-base text-primary-600" /> Garantía 2 años
-          </p>
-          <p className="flex items-center gap-2">
-            <MdViewInAr className="text-base text-primary-600" /> 12 cuotas sin interés
-          </p>
+        {/*
+          Antes acá había tres afirmaciones fijas — "Garantía 2 años" y
+          "12 cuotas sin interés" — que el negocio no ofrece, más una
+          calificación de 4.5 estrellas escrita en el código. Se reemplazaron
+          por los atributos reales del producto, que son los que el cliente
+          necesita para decidir.
+        */}
+        <div className="my-4 space-y-1.5 text-xs text-gray-600">
+          {producto.dimensiones && (
+            <p className="flex items-center gap-2">
+              <span className="font-medium text-gray-500">Medidas:</span> {producto.dimensiones}
+            </p>
+          )}
+          {producto.firmeza && (
+            <p className="flex items-center gap-2">
+              <span className="font-medium text-gray-500">Firmeza:</span> {producto.firmeza}
+            </p>
+          )}
+          {producto.materialNucleo && (
+            <p className="flex items-center gap-2">
+              <span className="font-medium text-gray-500">Núcleo:</span> {producto.materialNucleo}
+            </p>
+          )}
+          {producto.marca && (
+            <p className="flex items-center gap-2">
+              <span className="font-medium text-gray-500">Marca:</span> {producto.marca}
+            </p>
+          )}
         </div>
 
         {/* Botones de acción */}
@@ -235,14 +215,13 @@ const SidebarFiltros = ({ categorias, onFiltrosChange }: { categorias: Categoria
 };
 
 const CatalogoContent = () => {
-  const [productos, setProductos] = useState<ProductoResponse[]>([]);
+  const [productos, setProductos] = useState<Producto[]>([]);
   const [categorias, setCategorias] = useState<CategoriaResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filtroTexto, setFiltroTexto] = useState('');
   const searchParams = useSearchParams();
   const categoriaParam = searchParams.get('categoria'); // Ejemplo: ?categoria=camas
-  const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
   // Cargar productos y categorías
   useEffect(() => {
@@ -250,20 +229,34 @@ const CatalogoContent = () => {
       try {
         setLoading(true);
         setError(null); // Limpiar error previo
-        const [productosRes, categoriasRes] = await Promise.all([
-          fetch(`${BACKEND_URL}/api/productos/activos`), // Usar BACKEND_URL
-          fetch(`${BACKEND_URL}/api/categorias/activas`) // Usar BACKEND_URL
+        // allSettled y no all: los productos son el catálogo y las categorías
+        // solo alimentan el filtro lateral. Antes, si fallaba cualquiera de las
+        // dos, la tienda entera mostraba el mensaje de error y no se veía ni un
+        // producto. Ahora las categorías pueden faltar sin tapar el catálogo.
+        //
+        // fetch solo rechaza ante un fallo de red, no ante un 500, así que
+        // además hay que mirar el .ok de cada respuesta.
+        const [rProductos, rCategorias] = await Promise.allSettled([
+          fetch(`${BACKEND_URL}/api/productos/activos`),
+          fetch(`${BACKEND_URL}/api/categorias/activas`)
         ]);
 
-        if (!productosRes.ok || !categoriasRes.ok) {
-          throw new Error('Error al cargar productos o categorías');
+        if (rProductos.status === 'rejected' || !rProductos.value.ok) {
+          throw new Error('No se pudo cargar el catálogo de productos');
         }
 
-        const productosData: ProductoResponse[] = await productosRes.json();
-        const categoriasData: CategoriaResponse[] = await categoriasRes.json();
-
+        const productosData: Producto[] = await rProductos.value.json();
         setProductos(productosData);
-        setCategorias(categoriasData);
+
+        if (rCategorias.status === 'fulfilled' && rCategorias.value.ok) {
+          const categoriasData: CategoriaResponse[] = await rCategorias.value.json();
+          setCategorias(categoriasData);
+        } else {
+          // El catálogo se ve igual; solo queda sin el filtro por categoría.
+          console.error('No se pudieron cargar las categorías:',
+            rCategorias.status === 'rejected' ? rCategorias.reason : rCategorias.value.status);
+          setCategorias([]);
+        }
       } catch (err) {
         console.error('Error fetching catalog ', err);
         setError('Error al cargar el catálogo. Por favor, inténtelo de nuevo más tarde.');
@@ -286,7 +279,7 @@ const CatalogoContent = () => {
 
   // Filtrar productos basados en criterios
   const productosFiltrados = productos.filter(producto => {
-    const coincideTexto = producto.nombre.toLowerCase().includes(filtroTexto.toLowerCase()) || producto.descripcion.toLowerCase().includes(filtroTexto.toLowerCase());
+    const coincideTexto = producto.nombre.toLowerCase().includes(filtroTexto.toLowerCase()) || (producto.descripcion ?? "").toLowerCase().includes(filtroTexto.toLowerCase());
     const coincideCategoria = categoriasFiltro.length === 0 || categoriasFiltro.includes(producto.nombreCategoria);
 
     return coincideTexto && coincideCategoria;
@@ -375,20 +368,16 @@ const CatalogoContent = () => {
                 ))}
               </div>
 
-              {/* Paginación (Placeholder) */}
-              <nav aria-label="Pagination" className="mt-12 flex items-center justify-center gap-2">
-                <a className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-600 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-100" href="#">
-                  <FiChevronLeft className="text-lg" />
-                </a>
-                <a className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary-600 text-sm font-bold text-white ring-1 ring-inset ring-primary-600" href="#">1</a>
-                <a className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-sm text-gray-600 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-100" href="#">2</a>
-                <a className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-sm text-gray-600 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-100" href="#">3</a>
-                <span className="inline-flex h-10 w-10 items-center justify-center text-sm text-gray-300">...</span>
-                <a className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-sm text-gray-600 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-100" href="#">8</a>
-                <a className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-600 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-100" href="#">
-                  <FiChevronRight className="text-lg" />
-                </a>
-              </nav>
+              {/*
+                Acá había una paginación simulada: siete enlaces fijos a "#"
+                que mostraban "1 2 3 ... 8" sin importar cuántos productos
+                hubiera. Con un catálogo de este tamaño no hace falta paginar,
+                así que se reemplazó por el conteo real de resultados.
+              */}
+              <p className="mt-12 text-center text-sm text-gray-500">
+                {productosFiltrados.length}{' '}
+                {productosFiltrados.length === 1 ? 'producto' : 'productos'}
+              </p>
             </>
           )}
         </section>

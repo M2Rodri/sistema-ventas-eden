@@ -1,7 +1,9 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { X, Package, MapPin, Calendar, DollarSign } from 'lucide-react';
-import { Inventario } from '@/types/inventario';
+import { Inventario, MovimientoInventario } from '@/types/inventario';
+import { getHistorialAjustes } from '@/lib/api';
 
 interface DetalleProductoModalProps {
   inventario: Inventario;
@@ -9,17 +11,26 @@ interface DetalleProductoModalProps {
 }
 
 export default function DetalleProductoModal({ inventario, onClose }: DetalleProductoModalProps) {
-  // Datos simulados
-  const precioUnitario = 1500; // Precio simulado
-  const valorTotal = inventario.cantidadDisponible * precioUnitario;
-  
-  const ultimosMovimientos = [
-    { fecha: '2024-01-15 14:30', tipo: 'ENTRADA', cantidad: 10, usuario: 'Admin' },
-    { fecha: '2024-01-14 10:15', tipo: 'SALIDA', cantidad: 5, usuario: 'Vendedor1' },
-    { fecha: '2024-01-13 16:45', tipo: 'ENTRADA', cantidad: 20, usuario: 'Admin' },
-    { fecha: '2024-01-12 09:00', tipo: 'SALIDA', cantidad: 3, usuario: 'Vendedor2' },
-    { fecha: '2024-01-11 11:20', tipo: 'ENTRADA', cantidad: 15, usuario: 'Admin' },
-  ];
+  // Antes acá había un precio fijo de 1500 Bs y cinco movimientos escritos a
+  // mano (fechas de 2024, usuarios "Admin" y "Vendedor1"), iguales para
+  // cualquier producto que se abriera. Ahora sale todo del backend.
+  const [movimientos, setMovimientos] = useState<MovimientoInventario[]>([]);
+  const [cargando, setCargando] = useState(true);
+
+  useEffect(() => {
+    let activo = true;
+    getHistorialAjustes(inventario.idProducto)
+      .then((datos) => activo && setMovimientos(datos.slice(0, 5)))
+      .catch(() => {})
+      .finally(() => activo && setCargando(false));
+    return () => { activo = false; };
+  }, [inventario.idProducto]);
+
+  const costo = Number(inventario.costoReferencial ?? 0);
+  const valorTotal = inventario.cantidadDisponible * costo;
+
+  const esEntrada = (tipo: string) =>
+    ['ENTRADA', 'COMPRA', 'DEVOLUCION', 'AJUSTE_INICIAL'].includes(tipo);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -110,7 +121,10 @@ export default function DetalleProductoModal({ inventario, onClose }: DetallePro
                 <p className="text-sm font-medium text-gray-900">Valor Total del Stock</p>
               </div>
               <p className="text-lg font-semibold text-green-600">
-                {valorTotal.toLocaleString('es-BO')} Bs
+                Bs {valorTotal.toLocaleString('es-BO', { minimumFractionDigits: 2 })}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                {inventario.cantidadDisponible} × Bs {costo.toLocaleString('es-BO', { minimumFractionDigits: 2 })} (costo de referencia)
               </p>
             </div>
           </div>
@@ -128,7 +142,7 @@ export default function DetalleProductoModal({ inventario, onClose }: DetallePro
 
           {/* Últimos 5 Movimientos */}
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-3">Últimos 5 Movimientos Recientes</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">Últimos movimientos</h3>
             <div className="border border-gray-200 rounded-lg overflow-hidden">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -140,24 +154,37 @@ export default function DetalleProductoModal({ inventario, onClose }: DetallePro
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {ultimosMovimientos.map((mov, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm text-gray-600">{mov.fecha}</td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                          mov.tipo === 'ENTRADA' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`}>
-                          {mov.tipo}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm font-semibold">
-                        <span className={mov.tipo === 'ENTRADA' ? 'text-green-600' : 'text-red-600'}>
-                          {mov.tipo === 'ENTRADA' ? '+' : '-'}{mov.cantidad}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{mov.usuario}</td>
-                    </tr>
-                  ))}
+                  {cargando ? (
+                    <tr><td colSpan={4} className="px-4 py-6 text-center text-sm text-gray-500">Cargando…</td></tr>
+                  ) : movimientos.length === 0 ? (
+                    <tr><td colSpan={4} className="px-4 py-6 text-center text-sm text-gray-500">
+                      Este producto todavía no tiene movimientos
+                    </td></tr>
+                  ) : (
+                    movimientos.map((mov) => (
+                      <tr key={mov.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 text-sm text-gray-600">
+                          {new Date(mov.fecha).toLocaleString('es-BO', {
+                            day: '2-digit', month: '2-digit', year: 'numeric',
+                            hour: '2-digit', minute: '2-digit',
+                          })}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                            esEntrada(mov.tipoMovimiento) ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {mov.tipoMovimiento.replace('_', ' ')}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm font-semibold">
+                          <span className={mov.cantidad >= 0 ? 'text-green-600' : 'text-red-600'}>
+                            {mov.cantidad >= 0 ? `+${mov.cantidad}` : mov.cantidad}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{mov.nombreUsuario || 'Sistema'}</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>

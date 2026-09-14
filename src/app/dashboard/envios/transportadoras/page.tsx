@@ -55,7 +55,7 @@ export default function TransportadorasPage() {
     if (searchTerm) {
       filtered = filtered.filter(t =>
         t.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.correo?.toLowerCase().includes(searchTerm.toLowerCase())
+        t.email?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -230,13 +230,13 @@ export default function TransportadorasPage() {
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">{transportadora.telefono || '-'}</div>
-                    <div className="text-xs text-gray-500">{transportadora.correo || '-'}</div>
+                    <div className="text-xs text-gray-500">{transportadora.email || "-"}</div>
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
                     {formatCurrency(transportadora.tarifaBase)}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600 text-center">
-                    {transportadora.tiempoEstimadoDias} días
+                    {transportadora.tiempoEstimadoDias} {transportadora.tiempoEstimadoDias === 1 ? 'día' : 'días'}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap">
                     <button

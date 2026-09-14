@@ -1,7 +1,10 @@
 'use client';
 
-import { Search, LogOut, Bell } from 'lucide-react';
+import { LogOut, Store } from 'lucide-react';
+import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
+import BuscadorGlobal from '@/components/BuscadorGlobal';
+import NotificacionesMenu from '@/components/NotificacionesMenu';
 
 export default function Header() {
   const { user, logout } = useAuth();
@@ -9,22 +12,29 @@ export default function Header() {
   return (
     <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-6 shadow-sm">
       {/* Buscador */}
-      <div className="flex items-center gap-2 bg-gray-50 px-4 py-2 rounded-lg w-96 border border-gray-200">
-        <Search size={18} className="text-gray-400" />
-        <input
-          type="text"
-          placeholder="Buscar..."
-          className="bg-transparent outline-none text-sm w-full text-gray-700 placeholder:text-gray-400"
-        />
-      </div>
+      <BuscadorGlobal />
 
       {/* Usuario y acciones */}
       <div className="flex items-center gap-4">
+        {/*
+          Acceso directo a la tienda publica.
+          Antes habia que editar la URL a mano, cambiando /dashboard por /tienda.
+          Se abre en una pestana nueva a proposito: quien administra suele querer
+          mirar como quedo la tienda sin perder lo que tenia abierto en el panel.
+        */}
+        <Link
+          href="/tienda"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Ver la tienda online (se abre en otra pestana)"
+          className="flex items-center gap-2 rounded-lg px-3 py-2 text-gray-600 transition-colors hover:bg-primary-50 hover:text-primary-700"
+        >
+          <Store size={20} />
+          <span className="hidden text-sm font-medium lg:inline">Ver tienda</span>
+        </Link>
+
         {/* Notificaciones */}
-        <button className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors">
-          <Bell size={20} className="text-gray-600" />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-        </button>
+        <NotificacionesMenu />
 
         {/* Perfil */}
         <div className="flex items-center gap-3 pl-3 border-l border-gray-200">

@@ -9,6 +9,7 @@ import {
   cancelarVenta
 } from '@/lib/api';
 import { Venta, VentaEstadisticas, EstadoVenta, MetodoPago } from '@/types/venta';
+import { exportarCSV, fechaArchivo } from '@/lib/exportar';
 import { 
   Search, 
   Plus, 
@@ -90,7 +91,7 @@ export default function VentasPage() {
       resultado = resultado.filter(v =>
         v.nombreCliente.toLowerCase().includes(termino) ||
         v.id.toString().includes(termino) ||
-        (v.celularCliente && v.celularCliente.includes(termino))
+        (v.telefonoCliente && v.telefonoCliente.includes(termino))
       );
     }
 
@@ -155,15 +156,35 @@ export default function VentasPage() {
     }
   };
 
+  // Antes esto solo mostraba un alert diciendo que el archivo se habia
+  // generado, sin generar nada. Ahora arma el CSV con las ventas que estan
+  // filtradas en pantalla y el navegador lo descarga.
   const handleExportarExcel = () => {
-    console.log('📊 SIMULACIÓN: Exportando a Excel...');
-    console.log('Ventas a exportar:', ventasFiltradas.length);
-    
-    const fechaDesde = filtroPeriodo !== 'TODOS' ? 'Filtrado' : 'Todas';
-    const fechaHasta = new Date().toLocaleDateString('es-BO');
-    const nombreArchivo = `Reporte_Ventas_${fechaDesde}_a_${fechaHasta}.xlsx`;
-    
-    alert(`✅ Archivo "${nombreArchivo}" generado exitosamente!\n\n📋 Registros: ${ventasFiltradas.length}\n💰 Total: Bs. ${ventasFiltradas.reduce((sum, v) => sum + v.montoTotal, 0).toFixed(2)}`);
+    if (ventasFiltradas.length === 0) {
+      alert('No hay ventas para exportar con los filtros actuales.');
+      return;
+    }
+
+    exportarCSV<Venta>(
+      `Ventas_${fechaArchivo()}`,
+      [
+        { encabezado: 'N. Venta', valor: (v) => v.id },
+        { encabezado: 'Fecha', valor: (v) => new Date(v.fechaVenta).toLocaleString('es-BO') },
+        { encabezado: 'Cliente', valor: (v) => v.nombreCliente },
+        { encabezado: 'Telefono', valor: (v) => v.telefonoCliente ?? '' },
+        { encabezado: 'Cliente registrado', valor: (v) => (v.esClienteRegistrado ? 'Si' : 'No') },
+        { encabezado: 'Vendedor', valor: (v) => v.nombreUsuario },
+        { encabezado: 'Subtotal (Bs)', valor: (v) => Number(v.subtotal).toFixed(2) },
+        { encabezado: 'Descuento (Bs)', valor: (v) => Number(v.descuento ?? 0).toFixed(2) },
+        { encabezado: 'Total (Bs)', valor: (v) => Number(v.montoTotal).toFixed(2) },
+        { encabezado: 'Saldo pendiente (Bs)', valor: (v) => Number(v.saldoPendiente ?? 0).toFixed(2) },
+        { encabezado: 'Metodo de pago', valor: (v) => v.metodoPago ?? 'Sin pago' },
+        { encabezado: 'Estado', valor: (v) => v.estado },
+        { encabezado: 'Requiere envio', valor: (v) => (v.requiereEnvio ? 'Si' : 'No') },
+        { encabezado: 'Productos', valor: (v) => v.detalles.map((d) => `${d.cantidad}x ${d.nombreProducto}`).join(' | ') },
+      ],
+      ventasFiltradas
+    );
   };
 
   const obtenerVendedores = (): string[] => {
@@ -465,7 +486,7 @@ export default function VentasPage() {
                             )}
                           </div>
                           <div className="text-xs text-gray-500">
-                            {venta.celularCliente || 'Sin teléfono'}
+                            {venta.telefonoCliente || 'Sin teléfono'}
                           </div>
                         </div>
                       </div>

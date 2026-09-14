@@ -1,7 +1,14 @@
 // types/promocion.ts
-export interface Oferta {
+//
+// El módulo se llamaba "Oferta" en el frontend y "ofertas" en la API, pero la
+// tabla siempre se llamó 'promociones'. Se unificó el nombre en las tres capas.
+
+export interface Promocion {
   id: number;
-  descripcion: string;
+  /** Nombre de la promoción ("Semana del Descanso"). Es obligatorio en la base. */
+  nombre: string;
+  descripcion?: string;
+  /** Porcentaje de descuento. */
   descuento: number;
   fechaInicio: string;
   fechaFin: string;
@@ -18,8 +25,9 @@ export interface ProductoSimple {
   sku: string;
 }
 
-export interface OfertaRequest {
-  descripcion: string;
+export interface PromocionRequest {
+  nombre: string;
+  descripcion?: string;
   descuento: number;
   fechaInicio: string;
   fechaFin: string;
@@ -27,24 +35,4 @@ export interface OfertaRequest {
   activo: boolean;
 }
 
-export interface Resenia {
-  id: number;
-  idProducto: number;
-  nombreProducto: string;
-  idCliente: number;
-  nombreCliente: string;
-  calificacion: number;
-  comentario?: string;
-  aprobado: boolean;
-  fecha: string;
-}
-
-export interface ReseniaRequest {
-  idProducto: number;
-  idCliente: number;
-  calificacion: number;
-  comentario?: string;
-}
-
-export type EstadoOferta = 'ACTIVA' | 'PROGRAMADA' | 'VENCIDA' | 'INACTIVA';
-export type EstadoResenia = 'PENDIENTE' | 'APROBADA' | 'RECHAZADA';
+export type EstadoPromocion = 'ACTIVA' | 'PROGRAMADA' | 'VENCIDA' | 'INACTIVA';

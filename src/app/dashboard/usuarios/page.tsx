@@ -117,7 +117,6 @@ export default function UsuariosPage() {
     const colors = {
       ADMIN: 'bg-red-100 text-red-800',
       EMPLEADO: 'bg-blue-100 text-blue-800',
-      CLIENTE: 'bg-green-100 text-green-800',
     };
     return colors[role as keyof typeof colors] || 'bg-gray-100 text-gray-800';
   };
@@ -176,7 +175,6 @@ export default function UsuariosPage() {
             <option value="TODOS">Todos los roles</option>
             <option value="ADMIN">Admin</option>
             <option value="EMPLEADO">Empleado</option>
-            <option value="CLIENTE">Cliente</option>
           </select>
 
           {/* Filtro por estado */}

@@ -37,10 +37,11 @@ export default function ProductoModal({
     sku: productoParaEditar?.sku || '',
     nombre: productoParaEditar?.nombre || '',
     descripcion: productoParaEditar?.descripcion || '',
+    marca: productoParaEditar?.marca || '',
     modelo: productoParaEditar?.modelo || '',
     idCategoria: productoParaEditar?.idCategoria || categorias[0]?.id || 0,
     calidad: productoParaEditar?.calidad || '',
-    precioUnitario: productoParaEditar?.precioUnitario || 0,
+    costoReferencial: productoParaEditar?.costoReferencial || 0,
     precioVenta: productoParaEditar?.precioVenta || 0,
     peso: productoParaEditar?.peso || 0,
     dimensiones: productoParaEditar?.dimensiones || '',
@@ -50,7 +51,6 @@ export default function ProductoModal({
     
     // ✅ CAMPOS CONDICIONALES
     firmeza: productoParaEditar?.firmeza || undefined,
-    tipoCama: productoParaEditar?.tipoCama || undefined,
     materialNucleo: productoParaEditar?.materialNucleo || undefined,
   });
 
@@ -67,7 +67,6 @@ export default function ProductoModal({
         ...prev,
         [name]: val as any,
         firmeza: undefined,
-        tipoCama: undefined,
         materialNucleo: undefined,
       }));
     } else {
@@ -84,9 +83,6 @@ export default function ProductoModal({
     if (formData.tipoProducto !== 'COLCHON') {
       delete dataToSend.firmeza;
       delete dataToSend.materialNucleo;
-    }
-    if (formData.tipoProducto !== 'CAMA') {
-      delete dataToSend.tipoCama;
     }
     
     try {
@@ -155,9 +151,9 @@ export default function ProductoModal({
                     <select name="firmeza" value={formData.firmeza || ''} onChange={handleChange}
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white">
                       <option value="">Seleccionar...</option>
-                      <option value="suave">Suave</option>
-                      <option value="media">Media</option>
-                      <option value="firme">Firme</option>
+                      <option value="Suave">Suave</option>
+                      <option value="Medio">Medio</option>
+                      <option value="Firme">Firme</option>
                     </select>
                   </div>
                   
@@ -166,28 +162,17 @@ export default function ProductoModal({
                     <select name="materialNucleo" value={formData.materialNucleo || ''} onChange={handleChange}
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white">
                       <option value="">Seleccionar...</option>
-                      <option value="espuma">Espuma</option>
-                      <option value="latex">Látex</option>
-                      <option value="muelle">Muelle</option>
+                      <option value="Espuma alta densidad">Espuma alta densidad</option>
+                      <option value="Viscoelástica">Viscoelástica</option>
+                      <option value="Látex">Látex</option>
+                      <option value="Resortes ensacados">Resortes ensacados</option>
+                      <option value="Fibra siliconada">Fibra siliconada</option>
                     </select>
                   </div>
                 </>
               )}
 
               {/* ✅ CAMPOS CONDICIONALES - CAMA */}
-              {formData.tipoProducto === 'CAMA' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Tipo de Cama</label>
-                  <select name="tipoCama" value={formData.tipoCama || ''} onChange={handleChange}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white">
-                    <option value="">Seleccionar...</option>
-                    <option value="individual">Individual</option>
-                    <option value="matrimonial">Matrimonial</option>
-                    <option value="queen">Queen</option>
-                    <option value="king">King</option>
-                  </select>
-                </div>
-              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700">Categoría *</label>
@@ -197,6 +182,13 @@ export default function ProductoModal({
                     <option key={cat.id} value={cat.id}>{cat.nombre}</option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Marca</label>
+                <input type="text" name="marca" value={formData.marca} onChange={handleChange}
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                  placeholder="Ej: Colchones del Oriente" />
               </div>
 
               <div>
@@ -212,8 +204,8 @@ export default function ProductoModal({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Precio Unitario *</label>
-                <input type="number" step="0.01" name="precioUnitario" value={formData.precioUnitario} onChange={handleChange}
+                <label className="block text-sm font-medium text-gray-700">Costo referencial *</label>
+                <input type="number" step="0.01" name="costoReferencial" value={formData.costoReferencial} onChange={handleChange}
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required />
               </div>
 

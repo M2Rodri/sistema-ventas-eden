@@ -1,22 +1,67 @@
 'use client';
 
-import { useRouter } from 'next/navigation'; // 
-import { useEffect } from 'react'; // 
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import Link from 'next/link';
-import { UserPlus, PackagePlus, Eye, FileText, TrendingUp, TrendingDown, Package } from 'lucide-react';
-import Image from 'next/image';
+import {
+  UserPlus,
+  PackagePlus,
+  FileText,
+  TrendingUp,
+  Package,
+  Users,
+  AlertTriangle,
+  Boxes,
+  DollarSign,
+} from 'lucide-react';
+import { getDashboardEstadisticas } from '@/lib/api';
+import { DashboardEstadisticas } from '@/types/dashboard';
 
+/**
+ * Panel de inicio.
+ *
+ * Todas las cifras salen de /api/dashboard/estadisticas. Antes esta pantalla
+ * mostraba valores fijos escritos en el código ($250.000 en ventas, 1.200
+ * productos, 350 usuarios, 4.8/5 en reseñas y tres productos destacados
+ * inventados), que no correspondían a ningún dato del sistema.
+ */
 export default function DashboardPage() {
   const { user } = useAuth();
-  const router = useRouter(); // ← AGREGAR
+  const router = useRouter();
+
+  const [stats, setStats] = useState<DashboardEstadisticas | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Proteger el dashboard - solo ADMIN y EMPLEADO
   useEffect(() => {
     if (user && user.role === 'CLIENTE') {
       router.replace('/tienda');
     }
-  }, [user, router]); // ← AGREGAR TODO ESTE BLOQUE
+  }, [user, router]);
+
+  useEffect(() => {
+    let activo = true;
+    (async () => {
+      try {
+        const data = await getDashboardEstadisticas();
+        if (activo) setStats(data);
+      } catch (err: any) {
+        if (activo) setError(err?.message ?? 'No se pudieron cargar las estadísticas');
+      } finally {
+        if (activo) setLoading(false);
+      }
+    })();
+    return () => {
+      activo = false;
+    };
+  }, []);
+
+  const bs = (monto?: number) =>
+    `Bs ${Number(monto ?? 0).toLocaleString('es-BO', { minimumFractionDigits: 2 })}`;
+
+  const num = (valor?: number) => Number(valor ?? 0).toLocaleString('es-BO');
 
   return (
     <div className="space-y-6">
@@ -25,114 +70,180 @@ export default function DashboardPage() {
         <h1 className="text-3xl font-bold text-gray-900">
           Bienvenido, {user?.nombre} {user?.apellido}
         </h1>
+        <p className="text-gray-500 mt-1">
+          Resumen del negocio al{' '}
+          {new Date().toLocaleDateString('es-BO', {
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric',
+          })}
+        </p>
       </div>
+
+      {error && (
+        <div className="p-4 rounded-lg bg-red-50 border border-red-200 text-red-800">
+          {error}
+        </div>
+      )}
 
       {/* Tarjetas de estadísticas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Ventas Totales */}
         <div className="bg-gradient-to-br from-primary-500 to-primary-600 p-6 rounded-xl shadow-lg text-white">
-          <h3 className="text-sm font-medium opacity-90">Ventas Totales</h3>
-          <p className="text-3xl font-bold mt-2">$250,000</p>
-          <div className="flex items-center gap-1 mt-2 text-sm">
-            <TrendingUp size={16} />
-            <span>+15%</span>
+          <div className="flex items-start justify-between">
+            <h3 className="text-sm font-medium opacity-90">Ventas del mes</h3>
+            <TrendingUp size={18} className="opacity-80" />
           </div>
+          <p className="text-3xl font-bold mt-2">
+            {loading ? '—' : bs(stats?.ventasStats?.montoVentasMes)}
+          </p>
+          <p className="text-sm mt-2 opacity-90">
+            {loading ? '' : `${num(stats?.ventasStats?.totalVentasMes)} ventas registradas`}
+          </p>
         </div>
 
-        {/* Productos en Inventario */}
-        <div className="bg-gradient-to-br from-secondary-400 to-secondary-500 p-6 rounded-xl shadow-lg text-white">
-          <h3 className="text-sm font-medium opacity-90">Productos en Inventario</h3>
-          <p className="text-3xl font-bold mt-2">1,200</p>
-          <div className="flex items-center gap-1 mt-2 text-sm">
-            <TrendingDown size={16} />
-            <span>-5%</span>
+        <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+          <div className="flex items-start justify-between">
+            <h3 className="text-sm font-medium text-gray-500">Ventas de hoy</h3>
+            <DollarSign size={18} className="text-gray-400" />
           </div>
+          <p className="text-3xl font-bold mt-2 text-gray-900">
+            {loading ? '—' : bs(stats?.ventasStats?.montoVentasHoy)}
+          </p>
+          <p className="text-sm mt-2 text-gray-500">
+            {loading ? '' : `${num(stats?.ventasStats?.totalVentasHoy)} hoy`}
+          </p>
         </div>
 
-        {/* Usuarios Activos */}
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-xl shadow-lg text-white">
-          <h3 className="text-sm font-medium opacity-90">Usuarios Activos</h3>
-          <p className="text-3xl font-bold mt-2">350</p>
-          <div className="flex items-center gap-1 mt-2 text-sm">
-            <TrendingUp size={16} />
-            <span>+10%</span>
+        <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+          <div className="flex items-start justify-between">
+            <h3 className="text-sm font-medium text-gray-500">Productos activos</h3>
+            <Package size={18} className="text-gray-400" />
           </div>
+          <p className="text-3xl font-bold mt-2 text-gray-900">
+            {loading ? '—' : num(stats?.productosStats?.productosActivos)}
+          </p>
+          <p className="text-sm mt-2 text-gray-500">
+            {loading ? '' : `${num(stats?.productosStats?.totalProductos)} en el catálogo`}
+          </p>
         </div>
 
-        {/* Reseñas Recientes */}
-        <div className="bg-gradient-to-br from-amber-500 to-amber-600 p-6 rounded-xl shadow-lg text-white">
-          <h3 className="text-sm font-medium opacity-90">Reseñas Recientes</h3>
-          <p className="text-3xl font-bold mt-2">4.8/5</p>
-          <div className="flex items-center gap-1 mt-2 text-sm">
-            <span>+2%</span>
+        <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+          <div className="flex items-start justify-between">
+            <h3 className="text-sm font-medium text-gray-500">Clientes</h3>
+            <Users size={18} className="text-gray-400" />
           </div>
+          <p className="text-3xl font-bold mt-2 text-gray-900">
+            {loading ? '—' : num(stats?.clientesStats?.totalClientes)}
+          </p>
+          <p className="text-sm mt-2 text-gray-500">
+            {loading ? '' : `${num(stats?.clientesStats?.clientesNuevosMes)} nuevos este mes`}
+          </p>
         </div>
       </div>
+
+      {/* Alertas de stock */}
+      {!loading && (stats?.productosStats?.productosBajoStock ?? 0) > 0 && (
+        <Link
+          href="/dashboard/inventario"
+          className="flex items-center gap-3 p-4 rounded-xl bg-amber-50 border border-amber-200 hover:bg-amber-100 transition-colors"
+        >
+          <AlertTriangle className="text-amber-600 flex-shrink-0" size={22} />
+          <div>
+            <p className="font-medium text-amber-900">
+              {num(stats?.productosStats?.productosBajoStock)} producto(s) por debajo del stock mínimo
+            </p>
+            <p className="text-sm text-amber-800">
+              {num(stats?.productosStats?.productosSinStock)} sin stock · Valor del inventario:{' '}
+              {bs(stats?.inventarioStats?.valorTotalInventario)}
+            </p>
+          </div>
+        </Link>
+      )}
 
       {/* Acciones Rápidas */}
       <div>
         <h2 className="text-xl font-bold text-gray-900 mb-4">Acciones Rápidas</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {user?.role === 'ADMIN' && (
-            <button className="bg-gray-900 text-white px-6 py-4 rounded-xl hover:bg-gray-800 transition-colors font-medium text-sm shadow-md">
-              Añadir Producto Nuevo
-            </button>
+            <Link
+              href="/dashboard/productos"
+              className="flex items-center justify-center gap-2 bg-gray-900 text-white px-6 py-4 rounded-xl hover:bg-gray-800 transition-colors font-medium text-sm shadow-md"
+            >
+              <PackagePlus size={18} />
+              Nuevo producto
+            </Link>
           )}
-          
-          <button className="bg-white border border-gray-200 text-gray-700 px-6 py-4 rounded-xl hover:bg-gray-50 transition-colors font-medium text-sm shadow-sm">
-            Ver Inventario Bajo
-          </button>
 
-          <button className="bg-white border border-gray-200 text-gray-700 px-6 py-4 rounded-xl hover:bg-gray-50 transition-colors font-medium text-sm shadow-sm">
-            Procesar Ventas
-          </button>
+          <Link
+            href="/dashboard/inventario"
+            className="flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-700 px-6 py-4 rounded-xl hover:bg-gray-50 transition-colors font-medium text-sm shadow-sm"
+          >
+            <Boxes size={18} />
+            Ver inventario
+          </Link>
 
-          <button className="bg-white border border-gray-200 text-gray-700 px-6 py-4 rounded-xl hover:bg-gray-50 transition-colors font-medium text-sm shadow-sm">
-            Generar Reporte
-          </button>
+          <Link
+            href="/dashboard/ventas"
+            className="flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-700 px-6 py-4 rounded-xl hover:bg-gray-50 transition-colors font-medium text-sm shadow-sm"
+          >
+            <DollarSign size={18} />
+            Registrar venta
+          </Link>
+
+          {user?.role === 'ADMIN' && (
+            <Link
+              href="/dashboard/reportes"
+              className="flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-700 px-6 py-4 rounded-xl hover:bg-gray-50 transition-colors font-medium text-sm shadow-sm"
+            >
+              <FileText size={18} />
+              Ver reportes
+            </Link>
+          )}
         </div>
       </div>
 
-      {/* Productos Destacados */}
+      {/* Productos más vendidos */}
       <div>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Productos Destacados</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Producto 1 */}
-          <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-            <div className="h-48 bg-gray-100 flex items-center justify-center">
-              <Package size={64} className="text-gray-300" />
-            </div>
-            <div className="p-4">
-              <h3 className="font-semibold text-gray-900">Cama Ortopédica</h3>
-              <p className="text-sm text-gray-500 mt-1">Categoría: Camas</p>
-              <p className="text-lg font-bold text-primary-600 mt-2">$2,500</p>
-            </div>
-          </div>
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Productos más vendidos</h2>
 
-          {/* Producto 2 */}
-          <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-            <div className="h-48 bg-gray-100 flex items-center justify-center">
-              <Package size={64} className="text-gray-300" />
-            </div>
-            <div className="p-4">
-              <h3 className="font-semibold text-gray-900">Cama de Lujo</h3>
-              <p className="text-sm text-gray-500 mt-1">Categoría: Camas</p>
-              <p className="text-lg font-bold text-primary-600 mt-2">$3,200</p>
+        {loading ? (
+          <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500">
+            Cargando…
+          </div>
+        ) : !stats?.productosMasVendidos || stats.productosMasVendidos.length === 0 ? (
+          <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+            <Package size={40} className="mx-auto text-gray-300 mb-3" />
+            <p className="text-gray-600 font-medium">Todavía no hay ventas registradas</p>
+            <p className="text-sm text-gray-500 mt-1">
+              Cuando registres ventas, acá vas a ver qué productos se venden más.
+            </p>
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Unidades</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Monto</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {stats.productosMasVendidos.map((p) => (
+                    <tr key={p.idProducto} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900">{p.nombreProducto}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500 font-mono">{p.skuProducto}</td>
+                      <td className="px-6 py-4 text-sm text-right text-gray-900">{num(p.cantidadVendida)}</td>
+                      <td className="px-6 py-4 text-sm text-right font-semibold text-gray-900">{bs(p.montoTotal)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
-
-          {/* Producto 3 */}
-          <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-            <div className="h-48 bg-gray-100 flex items-center justify-center">
-              <Package size={64} className="text-gray-300" />
-            </div>
-            <div className="p-4">
-              <h3 className="font-semibold text-gray-900">Almohada Premium</h3>
-              <p className="text-sm text-gray-500 mt-1">Categoría: Almohadas</p>
-              <p className="text-lg font-bold text-primary-600 mt-2">$180</p>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

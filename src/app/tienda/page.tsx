@@ -1,37 +1,62 @@
 // src/app/tienda/page.tsx
-import React from 'react';
+'use client';
+
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { getActiveProductos, getActiveCategorias, BACKEND_URL } from '@/lib/api';
+import { Producto, Categoria } from '@/types/producto';
 
-// Componente para las categorías
-const CategoriaCard = ({ nombre, imagenUrl, href }: { nombre: string; imagenUrl: string; href: string }) => {
-  return (
-    <Link href={href} className="block group">
-      <div className="bg-white rounded-xl shadow-md overflow-hidden transition-transform duration-300 group-hover:shadow-lg group-hover:-translate-y-1">
-        <div className="h-40 bg-gray-200 flex items-center justify-center">
-          {/* Placeholder para imagen de categoría */}
-          <div className="bg-gray-200 border-2 border-dashed rounded-xl w-full h-full" />
-        </div>
-        <div className="p-4 text-center">
-          <h3 className="text-lg font-semibold text-gray-800 group-hover:text-primary-600">{nombre}</h3>
-        </div>
+/**
+ * Portada de la tienda.
+ *
+ * Antes mostraba tres categorías y cuatro "productos destacados" escritos a
+ * mano — "Cama King Size Premium Bs. 4.500", "Colchón Ortopédico Lux
+ * Bs. 3.200" — que no existían en el catálogo, y sus enlaces apuntaban a
+ * /tienda/producto/1, una ruta inexistente. Ahora todo sale del backend.
+ */
+
+const CategoriaCard = ({ nombre, href }: { nombre: string; href: string }) => (
+  <Link href={href} className="block group">
+    <div className="bg-white rounded-xl shadow-md overflow-hidden transition-transform duration-300 group-hover:shadow-lg group-hover:-translate-y-1">
+      <div className="h-40 bg-gradient-to-br from-primary-50 to-secondary-50 flex items-center justify-center">
+        <span className="text-4xl">🛏️</span>
       </div>
-    </Link>
-  );
-};
+      <div className="p-4 text-center">
+        <h3 className="text-lg font-semibold text-gray-800 group-hover:text-primary-600">{nombre}</h3>
+      </div>
+    </div>
+  </Link>
+);
 
-// Componente para los productos destacados
-const ProductoCard = ({ nombre, precio, categoria, imagenUrl, href }: { nombre: string; precio: string; categoria: string; imagenUrl: string; href: string }) => {
+const ProductoCard = ({ producto }: { producto: Producto }) => {
+  const principal =
+    producto.imagenes?.find((i) => i.esPrincipal) ?? producto.imagenes?.[0];
+
   return (
-    <Link href={href} className="block group">
+    <Link href={`/tienda/productos/${producto.id}`} className="block group">
       <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200 transition-transform duration-300 group-hover:shadow-md group-hover:-translate-y-1">
-        <div className="h-48 bg-gray-100 flex items-center justify-center">
-          {/* Placeholder para imagen de producto */}
-          <div className="bg-gray-200 border-2 border-dashed rounded-xl w-full h-full" />
+        <div className="h-48 bg-gray-100 flex items-center justify-center overflow-hidden">
+          {principal ? (
+            <img
+              src={`${BACKEND_URL}${principal.urlImagen}`}
+              alt={producto.nombre}
+              className="h-full w-full object-cover"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/images/placeholder-imagen.jpg';
+              }}
+            />
+          ) : (
+            <span className="text-5xl opacity-30">🛏️</span>
+          )}
         </div>
         <div className="p-4">
-          <span className="text-sm text-gray-500">{categoria}</span>
-          <h3 className="font-semibold text-gray-900 group-hover:text-primary-600">{nombre}</h3>
-          <p className="text-lg font-bold text-primary-600 mt-1">{precio}</p>
+          <span className="text-sm text-gray-500">{producto.nombreCategoria}</span>
+          <h3 className="font-semibold text-gray-900 group-hover:text-primary-600 line-clamp-2">
+            {producto.nombre}
+          </h3>
+          <p className="text-lg font-bold text-primary-600 mt-1">
+            Bs. {Number(producto.precioVenta).toLocaleString('es-BO', { minimumFractionDigits: 2 })}
+          </p>
         </div>
       </div>
     </Link>
@@ -39,26 +64,40 @@ const ProductoCard = ({ nombre, precio, categoria, imagenUrl, href }: { nombre: 
 };
 
 const TiendaHomePage = () => {
-  // Datos de ejemplo - estos vendrán del backend en el futuro
-  const categorias = [
-    { id: 1, nombre: "Camas", imagenUrl: "", href: "/tienda/productos?categoria=camas" },
-    { id: 2, nombre: "Colchones", imagenUrl: "", href: "/tienda/productos?categoria=colchones" },
-    { id: 3, nombre: "Almohadas", imagenUrl: "", href: "/tienda/productos?categoria=almohadas" },
-  ];
+  const [productos, setProductos] = useState<Producto[]>([]);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [cargando, setCargando] = useState(true);
 
-  const productosDestacados = [
-    { id: 1, nombre: "Cama King Size Premium", precio: "Bs. 4,500", categoria: "Camas", imagenUrl: "", href: "/tienda/producto/1" },
-    { id: 2, nombre: "Colchón Ortopédico Lux", precio: "Bs. 3,200", categoria: "Colchones", imagenUrl: "", href: "/tienda/producto/2" },
-    { id: 3, nombre: "Almohada de Espuma Viscoelástica", precio: "Bs. 250", categoria: "Almohadas", imagenUrl: "", href: "/tienda/producto/3" },
-    { id: 4, nombre: "Cama Plegable Confort", precio: "Bs. 1,800", categoria: "Camas", imagenUrl: "", href: "/tienda/producto/4" },
-  ];
+  useEffect(() => {
+    let activo = true;
+    (async () => {
+      // allSettled y no all: si una sección falla, la otra igual se muestra.
+      const [prods, cats] = await Promise.allSettled([
+        getActiveProductos(),
+        getActiveCategorias(),
+      ]);
+      if (!activo) return;
+      if (prods.status === 'fulfilled') setProductos(prods.value);
+      if (cats.status === 'fulfilled') setCategorias(cats.value);
+      setCargando(false);
+    })();
+    return () => {
+      activo = false;
+    };
+  }, []);
+
+  // Se destacan los cuatro productos más caros: son los que mejor representan
+  // el catálogo en la portada.
+  const destacados = [...productos]
+    .sort((a, b) => Number(b.precioVenta) - Number(a.precioVenta))
+    .slice(0, 4);
 
   return (
     <div className="space-y-12 py-8 bg-gradient-to-b from-gray-50 to-gray-100 min-h-[calc(100vh-16rem)]">
       {/* Hero Banner */}
-      <section className="relative bg-gradient-to-r from-gray-900 to-gray-700 text-white rounded-2xl overflow-hidden shadow-xl pt-16"> {/* <--- Añadido pt-16 aquí */}
-                  <div className="absolute inset-0 bg-white bg-opacity-20 backdrop-blur-sm rounded-2xl"></div> {/* <-- NUEVO DIV CON EFECTO ESMERILADO */}
-        <div className="relative container mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16 flex flex-col items-center text-center"> {/* Este div ya tenía padding vertical */}
+      <section className="relative bg-gradient-to-r from-gray-900 to-gray-700 text-white rounded-2xl overflow-hidden shadow-xl pt-16">
+        <div className="absolute inset-0 bg-white bg-opacity-20 backdrop-blur-sm rounded-2xl"></div>
+        <div className="relative container mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16 flex flex-col items-center text-center">
           <h1 className="text-3xl md:text-5xl font-bold mb-4">Descansa Mejor con Nuestras Camas Premium</h1>
           <p className="text-lg md:text-xl mb-8 max-w-2xl">Entrega en toda Bolivia - Tecnología 3D y AR</p>
           <div className="flex flex-col sm:flex-row gap-4">
@@ -66,48 +105,46 @@ const TiendaHomePage = () => {
               Ver Catálogo
             </Link>
             <Link href="/tienda/promociones" className="bg-secondary-600 hover:bg-secondary-700 text-white font-bold py-3 px-8 rounded-full transition-colors duration-300 shadow-lg">
-              Ofertas Especiales
+              Promociones Especiales
             </Link>
           </div>
         </div>
       </section>
 
       {/* Categorías */}
-      <section className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 text-gray-800">Explora por Categorías</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {categorias.map((categoria) => (
-            <CategoriaCard
-              key={categoria.id}
-              nombre={categoria.nombre}
-              imagenUrl={categoria.imagenUrl}
-              href={categoria.href}
-            />
-          ))}
-        </div>
-      </section>
+      {categorias.length > 0 && (
+        <section className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 text-gray-800">Explora por Categorías</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {categorias.map((categoria) => (
+              <CategoriaCard
+                key={categoria.id}
+                nombre={categoria.nombre}
+                href={`/tienda/productos?categoria=${encodeURIComponent(categoria.nombre)}`}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Productos Destacados */}
       <section className="container mx-auto px-4 sm:px-6 lg:px-8">
         <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 text-gray-800">Productos Destacados</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {productosDestacados.map((producto) => (
-            <ProductoCard
-              key={producto.id}
-              nombre={producto.nombre}
-              precio={producto.precio}
-              categoria={producto.categoria}
-              imagenUrl={producto.imagenUrl}
-              href={producto.href}
-            />
-          ))}
-        </div>
-      </section>
 
-      {/* Sección de Ofertas (ejemplo futuro) */}
-      {/* <section className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded">
-        <p className="font-bold">🎉 ¡OFERTA ACTIVA! - Hasta 30% OFF en Colchones seleccionados</p>
-      </section> */}
+        {cargando ? (
+          <p className="text-center text-gray-500">Cargando productos…</p>
+        ) : destacados.length === 0 ? (
+          <p className="text-center text-gray-500">
+            Todavía no hay productos publicados en el catálogo.
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {destacados.map((producto) => (
+              <ProductoCard key={producto.id} producto={producto} />
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 };

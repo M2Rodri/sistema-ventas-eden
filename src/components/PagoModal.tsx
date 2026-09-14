@@ -136,7 +136,7 @@ export default function PagoModal({ ventas, onClose, onSuccess }: PagoModalProps
                             <div>
                               <p className="font-semibold text-gray-900">Venta #{venta.id}</p>
                               <p className="text-sm text-gray-600">{venta.nombreCliente}</p>
-                              <p className="text-xs text-gray-500">{venta.celularCliente}</p>
+                              <p className="text-xs text-gray-500">{venta.telefonoCliente}</p>
                             </div>
                             <div className="text-right">
                               <p className="font-bold text-primary-600">{formatCurrency(venta.montoTotal)}</p>
@@ -159,7 +159,7 @@ export default function PagoModal({ ventas, onClose, onSuccess }: PagoModalProps
                   <div>
                     <p className="font-semibold text-gray-900">Venta #{ventaSeleccionada.id}</p>
                     <p className="text-sm text-gray-600">{ventaSeleccionada.nombreCliente}</p>
-                    <p className="text-xs text-gray-500">{ventaSeleccionada.celularCliente}</p>
+                    <p className="text-xs text-gray-500">{ventaSeleccionada.telefonoCliente}</p>
                     <p className="text-sm text-gray-600 mt-2">
                       Método de venta: <span className="font-medium">{ventaSeleccionada.metodoPago}</span>
                     </p>

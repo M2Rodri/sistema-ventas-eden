@@ -1,6 +1,13 @@
 // types/inventario.ts
 
-export type TipoAjuste = 'ENTRADA' | 'SALIDA';
+export type TipoMovimiento =
+  | 'ENTRADA'
+  | 'SALIDA'
+  | 'COMPRA'
+  | 'VENTA'
+  | 'DEVOLUCION'
+  | 'MERMA'
+  | 'AJUSTE_INICIAL';
 export type EstadoAlerta = 'PENDIENTE' | 'ATENDIDA';
 
 export interface Inventario {
@@ -8,6 +15,11 @@ export interface Inventario {
   idProducto: number;
   nombreProducto: string;
   skuProducto: string;
+  /** Categoría real del producto, provista por el backend. */
+  idCategoria: number | null;
+  nombreCategoria: string | null;
+  /** Costo de referencia del producto, para valorizar el inventario. */
+  costoReferencial: number | null;
   cantidadDisponible: number;
   stockMinimo: number;
   ubicacion: string | null;
@@ -32,24 +44,35 @@ export interface AlertaInventario {
   estado: EstadoAlerta;
 }
 
-export interface AjusteInventario {
+/**
+ * Movimiento de inventario.
+ *
+ * La entidad se llamaba AjusteInventario, pero la tabla siempre fue
+ * 'movimientos_inventario': un movimiento puede ser entrada, salida, compra,
+ * venta, devolución, merma o ajuste inicial — el ajuste es solo uno de los
+ * siete casos. Se unificó el nombre en las tres capas.
+ */
+export interface MovimientoInventario {
   id: number;
   idProducto: number;
   nombreProducto: string;
   skuProducto: string;
   cantidadAnterior: number;
   cantidadNueva: number;
-  diferencia: number;
-  tipoAjuste: TipoAjuste;
+  /** Diferencia aplicada: positiva en entradas, negativa en salidas. */
+  cantidad: number;
+  tipoMovimiento: TipoMovimiento;
   motivo: string;
+  observacion?: string;
   idUsuario: number | null;
   nombreUsuario: string;
   fecha: string;
 }
 
-export interface AjusteInventarioRequest {
+export interface MovimientoInventarioRequest {
   idProducto: number;
   cantidad: number;
-  tipoAjuste: 'ENTRADA' | 'SALIDA';
+  /** Desde la pantalla solo se cargan ajustes manuales de entrada o salida. */
+  tipoMovimiento: 'ENTRADA' | 'SALIDA';
   motivo: string;
 }

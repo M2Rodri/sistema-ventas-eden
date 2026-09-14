@@ -4,7 +4,7 @@ export interface Transportadora {
   id: number;
   nombre: string;
   telefono: string | null;
-  correo: string | null;
+  email: string | null;
   tarifaBase: number;
   tiempoEstimadoDias: number;
   activo: boolean;
@@ -15,7 +15,7 @@ export interface Transportadora {
 export interface TransportadoraRequest {
   nombre: string;
   telefono?: string;
-  correo?: string;
+  email?: string;
   tarifaBase: number;
   tiempoEstimadoDias: number;
   activo: boolean;

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { X, Printer, Download } from 'lucide-react';
+import { X, Printer } from 'lucide-react';
 import { getComprobanteByVenta, getVentaById, createComprobante } from '@/lib/api';
 import type { Comprobante } from '@/lib/api';
 import type { Venta } from '@/types/venta';
@@ -56,16 +56,12 @@ export default function ComprobanteModal({ isOpen, onClose, idVenta }: Comproban
     }
   };
 
+  // Antes esto hacía document.body.innerHTML = contenido y después
+  // window.location.reload(), o sea que imprimir recargaba toda la página.
+  // Ahora la hoja de estilos @media print de globals.css oculta todo salvo
+  // .area-impresion, así que alcanza con pedir la impresión.
   const handleImprimir = () => {
-    if (printRef.current) {
-      const printContent = printRef.current.innerHTML;
-      const originalContent = document.body.innerHTML;
-
-      document.body.innerHTML = printContent;
-      window.print();
-      document.body.innerHTML = originalContent;
-      window.location.reload(); // Recargar para restaurar eventos
-    }
+    window.print();
   };
 
   const formatPrice = (price: number) => {
@@ -111,7 +107,7 @@ export default function ComprobanteModal({ isOpen, onClose, idVenta }: Comproban
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Printer size={18} />
-              Imprimir
+              Imprimir / Guardar PDF
             </button>
             <button
               onClick={onClose}
@@ -146,7 +142,7 @@ export default function ComprobanteModal({ isOpen, onClose, idVenta }: Comproban
           )}
 
           {!loading && !error && venta && comprobante && (
-            <div ref={printRef} className="bg-white">
+            <div ref={printRef} className="bg-white area-impresion">
               {/* Encabezado de la empresa */}
               <div className="border-b-2 border-gray-300 pb-6 mb-6">
                 <div className="text-center">
@@ -167,8 +163,8 @@ export default function ComprobanteModal({ isOpen, onClose, idVenta }: Comproban
                 <div>
                   <h3 className="font-bold text-gray-700 mb-3 text-base border-b pb-2">Datos del Cliente:</h3>
                   <p className="mb-1 text-sm"><span className="font-semibold">Nombre:</span> {venta.nombreCliente}</p>
-                  {venta.celularCliente && (
-                    <p className="mb-1 text-sm"><span className="font-semibold">Celular:</span> {venta.celularCliente}</p>
+                  {venta.telefonoCliente && (
+                    <p className="mb-1 text-sm"><span className="font-semibold">Celular:</span> {venta.telefonoCliente}</p>
                   )}
                   {!venta.esClienteRegistrado && (
                     <p className="text-xs text-blue-600 mt-2">(Cliente rápido)</p>
@@ -177,7 +173,7 @@ export default function ComprobanteModal({ isOpen, onClose, idVenta }: Comproban
                 <div className="text-right">
                   <h3 className="font-bold text-gray-700 mb-3 text-base border-b pb-2">Datos de la Venta:</h3>
                   <p className="mb-1 text-sm"><span className="font-semibold">Fecha:</span> {formatDate(venta.fechaVenta)}</p>
-                  <p className="mb-1 text-sm"><span className="font-semibold">Método:</span> {getMetodoPagoLabel(venta.metodoPago)}</p>
+                  <p className="mb-1 text-sm"><span className="font-semibold">Método:</span> {getMetodoPagoLabel(venta.metodoPago ?? "")}</p>
                   <p className="mb-1 text-sm"><span className="font-semibold">Vendedor:</span> {venta.nombreUsuario || 'Sistema'}</p>
                   <p className="mb-1 text-sm"><span className="font-semibold">Venta #:</span> {venta.id}</p>
                 </div>
@@ -200,7 +196,7 @@ export default function ComprobanteModal({ isOpen, onClose, idVenta }: Comproban
                       <tr key={index}>
                         <td className="px-3 py-2">
                           <div className="text-sm font-medium text-gray-900">{detalle.nombreProducto}</div>
-                          <div className="text-xs text-gray-500">Cód: {detalle.codigoProducto}</div>
+                          <div className="text-xs text-gray-500">Cód: {detalle.skuProducto}</div>
                         </td>
                         <td className="px-3 py-2 text-center text-sm font-medium text-gray-900">{detalle.cantidad}</td>
                         <td className="px-3 py-2 text-right text-sm text-gray-900">

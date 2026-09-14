@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { X, AlertCircle } from 'lucide-react';
 import { ajustarInventario } from '@/lib/api';
-import { Inventario, AjusteInventarioRequest } from '@/types/inventario';
+import { Inventario, MovimientoInventarioRequest } from '@/types/inventario';
 
 interface AjusteInventarioModalProps {
   inventario: Inventario;
@@ -11,11 +11,11 @@ interface AjusteInventarioModalProps {
   onSuccess: () => void;
 }
 
-export default function AjusteInventarioModal({ inventario, onClose, onSuccess }: AjusteInventarioModalProps) {
-  const [formData, setFormData] = useState<AjusteInventarioRequest>({
+export default function MovimientoInventarioModal({ inventario, onClose, onSuccess }: AjusteInventarioModalProps) {
+  const [formData, setFormData] = useState<MovimientoInventarioRequest>({
     idProducto: inventario.idProducto,
     cantidad: 0,
-    tipoAjuste: 'ENTRADA',
+    tipoMovimiento: 'ENTRADA',
     motivo: '',
   });
   const [loading, setLoading] = useState(false);
@@ -48,7 +48,7 @@ export default function AjusteInventarioModal({ inventario, onClose, onSuccess }
   };
 
   const calcularNuevaCantidad = () => {
-    if (formData.tipoAjuste === 'ENTRADA') {
+    if (formData.tipoMovimiento === 'ENTRADA') {
       return inventario.cantidadDisponible + formData.cantidad;
     } else {
       return Math.max(0, inventario.cantidadDisponible - formData.cantidad);
@@ -105,9 +105,9 @@ export default function AjusteInventarioModal({ inventario, onClose, onSuccess }
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
-                onClick={() => setFormData({ ...formData, tipoAjuste: 'ENTRADA' })}
+                onClick={() => setFormData({ ...formData, tipoMovimiento: 'ENTRADA' })}
                 className={`px-4 py-3 rounded-lg border-2 font-medium transition-all ${
-                  formData.tipoAjuste === 'ENTRADA'
+                  formData.tipoMovimiento === 'ENTRADA'
                     ? 'border-green-500 bg-green-50 text-green-700'
                     : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
                 }`}
@@ -116,9 +116,9 @@ export default function AjusteInventarioModal({ inventario, onClose, onSuccess }
               </button>
               <button
                 type="button"
-                onClick={() => setFormData({ ...formData, tipoAjuste: 'SALIDA' })}
+                onClick={() => setFormData({ ...formData, tipoMovimiento: 'SALIDA' })}
                 className={`px-4 py-3 rounded-lg border-2 font-medium transition-all ${
-                  formData.tipoAjuste === 'SALIDA'
+                  formData.tipoMovimiento === 'SALIDA'
                     ? 'border-red-500 bg-red-50 text-red-700'
                     : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
                 }`}
@@ -173,10 +173,10 @@ export default function AjusteInventarioModal({ inventario, onClose, onSuccess }
               </div>
               <div className="flex items-center justify-between text-sm mt-1">
                 <span className="text-gray-600">
-                  {formData.tipoAjuste === 'ENTRADA' ? 'Se agregará:' : 'Se restará:'}
+                  {formData.tipoMovimiento === 'ENTRADA' ? 'Se agregará:' : 'Se restará:'}
                 </span>
-                <span className={formData.tipoAjuste === 'ENTRADA' ? 'text-green-600' : 'text-red-600'}>
-                  {formData.tipoAjuste === 'ENTRADA' ? '+' : '-'}{formData.cantidad}
+                <span className={formData.tipoMovimiento === 'ENTRADA' ? 'text-green-600' : 'text-red-600'}>
+                  {formData.tipoMovimiento === 'ENTRADA' ? '+' : '-'}{formData.cantidad}
                 </span>
               </div>
               <div className="border-t border-blue-300 mt-2 pt-2 flex items-center justify-between">

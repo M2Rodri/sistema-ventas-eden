@@ -17,13 +17,31 @@ import { Search, Package, Edit, Trash2, Power, Image as ImageIcon } from 'lucide
 import Breadcrumbs from '@/components/Breadcrumbs';
 import ProductoModal from '@/components/ProductoModal';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
+import AvisoCargaParcial from '@/components/AvisoCargaParcial';
+import { crearRecolector } from '@/lib/cargaParcial';
 
 export default function ProductosPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [filteredProductos, setFilteredProductos] = useState<Producto[]>([]);
+  const [fallosCarga, setFallosCarga] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // El buscador de la cabecera navega hasta aca con ?q=<texto>. Se copia al
+  // filtro de la pantalla para que el elemento que se eligio alla quede a la
+  // vista sin tener que volver a escribirlo.
+  //
+  // Se lee de window y no con useSearchParams a proposito: ese hook obliga a
+  // envolver la pagina en un <Suspense> y, sin eso, el build de produccion
+  // falla. Aca el valor solo hace falta despues de montar, asi que alcanza con
+  // mirar la URL dentro del efecto.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get('q');
+    if (q) {
+      setSearchTerm(q);
+    }
+  }, []);
   const [categoriaFilter, setCategoriaFilter] = useState<string>('TODOS');
   const [tipoFilter, setTipoFilter] = useState<string>('TODOS');
   const [statusFilter, setStatusFilter] = useState<string>('TODOS');
@@ -48,13 +66,21 @@ export default function ProductosPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [productosData, categoriasData] = await Promise.all([
+      // allSettled: sin categorias el filtro queda vacio, pero la lista de
+      // productos se sigue viendo.
+      const [rProductos, rCategorias] = await Promise.allSettled([
         getAllProductos(),
         getActiveCategorias()
       ]);
+
+      const { tomar, fallos } = crearRecolector();
+      const productosData = tomar(rProductos, 'los productos', [] as Producto[]);
+      const categoriasData = tomar(rCategorias, 'las categorias', [] as Categoria[]);
+
       setProductos(productosData);
       setFilteredProductos(productosData);
       setCategorias(categoriasData);
+      setFallosCarga(fallos);
     } catch (error: any) {
       showMessage('error', error.message);
     } finally {
@@ -297,6 +323,8 @@ export default function ProductosPage() {
   return (
     <div>
       <Breadcrumbs items={[{ label: 'Productos' }]} />
+
+      <AvisoCargaParcial fallos={fallosCarga} onReintentar={loadData} />
 
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">

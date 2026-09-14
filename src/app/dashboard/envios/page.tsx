@@ -23,12 +23,15 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import EnvioModal from '@/components/EnvioModal';
 import EnvioDetalleModal from '@/components/EnvioDetalleModal';
 import Link from 'next/link';
+import AvisoCargaParcial from '@/components/AvisoCargaParcial';
+import { crearRecolector } from '@/lib/cargaParcial';
 
 export default function EnviosPage() {
   const [envios, setEnvios] = useState<Envio[]>([]);
   const [filteredEnvios, setFilteredEnvios] = useState<Envio[]>([]);
   const [estadisticas, setEstadisticas] = useState<EnvioEstadisticas | null>(null);
   const [transportadoras, setTransportadoras] = useState<Transportadora[]>([]);
+  const [fallosCarga, setFallosCarga] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [estadoFilter, setEstadoFilter] = useState<string>('TODOS');
@@ -50,15 +53,24 @@ export default function EnviosPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [enviosData, statsData, transportadorasData] = await Promise.all([
+      // allSettled: si fallan las estadisticas o las transportadoras, la lista
+      // de envios igual tiene que verse.
+      const [rEnvios, rStats, rTransportadoras] = await Promise.allSettled([
         getAllEnvios(),
         getEnviosEstadisticas(),
         getAllTransportadoras()
       ]);
+
+      const { tomar, fallos } = crearRecolector();
+      const enviosData = tomar(rEnvios, 'los envios', [] as Envio[]);
+      const statsData = tomar(rStats, 'las estadisticas de envios', null as EnvioEstadisticas | null);
+      const transportadorasData = tomar(rTransportadoras, 'las transportadoras', [] as Transportadora[]);
+
       setEnvios(enviosData);
       setFilteredEnvios(enviosData);
       setEstadisticas(statsData);
       setTransportadoras(transportadorasData);
+      setFallosCarga(fallos);
     } catch (error: any) {
       showMessage('error', error.message);
     } finally {
@@ -160,6 +172,8 @@ export default function EnviosPage() {
   return (
     <div className="max-w-full">
       <Breadcrumbs items={[{ label: 'Envíos' }]} />
+
+      <AvisoCargaParcial fallos={fallosCarga} onReintentar={loadData} />
 
       {/* Header con filtros responsive */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
@@ -316,7 +330,7 @@ export default function EnviosPage() {
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">{envio.nombreCliente}</div>
-                    <div className="text-xs text-gray-500">{envio.celularCliente}</div>
+                    <div className="text-xs text-gray-500">{envio.telefonoCliente}</div>
                   </td>
                   <td className="px-4 py-4">
                     <div className="text-sm text-gray-900 max-w-xs truncate">{envio.direccionDestino}</div>

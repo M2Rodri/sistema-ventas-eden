@@ -4,3 +4,8 @@ node_modules
 .env.local
 dist/
 build/
+# Cache incremental de TypeScript: se regenera sola en cada maquina.
+*.tsbuildinfo
+
+# Carpeta para verificar compilaciones de produccion sin pisar la de desarrollo.
+.next-verificacion/

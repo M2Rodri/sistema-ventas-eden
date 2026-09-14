@@ -5,42 +5,24 @@
 import { useParams } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+// Se usa el tipo compartido en lugar de una copia local: las interfaces
+// duplicadas de esta página habían quedado desactualizadas (seguían con
+// precioUnitario y sin marca, firmeza ni materialNucleo).
+import { Producto, ImagenProducto } from '@/types/producto';
+import { BACKEND_URL } from '@/lib/api';
 import { MdStar, MdStarBorder, MdStarHalf, MdVisibility, MdViewInAr } from 'react-icons/md';
 import { FiShoppingCart } from 'react-icons/fi';
 
 // Asumiendo tus DTOs (ajusta según tu frontend)
-interface ImagenProductoDTO {
-  id: number;
-  urlImagen: string;
-  esPrincipal: boolean;
-  orden: number;
-}
-
-interface ProductoResponse {
-  id: number;
-  sku: string;
-  nombre: string;
-  descripcion: string;
-  modelo?: string;
-  idCategoria: number;
-  nombreCategoria: string;
-  calidad?: string;
-  precioUnitario: number;
-  precioVenta: number;
-  peso?: number;
-  dimensiones?: string;
-  tipoProducto: string;
-  activo: boolean;
-  imagenes: ImagenProductoDTO[];
-}
-
 const DetalleProductoPage = () => {
   // Ahora useParams debería estar disponible
   const { id } = useParams<{ id: string }>(); // Obtener el ID del producto desde la URL
-  const [producto, setProducto] = useState<ProductoResponse | null>(null);
+  const [producto, setProducto] = useState<Producto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'; // Asegúrate de tener esta variable
+  // Antes el onClick de las miniaturas estaba vacío: se veían clickeables
+  // y no hacían nada.
+  const [imagenSeleccionada, setImagenSeleccionada] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProducto = async () => {
@@ -55,7 +37,7 @@ const DetalleProductoPage = () => {
           throw new Error(`Error al cargar el producto: ${response.status} ${response.statusText}`);
         }
 
-        const data: ProductoResponse = await response.json();
+        const data: Producto = await response.json();
         setProducto(data);
       } catch (err) {
         console.error('Error fetching product:', err);
@@ -90,7 +72,10 @@ const DetalleProductoPage = () => {
   }
 
   // Asumiendo que la primera imagen es la principal, o filtrar por esPrincipal
-  const imagenPrincipal = producto.imagenes?.find(img => img.esPrincipal)?.urlImagen || producto.imagenes?.[0]?.urlImagen || '/images/placeholder-imagen.jpg';
+  const imagenPorDefecto = producto.imagenes?.find(img => img.esPrincipal)?.urlImagen
+    || producto.imagenes?.[0]?.urlImagen
+    || '/images/placeholder-imagen.jpg';
+  const imagenPrincipal = imagenSeleccionada ?? imagenPorDefecto;
 
   return (
     <div className="container mx-auto px-4 py-10">
@@ -118,8 +103,10 @@ const DetalleProductoPage = () => {
                     key={img.id}
                     src={`${BACKEND_URL}${img.urlImagen}`}
                     alt={`Imagen ${index + 1} de ${producto.nombre}`}
-                    className="w-full h-24 object-cover rounded cursor-pointer border border-gray-200"
-                    onClick={() => {/* Lógica para cambiar imagen principal */}}
+                    className={`w-full h-24 object-cover rounded cursor-pointer border-2 transition-colors ${
+                      imagenPrincipal === img.urlImagen ? 'border-primary-600' : 'border-gray-200 hover:border-gray-400'
+                    }`}
+                    onClick={() => setImagenSeleccionada(img.urlImagen)}
                   />
                 ))}
               </div>
@@ -144,6 +131,9 @@ const DetalleProductoPage = () => {
               {producto.calidad && <p><span className="font-medium">Calidad:</span> {producto.calidad}</p>}
               {producto.peso && <p><span className="font-medium">Peso:</span> {producto.peso} kg</p>}
               {producto.dimensiones && <p><span className="font-medium">Dimensiones:</span> {producto.dimensiones}</p>}
+              {producto.marca && <p><span className="font-medium">Marca:</span> {producto.marca}</p>}
+              {producto.firmeza && <p><span className="font-medium">Firmeza:</span> {producto.firmeza}</p>}
+              {producto.materialNucleo && <p><span className="font-medium">Material del núcleo:</span> {producto.materialNucleo}</p>}
             </div>
 
             {/* Botones de acción */}

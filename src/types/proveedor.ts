@@ -9,7 +9,7 @@ export interface Proveedor {
   contacto: string;
   telefono: string;
   direccion: string | null;
-  correo: string | null;
+  email: string | null;
   notas: string | null;
   activo: boolean;
   fechaRegistro: string;
@@ -22,7 +22,7 @@ export interface ProveedorRequest {
   contacto: string;
   telefono: string;
   direccion?: string;
-  correo?: string;
+  email?: string;
   notas?: string;
   activo: boolean;
 }
@@ -33,7 +33,10 @@ export interface Compra {
   nombreProveedor: string;
   nitProveedor: string;
   fechaCompra: string;
-  costoTotal: number;
+  subtotal: number;
+  descuento?: number;
+  montoTotal: number;
+  numeroFactura?: string | null;
   estado: EstadoCompra;
   idUsuario: number | null;
   nombreUsuario: string | null;
@@ -60,6 +63,8 @@ export interface ItemCompraRequest {
 
 export interface CompraRequest {
   idProveedor: number;
+  /** Número de factura del proveedor: respaldo legal del gasto. */
+  numeroFactura?: string;
   notas?: string;
   items: ItemCompraRequest[];
 }

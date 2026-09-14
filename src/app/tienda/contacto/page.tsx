@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { enviarMensajeContacto, getDatosNegocio, DatosNegocio } from '@/lib/api';
 import { MapPin, Phone, Mail, Clock, Send, MessageCircle, Facebook, Instagram, CheckCircle, Loader } from 'lucide-react';
 
 export default function ContactoPage() {
@@ -13,19 +14,38 @@ export default function ContactoPage() {
   });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [negocio, setNegocio] = useState<DatosNegocio>({});
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Los datos de contacto salen de configuracion_sistema, no del código: así
+  // se corrigen desde la pantalla de Configuración sin recompilar.
+  useEffect(() => {
+    let activo = true;
+    getDatosNegocio()
+      .then((d) => activo && setNegocio(d))
+      .catch(() => {})
+      .finally(() => {});
+    return () => { activo = false; };
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
-    // Simular envío (reemplazar con API real)
-    setTimeout(() => {
-      setLoading(false);
+    setError(null);
+
+    // Antes esto era un setTimeout que mostraba "enviado con éxito" sin
+    // llamar a ningún lado: el cliente creía haber escrito y nadie recibía
+    // nada. Ahora la consulta se guarda y el negocio la ve en el sistema.
+    try {
+      await enviarMensajeContacto(formData);
       setSuccess(true);
       setFormData({ nombre: '', email: '', telefono: '', asunto: '', mensaje: '' });
-      
-      setTimeout(() => setSuccess(false), 5000);
-    }, 2000);
+      setTimeout(() => setSuccess(false), 6000);
+    } catch (err: any) {
+      setError(err?.message ?? 'No se pudo enviar el mensaje. Intentá de nuevo.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -35,22 +55,21 @@ export default function ContactoPage() {
     });
   };
 
-  // Datos de contacto de ejemplo (personalizar)
   const contactInfo = {
-    direccion: "Av. Principal #123, Zona Central, Tarija, Bolivia",
-    telefono: "+591 4 664-5555",
-    whatsapp: "+591 7 123-4567",
-    email: "contacto@dormire.com",
-    coordenadas: { lat: -21.5355, lng: -64.7295 },
-    horarios: [
-      { dia: "Lunes a Viernes", horario: "8:30 AM - 7:00 PM" },
-      { dia: "Sábados", horario: "9:00 AM - 6:00 PM" },
-      { dia: "Domingos", horario: "10:00 AM - 2:00 PM" }
-    ],
+    direccion: negocio.negocio_direccion || 'Santa Cruz de la Sierra, Bolivia',
+    telefono: negocio.negocio_telefono || '',
+    whatsapp: negocio.negocio_whatsapp || '',
+    email: negocio.negocio_email || '',
+    horarios: negocio.negocio_horario
+      ? negocio.negocio_horario.split('·').map((tramo) => {
+          const [dia, horario] = tramo.split(' de ');
+          return { dia: (dia || '').trim(), horario: (horario || '').trim() };
+        })
+      : [],
     redes: {
-      facebook: "https://facebook.com/dormire",
-      instagram: "https://instagram.com/dormire"
-    }
+      facebook: 'https://facebook.com/muebleriaeden',
+      instagram: 'https://instagram.com/muebleriaeden',
+    },
   };
 
   return (
@@ -312,28 +331,24 @@ export default function ContactoPage() {
                 Encuéntranos Aquí
               </h2>
             </div>
-            <div className="h-96 bg-gray-100 relative">
-              <iframe
-                width="100%"
-                height="100%"
-                frameBorder="0"
-                scrolling="no"
-                marginHeight={0}
-                marginWidth={0}
-                src={`https://www.openstreetmap.org/export/embed.html?bbox=${contactInfo.coordenadas.lng - 0.01},${contactInfo.coordenadas.lat - 0.01},${contactInfo.coordenadas.lng + 0.01},${contactInfo.coordenadas.lat + 0.01}&layer=mapnik&marker=${contactInfo.coordenadas.lat},${contactInfo.coordenadas.lng}`}
-                style={{ border: 0 }}
-              />
-              <div className="absolute bottom-4 right-4 bg-white px-4 py-2 rounded-xl shadow-lg">
-                <a
-                  href={`https://www.google.com/maps?q=${contactInfo.coordenadas.lat},${contactInfo.coordenadas.lng}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary-600 font-bold hover:text-primary-700 flex items-center gap-2"
-                >
-                  <MapPin className="w-4 h-4" />
-                  Ver en Google Maps
-                </a>
-              </div>
+            {/*
+              Antes había un mapa embebido con coordenadas fijas de Tarija,
+              mientras el negocio está en Santa Cruz: marcaba un punto
+              equivocado. Como la dirección se configura desde el sistema y
+              puede cambiar, se busca por texto en lugar de fijar un punto.
+            */}
+            <div className="p-8 flex flex-col items-center text-center gap-4">
+              <MapPin className="w-10 h-10 text-primary-600" />
+              <p className="text-lg font-semibold text-gray-900">{contactInfo.direccion}</p>
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contactInfo.direccion)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white font-bold px-6 py-3 rounded-xl transition-colors"
+              >
+                <MapPin className="w-4 h-4" />
+                Ver en Google Maps
+              </a>
             </div>
           </div>
         </div>

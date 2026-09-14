@@ -16,14 +16,32 @@ import CompraModal from '@/components/CompraModal';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 import DetalleCompraModal from '@/components/DetalleCompraModal';
 import { useAuth } from '@/hooks/useAuth';
+import AvisoCargaParcial from '@/components/AvisoCargaParcial';
+import { crearRecolector } from '@/lib/cargaParcial';
 
 export default function ProveedoresPage() {
   const { user } = useAuth();
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [filteredProveedores, setFilteredProveedores] = useState<Proveedor[]>([]);
   const [comprasRecientes, setComprasRecientes] = useState<Compra[]>([]);
+  const [fallosCarga, setFallosCarga] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // El buscador de la cabecera navega hasta aca con ?q=<texto>. Se copia al
+  // filtro de la pantalla para que el elemento que se eligio alla quede a la
+  // vista sin tener que volver a escribirlo.
+  //
+  // Se lee de window y no con useSearchParams a proposito: ese hook obliga a
+  // envolver la pagina en un <Suspense> y, sin eso, el build de produccion
+  // falla. Aca el valor solo hace falta despues de montar, asi que alcanza con
+  // mirar la URL dentro del efecto.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get('q');
+    if (q) {
+      setSearchTerm(q);
+    }
+  }, []);
   const [statusFilter, setStatusFilter] = useState<string>('TODOS');
   
   // Modals
@@ -45,13 +63,21 @@ export default function ProveedoresPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [proveedoresData, comprasData] = await Promise.all([
+      // allSettled: las ultimas compras son un panel de apoyo; si falla ese
+      // endpoint, los proveedores igual se listan.
+      const [rProveedores, rCompras] = await Promise.allSettled([
         getAllProveedores(),
         getUltimasCompras()
       ]);
+
+      const { tomar, fallos } = crearRecolector();
+      const proveedoresData = tomar(rProveedores, 'los proveedores', [] as Proveedor[]);
+      const comprasData = tomar(rCompras, 'las ultimas compras', [] as Compra[]);
+
       setProveedores(proveedoresData);
       setFilteredProveedores(proveedoresData);
       setComprasRecientes(comprasData);
+      setFallosCarga(fallos);
     } catch (error: any) {
       showMessage('error', error.message);
     } finally {
@@ -198,6 +224,8 @@ export default function ProveedoresPage() {
     <div className="max-w-full">
       <Breadcrumbs items={[{ label: 'Proveedores' }]} />
 
+      <AvisoCargaParcial fallos={fallosCarga} onReintentar={loadData} />
+
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
         <div className="flex-shrink-0">
@@ -274,7 +302,7 @@ export default function ProveedoresPage() {
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-mono text-gray-900">{proveedor.nit}</td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{proveedor.contacto}</td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{proveedor.telefono}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{proveedor.correo || '-'}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{proveedor.email || '-'}</td>
                   <td className="px-4 py-4 whitespace-nowrap">
                     <button
                       onClick={() => handleToggleStatus(proveedor)}
@@ -369,7 +397,7 @@ export default function ProveedoresPage() {
                       {formatDate(compra.fechaCompra)}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm font-bold text-primary-600">
-                      {formatPrice(compra.costoTotal)}
+                      {formatPrice(compra.montoTotal)}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
                       <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${estadoBadge.color}`}>

@@ -3,6 +3,7 @@
 import { useAuth } from '@/hooks/useAuth';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
+import SesionExpiradaWatcher from '@/components/SesionExpiradaWatcher';
 
 export default function DashboardLayout({
   children,
@@ -18,6 +19,7 @@ export default function DashboardLayout({
 
   return (
     <div className="flex h-screen overflow-hidden bg-primary-50">
+      <SesionExpiradaWatcher />
       <Sidebar isAdmin={isAdmin()} />
       
       <div className="flex-1 flex flex-col overflow-hidden">

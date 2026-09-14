@@ -26,6 +26,8 @@ import {
 import Breadcrumbs from '@/components/Breadcrumbs';
 import PagoModal from '@/components/PagoModal';
 import PagoDetalleModal from '@/components/PagoDetalleModal';
+import AvisoCargaParcial from '@/components/AvisoCargaParcial';
+import { crearRecolector } from '@/lib/cargaParcial';
 
 export default function PagosPage() {
   const [pagos, setPagos] = useState<Pago[]>([]);
@@ -40,6 +42,7 @@ export default function PagosPage() {
   // Estadísticas
   const [totalHoy, setTotalHoy] = useState<number>(0);
   const [totalMes, setTotalMes] = useState<number>(0);
+  const [fallosCarga, setFallosCarga] = useState<string[]>([]);
 
   // Modals
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -57,17 +60,27 @@ export default function PagosPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [pagosData, ventasData, totalHoyData, totalMesData] = await Promise.all([
+      // allSettled: los totales del dia y del mes son indicadores de apoyo;
+      // que uno falle no debe borrar el listado de pagos.
+      const [rPagos, rVentas, rTotalHoy, rTotalMes] = await Promise.allSettled([
         getAllPagos(),
         getAllVentas(),
         getTotalPagosHoy(),
         getTotalPagosMes()
       ]);
+
+      const { tomar, fallos } = crearRecolector();
+      const pagosData = tomar(rPagos, 'los pagos', [] as Pago[]);
+      const ventasData = tomar(rVentas, 'las ventas', [] as Venta[]);
+      const totalHoyData = tomar(rTotalHoy, 'el total cobrado hoy', 0);
+      const totalMesData = tomar(rTotalMes, 'el total cobrado del mes', 0);
+
       setPagos(pagosData);
       setVentas(ventasData);
       setFilteredPagos(pagosData);
       setTotalHoy(totalHoyData);
       setTotalMes(totalMesData);
+      setFallosCarga(fallos);
     } catch (error: any) {
       showMessage('error', error.message);
     } finally {
@@ -199,6 +212,8 @@ export default function PagosPage() {
   return (
     <div className="max-w-full">
       <Breadcrumbs items={[{ label: 'Pagos' }]} />
+
+      <AvisoCargaParcial fallos={fallosCarga} onReintentar={loadData} />
 
       {/* Header con filtros responsive */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
@@ -358,7 +373,7 @@ export default function PagosPage() {
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{venta?.nombreCliente || '-'}</div>
-                      <div className="text-xs text-gray-500">{venta?.celularCliente || '-'}</div>
+                      <div className="text-xs text-gray-500">{venta?.telefonoCliente || '-'}</div>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
                       {formatCurrency(pago.monto)}

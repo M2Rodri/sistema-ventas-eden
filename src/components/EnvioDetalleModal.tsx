@@ -185,7 +185,7 @@ export default function EnvioDetalleModal({ envio, onClose, onSuccess }: EnvioDe
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-gray-600">Celular:</span>
-                <span className="text-sm font-medium text-gray-900">{envio.celularCliente}</span>
+                <span className="text-sm font-medium text-gray-900">{envio.telefonoCliente}</span>
               </div>
             </div>
           </div>

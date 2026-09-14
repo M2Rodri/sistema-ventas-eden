@@ -8,31 +8,33 @@ import {
   marcarAlertaAtendida,
   getUltimosAjustes
 } from '@/lib/api';
-import { Inventario, AlertaInventario, AjusteInventario } from '@/types/inventario';
-import { Search, Package, AlertTriangle, Edit, History, TrendingUp, TrendingDown, Settings, Bell, Eye, DollarSign } from 'lucide-react';
+import { Inventario, AlertaInventario, MovimientoInventario } from '@/types/inventario';
+import { Search, Package, AlertTriangle, Edit, History, TrendingUp, TrendingDown, Settings, Eye, DollarSign, ShoppingCart } from 'lucide-react';
+import Link from 'next/link';
 import Breadcrumbs from '@/components/Breadcrumbs';
-import AjusteInventarioModal from '@/components/AjusteInventarioModal';
+import MovimientoInventarioModal from '@/components/MovimientoInventarioModal';
 import DetalleProductoModal from '@/components/DetalleProductoModal';
 import ConfigurarStockMinimoModal from '@/components/ConfigurarStockMinimoModal';
-import ConfigurarNotificacionesModal from '@/components/ConfigurarNotificacionesModal';
 import HistorialProductoModal from '@/components/HistorialProductoModal';
+import AvisoCargaParcial from '@/components/AvisoCargaParcial';
+import { crearRecolector } from '@/lib/cargaParcial';
 
 export default function InventarioPage() {
   const [inventario, setInventario] = useState<Inventario[]>([]);
   const [filteredInventario, setFilteredInventario] = useState<Inventario[]>([]);
   const [alertas, setAlertas] = useState<AlertaInventario[]>([]);
-  const [historial, setHistorial] = useState<AjusteInventario[]>([]);
+  const [historial, setHistorial] = useState<MovimientoInventario[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [stockFilter, setStockFilter] = useState<string>('TODOS');
   const [categoriaFilter, setCategoriaFilter] = useState<string>('TODOS');
   const [showHistorial, setShowHistorial] = useState(false);
+  const [fallosCarga, setFallosCarga] = useState<string[]>([]);
   
   // Modales
   const [isAjusteModalOpen, setIsAjusteModalOpen] = useState(false);
   const [isDetalleModalOpen, setIsDetalleModalOpen] = useState(false);
   const [isStockMinimoModalOpen, setIsStockMinimoModalOpen] = useState(false);
-  const [isNotificacionesModalOpen, setIsNotificacionesModalOpen] = useState(false);
   const [isHistorialModalOpen, setIsHistorialModalOpen] = useState(false);
   const [selectedInventario, setSelectedInventario] = useState<Inventario | null>(null);
 
@@ -47,15 +49,24 @@ export default function InventarioPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [inventarioData, alertasData, historialData] = await Promise.all([
+      // allSettled y no all: si se cae el endpoint de alertas o el de últimos
+      // ajustes, igual queremos mostrar el inventario, que es lo principal.
+      const [rInventario, rAlertas, rHistorial] = await Promise.allSettled([
         getAllInventario(),
         getAlertasPendientes(),
         getUltimosAjustes()
       ]);
+
+      const { tomar, fallos } = crearRecolector();
+      const inventarioData = tomar(rInventario, 'el inventario', [] as Inventario[]);
+      const alertasData = tomar(rAlertas, 'las alertas de stock', [] as AlertaInventario[]);
+      const historialData = tomar(rHistorial, 'los últimos ajustes', [] as MovimientoInventario[]);
+
       setInventario(inventarioData);
       setFilteredInventario(inventarioData);
       setAlertas(alertasData);
       setHistorial(historialData);
+      setFallosCarga(fallos);
     } catch (error: any) {
       showMessage('error', error.message);
     } finally {
@@ -75,10 +86,10 @@ export default function InventarioPage() {
       );
     }
 
-    // Filtro por categoría (simulado - extrae de nombre del producto)
+    // Filtro por categoría real del producto
     if (categoriaFilter !== 'TODOS') {
       filtered = filtered.filter(item => 
-        item.nombreProducto.toLowerCase().includes(categoriaFilter.toLowerCase())
+        (item.nombreCategoria ?? '').toLowerCase() === categoriaFilter.toLowerCase()
       );
     }
 
@@ -149,13 +160,16 @@ export default function InventarioPage() {
     });
   };
 
-  // Cálculos para indicadores (SIMULADOS - solo suman lo que hay en memoria)
+  // Indicadores calculados sobre el inventario ya cargado
   const totalProductos = inventario.length;
   const productosConAlerta = inventario.filter(i => i.bajoStockMinimo).length;
-  const valorTotalInventario = inventario.reduce((sum, item) => {
-    // Simulamos un precio promedio de 1500 Bs por producto
-    return sum + (item.cantidadDisponible * 1500);
-  }, 0);
+  // Antes esto multiplicaba cada unidad por 1500 Bs "simulando un precio
+  // promedio", así que esta pantalla y el panel de inicio mostraban dos
+  // valores distintos del mismo inventario. Ahora usa el costo real.
+  const valorTotalInventario = inventario.reduce(
+    (sum, item) => sum + item.cantidadDisponible * Number(item.costoReferencial ?? 0),
+    0
+  );
 
   if (loading) {
     return (
@@ -172,7 +186,9 @@ export default function InventarioPage() {
     <div className="max-w-full">
       <Breadcrumbs items={[{ label: 'Inventario' }]} />
 
-      {/* INDICADORES SUPERIORES - P4.1 (SIMULADOS) */}
+      <AvisoCargaParcial fallos={fallosCarga} onReintentar={loadData} />
+
+      {/* INDICADORES SUPERIORES - P4.1 */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         {/* Total Productos */}
         <div className="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-md transition-shadow">
@@ -256,9 +272,24 @@ export default function InventarioPage() {
             className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
           >
             <option value="TODOS">Todas las Categorías</option>
-            <option value="cama">🛏️ Camas</option>
-            <option value="colchon">🛌 Colchones</option>
-            <option value="almohada">🛏️ Almohadas</option>
+            {/*
+              Las opciones salen de las categorías que realmente tienen
+              productos en inventario. Antes eran una lista fija en minúscula
+              que no coincidía con los nombres reales.
+            */}
+            {Array.from(
+              new Set(
+                inventario
+                  .map((i) => i.nombreCategoria)
+                  .filter((c): c is string => !!c)
+              )
+            )
+              .sort()
+              .map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
           </select>
 
           {/* Filtro por Estado de Alerta */}
@@ -274,14 +305,25 @@ export default function InventarioPage() {
           </select>
 
           {/* Botón Configurar Notificaciones - NUEVO */}
-          <button
-            onClick={() => setIsNotificacionesModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
-            title="Configurar Notificaciones"
+          {/*
+            Compras vive dentro de Inventario porque ese es el recorrido real:
+            se ve que falta stock, se registra la compra, llega, y el stock sube.
+          */}
+          <Link
+            href="/dashboard/inventario/compras"
+            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
+            title="Compras a proveedores"
           >
-            <Bell size={20} />
-            <span className="hidden sm:inline">Notificaciones</span>
-          </button>
+            <ShoppingCart size={20} />
+            <span className="hidden sm:inline">Compras</span>
+          </Link>
+
+          {/*
+            Se quitó "Configurar Notificaciones": prometía avisar por correo
+            cuando un producto cayera bajo el mínimo, pero el sistema no tiene
+            servicio de correo. Las alertas sí existen y se ven en esta misma
+            pantalla y en el panel de inicio.
+          */}
 
           {/* Botón Historial */}
           <button
@@ -384,17 +426,17 @@ export default function InventarioPage() {
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
                       <span className={`flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full w-fit ${
-                        ajuste.tipoAjuste === 'ENTRADA' 
+                        ajuste.tipoMovimiento === 'ENTRADA' 
                           ? 'bg-green-100 text-green-800' 
                           : 'bg-red-100 text-red-800'
                       }`}>
-                        {ajuste.tipoAjuste === 'ENTRADA' ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                        {ajuste.tipoAjuste}
+                        {ajuste.tipoMovimiento === 'ENTRADA' ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                        {ajuste.tipoMovimiento}
                       </span>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm font-semibold">
-                      <span className={ajuste.tipoAjuste === 'ENTRADA' ? 'text-green-600' : 'text-red-600'}>
-                        {ajuste.tipoAjuste === 'ENTRADA' ? '+' : '-'}{Math.abs(ajuste.diferencia)}
+                      <span className={ajuste.tipoMovimiento === 'ENTRADA' ? 'text-green-600' : 'text-red-600'}>
+                        {ajuste.tipoMovimiento === 'ENTRADA' ? '+' : '-'}{Math.abs(ajuste.cantidad)}
                       </span>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600 text-center">
@@ -458,10 +500,7 @@ export default function InventarioPage() {
                       </div>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {/* Categoría simulada del nombre */}
-                      {item.nombreProducto.toLowerCase().includes('cama') ? 'Camas' : 
-                       item.nombreProducto.toLowerCase().includes('colchon') ? 'Colchones' : 
-                       item.nombreProducto.toLowerCase().includes('almohada') ? 'Almohadas' : 'Otro'}
+                      {item.nombreCategoria || 'Sin categoría'}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-center">
                       <span className={`text-lg font-bold ${
@@ -527,7 +566,7 @@ export default function InventarioPage() {
 
       {/* MODALES */}
       {isAjusteModalOpen && selectedInventario && (
-        <AjusteInventarioModal
+        <MovimientoInventarioModal
           inventario={selectedInventario}
           onClose={() => setIsAjusteModalOpen(false)}
           onSuccess={() => {
@@ -550,26 +589,21 @@ export default function InventarioPage() {
           inventario={selectedInventario}
           onClose={() => setIsStockMinimoModalOpen(false)}
           onSuccess={() => {
+            // Sin este loadData la tabla seguía mostrando el mínimo viejo
+            // hasta que el usuario recargaba con F5.
+            loadData();
             setIsStockMinimoModalOpen(false);
             showMessage('success', 'Stock mínimo configurado exitosamente');
           }}
         />
       )}
 
-      {isNotificacionesModalOpen && (<ConfigurarNotificacionesModal
-onClose={() => setIsNotificacionesModalOpen(false)}
-onSuccess={() => {
-setIsNotificacionesModalOpen(false);
-showMessage('success', 'Notificaciones configuradas exitosamente');
-}}
-/>
-)}
-  {isHistorialModalOpen && selectedInventario && (
-    <HistorialProductoModal
-      inventario={selectedInventario}
-      onClose={() => setIsHistorialModalOpen(false)}
-    />
-  )}
-</div>
-);
+      {isHistorialModalOpen && selectedInventario && (
+        <HistorialProductoModal
+          inventario={selectedInventario}
+          onClose={() => setIsHistorialModalOpen(false)}
+        />
+      )}
+    </div>
+  );
 }

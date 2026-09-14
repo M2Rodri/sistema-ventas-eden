@@ -8,6 +8,7 @@ import {
   searchClientes,
 } from '@/lib/api';
 import { ClienteConEstadisticas, ClienteEstadisticas } from '@/types/cliente';
+import { exportarCSV, fechaArchivo } from '@/lib/exportar';
 import {
   Search,
   ArrowLeft,
@@ -47,6 +48,21 @@ export default function ClientesPage() {
 
   // Estados para filtros
   const [busqueda, setBusqueda] = useState('');
+
+  // El buscador de la cabecera navega hasta aca con ?q=<texto>. Se copia al
+  // filtro de la pantalla para que el elemento que se eligio alla quede a la
+  // vista sin tener que volver a escribirlo.
+  //
+  // Se lee de window y no con useSearchParams a proposito: ese hook obliga a
+  // envolver la pagina en un <Suspense> y, sin eso, el build de produccion
+  // falla. Aca el valor solo hace falta despues de montar, asi que alcanza con
+  // mirar la URL dentro del efecto.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get('q');
+    if (q) {
+      setBusqueda(q);
+    }
+  }, []);
   const [filtroFechaDesde, setFiltroFechaDesde] = useState('');
   const [filtroFechaHasta, setFiltroFechaHasta] = useState('');
   const [filtroMontoMin, setFiltroMontoMin] = useState('');
@@ -105,7 +121,7 @@ export default function ClientesPage() {
       resultado = resultado.filter(
         (c) =>
           c.nombreCompleto.toLowerCase().includes(termino) ||
-          c.celular.includes(termino) ||
+          (c.telefono ?? "").includes(termino) ||
           (c.nitCi && c.nitCi.includes(termino))
       );
     }
@@ -202,14 +218,33 @@ export default function ClientesPage() {
     setShowHistorialModal(true);
   };
 
+  // Antes solo mostraba un alert de exito sin producir archivo. Ahora exporta
+  // de verdad los clientes que quedaron despues de aplicar los filtros.
   const handleExportarExcel = () => {
-    console.log('📊 SIMULACIÓN: Exportando clientes a Excel...');
-    console.log('Clientes a exportar:', clientesFiltrados.length);
+    if (clientesFiltrados.length === 0) {
+      alert('No hay clientes para exportar con los filtros actuales.');
+      return;
+    }
 
-    const nombreArchivo = `Listado_Clientes_${new Date().toLocaleDateString('es-BO')}.xlsx`;
-
-    alert(
-      `✅ Archivo "${nombreArchivo}" generado exitosamente!\n\n📋 Registros: ${clientesFiltrados.length}`
+    exportarCSV<ClienteConEstadisticas>(
+      `Clientes_${fechaArchivo()}`,
+      [
+        { encabezado: 'Codigo', valor: (c) => c.id },
+        { encabezado: 'Nombre completo', valor: (c) => c.nombreCompleto },
+        { encabezado: 'NIT / CI', valor: (c) => c.nitCi ?? '' },
+        { encabezado: 'Telefono', valor: (c) => c.telefono ?? '' },
+        { encabezado: 'Email', valor: (c) => c.email ?? '' },
+        { encabezado: 'Tipo', valor: (c) => c.tipoCliente },
+        { encabezado: 'Estado', valor: (c) => (c.activo ? 'Activo' : 'Inactivo') },
+        { encabezado: 'Compras', valor: (c) => c.numeroCompras },
+        { encabezado: 'Total comprado (Bs)', valor: (c) => Number(c.montoTotalComprado ?? 0).toFixed(2) },
+        {
+          encabezado: 'Ultima compra',
+          valor: (c) => (c.ultimaFechaCompra ? new Date(c.ultimaFechaCompra).toLocaleDateString('es-BO') : 'Sin compras'),
+        },
+        { encabezado: 'Fecha de registro', valor: (c) => new Date(c.fechaRegistro).toLocaleDateString('es-BO') },
+      ],
+      clientesFiltrados
     );
   };
 
@@ -500,12 +535,12 @@ export default function ClientesPage() {
                   <tr key={cliente.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{cliente.nombreCompleto}</div>
-                      {cliente.correo && (
-                        <div className="text-xs text-gray-500">{cliente.correo}</div>
+                      {cliente.email && (
+                        <div className="text-xs text-gray-500">{cliente.email}</div>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {cliente.celular}
+                      {cliente.telefono || "-"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {cliente.nitCi || '-'}

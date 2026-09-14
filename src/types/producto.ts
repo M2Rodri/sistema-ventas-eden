@@ -6,23 +6,29 @@ export interface Producto {
   sku: string;
   nombre: string;
   descripcion?: string;
+  marca?: string;
   modelo?: string;
   idCategoria: number;
   nombreCategoria: string;
   calidad?: string;
-  precioUnitario: number;
+  /** Costo de referencia para calcular margen. Antes se llamaba precioUnitario. */
+  costoReferencial: number;
   precioVenta: number;
   peso?: number;
   dimensiones?: string;
   stockMinimo: number;
   tipoProducto: TipoProducto;
   activo: boolean;
-  
-  // ✅ NUEVOS CAMPOS CONDICIONALES
-  firmeza?: 'suave' | 'media' | 'firme'; // Solo COLCHON
-  tipoCama?: 'individual' | 'matrimonial' | 'queen' | 'king'; // Solo CAMA
-  materialNucleo?: 'espuma' | 'latex' | 'muelle'; // Solo COLCHON
-  
+
+  /**
+   * Atributos propios del rubro. En la base son texto libre, no una lista
+   * cerrada: "Firme", "Resortes ensacados", "Viscoelástica". Antes estaban
+   * tipados como uniones en minúscula que ningún dato real cumplía.
+   * tipoCama se eliminó: duplicaba tipoProducto y la columna ya no existe.
+   */
+  firmeza?: string;
+  materialNucleo?: string;
+
   imagenes: ImagenProducto[];
   fechaCreacion: string;
   fechaActualizacion: string;
@@ -32,21 +38,20 @@ export interface ProductoRequest {
   sku: string;
   nombre: string;
   descripcion?: string;
+  marca?: string;
   modelo?: string;
   idCategoria: number;
   calidad?: string;
-  precioUnitario: number;
+  costoReferencial: number;
   precioVenta: number;
   peso?: number;
   dimensiones?: string;
   stockMinimo: number;
   tipoProducto: TipoProducto;
   activo: boolean;
-  
-  // ✅ NUEVOS CAMPOS CONDICIONALES
-  firmeza?: 'suave' | 'media' | 'firme';
-  tipoCama?: 'individual' | 'matrimonial' | 'queen' | 'king';
-  materialNucleo?: 'espuma' | 'latex' | 'muelle';
+
+  firmeza?: string;
+  materialNucleo?: string;
 }
 
 export interface ImagenProducto {

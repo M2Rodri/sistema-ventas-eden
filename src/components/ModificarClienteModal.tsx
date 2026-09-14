@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, User, Phone, Mail, MapPin, CreditCard, AlertCircle, CheckCircle } from 'lucide-react';
+import { X, User, Phone, Mail, CreditCard, AlertCircle, CheckCircle } from 'lucide-react';
 import { updateCliente } from '@/lib/api';
 import { ClienteRequest, ClienteResponse } from '@/types/cliente';
 
@@ -25,11 +25,10 @@ export default function ModificarClienteModal({
   const [formData, setFormData] = useState<ClienteRequest>({
     nombre: '',
     apellido: '',
-    celular: '',
+    telefono: '',
     nitCi: '',
-    correo: '',
-    direccion: '',
-    tipo: cliente.tipo,
+    email: '',
+    tipoCliente: cliente.tipoCliente,
     activo: cliente.activo,
   });
 
@@ -46,11 +45,10 @@ export default function ModificarClienteModal({
       setFormData({
         nombre: nombre || '',
         apellido: apellido || '',
-        celular: cliente.celular,
+        telefono: cliente.telefono,
         nitCi: cliente.nitCi || '',
-        correo: cliente.correo || '',
-        direccion: cliente.direccion || '',
-        tipo: cliente.tipo,
+        email: cliente.email || '',
+        tipoCliente: cliente.tipoCliente,
         activo: cliente.activo,
       });
       setError(null);
@@ -66,33 +64,37 @@ export default function ModificarClienteModal({
 
   const validarFormulario = (): boolean => {
     // Validar nombre completo (obligatorio)
-    if (!formData.nombre.trim() || !formData.apellido.trim()) {
-      setError('El nombre completo es obligatorio');
+    if (!formData.nombre.trim()) {
+      setError('El nombre es obligatorio');
       return false;
     }
 
-    if (formData.nombre.length < 2 || formData.apellido.length < 2) {
-      setError('El nombre y apellido deben tener al menos 2 caracteres');
+    if (formData.nombre.length < 2) {
+      setError('El nombre debe tener al menos 2 caracteres');
+      return false;
+    }
+    if (formData.apellido && formData.apellido.trim().length === 1) {
+      setError('El apellido debe tener al menos 2 caracteres');
       return false;
     }
 
     // Validar teléfono (obligatorio)
-    if (!formData.celular.trim()) {
+    if (!formData.telefono || !formData.telefono.trim()) {
       setError('El número de teléfono es obligatorio');
       return false;
     }
 
     // Validar formato de teléfono (números y espacios, 7-15 caracteres)
     const telefonoRegex = /^[0-9\s]{7,15}$/;
-    if (!telefonoRegex.test(formData.celular.trim())) {
+    if (!telefonoRegex.test(formData.telefono.trim())) {
       setError('Ingrese un número de teléfono válido (7-15 dígitos)');
       return false;
     }
 
     // Validar formato de correo electrónico (si existe)
-    if (formData.correo && formData.correo.trim()) {
+    if (formData.email && formData.email.trim()) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.correo.trim())) {
+      if (!emailRegex.test(formData.email.trim())) {
         setError('Ingrese un correo electrónico válido');
         return false;
       }
@@ -234,8 +236,8 @@ export default function ModificarClienteModal({
               </label>
               <input
                 type="text"
-                name="celular"
-                value={formData.celular}
+                name="telefono"
+                value={formData.telefono}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Ej: 71234567"
@@ -272,8 +274,8 @@ export default function ModificarClienteModal({
               </label>
               <input
                 type="email"
-                name="correo"
-                value={formData.correo}
+                name="email"
+                value={formData.email}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Ej: cliente@email.com"
@@ -282,26 +284,6 @@ export default function ModificarClienteModal({
               />
             </div>
 
-            {/* Dirección */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                <MapPin size={16} />
-                Dirección (opcional)
-              </label>
-              <textarea
-                name="direccion"
-                value={formData.direccion}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                placeholder="Ej: Av. Principal #123, Zona Centro"
-                rows={3}
-                maxLength={300}
-                disabled={loading || success}
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                {(formData.direccion || '').length}/300 caracteres
-              </p>
-            </div>
           </div>
 
           {/* Información adicional */}
@@ -316,12 +298,12 @@ export default function ModificarClienteModal({
                 <span className="font-medium">Tipo:</span>{' '}
                 <span
                   className={`px-2 py-0.5 rounded-full ${
-                    cliente.tipo === 'REGISTRADO'
+                    cliente.tipoCliente === 'REGISTRADO'
                       ? 'bg-green-100 text-green-700'
                       : 'bg-gray-100 text-gray-700'
                   }`}
                 >
-                  {cliente.tipo}
+                  {cliente.tipoCliente}
                 </span>
               </div>
             </div>

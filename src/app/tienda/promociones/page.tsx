@@ -1,27 +1,27 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getOfertasVigentes } from '@/lib/api';
-import { Oferta } from '@/types/promocion';
+import { getPromocionesVigentes } from '@/lib/api';
+import { Promocion } from '@/types/promocion';
 import { Tag, Clock, Percent, Sparkles, TrendingDown, Calendar, AlertCircle, ArrowRight, Gift, Zap } from 'lucide-react';
 import Link from 'next/link';
 
 export default function PromocionesPage() {
-  const [ofertas, setOfertas] = useState<Oferta[]>([]);
+  const [promociones, setPromocions] = useState<Promocion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadOfertas();
+    loadPromocions();
   }, []);
 
-  const loadOfertas = async () => {
+  const loadPromocions = async () => {
     try {
       setLoading(true);
-      const data = await getOfertasVigentes();
-      setOfertas(data);
+      const data = await getPromocionesVigentes();
+      setPromocions(data);
     } catch (err: any) {
-      setError(err.message || 'Error al cargar ofertas');
+      setError(err.message || 'Error al cargar promociones');
     } finally {
       setLoading(false);
     }
@@ -50,7 +50,7 @@ export default function PromocionesPage() {
             <div className="animate-spin rounded-full h-20 w-20 border-t-4 border-b-4 border-primary-600 mx-auto"></div>
             <Gift className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-8 h-8 text-primary-600 animate-pulse" />
           </div>
-          <p className="text-gray-600 font-semibold mt-6 text-lg">Cargando ofertas increíbles...</p>
+          <p className="text-gray-600 font-semibold mt-6 text-lg">Cargando promociones increíbles...</p>
         </div>
       </div>
     );
@@ -66,7 +66,7 @@ export default function PromocionesPage() {
           <h2 className="text-3xl font-extrabold text-gray-900 mb-3">¡Ups! Algo salió mal</h2>
           <p className="text-gray-600 mb-8 leading-relaxed">{error}</p>
           <button
-            onClick={loadOfertas}
+            onClick={loadPromocions}
             className="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-8 py-4 rounded-2xl hover:from-primary-700 hover:to-primary-800 transition-all duration-300 font-bold shadow-lg hover:shadow-xl transform hover:scale-105"
           >
             Reintentar Ahora
@@ -93,7 +93,7 @@ export default function PromocionesPage() {
             {/* Badge animado */}
             <div className="inline-flex items-center gap-3 bg-white/20 backdrop-blur-lg px-6 py-3 rounded-full mb-6 border border-white/30 shadow-xl animate-bounce-slow">
               <Sparkles className="w-6 h-6 text-yellow-300 animate-pulse" />
-              <span className="text-base font-bold tracking-wide">Ofertas Exclusivas del Mes</span>
+              <span className="text-base font-bold tracking-wide">Promociones Exclusivas del Mes</span>
               <Zap className="w-6 h-6 text-yellow-300 animate-pulse" />
             </div>
             
@@ -103,17 +103,17 @@ export default function PromocionesPage() {
             </h1>
             
             <p className="text-xl md:text-2xl lg:text-3xl text-primary-100 max-w-4xl mx-auto font-medium leading-relaxed">
-              Descubre las mejores ofertas en <span className="text-yellow-300 font-bold">camas</span>, 
+              Descubre las mejores promociones en <span className="text-yellow-300 font-bold">camas</span>, 
               <span className="text-yellow-300 font-bold"> colchones</span> y 
               <span className="text-yellow-300 font-bold"> almohadas</span> premium
             </p>
             
-            {/* Contador de ofertas */}
-            {ofertas.length > 0 && (
+            {/* Contador de promociones */}
+            {promociones.length > 0 && (
               <div className="mt-8 inline-block">
                 <div className="bg-white/10 backdrop-blur-md border-2 border-white/30 rounded-2xl px-8 py-4 shadow-2xl">
-                  <p className="text-sm font-semibold text-primary-100 mb-1">Ofertas Activas</p>
-                  <p className="text-5xl font-black text-white">{ofertas.length}</p>
+                  <p className="text-sm font-semibold text-primary-100 mb-1">Promociones Activas</p>
+                  <p className="text-5xl font-black text-white">{promociones.length}</p>
                 </div>
               </div>
             )}
@@ -128,14 +128,14 @@ export default function PromocionesPage() {
         </div>
       </div>
 
-      {/* Ofertas Section Mejorado */}
+      {/* Promociones Section Mejorado */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 -mt-8 relative z-10">
-        {ofertas.length === 0 ? (
+        {promociones.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-3xl shadow-2xl border-2 border-gray-100">
             <div className="bg-gray-100 rounded-full w-32 h-32 flex items-center justify-center mx-auto mb-6">
               <Tag className="w-16 h-16 text-gray-400" />
             </div>
-            <h3 className="text-3xl font-bold text-gray-800 mb-3">No hay ofertas disponibles</h3>
+            <h3 className="text-3xl font-bold text-gray-800 mb-3">No hay promociones disponibles</h3>
             <p className="text-gray-500 text-lg mb-8">Vuelve pronto para ver nuestras próximas promociones</p>
             <Link 
               href="/tienda/productos"
@@ -147,16 +147,16 @@ export default function PromocionesPage() {
           </div>
         ) : (
           <div className="space-y-16">
-            {ofertas.map((oferta, index) => (
+            {promociones.map((promocion, index) => (
               <div 
-                key={oferta.id} 
+                key={promocion.id} 
                 className="bg-white rounded-3xl shadow-2xl overflow-hidden border-2 border-primary-100 hover:border-primary-300 transition-all duration-500 transform hover:scale-[1.02] hover:shadow-3xl"
                 style={{
                   animationDelay: `${index * 100}ms`,
                   animation: 'slideUp 0.6s ease-out'
                 }}
               >
-                {/* Header de la Oferta Mejorado */}
+                {/* Header de la Promocion Mejorado */}
                 <div className="bg-gradient-to-r from-primary-600 via-primary-700 to-primary-800 p-8 relative overflow-hidden">
                   {/* Efectos decorativos */}
                   <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full blur-3xl"></div>
@@ -169,20 +169,30 @@ export default function PromocionesPage() {
                           <TrendingDown className="w-8 h-8 text-white" />
                         </div>
                         <div>
+                          {/*
+                            El título es el nombre de la promoción. Antes se
+                            usaba la descripción porque la entidad no tenía
+                            nombre, aunque la columna existía y era obligatoria.
+                          */}
                           <h2 className="text-3xl md:text-4xl font-black text-white mb-2 leading-tight">
-                            {oferta.descripcion}
+                            {promocion.nombre}
                           </h2>
+                          {promocion.descripcion && (
+                            <p className="text-primary-100 mb-3 max-w-2xl">
+                              {promocion.descripcion}
+                            </p>
+                          )}
                           <div className="flex flex-wrap items-center gap-4 text-sm text-primary-100">
                             <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20">
                               <Calendar className="w-4 h-4" />
                               <span className="font-semibold">
-                                {formatearFecha(oferta.fechaInicio)} - {formatearFecha(oferta.fechaFin)}
+                                {formatearFecha(promocion.fechaInicio)} - {formatearFecha(promocion.fechaFin)}
                               </span>
                             </div>
                             <div className="flex items-center gap-2 bg-yellow-400/20 backdrop-blur-sm px-4 py-2 rounded-full border border-yellow-300/30">
                               <Clock className="w-4 h-4 text-yellow-300" />
                               <span className="font-bold text-yellow-300">
-                                ¡{calcularDiasRestantes(oferta.fechaFin)} días restantes!
+                                ¡{calcularDiasRestantes(promocion.fechaFin)} días restantes!
                               </span>
                             </div>
                           </div>
@@ -197,7 +207,7 @@ export default function PromocionesPage() {
                         <div className="relative bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 text-white rounded-3xl px-8 py-6 text-center shadow-2xl transform hover:scale-110 transition-all duration-300 border-4 border-white">
                           <div className="flex items-center justify-center gap-3 mb-2">
                             <Percent className="w-10 h-10 font-black" />
-                            <span className="text-6xl font-black">{oferta.descuento}</span>
+                            <span className="text-6xl font-black">{promocion.descuento}</span>
                           </div>
                           <p className="text-base font-black uppercase tracking-widest">OFF</p>
                         </div>
@@ -206,20 +216,20 @@ export default function PromocionesPage() {
                   </div>
                 </div>
 
-                {/* Productos de la Oferta Mejorado */}
+                {/* Productos de la Promocion Mejorado */}
                 <div className="p-8 bg-gradient-to-br from-gray-50 to-white">
                   <div className="flex items-center gap-3 mb-8">
                     <div className="bg-primary-100 p-2 rounded-xl">
                       <Tag className="w-6 h-6 text-primary-600" />
                     </div>
                     <h3 className="text-2xl font-bold text-gray-800">
-                      Productos en Oferta
-                      <span className="text-primary-600 ml-2">({oferta.productos.length})</span>
+                      Productos en Promoción
+                      <span className="text-primary-600 ml-2">({promocion.productos.length})</span>
                     </h3>
                   </div>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {oferta.productos.map((producto) => (
+                    {promocion.productos.map((producto) => (
                       <div 
                         key={producto.id} 
                         className="group bg-white rounded-2xl border-2 border-gray-200 hover:border-primary-400 transition-all duration-300 overflow-hidden shadow-lg hover:shadow-2xl transform hover:-translate-y-2"
@@ -229,7 +239,7 @@ export default function PromocionesPage() {
                           {/* Badge de descuento */}
                           <div className="absolute top-4 right-4 z-10">
                             <div className="bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-full text-sm font-black shadow-lg transform rotate-3 hover:rotate-0 transition-transform">
-                              -{oferta.descuento}% OFF
+                              -{promocion.descuento}% OFF
                             </div>
                           </div>
 
@@ -276,8 +286,12 @@ export default function PromocionesPage() {
           <h3 className="text-4xl md:text-5xl font-black text-white mb-4 leading-tight">
             ¿No encontraste lo que buscabas?
           </h3>
+          {/*
+            Antes decía "más de 100 productos", una cifra que el catálogo no
+            respalda. Se reemplazó por una invitación que no afirma cantidades.
+          */}
           <p className="text-xl md:text-2xl text-secondary-100 mb-10 font-medium max-w-3xl mx-auto leading-relaxed">
-            Explora nuestro catálogo completo con más de <span className="text-yellow-300 font-bold">100 productos</span> de descanso premium
+            Explora nuestro <span className="text-yellow-300 font-bold">catálogo completo</span> de camas, colchones y accesorios de descanso
           </p>
           <Link 
             href="/tienda/productos"

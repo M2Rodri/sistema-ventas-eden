@@ -1,3 +1,41 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/*
+ * Impresión de comprobantes.
+ *
+ * Antes ComprobanteModal imprimía reemplazando document.body.innerHTML y
+ * después hacía window.location.reload(), así que cada impresión recargaba
+ * la página y se perdían los filtros y la posición de la lista. Con estas
+ * reglas alcanza con llamar a window.print(): el navegador oculta todo menos
+ * el elemento marcado con .area-impresion, y la app queda intacta.
+ *
+ * Desde el diálogo de impresión, "Guardar como PDF" produce el PDF del
+ * comprobante sin necesidad de ninguna librería.
+ */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .area-impresion,
+  .area-impresion * {
+    visibility: visible;
+  }
+
+  .area-impresion {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+  }
+
+  /* Botones y controles que no deben salir en el papel. */
+  .no-imprimir {
+    display: none !important;
+  }
+}

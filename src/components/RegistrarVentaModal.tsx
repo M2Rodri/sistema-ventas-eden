@@ -42,7 +42,7 @@ export default function RegistrarVentaModal({
 }: RegistrarVentaModalProps) {
   // Cliente
   const [nombreCliente, setNombreCliente] = useState("");
-  const [celularCliente, setCelularCliente] = useState("");
+  const [telefonoCliente, setCelularCliente] = useState("");
   const [busquedaCliente, setBusquedaCliente] = useState("");
   const [clientesEncontrados, setClientesEncontrados] = useState<any[]>([]);
   const [clienteSeleccionado, setClienteSeleccionado] = useState<any | null>(
@@ -205,11 +205,11 @@ export default function RegistrarVentaModal({
 
       const request: VentaRequest = {
         idCliente: clienteSeleccionado?.id,
-        nombreClienteDirecto: !clienteSeleccionado
+        nombreClienteInvitado: !clienteSeleccionado
           ? nombreCliente.trim()
           : undefined,
-        celularClienteDirecto: !clienteSeleccionado
-          ? celularCliente.trim() || undefined
+        telefonoClienteInvitado: !clienteSeleccionado
+          ? telefonoCliente.trim() || undefined
           : undefined,
         metodoPago: pagos[0].metodo,
         referenciaPago: pagos[0].referencia || undefined,
@@ -375,7 +375,7 @@ export default function RegistrarVentaModal({
                   </label>
                   <input
                     type="text"
-                    value={celularCliente}
+                    value={telefonoCliente}
                     onChange={(e) => setCelularCliente(e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     placeholder="Ej: 71234567"

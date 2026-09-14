@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 import { 
   getAllConfiguraciones, 
   updateValorByClave,
@@ -9,25 +10,58 @@ import {
   getAuditoriasByUsuario,
   getAuditoriasByTabla,
   getAuditoriasByAccion,
-  getAllUsers
+  getAllUsers,
+  getMensajesContacto,
+  marcarMensajeAtendido,
+  MensajeContacto
 } from '@/lib/api';
 import { Configuracion, Auditoria } from '@/types/configuracion';
 import { User } from '@/lib/api';
-import { Settings, Building2, Mail, Shield, Search, Eye } from 'lucide-react';
+import { Settings, Building2, Mail, Shield, Search, Eye, Inbox, CheckCircle } from 'lucide-react';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import AuditoriaDetalleModal from '@/components/AuditoriaDetalleModal';
+import AvisoCargaParcial from '@/components/AvisoCargaParcial';
+import { crearRecolector } from '@/lib/cargaParcial';
 
-type TabType = 'general' | 'empresa' | 'email' | 'auditoria';
+type TabType = 'general' | 'empresa' | 'auditoria' | 'mensajes';
 
 export default function ConfiguracionPage() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('general');
+  const [mensajes, setMensajes] = useState<MensajeContacto[]>([]);
+  const [soloPendientes, setSoloPendientes] = useState(true);
   const [configuraciones, setConfiguraciones] = useState<Configuracion[]>([]);
   const [auditorias, setAuditorias] = useState<Auditoria[]>([]);
   const [filteredAuditorias, setFilteredAuditorias] = useState<Auditoria[]>([]);
   const [usuarios, setUsuarios] = useState<User[]>([]);
+  const [fallosCarga, setFallosCarga] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  // Consultas recibidas desde el formulario de la tienda
+  const cargarMensajes = async () => {
+    try {
+      setMensajes(await getMensajesContacto());
+    } catch (error: any) {
+      showMessage('error', error.message);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'mensajes') cargarMensajes();
+  }, [activeTab]);
+
+  const handleAtender = async (id: number) => {
+    if (!user?.id) return;
+    try {
+      await marcarMensajeAtendido(id, user.id);
+      showMessage('success', 'Mensaje marcado como atendido');
+      cargarMensajes();
+    } catch (error: any) {
+      showMessage('error', error.message);
+    }
+  };
 
   // Estados para formularios
   const [configGeneral, setConfigGeneral] = useState({
@@ -36,29 +70,17 @@ export default function ConfiguracionPage() {
     moneda: 'BOB',
     stock_minimo_defecto: '5',
     modo_mantenimiento: 'false',
-    permitir_registro: 'true',
-    mostrar_precios_sin_login: 'true',
   });
 
   const [configEmpresa, setConfigEmpresa] = useState({
-    empresa_razon_social: '',
-    empresa_nit: '',
-    empresa_direccion: '',
-    empresa_telefono: '',
-    empresa_email: '',
-    empresa_sitio_web: '',
+    negocio_razon_social: '',
+    negocio_nit: '',
+    negocio_direccion: '',
+    negocio_telefono: '',
+    negocio_email: '',
+    negocio_sitio_web: '',
   });
 
-  const [configEmail, setConfigEmail] = useState({
-    smtp_servidor: 'smtp.gmail.com',
-    smtp_puerto: '587',
-    smtp_usuario: '',
-    smtp_password: '',
-    email_remitente: '',
-    email_nombre_remitente: '',
-    email_enviar_bienvenida: 'true',
-    email_enviar_notificacion_envio: 'true',
-  });
 
   // Filtros de auditoría
   const [searchAuditoria, setSearchAuditoria] = useState('');
@@ -77,16 +99,24 @@ export default function ConfiguracionPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [configsData, auditoriasData, usuariosData] = await Promise.all([
+      // allSettled: la auditoria y el listado de usuarios son pestanas aparte;
+      // si fallan, la configuracion del negocio igual se tiene que poder editar.
+      const [rConfigs, rAuditorias, rUsuarios] = await Promise.allSettled([
         getAllConfiguraciones(),
         getUltimasAuditorias(),
         getAllUsers()
       ]);
-      
+
+      const { tomar, fallos } = crearRecolector();
+      const configsData = tomar(rConfigs, 'la configuracion', [] as Configuracion[]);
+      const auditoriasData = tomar(rAuditorias, 'la auditoria', [] as Auditoria[]);
+      const usuariosData = tomar(rUsuarios, 'los usuarios', [] as User[]);
+
       setConfiguraciones(configsData);
       setAuditorias(auditoriasData);
       setFilteredAuditorias(auditoriasData);
       setUsuarios(usuariosData);
+      setFallosCarga(fallos);
       
       // Mapear configuraciones a estados
       mapConfiguraciones(configsData);
@@ -110,31 +140,19 @@ export default function ConfiguracionPage() {
       moneda: configMap['moneda'] || 'BOB',
       stock_minimo_defecto: configMap['stock_minimo_defecto'] || '5',
       modo_mantenimiento: configMap['modo_mantenimiento'] || 'false',
-      permitir_registro: configMap['permitir_registro'] || 'true',
-      mostrar_precios_sin_login: configMap['mostrar_precios_sin_login'] || 'true',
     });
 
     // Empresa
     setConfigEmpresa({
-      empresa_razon_social: configMap['empresa_razon_social'] || '',
-      empresa_nit: configMap['empresa_nit'] || '',
-      empresa_direccion: configMap['empresa_direccion'] || '',
-      empresa_telefono: configMap['empresa_telefono'] || '',
-      empresa_email: configMap['empresa_email'] || '',
-      empresa_sitio_web: configMap['empresa_sitio_web'] || '',
+      negocio_razon_social: configMap['negocio_razon_social'] || '',
+      negocio_nit: configMap['negocio_nit'] || '',
+      negocio_direccion: configMap['negocio_direccion'] || '',
+      negocio_telefono: configMap['negocio_telefono'] || '',
+      negocio_email: configMap['negocio_email'] || '',
+      negocio_sitio_web: configMap['negocio_sitio_web'] || '',
     });
 
     // Email
-    setConfigEmail({
-      smtp_servidor: configMap['smtp_servidor'] || 'smtp.gmail.com',
-      smtp_puerto: configMap['smtp_puerto'] || '587',
-      smtp_usuario: configMap['smtp_usuario'] || '',
-      smtp_password: configMap['smtp_password'] || '',
-      email_remitente: configMap['email_remitente'] || '',
-      email_nombre_remitente: configMap['email_nombre_remitente'] || '',
-      email_enviar_bienvenida: configMap['email_enviar_bienvenida'] || 'true',
-      email_enviar_notificacion_envio: configMap['email_enviar_notificacion_envio'] || 'true',
-    });
   };
 
   // Filtrar auditorías
@@ -204,41 +222,38 @@ export default function ConfiguracionPage() {
     }
   };
 
-  const handleSaveEmail = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-
-    try {
-      for (const [clave, valor] of Object.entries(configEmail)) {
-        await updateValorByClave(clave, valor);
-      }
-      showMessage('success', 'Configuración de email guardada correctamente');
-      loadData();
-    } catch (error: any) {
-      showMessage('error', error.message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleTestEmail = () => {
-    showMessage('success', '✉️ Email de prueba enviado correctamente (simulado)');
-  };
-
   const handleVerDetalle = (auditoria: Auditoria) => {
     setSelectedAuditoria(auditoria);
     setIsDetalleModalOpen(true);
   };
 
+  // El backend registra acciones como CREAR_PRODUCTO o ACTUALIZAR_USUARIO, no
+  // CREATE ni UPDATE. Antes esta tabla buscaba coincidencia exacta contra los
+  // nombres en ingles, asi que toda la auditoria habria salido en gris.
+  // Se compara por prefijo porque cada accion lleva pegado el nombre de la
+  // entidad.
   const getAccionBadge = (accion: string) => {
-    const colors: { [key: string]: string } = {
-      CREATE: 'bg-green-100 text-green-800',
-      UPDATE: 'bg-blue-100 text-blue-800',
-      DELETE: 'bg-red-100 text-red-800',
-      LOGIN: 'bg-purple-100 text-purple-800',
-      LOGOUT: 'bg-gray-100 text-gray-800',
-    };
-    return colors[accion] || 'bg-gray-100 text-gray-800';
+    if (accion.startsWith('LOGIN_FALLIDO') || accion.startsWith('LOGIN_RECHAZADO')) {
+      // Un intento de ingreso rechazado es lo que mas conviene que salte a la vista.
+      return 'bg-orange-100 text-orange-800';
+    }
+    if (accion.startsWith('LOGIN')) return 'bg-purple-100 text-purple-800';
+    if (accion.startsWith('LOGOUT')) return 'bg-gray-100 text-gray-800';
+    if (accion.startsWith('CREAR')) return 'bg-green-100 text-green-800';
+    if (accion.startsWith('ACTUALIZAR') || accion.startsWith('CAMBIAR') || accion.startsWith('AJUSTAR')) {
+      return 'bg-blue-100 text-blue-800';
+    }
+    if (accion.startsWith('ELIMINAR') || accion.startsWith('CANCELAR') || accion.startsWith('DESACTIVAR')) {
+      return 'bg-red-100 text-red-800';
+    }
+    if (accion.startsWith('ACTIVAR')) return 'bg-green-100 text-green-800';
+    return 'bg-gray-100 text-gray-800';
+  };
+
+  /** CREAR_PRODUCTO -> "Crear producto", para que la tabla se lea. */
+  const formatearAccion = (accion: string) => {
+    const texto = accion.replace(/_/g, ' ').toLowerCase();
+    return texto.charAt(0).toUpperCase() + texto.slice(1);
   };
 
   const formatDateTime = (dateString: string) => {
@@ -269,6 +284,8 @@ export default function ConfiguracionPage() {
   return (
     <div>
       <Breadcrumbs items={[{ label: 'Configuración' }]} />
+
+      <AvisoCargaParcial fallos={fallosCarga} onReintentar={loadData} />
 
       {/* Header */}
       <div className="mb-6">
@@ -312,19 +329,6 @@ export default function ConfiguracionPage() {
           </div>
         </button>
         <button
-          onClick={() => setActiveTab('email')}
-          className={`px-6 py-3 font-medium transition-all ${
-            activeTab === 'email'
-              ? 'text-primary-600 border-b-2 border-primary-600'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <Mail size={20} />
-            Email
-          </div>
-        </button>
-        <button
           onClick={() => setActiveTab('auditoria')}
           className={`px-6 py-3 font-medium transition-all ${
             activeTab === 'auditoria'
@@ -335,6 +339,24 @@ export default function ConfiguracionPage() {
           <div className="flex items-center gap-2">
             <Shield size={20} />
             Auditoría
+          </div>
+        </button>
+        <button
+          onClick={() => setActiveTab('mensajes')}
+          className={`px-6 py-3 font-medium transition-all ${
+            activeTab === 'mensajes'
+              ? 'text-primary-600 border-b-2 border-primary-600'
+              : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <Inbox size={20} />
+            Consultas
+            {mensajes.filter((m) => !m.atendido).length > 0 && (
+              <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                {mensajes.filter((m) => !m.atendido).length}
+              </span>
+            )}
           </div>
         </button>
       </div>
@@ -413,25 +435,11 @@ export default function ConfiguracionPage() {
                 </div>
               </label>
 
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={configGeneral.permitir_registro === 'true'}
-                  onChange={(e) => setConfigGeneral({ ...configGeneral, permitir_registro: e.target.checked ? 'true' : 'false' })}
-                  className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
-                />
-                <span className="text-sm font-medium text-gray-900">Permitir registro de clientes</span>
-              </label>
-
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={configGeneral.mostrar_precios_sin_login === 'true'}
-                  onChange={(e) => setConfigGeneral({ ...configGeneral, mostrar_precios_sin_login: e.target.checked ? 'true' : 'false' })}
-                  className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
-                />
-                <span className="text-sm font-medium text-gray-900">Mostrar precios sin iniciar sesión</span>
-              </label>
+              {/*
+                Se quitaron "Permitir registro de clientes" y "Mostrar precios
+                sin iniciar sesión": la tienda es una vitrina pública sin inicio
+                de sesión, así que ninguna de las dos tenía efecto posible.
+              */}
             </div>
 
             <div className="flex justify-end pt-4 border-t">
@@ -458,8 +466,8 @@ export default function ConfiguracionPage() {
                 </label>
                 <input
                   type="text"
-                  value={configEmpresa.empresa_razon_social}
-                  onChange={(e) => setConfigEmpresa({ ...configEmpresa, empresa_razon_social: e.target.value })}
+                  value={configEmpresa.negocio_razon_social}
+                  onChange={(e) => setConfigEmpresa({ ...configEmpresa, negocio_razon_social: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
@@ -470,8 +478,8 @@ export default function ConfiguracionPage() {
                 </label>
                 <input
                   type="text"
-                  value={configEmpresa.empresa_nit}
-                    onChange={(e) => setConfigEmpresa({ ...configEmpresa, empresa_nit: e.target.value })}
+                  value={configEmpresa.negocio_nit}
+                    onChange={(e) => setConfigEmpresa({ ...configEmpresa, negocio_nit: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
@@ -483,8 +491,8 @@ export default function ConfiguracionPage() {
               </label>
               <input
                 type="text"
-                value={configEmpresa.empresa_direccion}
-                onChange={(e) => setConfigEmpresa({ ...configEmpresa, empresa_direccion: e.target.value })}
+                value={configEmpresa.negocio_direccion}
+                onChange={(e) => setConfigEmpresa({ ...configEmpresa, negocio_direccion: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
@@ -496,8 +504,8 @@ export default function ConfiguracionPage() {
                 </label>
                 <input
                   type="tel"
-                  value={configEmpresa.empresa_telefono}
-                  onChange={(e) => setConfigEmpresa({ ...configEmpresa, empresa_telefono: e.target.value })}
+                  value={configEmpresa.negocio_telefono}
+                  onChange={(e) => setConfigEmpresa({ ...configEmpresa, negocio_telefono: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
@@ -508,8 +516,8 @@ export default function ConfiguracionPage() {
                 </label>
                 <input
                   type="email"
-                  value={configEmpresa.empresa_email}
-                  onChange={(e) => setConfigEmpresa({ ...configEmpresa, empresa_email: e.target.value })}
+                  value={configEmpresa.negocio_email}
+                  onChange={(e) => setConfigEmpresa({ ...configEmpresa, negocio_email: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
@@ -521,8 +529,8 @@ export default function ConfiguracionPage() {
               </label>
               <input
                 type="url"
-                value={configEmpresa.empresa_sitio_web}
-                onChange={(e) => setConfigEmpresa({ ...configEmpresa, empresa_sitio_web: e.target.value })}
+                value={configEmpresa.negocio_sitio_web}
+                onChange={(e) => setConfigEmpresa({ ...configEmpresa, negocio_sitio_web: e.target.value })}
                 placeholder="https://www.ejemplo.com"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
@@ -542,148 +550,6 @@ export default function ConfiguracionPage() {
       )}
 
       {/* ========== PESTAÑA: EMAIL ========== */}
-      {activeTab === 'email' && (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <form onSubmit={handleSaveEmail} className="space-y-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Configuración SMTP</h3>
-
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Servidor SMTP
-                </label>
-                <input
-                  type="text"
-                  value={configEmail.smtp_servidor}
-                  onChange={(e) => setConfigEmail({ ...configEmail, smtp_servidor: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Puerto
-                </label>
-                <input
-                  type="text"
-                  value={configEmail.smtp_puerto}
-                  onChange={(e) => setConfigEmail({ ...configEmail, smtp_puerto: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Usuario SMTP
-                </label>
-                <input
-                  type="text"
-                  value={configEmail.smtp_usuario}
-                  onChange={(e) => setConfigEmail({ ...configEmail, smtp_usuario: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Contraseña SMTP
-                </label>
-                <input
-                  type="password"
-                  value={configEmail.smtp_password}
-                  onChange={(e) => setConfigEmail({ ...configEmail, smtp_password: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-            </div>
-
-            <div className="border-t pt-6 mt-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Configuración de Remitente</h3>
-
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email de Remitente
-                  </label>
-                  <input
-                    type="email"
-                    value={configEmail.email_remitente}
-                    onChange={(e) => setConfigEmail({ ...configEmail, email_remitente: e.target.value })}
-                    placeholder="noreply@tucamas.com"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nombre de Remitente
-                  </label>
-                  <input
-                    type="text"
-                    value={configEmail.email_nombre_remitente}
-                    onChange={(e) => setConfigEmail({ ...configEmail, email_nombre_remitente: e.target.value })}
-                    placeholder="Mueblería Edén"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="border-t pt-6 mt-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Preferencias de Envío</h3>
-
-              <div className="space-y-3">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={configEmail.email_enviar_bienvenida === 'true'}
-                    onChange={(e) => setConfigEmail({ ...configEmail, email_enviar_bienvenida: e.target.checked ? 'true' : 'false' })}
-                    className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
-                  />
-                  <div>
-                    <span className="text-sm font-medium text-gray-900">Enviar email de bienvenida</span>
-                    <p className="text-xs text-gray-500">A nuevos clientes registrados</p>
-                  </div>
-                </label>
-
-
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={configEmail.email_enviar_notificacion_envio === 'true'}
-                    onChange={(e) => setConfigEmail({ ...configEmail, email_enviar_notificacion_envio: e.target.checked ? 'true' : 'false' })}
-                    className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
-                  />
-                  <div>
-                    <span className="text-sm font-medium text-gray-900">Enviar notificación de envío</span>
-                    <p className="text-xs text-gray-500">Con información de seguimiento</p>
-                  </div>
-                </label>
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center pt-4 border-t">
-              <button
-                type="button"
-                onClick={handleTestEmail}
-                className="px-6 py-2 border border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors"
-              >
-                🧪 Enviar Email de Prueba
-              </button>
-              <button
-                type="submit"
-                disabled={saving}
-                className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50"
-              >
-                {saving ? 'Guardando...' : 'Guardar Cambios'}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
       {/* ========== PESTAÑA: AUDITORÍA ========== */}
       {activeTab === 'auditoria' && (
         <div>
@@ -767,7 +633,7 @@ export default function ConfiguracionPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getAccionBadge(auditoria.accion)}`}>
-                          {auditoria.accion}
+                          {formatearAccion(auditoria.accion)}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -821,6 +687,111 @@ export default function ConfiguracionPage() {
             setSelectedAuditoria(null);
           }}
         />
+      )}
+
+      {/* ========== PESTAÑA: CONSULTAS DE LA TIENDA ========== */}
+      {activeTab === 'mensajes' && (
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Consultas de la tienda</h2>
+              <p className="text-sm text-gray-500">
+                Mensajes que los visitantes envían desde el formulario de contacto.
+              </p>
+            </div>
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={soloPendientes}
+                onChange={(e) => setSoloPendientes(e.target.checked)}
+                className="w-4 h-4 rounded"
+              />
+              Ver solo pendientes
+            </label>
+          </div>
+
+          {(() => {
+            const visibles = soloPendientes ? mensajes.filter((m) => !m.atendido) : mensajes;
+
+            if (visibles.length === 0) {
+              return (
+                <div className="text-center py-12 bg-gray-50 border border-gray-200 rounded-lg">
+                  <Inbox size={40} className="mx-auto text-gray-400 mb-3" />
+                  <p className="text-gray-600 font-medium">
+                    {soloPendientes ? 'No hay consultas pendientes' : 'Todavía no llegaron consultas'}
+                  </p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Las consultas enviadas desde la tienda aparecen acá.
+                  </p>
+                </div>
+              );
+            }
+
+            return (
+              <div className="space-y-4">
+                {visibles.map((m) => (
+                  <div
+                    key={m.id}
+                    className={`border rounded-lg p-5 ${
+                      m.atendido ? 'border-gray-200 bg-gray-50' : 'border-amber-200 bg-amber-50'
+                    }`}
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold text-gray-900">{m.asunto}</p>
+                        <p className="text-sm text-gray-600">
+                          {m.nombre} · {m.email}
+                          {m.telefono ? ` · ${m.telefono}` : ''}
+                        </p>
+                      </div>
+                      <span className="text-xs text-gray-500 whitespace-nowrap">
+                        {new Date(m.fechaEnvio).toLocaleString('es-BO')}
+                      </span>
+                    </div>
+
+                    <p className="text-sm text-gray-800 mt-3 whitespace-pre-line">{m.mensaje}</p>
+
+                    <div className="flex flex-wrap items-center gap-3 mt-4 pt-3 border-t border-gray-200">
+                      {m.atendido ? (
+                        <span className="inline-flex items-center gap-1.5 text-sm text-green-700">
+                          <CheckCircle size={16} />
+                          Atendido por {m.nombreUsuarioAtiende}
+                          {m.fechaAtencion ? ` el ${new Date(m.fechaAtencion).toLocaleDateString('es-BO')}` : ''}
+                        </span>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => handleAtender(m.id)}
+                            className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 transition-colors"
+                          >
+                            <CheckCircle size={16} />
+                            Marcar como atendido
+                          </button>
+                          <a
+                            href={`mailto:${m.email}?subject=Re: ${encodeURIComponent(m.asunto)}`}
+                            className="text-sm text-primary-600 hover:text-primary-800"
+                          >
+                            Responder por correo
+                          </a>
+                          {m.telefono && (
+                            <a
+                              href={`https://wa.me/${m.telefono.replace(/[^0-9]/g, '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-green-600 hover:text-green-800"
+                            >
+                              Responder por WhatsApp
+                            </a>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+        </div>
       )}
     </div>
   );

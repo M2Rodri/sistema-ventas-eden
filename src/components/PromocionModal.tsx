@@ -1,20 +1,21 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createOferta, updateOferta } from '@/lib/api';
-import { Oferta, OfertaRequest } from '@/types/promocion';
+import { createPromocion, updatePromocion } from '@/lib/api';
+import { Promocion, PromocionRequest } from '@/types/promocion';
 import { Producto } from '@/types/producto';
 import { X } from 'lucide-react';
 
-interface OfertaModalProps {
-  oferta: Oferta | null;
+interface PromocionModalProps {
+  promocion: Promocion | null;
   productos: Producto[];
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export default function OfertaModal({ oferta, productos, onClose, onSuccess }: OfertaModalProps) {
-  const [formData, setFormData] = useState<OfertaRequest>({
+export default function PromocionModal({ promocion, productos, onClose, onSuccess }: PromocionModalProps) {
+  const [formData, setFormData] = useState<PromocionRequest>({
+    nombre: '',
     descripcion: '',
     descuento: 0,
     fechaInicio: '',
@@ -26,17 +27,18 @@ export default function OfertaModal({ oferta, productos, onClose, onSuccess }: O
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (oferta) {
+    if (promocion) {
       setFormData({
-        descripcion: oferta.descripcion,
-        descuento: oferta.descuento,
-        fechaInicio: oferta.fechaInicio.split('T')[0],
-        fechaFin: oferta.fechaFin.split('T')[0],
-        idsProductos: oferta.productos.map(p => p.id),
-        activo: oferta.activo,
+        nombre: promocion.nombre,
+        descripcion: promocion.descripcion ?? '',
+        descuento: promocion.descuento,
+        fechaInicio: promocion.fechaInicio.split('T')[0],
+        fechaFin: promocion.fechaFin.split('T')[0],
+        idsProductos: promocion.productos.map(p => p.id),
+        activo: promocion.activo,
       });
     }
-  }, [oferta]);
+  }, [promocion]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,10 +62,10 @@ export default function OfertaModal({ oferta, productos, onClose, onSuccess }: O
 
     try {
       setLoading(true);
-      if (oferta) {
-        await updateOferta(oferta.id, formData);
+      if (promocion) {
+        await updatePromocion(promocion.id, formData);
       } else {
-        await createOferta(formData);
+        await createPromocion(formData);
       }
       onSuccess();
     } catch (error: any) {
@@ -88,7 +90,7 @@ export default function OfertaModal({ oferta, productos, onClose, onSuccess }: O
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-bold text-gray-900">
-            {oferta ? 'Editar Oferta' : 'Nueva Oferta'}
+            {promocion ? 'Editar Promoción' : 'Nueva Promoción'}
           </h2>
           <button
             onClick={onClose}
@@ -106,18 +108,33 @@ export default function OfertaModal({ oferta, productos, onClose, onSuccess }: O
             </div>
           )}
 
-          {/* Descripción */}
+          {/* Nombre */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Descripción *
+              Nombre *
             </label>
             <input
               type="text"
-              value={formData.descripcion}
-              onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
+              value={formData.nombre}
+              onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-              placeholder="Ej: 20% OFF en Colchones Premium"
+              placeholder="Ej: Semana del Descanso"
+              maxLength={150}
               required
+            />
+          </div>
+
+          {/* Descripción */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Descripción
+            </label>
+            <textarea
+              value={formData.descripcion ?? ''}
+              onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+              placeholder="Ej: Descuento en toda la línea de colchones por aniversario."
+              rows={2}
             />
           </div>
 
@@ -203,7 +220,7 @@ export default function OfertaModal({ oferta, productos, onClose, onSuccess }: O
                 onChange={(e) => setFormData({ ...formData, activo: e.target.checked })}
                 className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
               />
-              <span className="text-sm font-medium text-gray-700">Oferta activa</span>
+              <span className="text-sm font-medium text-gray-700">Promocion activa</span>
             </label>
           </div>
 
@@ -221,7 +238,7 @@ export default function OfertaModal({ oferta, productos, onClose, onSuccess }: O
               disabled={loading}
               className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50"
             >
-              {loading ? 'Guardando...' : oferta ? 'Actualizar' : 'Crear Oferta'}
+              {loading ? 'Guardando...' : promocion ? 'Actualizar' : 'Crear Promocion'}
             </button>
           </div>
         </form>

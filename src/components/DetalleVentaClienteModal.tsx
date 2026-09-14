@@ -2,11 +2,17 @@
 
 import React from 'react';
 import { X, ShoppingCart, User, Calendar, CreditCard, Package, DollarSign } from 'lucide-react';
+import { VentaHistorial, DetalleVentaHistorial } from '@/types/cliente';
 
 interface DetalleVentaClienteModalProps {
   isOpen: boolean;
   onClose: () => void;
-  venta: any; // VentaCliente type from HistorialComprasResponse
+  /**
+   * Antes estaba tipado como `any`, y por eso pasaba desapercibido que se
+   * mostraba `venta.cantidadTotalProductos`, un campo que el backend nunca
+   * envía: en pantalla salía "undefined unidad(es)".
+   */
+  venta: VentaHistorial;
 }
 
 /**
@@ -140,7 +146,12 @@ export default function DetalleVentaClienteModal({
                 <div>
                   <p className="text-sm font-medium text-gray-600">Total de la Venta</p>
                   <p className="text-xs text-gray-500">
-                    {venta.detalles.length} producto(s) · {venta.cantidadTotalProductos} unidad(es)
+                    {venta.detalles.length} producto(s) ·{' '}
+                    {venta.detalles.reduce(
+                      (total: number, d: DetalleVentaHistorial) => total + (d.cantidad ?? 0),
+                      0
+                    )}{' '}
+                    unidad(es)
                   </p>
                 </div>
               </div>
@@ -150,11 +161,21 @@ export default function DetalleVentaClienteModal({
             </div>
           </div>
 
-          {/* Observaciones (si existen) */}
-          {venta.observaciones && (
-            <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p className="text-xs font-medium text-yellow-800 uppercase mb-2">Observaciones:</p>
-              <p className="text-sm text-gray-700">{venta.observaciones}</p>
+          {/* Estado de la venta */}
+          {venta.estado && (
+            <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-between">
+              <p className="text-xs font-medium text-gray-600 uppercase">Estado de la venta</p>
+              <span
+                className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  venta.estado === 'COMPLETADA'
+                    ? 'bg-green-100 text-green-800'
+                    : venta.estado === 'CANCELADA'
+                      ? 'bg-red-100 text-red-800'
+                      : 'bg-yellow-100 text-yellow-800'
+                }`}
+              >
+                {venta.estado}
+              </span>
             </div>
           )}
         </div>

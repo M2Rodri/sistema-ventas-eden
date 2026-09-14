@@ -1,11 +1,8 @@
 // Servicio de API para conectar con el backend Spring Boot
 import { ImagenProducto } from '@/types/imagenProducto';
-// const API_URL = 'http://localhost:8080/api';
-// export const BACKEND_URL = 'http://localhost:8080';
-
-// Producción
-const API_URL = 'https://backend-sistema-ventas-production-d0a4.up.railway.app/api';
-export const BACKEND_URL = 'https://backend-sistema-ventas-production-d0a4.up.railway.app';
+export const BACKEND_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL ?? 'https://backend-sistema-ventas-production-d0a4.up.railway.app';
+const API_URL = `${BACKEND_URL}/api`;
 
 export interface RegisterData {
   nombre: string;
@@ -511,8 +508,8 @@ import {
   Inventario, 
   InventarioRequest, 
   AlertaInventario, 
-  AjusteInventario, 
-  AjusteInventarioRequest 
+  MovimientoInventario, 
+  MovimientoInventarioRequest 
 } from '@/types/inventario';
 
 // Listar todo el inventario
@@ -587,7 +584,7 @@ export const updateInventario = async (id: number, data: InventarioRequest): Pro
 };
 
 // Ajustar inventario manualmente
-export const ajustarInventario = async (data: AjusteInventarioRequest): Promise<Inventario> => {
+export const ajustarInventario = async (data: MovimientoInventarioRequest): Promise<Inventario> => {
   const response = await fetch(`${API_URL}/inventario/ajustar`, {
     method: 'POST',
     headers: getAuthHeaders(),
@@ -603,7 +600,7 @@ export const ajustarInventario = async (data: AjusteInventarioRequest): Promise<
 };
 
 // Obtener historial de ajustes de un producto
-export const getHistorialAjustes = async (idProducto: number): Promise<AjusteInventario[]> => {
+export const getHistorialAjustes = async (idProducto: number): Promise<MovimientoInventario[]> => {
   const response = await fetch(`${API_URL}/inventario/producto/${idProducto}/historial`, {
     headers: getAuthHeaders(),
   });
@@ -616,7 +613,7 @@ export const getHistorialAjustes = async (idProducto: number): Promise<AjusteInv
 };
 
 // Obtener últimos 50 ajustes
-export const getUltimosAjustes = async (): Promise<AjusteInventario[]> => {
+export const getUltimosAjustes = async (): Promise<MovimientoInventario[]> => {
   const response = await fetch(`${API_URL}/inventario/ajustes/ultimos`, {
     headers: getAuthHeaders(),
   });
@@ -1154,6 +1151,9 @@ export const getClientesConEstadisticas = async (): Promise<ClienteConEstadistic
   const clientes = await getAllClientes();
   
   // Para cada cliente, obtener sus estadísticas
+  // Promise.all es seguro aca: el map de abajo tiene su propio try/catch y
+  // devuelve el cliente con estadisticas en cero si falla su historial, asi
+  // que ninguna de estas promesas llega a rechazar.
   const clientesConStats = await Promise.all(
     clientes.map(async (cliente) => {
       try {
@@ -2081,6 +2081,9 @@ export const getReporteInventarioStockBajo = async (): Promise<ReporteInventario
 
 // Reporte de Proveedores (construido desde datos existentes)
 export const getReporteProveedores = async (): Promise<ReporteProveedores> => {
+  // Promise.all a proposito: el reporte cruza las dos listas. Con datos
+  // parciales los totales por proveedor saldrian mal, y un numero equivocado
+  // es peor que un error visible.
   const [proveedores, compras] = await Promise.all([
     getAllProveedores(),
     getAllCompras()
@@ -2088,7 +2091,7 @@ export const getReporteProveedores = async (): Promise<ReporteProveedores> => {
 
   const proveedoresReporte = proveedores.map(proveedor => {
     const comprasProveedor = compras.filter(c => c.idProveedor === proveedor.id);
-    const montoTotal = comprasProveedor.reduce((sum, c) => sum + c.costoTotal, 0);
+    const montoTotal = comprasProveedor.reduce((sum, c) => sum + c.montoTotal, 0);
     const ultimaCompra = comprasProveedor.length > 0 
       ? comprasProveedor.sort((a, b) => new Date(b.fechaCompra).getTime() - new Date(a.fechaCompra).getTime())[0].fechaCompra
       : null;
@@ -2116,6 +2119,8 @@ export const getReporteProveedores = async (): Promise<ReporteProveedores> => {
 
 // Reporte de Transportadoras (construido desde datos existentes)
 export const getReporteTransportadoras = async (): Promise<ReporteTransportadoras> => {
+  // Promise.all a proposito: sin la lista completa de envios, la tasa de
+  // entrega de cada transportadora daria un porcentaje falso.
   const [transportadoras, envios] = await Promise.all([
     getAllTransportadoras(),
     getAllEnvios()
@@ -2157,6 +2162,9 @@ export const getReporteFinanciero = async (fechaInicio: string, fechaFin: string
   const inicio = new Date(fechaInicio);
   const fin = new Date(fechaFin);
 
+  // Promise.all a proposito: es el reporte financiero. Si faltaran las
+  // compras, el margen saldria inflado; si faltaran las ventas, saldria en
+  // perdida. Mejor no mostrar nada que mostrar plata mal calculada.
   const [ventas, compras, pagos] = await Promise.all([
     getAllVentas(),
     getAllCompras(),
@@ -2180,7 +2188,7 @@ export const getReporteFinanciero = async (fechaInicio: string, fechaFin: string
   });
 
   const ingresosTotales = ventasFiltradas.reduce((sum, v) => sum + v.montoTotal, 0);
-  const gastosTotales = comprasFiltradas.reduce((sum, c) => sum + c.costoTotal, 0);
+  const gastosTotales = comprasFiltradas.reduce((sum, c) => sum + c.montoTotal, 0);
   const totalPagosRecibidos = pagosFiltrados.reduce((sum, p) => sum + p.monto, 0);
   const gananciaNeta = ingresosTotales - gastosTotales;
   const margenGanancia = ingresosTotales > 0 ? (gananciaNeta / ingresosTotales) * 100 : 0;
@@ -2193,7 +2201,7 @@ export const getReporteFinanciero = async (fechaInicio: string, fechaFin: string
 
   const detalleGastos = comprasFiltradas.map(c => ({
     fecha: new Date(c.fechaCompra).toISOString().split('T')[0],
-    monto: c.costoTotal
+    monto: c.montoTotal
   }));
 
   return {
@@ -2214,64 +2222,64 @@ export const getReporteFinanciero = async (fechaInicio: string, fechaFin: string
 
 
 // ============================================
-// PROMOCIONES - OFERTAS 
+// PROMOCIONES - PROMOCIONS 
 // ============================================
 
-import { Oferta, OfertaRequest, Resenia, ReseniaRequest } from '@/types/promocion';
+import { Promocion, PromocionRequest } from '@/types/promocion';
 
-// Listar todas las ofertas (ADMIN)
-export const getAllOfertas = async (): Promise<Oferta[]> => {
-  const response = await fetch(`${API_URL}/ofertas`, {
+// Listar todas las promociones (ADMIN)
+export const getAllPromociones = async (): Promise<Promocion[]> => {
+  const response = await fetch(`${API_URL}/promociones`, {
     headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener ofertas');
+    throw new Error('Error al obtener promociones');
   }
 
   return response.json();
 };
 
-// Listar ofertas activas (ADMIN)
-export const getActiveOfertas = async (): Promise<Oferta[]> => {
-  const response = await fetch(`${API_URL}/ofertas/activas`, {
+// Listar promociones activas (ADMIN)
+export const getActivePromociones = async (): Promise<Promocion[]> => {
+  const response = await fetch(`${API_URL}/promociones/activas`, {
     headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener ofertas activas');
+    throw new Error('Error al obtener promociones activas');
   }
 
   return response.json();
 };
 
-// Listar ofertas vigentes (público - tienda)
-export const getOfertasVigentes = async (): Promise<Oferta[]> => {
-  const response = await fetch(`${API_URL}/ofertas/vigentes`);
+// Listar promociones vigentes (público - tienda)
+export const getPromocionesVigentes = async (): Promise<Promocion[]> => {
+  const response = await fetch(`${API_URL}/promociones/vigentes`);
 
   if (!response.ok) {
-    throw new Error('Error al obtener ofertas vigentes');
+    throw new Error('Error al obtener promociones vigentes');
   }
 
   return response.json();
 };
 
-// Obtener oferta por ID
-export const getOfertaById = async (id: number): Promise<Oferta> => {
-  const response = await fetch(`${API_URL}/ofertas/${id}`, {
+// Obtener promocion por ID
+export const getPromocionById = async (id: number): Promise<Promocion> => {
+  const response = await fetch(`${API_URL}/promociones/${id}`, {
     headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener oferta');
+    throw new Error('Error al obtener promocion');
   }
 
   return response.json();
 };
 
-// Crear oferta
-export const createOferta = async (data: OfertaRequest): Promise<Oferta> => {
-  const response = await fetch(`${API_URL}/ofertas`, {
+// Crear promocion
+export const createPromocion = async (data: PromocionRequest): Promise<Promocion> => {
+  const response = await fetch(`${API_URL}/promociones`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify(data),
@@ -2279,15 +2287,15 @@ export const createOferta = async (data: OfertaRequest): Promise<Oferta> => {
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || 'Error al crear oferta');
+    throw new Error(error.error || 'Error al crear promocion');
   }
 
   return response.json();
 };
 
-// Actualizar oferta
-export const updateOferta = async (id: number, data: OfertaRequest): Promise<Oferta> => {
-  const response = await fetch(`${API_URL}/ofertas/${id}`, {
+// Actualizar promocion
+export const updatePromocion = async (id: number, data: PromocionRequest): Promise<Promocion> => {
+  const response = await fetch(`${API_URL}/promociones/${id}`, {
     method: 'PUT',
     headers: getAuthHeaders(),
     body: JSON.stringify(data),
@@ -2295,200 +2303,50 @@ export const updateOferta = async (id: number, data: OfertaRequest): Promise<Ofe
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || 'Error al actualizar oferta');
+    throw new Error(error.error || 'Error al actualizar promocion');
   }
 
   return response.json();
 };
 
-// Eliminar oferta (desactivar)
-export const deleteOferta = async (id: number): Promise<void> => {
-  const response = await fetch(`${API_URL}/ofertas/${id}`, {
+// Eliminar promocion (desactivar)
+export const deletePromocion = async (id: number): Promise<void> => {
+  const response = await fetch(`${API_URL}/promociones/${id}`, {
     method: 'DELETE',
     headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
-    throw new Error('Error al eliminar oferta');
+    throw new Error('Error al eliminar promocion');
   }
 };
 
-// Activar/Desactivar oferta
-export const toggleOfertaStatus = async (id: number): Promise<Oferta> => {
-  const response = await fetch(`${API_URL}/ofertas/${id}/toggle-status`, {
+// Activar/Desactivar promocion
+export const togglePromocionStatus = async (id: number): Promise<Promocion> => {
+  const response = await fetch(`${API_URL}/promociones/${id}/toggle-status`, {
     method: 'PATCH',
     headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
-    throw new Error('Error al cambiar estado de la oferta');
+    throw new Error('Error al cambiar estado de la promocion');
   }
 
   return response.json();
 };
 
-// Obtener estadísticas de ofertas
-export const getOfertaStatistics = async () => {
-  const response = await fetch(`${API_URL}/ofertas/estadisticas`, {
+// Obtener estadísticas de promociones
+export const getPromocionStatistics = async () => {
+  const response = await fetch(`${API_URL}/promociones/estadisticas`, {
     headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener estadísticas de ofertas');
+    throw new Error('Error al obtener estadísticas de promociones');
   }
 
   return response.json();
 };
-
-// ============================================
-// PROMOCIONES - RESEÑAS 
-// ============================================
-
-// Listar todas las reseñas (ADMIN)
-export const getAllResenias = async (): Promise<Resenia[]> => {
-  const response = await fetch(`${API_URL}/resenias`, {
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    throw new Error('Error al obtener reseñas');
-  }
-
-  return response.json();
-};
-
-// Obtener reseña por ID
-export const getReseniaById = async (id: number): Promise<Resenia> => {
-  const response = await fetch(`${API_URL}/resenias/${id}`, {
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    throw new Error('Error al obtener reseña');
-  }
-
-  return response.json();
-};
-
-// Obtener reseñas aprobadas de un producto (público)
-export const getReseniasByProducto = async (idProducto: number): Promise<Resenia[]> => {
-  const response = await fetch(`${API_URL}/resenias/producto/${idProducto}`);
-
-  if (!response.ok) {
-    throw new Error('Error al obtener reseñas del producto');
-  }
-
-  return response.json();
-};
-
-// Obtener todas las reseñas de un producto (ADMIN)
-export const getAllReseniasByProducto = async (idProducto: number): Promise<Resenia[]> => {
-  const response = await fetch(`${API_URL}/resenias/producto/${idProducto}/todas`, {
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    throw new Error('Error al obtener todas las reseñas del producto');
-  }
-
-  return response.json();
-};
-
-// Obtener reseñas de un cliente
-export const getReseniasByCliente = async (idCliente: number): Promise<Resenia[]> => {
-  const response = await fetch(`${API_URL}/resenias/cliente/${idCliente}`, {
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    throw new Error('Error al obtener reseñas del cliente');
-  }
-
-  return response.json();
-};
-
-// Obtener reseñas pendientes de aprobación (ADMIN)
-export const getReseniasPendientes = async (): Promise<Resenia[]> => {
-  const response = await fetch(`${API_URL}/resenias/pendientes`, {
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    throw new Error('Error al obtener reseñas pendientes');
-  }
-
-  return response.json();
-};
-
-// Crear reseña
-export const createResenia = async (data: ReseniaRequest): Promise<Resenia> => {
-  const response = await fetch(`${API_URL}/resenias`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al crear reseña');
-  }
-
-  return response.json();
-};
-
-// Aprobar reseña
-export const aprobarResenia = async (id: number): Promise<Resenia> => {
-  const response = await fetch(`${API_URL}/resenias/${id}/aprobar`, {
-    method: 'PATCH',
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al aprobar reseña');
-  }
-
-  return response.json();
-};
-
-// Rechazar reseña
-export const rechazarResenia = async (id: number): Promise<Resenia> => {
-  const response = await fetch(`${API_URL}/resenias/${id}/rechazar`, {
-    method: 'PATCH',
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al rechazar reseña');
-  }
-
-  return response.json();
-};
-
-// Eliminar reseña
-export const deleteResenia = async (id: number): Promise<void> => {
-  const response = await fetch(`${API_URL}/resenias/${id}`, {
-    method: 'DELETE',
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    throw new Error('Error al eliminar reseña');
-  }
-};
-
-// Obtener calificación promedio de un producto
-export const getCalificacionPromedio = async (idProducto: number): Promise<{ promedio: number; totalResenias: number }> => {
-  const response = await fetch(`${API_URL}/resenias/producto/${idProducto}/promedio`);
-
-  if (!response.ok) {
-    throw new Error('Error al obtener calificación promedio');
-  }
-
-  return response.json();
-};
-
 
 
 // ============================================
@@ -3007,4 +2865,170 @@ export const eliminarMultimedia = async (multimediaId: number): Promise<void> =>
   if (!response.ok) {
     throw new Error('Error al eliminar multimedia');
   }
+};
+
+// ============================================
+// DASHBOARD
+// ============================================
+
+import { DashboardEstadisticas } from '@/types/dashboard';
+
+/**
+ * Estadísticas del panel de inicio.
+ * El endpoint existía en el backend desde el principio; la pantalla de inicio
+ * mostraba cifras escritas a mano en lugar de consultarlo.
+ */
+export const getDashboardEstadisticas = async (): Promise<DashboardEstadisticas> => {
+  const response = await fetch(`${API_URL}/dashboard/estadisticas`, {
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error('Error al obtener las estadísticas del panel');
+  }
+
+  return response.json();
+};
+
+
+// ============================================
+// DATOS PÚBLICOS DEL NEGOCIO
+// ============================================
+
+export interface DatosNegocio {
+  negocio_razon_social?: string;
+  negocio_descripcion?: string;
+  negocio_direccion?: string;
+  negocio_ciudad?: string;
+  negocio_telefono?: string;
+  negocio_whatsapp?: string;
+  negocio_email?: string;
+  negocio_horario?: string;
+  negocio_nit?: string;
+  negocio_sitio_web?: string;
+}
+
+/**
+ * Datos del negocio para la tienda pública (sin autenticación).
+ * Se guardan en configuracion_sistema y se editan desde Configuración, así
+ * que corregirlos no requiere tocar código.
+ */
+export const getDatosNegocio = async (): Promise<DatosNegocio> => {
+  const response = await fetch(`${API_URL}/configuracion/negocio`);
+
+  if (!response.ok) {
+    throw new Error('Error al obtener los datos del negocio');
+  }
+
+  return response.json();
+};
+
+
+// ============================================
+// MENSAJES DE CONTACTO
+// ============================================
+
+export interface MensajeContactoRequest {
+  nombre: string;
+  email: string;
+  telefono?: string;
+  asunto: string;
+  mensaje: string;
+}
+
+export interface MensajeContacto {
+  id: number;
+  nombre: string;
+  email: string;
+  telefono?: string;
+  asunto: string;
+  mensaje: string;
+  atendido: boolean;
+  fechaAtencion?: string;
+  idUsuarioAtiende?: number;
+  nombreUsuarioAtiende?: string;
+  fechaEnvio: string;
+}
+
+/**
+ * Envía una consulta desde la tienda. No requiere sesión: es el único
+ * endpoint de escritura público del sistema.
+ */
+export const enviarMensajeContacto = async (
+  data: MensajeContactoRequest
+): Promise<MensajeContacto> => {
+  const response = await fetch(`${API_URL}/mensajes-contacto`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const detalle = await response.json().catch(() => null);
+    throw new Error(detalle?.error || 'No se pudo enviar el mensaje');
+  }
+
+  return response.json();
+};
+
+export const getMensajesContacto = async (): Promise<MensajeContacto[]> => {
+  const response = await fetch(`${API_URL}/mensajes-contacto`, {
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error('Error al obtener los mensajes de contacto');
+  }
+
+  return response.json();
+};
+
+export const marcarMensajeAtendido = async (
+  id: number,
+  idUsuario: number
+): Promise<MensajeContacto> => {
+  const response = await fetch(
+    `${API_URL}/mensajes-contacto/${id}/atender?idUsuario=${idUsuario}`,
+    { method: 'PATCH', headers: getAuthHeaders() }
+  );
+
+  if (!response.ok) {
+    throw new Error('Error al marcar el mensaje como atendido');
+  }
+
+  return response.json();
+};
+
+export const eliminarMensajeContacto = async (id: number): Promise<void> => {
+  const response = await fetch(`${API_URL}/mensajes-contacto/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error('Error al eliminar el mensaje');
+  }
+};
+
+
+/**
+ * Cambia el stock mínimo de un producto: el umbral que dispara las alertas.
+ * Antes la pantalla de inventario solo hacía console.log y el valor nunca
+ * llegaba a la base.
+ */
+export const actualizarStockMinimo = async (
+  idProducto: number,
+  stockMinimo: number
+): Promise<Producto> => {
+  const response = await fetch(
+    `${API_URL}/productos/${idProducto}/stock-minimo?stockMinimo=${stockMinimo}`,
+    { method: 'PATCH', headers: getAuthHeaders() }
+  );
+
+  if (!response.ok) {
+    const detalle = await response.json().catch(() => null);
+    throw new Error(detalle?.error || 'Error al actualizar el stock mínimo');
+  }
+
+  return response.json();
 };

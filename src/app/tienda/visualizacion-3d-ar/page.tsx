@@ -3,6 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { BACKEND_URL } from '@/lib/api';
 import Script from 'next/script';
 
 interface MultimediaProducto {
@@ -28,7 +29,6 @@ interface ProductoConMultimedia extends Producto {
 
 // Componente para mostrar galería de productos con 3D
 function GaleriaProductos3D({ productos }: { productos: ProductoConMultimedia[] }) {
-  const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
   if (productos.length === 0) {
     return (
@@ -140,7 +140,6 @@ function VisorProducto({ producto, multimedia }: { producto: Producto; multimedi
   const [error, setError] = useState<string | null>(null);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const modelViewerRef = React.useRef<any>(null);
-  const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
   const modelUrl = `${BACKEND_URL}${multimedia.urlModelo3d}`;
   const posterUrl = multimedia.urlVistaPrevia ? `${BACKEND_URL}${multimedia.urlVistaPrevia}` : undefined;
@@ -600,7 +599,6 @@ function Visualizacion3DARContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
   useEffect(() => {
     const fetchData = async () => {
@@ -622,29 +620,30 @@ function Visualizacion3DARContent() {
           console.log('🌐 Endpoint producto:', `${BACKEND_URL}/api/productos/${productoId}`);
           console.log('🌐 Endpoint multimedia:', `${BACKEND_URL}/api/multimedia-productos/producto/${productoId}`);
           
-          const [productoRes, multimediaRes] = await Promise.all([
+          // allSettled y no all: mas abajo la multimedia ya se trata como
+          // opcional, pero con Promise.all esa intencion no se cumplia. Si el
+          // endpoint de multimedia no respondia a nivel de red, fetch lanzaba y
+          // el producto tampoco se mostraba.
+          const [rProducto, rMultimedia] = await Promise.allSettled([
             fetch(`${BACKEND_URL}/api/productos/${productoId}`),
             fetch(`${BACKEND_URL}/api/multimedia-productos/producto/${productoId}`)
           ]);
 
-          console.log('📊 Respuesta producto:', productoRes.status, productoRes.statusText);
-          console.log('📊 Respuesta multimedia:', multimediaRes.status, multimediaRes.statusText);
-
-          if (!productoRes.ok) {
-            console.error('❌ Error al cargar producto:', productoRes.status);
+          if (rProducto.status === 'rejected' || !rProducto.value.ok) {
+            console.error('Error al cargar producto:',
+              rProducto.status === 'rejected' ? rProducto.reason : rProducto.value.status);
             throw new Error('Producto no encontrado');
           }
-          
-          const productoData: Producto = await productoRes.json();
-          console.log('✅ Producto cargado:', productoData);
+
+          const productoData: Producto = await rProducto.value.json();
           setProducto(productoData);
 
-          if (multimediaRes.ok) {
-            const multimediaData: MultimediaProducto = await multimediaRes.json();
-            console.log('✅ Multimedia cargada:', multimediaData);
+          if (rMultimedia.status === 'fulfilled' && rMultimedia.value.ok) {
+            const multimediaData: MultimediaProducto = await rMultimedia.value.json();
             setMultimedia(multimediaData);
           } else {
-            console.warn('⚠️ No se encontró multimedia para este producto');
+            // Se muestra la ficha del producto sin el visor 3D.
+            console.warn('Sin multimedia para este producto');
             setMultimedia(null);
           }
         } 
@@ -681,8 +680,13 @@ function Visualizacion3DARContent() {
               })
               .filter((p): p is ProductoConMultimedia => p !== null);
 
-            console.log('✅ Productos con 3D combinados:', productosCon3D.length);
             setProductosConRA(productosCon3D);
+          } else {
+            // Acá se usa Promise.all a propósito: la galería combina las dos
+            // listas, así que sin una de ellas no hay nada que mostrar. Un
+            // fallo de red cae en el catch, pero un 500 dejaba la galería
+            // vacía y en silencio, sin distinguirse de "no hay productos 3D".
+            throw new Error('No se pudo cargar la galería de productos 3D');
           }
         }
 

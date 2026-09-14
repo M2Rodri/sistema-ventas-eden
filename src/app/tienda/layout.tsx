@@ -54,14 +54,14 @@ const FooterTienda = () => {
             <h3 className="text-lg font-semibold mb-4">Contacto</h3>
             <p className="text-gray-300">¿Tienes dudas? Escríbenos.</p>
             <address className="mt-2 not-italic text-gray-300">
-              <p>Email: info@dormire.com</p>
+              <p>Email: contacto@muebleriaeden.bo</p>
               <p>Teléfono: +591 12345678</p>
             </address>
           </div>
         </div>
 
         <div className="border-t border-gray-600 mt-8 pt-6 text-center text-gray-400">
-          <p>&copy; {new Date().getFullYear()} Dormire. Todos los derechos reservados.</p>
+          <p>&copy; {new Date().getFullYear()} Mueblería Edén. Todos los derechos reservados.</p>
         </div>
       </div>
     </footer>

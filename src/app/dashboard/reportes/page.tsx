@@ -163,8 +163,8 @@ export default function ReportesPage() {
           <div>
             <h3 className="text-sm font-semibold text-blue-900 mb-1">¿Cómo generar un reporte?</h3>
             <p className="text-sm text-blue-800">
-              Selecciona el tipo de reporte que deseas generar, configura los parámetros (fechas, límites, etc.), 
-              visualiza la vista previa y finalmente exporta en el formato deseado (PDF, Excel o CSV).
+              Selecciona el tipo de reporte que deseas consultar y configura los parámetros
+              (fechas, límites, etc.) para verlo en pantalla con sus gráficos.
             </p>
           </div>
         </div>

@@ -15,7 +15,7 @@ export default function TransportadoraModal({ transportadora, onClose, onSuccess
   const [formData, setFormData] = useState<TransportadoraRequest>({
     nombre: '',
     telefono: '',
-    correo: '',
+    email: '',
     tarifaBase: 0,
     tiempoEstimadoDias: 3,
     activo: true,
@@ -29,7 +29,7 @@ export default function TransportadoraModal({ transportadora, onClose, onSuccess
       setFormData({
         nombre: transportadora.nombre,
         telefono: transportadora.telefono || '',
-        correo: transportadora.correo || '',
+        email: transportadora.email || '',
         tarifaBase: transportadora.tarifaBase,
         tiempoEstimadoDias: transportadora.tiempoEstimadoDias,
         activo: transportadora.activo,
@@ -136,8 +136,8 @@ export default function TransportadoraModal({ transportadora, onClose, onSuccess
               </label>
               <input
                 type="email"
-                name="correo"
-                value={formData.correo}
+                name="email"
+                value={formData.email}
                 onChange={handleChange}
                 maxLength={100}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"

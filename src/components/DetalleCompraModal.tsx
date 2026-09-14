@@ -105,7 +105,7 @@ export default function DetalleCompraModal({ compra, onClose }: DetalleCompraMod
               <DollarSign className="text-secondary-600" size={20} />
               <h3 className="font-semibold text-gray-900">Costo Total</h3>
             </div>
-            <p className="text-2xl font-bold text-secondary-600">{formatPrice(compra.costoTotal)}</p>
+            <p className="text-2xl font-bold text-secondary-600">{formatPrice(compra.montoTotal)}</p>
           </div>
         </div>
 
@@ -161,7 +161,7 @@ export default function DetalleCompraModal({ compra, onClose }: DetalleCompraMod
           <div className="bg-secondary-50 border-2 border-secondary-200 p-4 rounded-lg">
             <div className="flex justify-between items-center">
               <span className="text-lg font-bold text-gray-900">COSTO TOTAL:</span>
-              <span className="text-3xl font-bold text-secondary-600">{formatPrice(compra.costoTotal)}</span>
+              <span className="text-3xl font-bold text-secondary-600">{formatPrice(compra.montoTotal)}</span>
             </div>
           </div>
         </div>

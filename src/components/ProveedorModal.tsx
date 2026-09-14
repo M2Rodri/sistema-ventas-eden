@@ -18,7 +18,7 @@ export default function ProveedorModal({ proveedor, onClose, onSuccess }: Provee
     contacto: '',
     telefono: '',
     direccion: '',
-    correo: '',
+    email: '',
     notas: '',
     activo: true,
   });
@@ -33,7 +33,7 @@ export default function ProveedorModal({ proveedor, onClose, onSuccess }: Provee
         contacto: proveedor.contacto,
         telefono: proveedor.telefono,
         direccion: proveedor.direccion || '',
-        correo: proveedor.correo || '',
+        email: proveedor.email || '',
         notas: proveedor.notas || '',
         activo: proveedor.activo,
       });
@@ -158,11 +158,11 @@ export default function ProveedorModal({ proveedor, onClose, onSuccess }: Provee
             </label>
             <input
               type="email"
-              value={formData.correo}
-              onChange={(e) => setFormData({ ...formData, correo: e.target.value })}
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               maxLength={100}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-              placeholder="correo@empresa.com"
+              placeholder="email@empresa.com"
             />
           </div>
 

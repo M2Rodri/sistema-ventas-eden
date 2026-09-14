@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 
 const NavbarCliente = () => {
-  const { user, logout, loading } = useAuth();
+  const { user, loading } = useAuth();
   const pathname = usePathname(); // 🔥 Hook para detectar la ruta actual
 
   // Función helper para determinar si un link está activo
@@ -27,7 +27,7 @@ const NavbarCliente = () => {
           {/* Placeholder para logo y nombre de la tienda */}
           <div className="flex items-center space-x-2">
             <div className="bg-gray-200 border-2 border-dashed rounded-xl w-16 h-16" />
-            <span className="text-xl font-bold">Dormire</span>
+            <span className="text-xl font-bold">Mueblería Edén</span>
           </div>
           {/* Placeholder para navegación principal (desktop) */}
           <div className="hidden md:flex space-x-6">
@@ -50,7 +50,7 @@ const NavbarCliente = () => {
           <div className="bg-gray-200 border-2 border-dashed rounded-xl w-16 h-16" />
           <Link href="/tienda">
             <span className="text-xl font-bold hover:text-primary-300 transition-colors">
-              Dormire
+              Mueblería Edén
             </span>
           </Link>
         </div>
@@ -121,12 +121,28 @@ const NavbarCliente = () => {
             )}
           </Link>
 
-          <Link 
-            href="/tienda/contacto" 
+          <Link
+            href="/tienda/nosotros"
             className={`
               relative px-3 py-2 rounded-lg transition-all duration-300
-              ${isActive('/tienda/contacto') 
-                ? 'text-primary-300 font-semibold bg-gray-700' 
+              ${isActive('/tienda/nosotros')
+                ? 'text-primary-300 font-semibold bg-gray-700'
+                : 'hover:text-primary-300 hover:bg-gray-700/50'
+              }
+            `}
+          >
+            Nosotros
+            {isActive('/tienda/nosotros') && (
+              <span className="absolute bottom-0 left-0 right-0 h-1 bg-primary-400 rounded-full" />
+            )}
+          </Link>
+
+          <Link
+            href="/tienda/contacto"
+            className={`
+              relative px-3 py-2 rounded-lg transition-all duration-300
+              ${isActive('/tienda/contacto')
+                ? 'text-primary-300 font-semibold bg-gray-700'
                 : 'hover:text-primary-300 hover:bg-gray-700/50'
               }
             `}
@@ -138,41 +154,21 @@ const NavbarCliente = () => {
           </Link>
         </nav>
 
-        {/* Sección de Autenticación */}
+        {/*
+          La tienda es una vitrina pública: no tiene cuentas de cliente, así que
+          no ofrece iniciar sesión ni "Mi Perfil". Si quien navega es personal
+          del negocio (con sesión abierta en el sistema), se le muestra un
+          acceso directo al panel; a cualquier otro visitante, nada.
+        */}
         <div className="flex items-center space-x-4">
-          {user ? (
-            // Usuario autenticado
-            <div className="flex items-center space-x-2">
-              <span className="hidden sm:inline">Hola, {user.nombre}</span>
-              <button
-                onClick={logout}
-                className="text-sm bg-red-600 hover:bg-red-700 px-3 py-1 rounded transition-colors duration-300"
-              >
-                Cerrar Sesión
-              </button>
-              <Link
-                href="/tienda/perfil"
-                className={`
-                  text-sm px-3 py-1 rounded transition-colors duration-300
-                  ${isActive('/tienda/perfil')
-                    ? 'bg-primary-600 text-white'
-                    : 'bg-gray-700 hover:bg-gray-600'
-                  }
-                `}
-              >
-                Mi Perfil
-              </Link>
-            </div>
-          ) : (
-            // Usuario no autenticado
+          {user && (
             <Link
-              href="/login"
-              className="text-sm bg-white text-gray-800 hover:bg-gray-100 px-3 py-1 rounded transition-colors duration-300"
+              href="/dashboard"
+              className="text-sm bg-primary-600 hover:bg-primary-700 text-white px-3 py-1 rounded transition-colors duration-300"
             >
-              Iniciar Sesión
+              Ir al panel
             </Link>
           )}
-          
         </div>
       </div>
     </header>

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { X, AlertCircle, AlertTriangle } from 'lucide-react';
 import { Inventario } from '@/types/inventario';
+import { actualizarStockMinimo } from '@/lib/api';
 
 interface ConfigurarStockMinimoModalProps {
   inventario: Inventario;
@@ -13,18 +14,29 @@ interface ConfigurarStockMinimoModalProps {
 export default function ConfigurarStockMinimoModal({ inventario, onClose, onSuccess }: ConfigurarStockMinimoModalProps) {
   const [stockMinimo, setStockMinimo] = useState<number>(inventario.stockMinimo);
   const [error, setError] = useState<string | null>(null);
+  const [guardando, setGuardando] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Antes esto era un console.log: la pantalla decía que había guardado y el
+  // valor nunca llegaba a la base. Como el stock mínimo es el umbral que
+  // dispara las alertas, cambiarlo no tenía ningún efecto real.
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (stockMinimo <= 0) {
       setError('Ingrese un valor numérico positivo válido');
       return;
     }
 
-    // SIMULACIÓN - No hace nada real
-    console.log('Stock mínimo configurado (simulado):', stockMinimo);
-    onSuccess();
+    setGuardando(true);
+    setError(null);
+    try {
+      await actualizarStockMinimo(inventario.idProducto, stockMinimo);
+      onSuccess();
+    } catch (err: any) {
+      setError(err?.message ?? 'No se pudo guardar el stock mínimo');
+    } finally {
+      setGuardando(false);
+    }
   };
 
   return (
@@ -107,15 +119,17 @@ export default function ConfigurarStockMinimoModal({ inventario, onClose, onSucc
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              disabled={guardando}
+              className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
+              disabled={guardando}
+              className="flex-1 px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium disabled:opacity-50"
             >
-              Guardar Configuración
+              {guardando ? 'Guardando…' : 'Guardar Configuración'}
             </button>
           </div>
         </form>

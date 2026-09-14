@@ -12,19 +12,25 @@ export default function LoginPage() {
     password: "",
   });
   const [error, setError] = useState("");
+  const [sesionExpirada, setSesionExpirada] = useState(false);
   const [loading, setLoading] = useState(false);
 
   // Estados para el modal de recuperar contraseña
   const [showRecoverModal, setShowRecoverModal] = useState(false);
-  const [recoverEmail, setRecoverEmail] = useState("");
-  const [recoverError, setRecoverError] = useState("");
-  const [recoverSuccess, setRecoverSuccess] = useState(false);
-  const [recoverLoading, setRecoverLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   // Asegurar que el componente está montado en el cliente
   useEffect(() => {
     setMounted(true);
+    // El motivo lo deja SesionExpiradaWatcher cuando el backend rechaza el
+    // token por vencido. Va en sessionStorage y no en la URL porque useAuth
+    // también redirige acá y pisaría cualquier parámetro.
+    if (typeof window !== "undefined") {
+      if (sessionStorage.getItem("motivoSalida") === "sesion-expirada") {
+        setSesionExpirada(true);
+        sessionStorage.removeItem("motivoSalida");
+      }
+    }
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -73,56 +79,12 @@ export default function LoginPage() {
     }
   };
 
-  // Función simulada para recuperar contraseña
-  const handleRecoverPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setRecoverError("");
-    setRecoverLoading(true);
-
-    // Validación básica
-    if (!recoverEmail.trim()) {
-      setRecoverError(
-        "Debe ingresar un nombre de usuario o correo electrónico",
-      );
-      setRecoverLoading(false);
-      return;
-    }
-
-    // Validar formato de email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(recoverEmail)) {
-      setRecoverError("Debe ingresar un correo electrónico válido");
-      setRecoverLoading(false);
-      return;
-    }
-
-    // Simulación de envío (espera 2 segundos)
-    setTimeout(() => {
-      setRecoverLoading(false);
-      setRecoverSuccess(true);
-
-      // Cerrar modal después de 3 segundos
-      setTimeout(() => {
-        setShowRecoverModal(false);
-        setRecoverSuccess(false);
-        setRecoverEmail("");
-      }, 3000);
-    }, 2000);
-  };
-
-  const handleCancelRecover = () => {
-    setShowRecoverModal(false);
-    setRecoverEmail("");
-    setRecoverError("");
-    setRecoverSuccess(false);
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            🛏️ Camas y Colchones
+            🛏️ Mueblería Edén
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Inicia sesión en tu cuenta
@@ -130,6 +92,14 @@ export default function LoginPage() {
         </div>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          {sesionExpirada && !error && (
+            <div className="rounded-md bg-amber-50 border border-amber-200 p-4">
+              <p className="text-sm text-amber-800">
+                Tu sesión expiró por seguridad. Volvé a iniciar sesión para continuar.
+              </p>
+            </div>
+          )}
+
           {error && (
             <div className="rounded-md bg-red-50 p-4">
               <p className="text-sm text-red-800">{error}</p>
@@ -190,88 +160,31 @@ export default function LoginPage() {
           </div>
 
           <div className="flex flex-col space-y-2 text-center">
-            {mounted && (
+            {/*
+              Antes había un "Recuperar Contraseña" que simulaba el envío de un
+              correo: mostraba un mensaje de éxito y no hacía nada. El sistema
+              no tiene servicio de correo, y las contraseñas las restablece el
+              administrador desde la gestión de usuarios.
+            */}
+            {mounted && showRecoverModal && (
+              <p className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-lg p-3">
+                Para restablecer tu contraseña, pedíselo al administrador del
+                sistema: puede hacerlo desde la pantalla de Usuarios.
+              </p>
+            )}
+            {mounted && !showRecoverModal && (
               <button
                 type="button"
                 onClick={() => setShowRecoverModal(true)}
                 className="font-medium text-primary-600 hover:text-primary-500 text-sm"
               >
-                Recuperar Contraseña
+                ¿Olvidaste tu contraseña?
               </button>
             )}
-            <Link
-              href="/register"
-              className="font-medium text-primary-600 hover:text-primary-500 text-sm"
-            >
-              ¿No tienes cuenta? Regístrate aquí
-            </Link>
           </div>
         </form>
       </div>
 
-      {/* Modal Recuperar Contraseña (P1.3) - Solo se renderiza en el cliente */}
-      {mounted && showRecoverModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">
-              Recuperar Contraseña
-            </h3>
-
-            {!recoverSuccess ? (
-              <form onSubmit={handleRecoverPassword}>
-                {recoverError && (
-                  <div className="rounded-md bg-red-50 p-3 mb-4">
-                    <p className="text-sm text-red-800">{recoverError}</p>
-                  </div>
-                )}
-
-                <div className="mb-4">
-                  <label
-                    htmlFor="recoverEmail"
-                    className="block text-sm font-medium text-gray-700 mb-2"
-                  >
-                    Nombre de usuario o correo electrónico
-                  </label>
-                  <input
-                    id="recoverEmail"
-                    name="recoverEmail"
-                    type="email"
-                    className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm"
-                    placeholder="tu@email.com"
-                    value={recoverEmail}
-                    onChange={(e) => setRecoverEmail(e.target.value)}
-                  />
-                </div>
-
-                <div className="flex space-x-3">
-                  <button
-                    type="button"
-                    onClick={handleCancelRecover}
-                    disabled={recoverLoading}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={recoverLoading}
-                    className="flex-1 px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
-                  >
-                    {recoverLoading ? "Enviando..." : "Enviar"}
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <div className="rounded-md bg-green-50 p-4">
-                <p className="text-sm text-green-800 text-center">
-                  Se ha enviado una contraseña temporal a su correo electrónico
-                  registrado
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

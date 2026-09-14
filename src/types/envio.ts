@@ -12,7 +12,7 @@ export interface Envio {
   id: number;
   idVenta: number | null;
   nombreCliente: string;
-  celularCliente: string;
+  telefonoCliente: string;
   direccionDestino: string;
   ciudad: string | null;
   departamento: string | null;
