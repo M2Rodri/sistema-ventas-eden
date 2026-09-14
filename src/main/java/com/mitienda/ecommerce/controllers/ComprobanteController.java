@@ -5,7 +5,6 @@ import com.mitienda.ecommerce.dto.ComprobanteResponse;
 import com.mitienda.ecommerce.models.TipoComprobante;
 import com.mitienda.ecommerce.services.ComprobanteService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,8 +24,19 @@ import java.util.Map;
 @PreAuthorize("hasAnyRole('ADMIN', 'EMPLEADO')")
 public class ComprobanteController {
 
-    @Autowired
-    private ComprobanteService comprobanteService;
+    private final ComprobanteService comprobanteService;
+
+    /**
+     * Inyeccion por constructor, no por campo.
+     *
+     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
+     * puede existir a medio construir, y una dependencia circular falla al
+     * arrancar en vez de aparecer en ejecucion.
+     */
+    public ComprobanteController(ComprobanteService comprobanteService) {
+        this.comprobanteService = comprobanteService;
+    }
+
 
     /**
      * GET /api/comprobantes

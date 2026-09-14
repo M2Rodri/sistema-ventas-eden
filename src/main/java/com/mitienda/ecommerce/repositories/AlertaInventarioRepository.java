@@ -4,14 +4,12 @@ import com.mitienda.ecommerce.models.AlertaInventario;
 import com.mitienda.ecommerce.models.EstadoAlerta;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
 /**
  * Repositorio para alertas de inventario
  */
-@Repository
 public interface AlertaInventarioRepository extends JpaRepository<AlertaInventario, Long> {
 
     /**

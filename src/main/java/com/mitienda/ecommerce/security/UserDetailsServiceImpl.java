@@ -1,8 +1,7 @@
 package com.mitienda.ecommerce.security;
 
-import com.mitienda.ecommerce.models.User;
-import com.mitienda.ecommerce.repositories.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.mitienda.ecommerce.models.Usuario;
+import com.mitienda.ecommerce.repositories.UsuarioRepository;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -20,12 +19,23 @@ import java.util.Collections;
 @Service
 public class UserDetailsServiceImpl implements UserDetailsService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UsuarioRepository usuarioRepository;
+
+    /**
+     * Inyeccion por constructor, no por campo.
+     *
+     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
+     * puede existir a medio construir, y una dependencia circular falla al
+     * arrancar en vez de aparecer en ejecucion.
+     */
+    public UserDetailsServiceImpl(UsuarioRepository usuarioRepository) {
+        this.usuarioRepository = usuarioRepository;
+    }
+
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        User user = userRepository.findByEmail(email)
+        Usuario user = usuarioRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado con email: " + email));
 
         return new org.springframework.security.core.userdetails.User(
@@ -40,7 +50,10 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     }
 
     // Obtener authorities (roles) del usuario
-    private Collection<? extends GrantedAuthority> getAuthorities(User user) {
-        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
+    private Collection<? extends GrantedAuthority> getAuthorities(Usuario user) {
+        // El nombre del rol ahora viene de la tabla 'roles' en lugar del enum.
+        // El prefijo ROLE_ se mantiene porque es lo que esperan las reglas
+        // hasRole('ADMIN') / hasAnyRole(...) de los controladores.
+        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRoleName()));
     }
 }

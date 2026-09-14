@@ -19,7 +19,7 @@ public class TransportadoraResponse {
     private Long id;
     private String nombre;
     private String telefono;
-    private String correo;
+    private String email;
     private BigDecimal tarifaBase;
     private Integer tiempoEstimadoDias;
     private Boolean activo;
@@ -31,7 +31,7 @@ public class TransportadoraResponse {
         this.id = transportadora.getId();
         this.nombre = transportadora.getNombre();
         this.telefono = transportadora.getTelefono();
-        this.correo = transportadora.getCorreo();
+        this.email = transportadora.getEmail();
         this.tarifaBase = transportadora.getTarifaBase();
         this.tiempoEstimadoDias = transportadora.getTiempoEstimadoDias();
         this.activo = transportadora.getActivo();

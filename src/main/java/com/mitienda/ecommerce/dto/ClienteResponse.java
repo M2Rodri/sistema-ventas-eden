@@ -21,10 +21,9 @@ public class ClienteResponse {
     private String apellido;
     private String nombreCompleto;
     private String nitCi;
-    private String celular;
-    private String correo;
-    private String direccion;
-    private TipoCliente tipo;
+    private String telefono;
+    private String email;
+    private TipoCliente tipoCliente;
     private Boolean activo;
     private LocalDateTime fechaRegistro;
     private LocalDateTime fechaActualizacion;
@@ -36,10 +35,9 @@ public class ClienteResponse {
         this.apellido = cliente.getApellido();
         this.nombreCompleto = cliente.getNombreCompleto();
         this.nitCi = cliente.getNitCi();
-        this.celular = cliente.getCelular();
-        this.correo = cliente.getCorreo();
-        this.direccion = cliente.getDireccion();
-        this.tipo = cliente.getTipo();
+        this.telefono = cliente.getTelefono();
+        this.email = cliente.getEmail();
+        this.tipoCliente = cliente.getTipoCliente();
         this.activo = cliente.getActivo();
         this.fechaRegistro = cliente.getFechaRegistro();
         this.fechaActualizacion = cliente.getFechaActualizacion();

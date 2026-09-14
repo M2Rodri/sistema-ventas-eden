@@ -6,7 +6,6 @@ import com.mitienda.ecommerce.models.MultimediaProducto;
 import com.mitienda.ecommerce.models.Producto;
 import com.mitienda.ecommerce.repositories.MultimediaProductoRepository;
 import com.mitienda.ecommerce.repositories.ProductoRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,16 +18,35 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+// Lectura dentro de transacción por defecto: con spring.jpa.open-in-view=false
+// no hay sesión de Hibernate fuera de la transacción, y los DTO de respuesta se
+// arman recorriendo relaciones perezosas. Sin esto, los endpoints de lectura
+// fallaban con LazyInitializationException.
+// Los métodos que escriben llevan su propio @Transactional, que tiene precedencia.
+@Transactional(readOnly = true)
 public class MultimediaProductoService {
 
-    @Autowired
-    private MultimediaProductoRepository multimediaRepository;
+    private final MultimediaProductoRepository multimediaRepository;
 
-    @Autowired
-    private ProductoRepository productoRepository;
+    private final ProductoRepository productoRepository;
 
-    @Autowired
-    private FileStorageService fileStorageService;
+    private final FileStorageService fileStorageService;
+
+    /**
+     * Inyeccion por constructor, no por campo.
+     *
+     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
+     * puede existir a medio construir, y una dependencia circular falla al
+     * arrancar en vez de aparecer en ejecucion.
+     */
+    public MultimediaProductoService(MultimediaProductoRepository multimediaRepository,
+                                     ProductoRepository productoRepository,
+                                     FileStorageService fileStorageService) {
+        this.multimediaRepository = multimediaRepository;
+        this.productoRepository = productoRepository;
+        this.fileStorageService = fileStorageService;
+    }
+
 
     // Configuración desde application.properties
     @Value("${file.upload.models3d.max-size:52428800}") // 50MB por defecto

@@ -26,7 +26,7 @@ public class Auditoria {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_usuario")
-    private User usuario;
+    private Usuario usuario;
 
     @NotBlank(message = "La acción es obligatoria")
     @Size(max = 100, message = "La acción no puede exceder 100 caracteres")
@@ -52,7 +52,7 @@ public class Auditoria {
     private String ipDispositivo;
 
     // Constructor personalizado
-    public Auditoria(User usuario, String accion, String tablaAfectada, String idRegistro, String ipDispositivo) {
+    public Auditoria(Usuario usuario, String accion, String tablaAfectada, String idRegistro, String ipDispositivo) {
         this.usuario = usuario;
         this.accion = accion;
         this.tablaAfectada = tablaAfectada;

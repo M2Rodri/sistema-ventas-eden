@@ -4,7 +4,6 @@ import com.mitienda.ecommerce.dto.CompraRequest;
 import com.mitienda.ecommerce.dto.CompraResponse;
 import com.mitienda.ecommerce.models.*;
 import com.mitienda.ecommerce.repositories.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,25 +16,55 @@ import java.util.stream.Collectors;
  * Servicio para gestión de compras
  */
 @Service
+// Lectura dentro de transacción por defecto: con spring.jpa.open-in-view=false
+// no hay sesión de Hibernate fuera de la transacción, y los DTO de respuesta se
+// arman recorriendo relaciones perezosas. Sin esto, los endpoints de lectura
+// fallaban con LazyInitializationException.
+// Los métodos que escriben llevan su propio @Transactional, que tiene precedencia.
+@Transactional(readOnly = true)
 public class CompraService {
 
-    @Autowired
-    private CompraRepository compraRepository;
+    private final CompraRepository compraRepository;
 
-    @Autowired
-    private DetalleCompraRepository detalleCompraRepository;
+    private final DetalleCompraRepository detalleCompraRepository;
 
-    @Autowired
-    private ProveedorRepository proveedorRepository;
+    private final ProveedorRepository proveedorRepository;
 
-    @Autowired
-    private ProductoRepository productoRepository;
+    private final ProductoRepository productoRepository;
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UsuarioRepository usuarioRepository;
 
-    @Autowired
-    private InventarioService inventarioService;
+    private final InventarioService inventarioService;
+
+    private final InventarioRepository inventarioRepository;
+
+    private final RegistroAuditoria registroAuditoria;
+
+    /**
+     * Inyeccion por constructor, no por campo.
+     *
+     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
+     * puede existir a medio construir, y una dependencia circular falla al
+     * arrancar en vez de aparecer en ejecucion.
+     */
+    public CompraService(CompraRepository compraRepository,
+                         DetalleCompraRepository detalleCompraRepository,
+                         ProveedorRepository proveedorRepository,
+                         ProductoRepository productoRepository,
+                         UsuarioRepository usuarioRepository,
+                         InventarioService inventarioService,
+                         InventarioRepository inventarioRepository,
+                         RegistroAuditoria registroAuditoria) {
+        this.compraRepository = compraRepository;
+        this.detalleCompraRepository = detalleCompraRepository;
+        this.proveedorRepository = proveedorRepository;
+        this.productoRepository = productoRepository;
+        this.usuarioRepository = usuarioRepository;
+        this.inventarioService = inventarioService;
+        this.inventarioRepository = inventarioRepository;
+        this.registroAuditoria = registroAuditoria;
+    }
+
 
     /**
      * Listar todas las compras
@@ -66,7 +95,7 @@ public class CompraService {
                 .orElseThrow(() -> new RuntimeException("Proveedor no encontrado con ID: " + request.getIdProveedor()));
 
         // Validar usuario
-        User usuario = userRepository.findById(idUsuario)
+        Usuario usuario = usuarioRepository.findById(idUsuario)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + idUsuario));
 
         // Crear compra
@@ -75,7 +104,10 @@ public class CompraService {
         compra.setUsuario(usuario);
         compra.setNotas(request.getNotas());
         compra.setEstado(EstadoCompra.PENDIENTE);
-        compra.setCostoTotal(BigDecimal.ZERO);
+        compra.setSubtotal(BigDecimal.ZERO);
+        compra.setDescuento(BigDecimal.ZERO);
+        compra.setMontoTotal(BigDecimal.ZERO);
+        compra.setNumeroFactura(request.getNumeroFactura());
 
         // Guardar compra primero
         Compra savedCompra = compraRepository.save(compra);
@@ -100,8 +132,14 @@ public class CompraService {
         }
 
         // Actualizar total de la compra
-        savedCompra.setCostoTotal(total);
+        savedCompra.setSubtotal(total);
+        savedCompra.setMontoTotal(total);
         Compra finalCompra = compraRepository.save(savedCompra);
+
+        registroAuditoria.registrar("CREAR_COMPRA", "compras", finalCompra.getId(),
+                "Compra por Bs " + finalCompra.getMontoTotal()
+                        + " a " + (finalCompra.getProveedor() != null
+                                ? finalCompra.getProveedor().getNombreEmpresa() : "proveedor sin nombre"));
 
         return new CompraResponse(finalCompra);
     }
@@ -114,15 +152,45 @@ public class CompraService {
         Compra compra = compraRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Compra no encontrada con ID: " + id));
 
-        // Si el estado cambia a RECIBIDA, actualizar inventario
+        // Si el estado cambia a RECIBIDA, la mercadería entra al inventario.
+        // Cada entrada queda registrada como movimiento, igual que hace la
+        // venta con las salidas: si mañana el stock no cuadra, la entrada por
+        // compra tiene que ser rastreable. Sin esto, el stock subía en silencio.
         if (nuevoEstado == EstadoCompra.RECIBIDA && compra.getEstado() != EstadoCompra.RECIBIDA) {
+            Long idUsuario = compra.getUsuario() != null ? compra.getUsuario().getId() : null;
+
             for (DetalleCompra detalle : compra.getDetalles()) {
-                inventarioService.aumentarStock(detalle.getProducto().getId(), detalle.getCantidad());
+                Long idProducto = detalle.getProducto().getId();
+
+                Integer cantidadAnterior = inventarioRepository.findByProductoId(idProducto)
+                        .map(Inventario::getCantidadDisponible)
+                        .orElse(0);
+
+                inventarioService.aumentarStock(idProducto, detalle.getCantidad());
+
+                inventarioService.registrarAjusteAutomatico(
+                        idProducto,
+                        cantidadAnterior,
+                        cantidadAnterior + detalle.getCantidad(),
+                        "COMPRA",
+                        "Compra #" + compra.getId()
+                                + (compra.getNumeroFactura() != null
+                                        ? " - Factura " + compra.getNumeroFactura() : ""),
+                        idUsuario
+                );
             }
         }
 
+        EstadoCompra estadoAnterior = compra.getEstado();
         compra.setEstado(nuevoEstado);
         Compra updatedCompra = compraRepository.save(compra);
+
+        // Interesa el cambio de estado y no solo el estado final, porque pasar a
+        // RECIBIDA es lo que sube el stock: si manana el inventario no cuadra,
+        // aca queda quien lo dio por recibido y cuando.
+        registroAuditoria.registrar("CAMBIAR_ESTADO_COMPRA", "compras", updatedCompra.getId(),
+                "Compra #" + updatedCompra.getId() + ": " + estadoAnterior + " -> " + nuevoEstado);
+
         return new CompraResponse(updatedCompra);
     }
 
@@ -197,7 +265,7 @@ public class CompraService {
      * Total de compras en un rango de fechas
      */
     public BigDecimal getTotalComprasByFechas(LocalDateTime inicio, LocalDateTime fin) {
-        BigDecimal total = compraRepository.sumCostoTotalByFechaCompraBetween(inicio, fin);
+        BigDecimal total = compraRepository.sumMontoTotalByFechaCompraBetween(inicio, fin);
         return total != null ? total : BigDecimal.ZERO;
     }
 

@@ -4,7 +4,6 @@ import com.mitienda.ecommerce.models.Cliente;
 import com.mitienda.ecommerce.models.TipoCliente;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
@@ -12,13 +11,12 @@ import java.util.Optional;
 /**
  * Repositorio para operaciones con clientes
  */
-@Repository
 public interface ClienteRepository extends JpaRepository<Cliente, Long> {
 
     /**
-     * Buscar cliente por correo
+     * Buscar cliente por email
      */
-    Optional<Cliente> findByCorreo(String correo);
+    Optional<Cliente> findByEmail(String email);
 
     /**
      * Buscar cliente por NIT/CI
@@ -26,14 +24,14 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long> {
     Optional<Cliente> findByNitCi(String nitCi);
 
     /**
-     * Buscar cliente por celular
+     * Buscar cliente por telefono
      */
-    Optional<Cliente> findByCelular(String celular);
+    Optional<Cliente> findByTelefono(String telefono);
 
     /**
-     * Verificar si existe un cliente con ese correo
+     * Verificar si existe un cliente con ese email
      */
-    Boolean existsByCorreo(String correo);
+    Boolean existsByEmail(String email);
 
     /**
      * Listar solo clientes activos
@@ -43,7 +41,7 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long> {
     /**
      * Filtrar clientes por tipo
      */
-    List<Cliente> findByTipo(TipoCliente tipo);
+    List<Cliente> findByTipoCliente(TipoCliente tipo);
 
     /**
      * Buscar clientes por nombre (búsqueda parcial)
@@ -59,5 +57,5 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long> {
     /**
      * Contar clientes por tipo
      */
-    Long countByTipo(TipoCliente tipo);
+    Long countByTipoCliente(TipoCliente tipo);
 }

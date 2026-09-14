@@ -5,7 +5,6 @@ import com.mitienda.ecommerce.models.ImagenProducto;
 import com.mitienda.ecommerce.models.Producto;
 import com.mitienda.ecommerce.repositories.ImagenProductoRepository;
 import com.mitienda.ecommerce.repositories.ProductoRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,13 +19,30 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
+// Lectura dentro de transacción por defecto: con spring.jpa.open-in-view=false
+// no hay sesión de Hibernate fuera de la transacción, y los DTO de respuesta se
+// arman recorriendo relaciones perezosas. Sin esto, los endpoints de lectura
+// fallaban con LazyInitializationException.
+// Los métodos que escriben llevan su propio @Transactional, que tiene precedencia.
+@Transactional(readOnly = true)
 public class ImagenProductoService {
 
-    @Autowired
-    private ImagenProductoRepository imagenProductoRepository;
+    private final ImagenProductoRepository imagenProductoRepository;
 
-    @Autowired
-    private ProductoRepository productoRepository;
+    private final ProductoRepository productoRepository;
+
+    /**
+     * Inyeccion por constructor, no por campo.
+     *
+     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
+     * puede existir a medio construir, y una dependencia circular falla al
+     * arrancar en vez de aparecer en ejecucion.
+     */
+    public ImagenProductoService(ImagenProductoRepository imagenProductoRepository, ProductoRepository productoRepository) {
+        this.imagenProductoRepository = imagenProductoRepository;
+        this.productoRepository = productoRepository;
+    }
+
 
     @Value("${file.upload.dir:uploads/images/}")
     private String uploadDir;

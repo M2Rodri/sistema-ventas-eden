@@ -4,7 +4,6 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -19,11 +18,22 @@ import java.util.Collections;
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
 
-    @Autowired
-    private JwtUtil jwtUtil;
+    private final JwtUtil jwtUtil;
 
-    @Autowired
-    private UserDetailsServiceImpl userDetailsService;
+    private final UserDetailsServiceImpl userDetailsService;
+
+    /**
+     * Inyeccion por constructor, no por campo.
+     *
+     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
+     * puede existir a medio construir, y una dependencia circular falla al
+     * arrancar en vez de aparecer en ejecucion.
+     */
+    public JwtAuthFilter(JwtUtil jwtUtil, UserDetailsServiceImpl userDetailsService) {
+        this.jwtUtil = jwtUtil;
+        this.userDetailsService = userDetailsService;
+    }
+
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -55,15 +65,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 // Agregar el prefijo ROLE_ para Spring Security
                 String authority = "ROLE_" + roleFromToken;
                 
-                // LOGS PARA DEBUG
-                System.out.println("========== DEBUG JWT ==========");
-                System.out.println("Email: " + email);
-                System.out.println("Rol del token: " + roleFromToken);
-                System.out.println("Authority final: " + authority);
-                System.out.println("URI: " + request.getRequestURI());
-                System.out.println("Método: " + request.getMethod());
-                System.out.println("===============================");
-                
+                // Aca habia un bloque de println que imprimia email, rol y ruta en
+                // CADA peticion autenticada. Se quito: dejaba un rastro de quien
+                // uso el sistema y para que en la consola del servidor, que no es
+                // el lugar para eso. Lo que hay que auditar se guarda en la tabla
+                // auditorias, con usuario, IP y fecha.
+
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                         userDetails, 
                         null, 

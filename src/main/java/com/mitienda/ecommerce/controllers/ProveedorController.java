@@ -4,7 +4,6 @@ import com.mitienda.ecommerce.dto.ProveedorRequest;
 import com.mitienda.ecommerce.dto.ProveedorResponse;
 import com.mitienda.ecommerce.services.ProveedorService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,8 +21,19 @@ import java.util.Map;
 @PreAuthorize("hasRole('ADMIN')")
 public class ProveedorController {
 
-    @Autowired
-    private ProveedorService proveedorService;
+    private final ProveedorService proveedorService;
+
+    /**
+     * Inyeccion por constructor, no por campo.
+     *
+     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
+     * puede existir a medio construir, y una dependencia circular falla al
+     * arrancar en vez de aparecer en ejecucion.
+     */
+    public ProveedorController(ProveedorService proveedorService) {
+        this.proveedorService = proveedorService;
+    }
+
 
     /**
      * GET /api/proveedores

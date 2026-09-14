@@ -10,7 +10,6 @@ import com.mitienda.ecommerce.models.TipoProducto;
 import com.mitienda.ecommerce.repositories.CategoriaRepository;
 import com.mitienda.ecommerce.repositories.InventarioRepository;
 import com.mitienda.ecommerce.repositories.ProductoRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,17 +20,40 @@ import java.util.stream.Collectors;
  * Servicio para gestión de productos
  */
 @Service
+// Lectura dentro de transacción por defecto: con spring.jpa.open-in-view=false
+// no hay sesión de Hibernate fuera de la transacción, y los DTO de respuesta se
+// arman recorriendo relaciones perezosas. Sin esto, los endpoints de lectura
+// fallaban con LazyInitializationException.
+// Los métodos que escriben llevan su propio @Transactional, que tiene precedencia.
+@Transactional(readOnly = true)
 public class ProductoService {
 
-    @Autowired
-    private ProductoRepository productoRepository;
+    private final ProductoRepository productoRepository;
 
-    @Autowired
-    private CategoriaRepository categoriaRepository;
+    private final CategoriaRepository categoriaRepository;
 
     // ✅ AGREGADO: Inyección de InventarioRepository
-    @Autowired
-    private InventarioRepository inventarioRepository;
+    private final InventarioRepository inventarioRepository;
+
+    private final RegistroAuditoria registroAuditoria;
+
+    /**
+     * Inyeccion por constructor, no por campo.
+     *
+     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
+     * puede existir a medio construir, y una dependencia circular falla al
+     * arrancar en vez de aparecer en ejecucion.
+     */
+    public ProductoService(ProductoRepository productoRepository,
+                           CategoriaRepository categoriaRepository,
+                           InventarioRepository inventarioRepository,
+                           RegistroAuditoria registroAuditoria) {
+        this.productoRepository = productoRepository;
+        this.categoriaRepository = categoriaRepository;
+        this.inventarioRepository = inventarioRepository;
+        this.registroAuditoria = registroAuditoria;
+    }
+
 
     /**
      * Listar todos los productos
@@ -101,9 +123,12 @@ public class ProductoService {
         producto.setNombre(request.getNombre());
         producto.setDescripcion(request.getDescripcion());
         producto.setModelo(request.getModelo());
+        producto.setMarca(request.getMarca());
+        producto.setFirmeza(request.getFirmeza());
+        producto.setMaterialNucleo(request.getMaterialNucleo());
         producto.setCategoria(categoria);
         producto.setCalidad(request.getCalidad());
-        producto.setPrecioUnitario(request.getPrecioUnitario());
+        producto.setCostoReferencial(request.getCostoReferencial());
         producto.setPrecioVenta(request.getPrecioVenta());
         producto.setPeso(request.getPeso());
         producto.setDimensiones(request.getDimensiones());
@@ -119,6 +144,9 @@ public class ProductoService {
         inventario.setCantidadDisponible(0); // Stock inicial en 0
         inventario.setUbicacion("Sin asignar"); // Ubicación por defecto
         inventarioRepository.save(inventario);
+
+        registroAuditoria.registrar("CREAR_PRODUCTO", "productos", savedProducto.getId(),
+                "Alta de " + savedProducto.getSku() + " - " + savedProducto.getNombre());
 
         return new ProductoResponse(savedProducto);
     }
@@ -146,9 +174,12 @@ public class ProductoService {
         producto.setNombre(request.getNombre());
         producto.setDescripcion(request.getDescripcion());
         producto.setModelo(request.getModelo());
+        producto.setMarca(request.getMarca());
+        producto.setFirmeza(request.getFirmeza());
+        producto.setMaterialNucleo(request.getMaterialNucleo());
         producto.setCategoria(categoria);
         producto.setCalidad(request.getCalidad());
-        producto.setPrecioUnitario(request.getPrecioUnitario());
+        producto.setCostoReferencial(request.getCostoReferencial());
         producto.setPrecioVenta(request.getPrecioVenta());
         producto.setPeso(request.getPeso());
         producto.setDimensiones(request.getDimensiones());
@@ -157,7 +188,39 @@ public class ProductoService {
         producto.setActivo(request.getActivo());
 
         Producto updatedProducto = productoRepository.save(producto);
+
+        registroAuditoria.registrar("ACTUALIZAR_PRODUCTO", "productos", updatedProducto.getId(),
+                "Edicion de " + updatedProducto.getSku() + " - " + updatedProducto.getNombre());
+
         return new ProductoResponse(updatedProducto);
+    }
+
+    /**
+     * Cambia solo el stock mínimo de un producto.
+     *
+     * Existe como operación aparte porque es lo único que necesita la pantalla
+     * de inventario: obligarla a enviar el producto completo (SKU, precios,
+     * categoría) para tocar un número sería frágil y arriesga pisar datos.
+     *
+     * Este valor es el que dispara las alertas de stock bajo.
+     */
+    @Transactional
+    public ProductoResponse actualizarStockMinimo(Long id, Integer stockMinimo) {
+        if (stockMinimo == null || stockMinimo < 0) {
+            throw new RuntimeException("El stock mínimo debe ser un número positivo");
+        }
+
+        Producto producto = productoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + id));
+
+        Integer anterior = producto.getStockMinimo();
+        producto.setStockMinimo(stockMinimo);
+        Producto guardado = productoRepository.save(producto);
+
+        registroAuditoria.registrar("ACTUALIZAR_STOCK_MINIMO", "productos", guardado.getId(),
+                "Stock minimo de " + guardado.getSku() + ": " + anterior + " -> " + stockMinimo);
+
+        return new ProductoResponse(guardado);
     }
 
     /**
@@ -170,6 +233,12 @@ public class ProductoService {
 
         producto.setActivo(false);
         productoRepository.save(producto);
+
+        // Es una baja logica, no un DELETE: el producto sigue en la base porque
+        // lo referencian ventas viejas. Igual se audita como eliminacion, que es
+        // lo que el usuario percibe.
+        registroAuditoria.registrar("ELIMINAR_PRODUCTO", "productos", producto.getId(),
+                "Baja de " + producto.getSku() + " - " + producto.getNombre());
     }
 
     /**
@@ -182,6 +251,12 @@ public class ProductoService {
 
         producto.setActivo(!producto.getActivo());
         Producto updatedProducto = productoRepository.save(producto);
+
+        registroAuditoria.registrar(
+                Boolean.TRUE.equals(updatedProducto.getActivo()) ? "ACTIVAR_PRODUCTO" : "DESACTIVAR_PRODUCTO",
+                "productos", updatedProducto.getId(),
+                updatedProducto.getSku() + " - " + updatedProducto.getNombre());
+
         return new ProductoResponse(updatedProducto);
     }
 

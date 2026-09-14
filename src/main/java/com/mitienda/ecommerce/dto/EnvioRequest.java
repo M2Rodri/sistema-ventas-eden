@@ -19,7 +19,6 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class EnvioRequest {
 
-    private Long idPedido;
 
     private Long idVenta;
 
@@ -43,6 +42,9 @@ public class EnvioRequest {
     private BigDecimal costoEnvio = BigDecimal.ZERO;
 
     private Long idTransportadora;
+
+    /** Empleado responsable del envío ante el cliente. Opcional. */
+    private Long idUsuarioResponsable;
 
     @Size(max = 500, message = "Las notas no pueden exceder 500 caracteres")
     private String notas;

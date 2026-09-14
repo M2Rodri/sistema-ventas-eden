@@ -1,6 +1,5 @@
 package com.mitienda.ecommerce.dto;
 
-import com.mitienda.ecommerce.models.Role;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -20,9 +19,17 @@ public class AuthResponse {
     private String nombre;
     private String apellido;
     private String email;
-    private Role role;
 
-    public AuthResponse(String token, Long id, String nombre, String apellido, String email, Role role) {
+    /**
+     * Nombre del rol como texto plano ("ADMIN", "EMPLEADO").
+     * Antes era el enum Role. Se deja como String a propósito: al normalizar
+     * los roles en tabla, serializar la entidad produciría un objeto
+     * {id, nombre, descripcion} y rompería al frontend, que espera
+     * response.role === "ADMIN". El contrato de la API no cambia.
+     */
+    private String role;
+
+    public AuthResponse(String token, Long id, String nombre, String apellido, String email, String role) {
         this.token = token;
         this.id = id;
         this.nombre = nombre;

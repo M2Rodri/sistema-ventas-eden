@@ -1,18 +1,17 @@
 // src/main/java/com/mitienda/ecommerce/services/InventarioService.java
 package com.mitienda.ecommerce.services;
 
-import com.mitienda.ecommerce.dto.AjusteInventarioRequest;
-import com.mitienda.ecommerce.dto.AjusteInventarioResponse;
+import com.mitienda.ecommerce.dto.MovimientoInventarioRequest;
+import com.mitienda.ecommerce.dto.MovimientoInventarioResponse;
 import com.mitienda.ecommerce.dto.AlertaInventarioResponse;
 import com.mitienda.ecommerce.dto.InventarioRequest;
 import com.mitienda.ecommerce.dto.InventarioResponse;
 import com.mitienda.ecommerce.models.*;
-import com.mitienda.ecommerce.repositories.AjusteInventarioRepository;
+import com.mitienda.ecommerce.repositories.MovimientoInventarioRepository;
 import com.mitienda.ecommerce.repositories.AlertaInventarioRepository;
 import com.mitienda.ecommerce.repositories.InventarioRepository;
 import com.mitienda.ecommerce.repositories.ProductoRepository;
-import com.mitienda.ecommerce.repositories.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.mitienda.ecommerce.repositories.UsuarioRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional; // Importar esta anotación
 
@@ -23,22 +22,47 @@ import java.util.stream.Collectors;
  * Servicio para gestión de inventario
  */
 @Service
+// Lectura dentro de transacción por defecto: con spring.jpa.open-in-view=false
+// no hay sesión de Hibernate fuera de la transacción, y los DTO de respuesta se
+// arman recorriendo relaciones perezosas. Sin esto, los endpoints de lectura
+// fallaban con LazyInitializationException.
+// Los métodos que escriben llevan su propio @Transactional, que tiene precedencia.
+@Transactional(readOnly = true)
 public class InventarioService {
 
-    @Autowired
-    private InventarioRepository inventarioRepository;
+    private final InventarioRepository inventarioRepository;
 
-    @Autowired
-    private AlertaInventarioRepository alertaInventarioRepository;
+    private final AlertaInventarioRepository alertaInventarioRepository;
 
-    @Autowired
-    private ProductoRepository productoRepository;
+    private final ProductoRepository productoRepository;
 
-    @Autowired
-    private AjusteInventarioRepository ajusteInventarioRepository;
+    private final MovimientoInventarioRepository movimientoInventarioRepository;
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UsuarioRepository usuarioRepository;
+
+    private final RegistroAuditoria registroAuditoria;
+
+    /**
+     * Inyeccion por constructor, no por campo.
+     *
+     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
+     * puede existir a medio construir, y una dependencia circular falla al
+     * arrancar en vez de aparecer en ejecucion.
+     */
+    public InventarioService(InventarioRepository inventarioRepository,
+                             AlertaInventarioRepository alertaInventarioRepository,
+                             ProductoRepository productoRepository,
+                             MovimientoInventarioRepository movimientoInventarioRepository,
+                             UsuarioRepository usuarioRepository,
+                             RegistroAuditoria registroAuditoria) {
+        this.inventarioRepository = inventarioRepository;
+        this.alertaInventarioRepository = alertaInventarioRepository;
+        this.productoRepository = productoRepository;
+        this.movimientoInventarioRepository = movimientoInventarioRepository;
+        this.usuarioRepository = usuarioRepository;
+        this.registroAuditoria = registroAuditoria;
+    }
+
 
     /**
      * Listar todo el inventario
@@ -128,17 +152,17 @@ public class InventarioService {
      * (Ya tenía @Transactional implícito en el método de escritura)
      */
     @Transactional
-    public InventarioResponse ajustarInventario(AjusteInventarioRequest request) {
+    public InventarioResponse ajustarInventario(MovimientoInventarioRequest request) {
         Inventario inventario = inventarioRepository.findByProductoId(request.getIdProducto())
                 .orElseThrow(() -> new RuntimeException("No existe inventario para el producto con ID: " + request.getIdProducto()));
 
-        // Aplicar ajuste según tipo
-        if ("ENTRADA".equalsIgnoreCase(request.getTipoAjuste())) {
+        // Aplicar movimiento según tipo
+        if ("ENTRADA".equalsIgnoreCase(request.getTipoMovimiento())) {
             inventario.aumentarStock(request.getCantidad());
-        } else if ("SALIDA".equalsIgnoreCase(request.getTipoAjuste())) {
+        } else if ("SALIDA".equalsIgnoreCase(request.getTipoMovimiento())) {
             inventario.reducirStock(request.getCantidad());
         } else {
-            throw new RuntimeException("Tipo de ajuste inválido. Use 'ENTRADA' o 'SALIDA'");
+            throw new RuntimeException("Tipo de movimiento inválido. Use 'ENTRADA' o 'SALIDA'");
         }
 
         Inventario updatedInventario = inventarioRepository.save(inventario);
@@ -154,62 +178,71 @@ public class InventarioService {
      * (Ya tenía @Transactional implícito en el método de escritura)
      */
     @Transactional
-    public InventarioResponse ajustarInventarioConAuditoria(AjusteInventarioRequest request, Long idUsuario) {
+    public InventarioResponse ajustarInventarioConAuditoria(MovimientoInventarioRequest request, Long idUsuario) {
         Inventario inventario = inventarioRepository.findByProductoId(request.getIdProducto())
                 .orElseThrow(() -> new RuntimeException("No existe inventario para el producto con ID: " + request.getIdProducto()));
         Integer cantidadAnterior = inventario.getCantidadDisponible();
 
-        // Aplicar ajuste según tipo
-        if ("ENTRADA".equalsIgnoreCase(request.getTipoAjuste())) {
+        // Aplicar movimiento según tipo
+        if ("ENTRADA".equalsIgnoreCase(request.getTipoMovimiento())) {
             inventario.aumentarStock(request.getCantidad());
-        } else if ("SALIDA".equalsIgnoreCase(request.getTipoAjuste())) {
+        } else if ("SALIDA".equalsIgnoreCase(request.getTipoMovimiento())) {
             inventario.reducirStock(request.getCantidad());
         } else {
-            throw new RuntimeException("Tipo de ajuste inválido. Use 'ENTRADA' o 'SALIDA'");
+            throw new RuntimeException("Tipo de movimiento inválido. Use 'ENTRADA' o 'SALIDA'");
         }
         Inventario updatedInventario = inventarioRepository.save(inventario);
 
         // Registrar auditoría
-        User usuario = idUsuario != null ? userRepository.findById(idUsuario).orElse(null) : null;
-        String tipoAjuste = request.getTipoAjuste().toUpperCase();
+        Usuario usuario = idUsuario != null ? usuarioRepository.findById(idUsuario).orElse(null) : null;
+        String tipoMovimiento = request.getTipoMovimiento().toUpperCase();
 
-        AjusteInventario ajuste = new AjusteInventario(
+        MovimientoInventario movimiento = new MovimientoInventario(
             inventario.getProducto(),
             cantidadAnterior,
             inventario.getCantidadDisponible(),
-            tipoAjuste,
+            tipoMovimiento,
             request.getMotivo(),
             usuario
         );
-        ajusteInventarioRepository.save(ajuste);
+        movimientoInventarioRepository.save(movimiento);
 
         // Verificar si requiere alerta
         verificarYCrearAlerta(updatedInventario);
+
+        // Solo se audita el ajuste manual. Los movimientos automaticos por venta
+        // o por compra ya quedan registrados en movimientos_inventario y ligados
+        // a su venta o compra, que a su vez estan auditadas; duplicarlos aca solo
+        // llenaria la auditoria de ruido.
+        registroAuditoria.registrar("AJUSTAR_INVENTARIO", "inventario", updatedInventario.getId(),
+                "Ajuste manual de " + inventario.getProducto().getSku() + ": " + cantidadAnterior
+                        + " -> " + updatedInventario.getCantidadDisponible()
+                        + (request.getMotivo() != null ? ". Motivo: " + request.getMotivo() : ""));
 
         return new InventarioResponse(updatedInventario);
     }
 
     /**
-     * Registrar ajuste automático (usado en compras/ventas)
+     * Registrar movimiento automático (usado en compras/ventas)
      * (Ya tenía @Transactional implícito en el método de escritura)
      */
     @Transactional
     public void registrarAjusteAutomatico(Long idProducto, Integer cantidadAnterior, Integer cantidadNueva,
-                                      String tipoAjuste, String motivo, Long idUsuario) {
+                                      String tipoMovimiento, String motivo, Long idUsuario) {
         Producto producto = productoRepository.findById(idProducto)
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + idProducto));
 
-        User usuario = idUsuario != null ? userRepository.findById(idUsuario).orElse(null) : null;
+        Usuario usuario = idUsuario != null ? usuarioRepository.findById(idUsuario).orElse(null) : null;
 
-        AjusteInventario ajuste = new AjusteInventario(
+        MovimientoInventario movimiento = new MovimientoInventario(
             producto,
             cantidadAnterior,
             cantidadNueva,
-            tipoAjuste,
+            tipoMovimiento,
             motivo,
             usuario
         );
-        ajusteInventarioRepository.save(ajuste);
+        movimientoInventarioRepository.save(movimiento);
     }
 
     /**
@@ -217,10 +250,10 @@ public class InventarioService {
      * ✅ CORREGIDO: Añadido @Transactional(readOnly = true)
      */
     @Transactional(readOnly = true) // <--- AÑADIDO ESTA ANOTACIÓN
-    public List<AjusteInventarioResponse> getHistorialAjustes(Long idProducto) {
-        return ajusteInventarioRepository.findByProductoIdOrderByFechaDesc(idProducto)
+    public List<MovimientoInventarioResponse> getHistorialAjustes(Long idProducto) {
+        return movimientoInventarioRepository.findByProductoIdOrderByFechaDesc(idProducto)
                 .stream()
-                .map(AjusteInventarioResponse::new) // <-- Verificar si este constructor accede a .getProducto() o .getUser() perezosamente
+                .map(MovimientoInventarioResponse::new) // <-- Verificar si este constructor accede a .getProducto() o .getUser() perezosamente
                 .collect(Collectors.toList());
     }
 
@@ -229,10 +262,10 @@ public class InventarioService {
      * ✅ CORREGIDO: Añadido @Transactional(readOnly = true)
      */
     @Transactional(readOnly = true) // <--- AÑADIDO ESTA ANOTACIÓN
-    public List<AjusteInventarioResponse> getUltimosAjustes() {
-        return ajusteInventarioRepository.findTop50ByOrderByFechaDesc()
+    public List<MovimientoInventarioResponse> getUltimosAjustes() {
+        return movimientoInventarioRepository.findTop50ByOrderByFechaDesc()
                 .stream()
-                .map(AjusteInventarioResponse::new) // <-- Verificar si este constructor accede a .getProducto() o .getUser() perezosamente
+                .map(MovimientoInventarioResponse::new) // <-- Verificar si este constructor accede a .getProducto() o .getUser() perezosamente
                 .collect(Collectors.toList());
     }
 

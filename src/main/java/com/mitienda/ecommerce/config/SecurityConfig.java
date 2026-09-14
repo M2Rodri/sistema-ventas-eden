@@ -2,7 +2,6 @@ package com.mitienda.ecommerce.config;
 
 import com.mitienda.ecommerce.security.JwtAuthFilter;
 import com.mitienda.ecommerce.security.UserDetailsServiceImpl;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -26,14 +25,27 @@ import org.springframework.web.cors.CorsConfigurationSource;
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
-    @Autowired
-    private UserDetailsServiceImpl userDetailsService;
+    private final UserDetailsServiceImpl userDetailsService;
 
-    @Autowired
-    private JwtAuthFilter jwtAuthFilter;
+    private final JwtAuthFilter jwtAuthFilter;
 
-    @Autowired
-    private CorsConfigurationSource corsConfigurationSource;
+    private final CorsConfigurationSource corsConfigurationSource;
+
+    /**
+     * Inyeccion por constructor, no por campo.
+     *
+     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
+     * puede existir a medio construir, y una dependencia circular falla al
+     * arrancar en vez de aparecer en ejecucion.
+     */
+    public SecurityConfig(UserDetailsServiceImpl userDetailsService,
+                          JwtAuthFilter jwtAuthFilter,
+                          CorsConfigurationSource corsConfigurationSource) {
+        this.userDetailsService = userDetailsService;
+        this.jwtAuthFilter = jwtAuthFilter;
+        this.corsConfigurationSource = corsConfigurationSource;
+    }
+
 
     @Bean
     public SecurityFilterChain securityFilterChain(@NonNull HttpSecurity http) throws Exception {
@@ -48,24 +60,22 @@ public class SecurityConfig {
                                 "/api/auth/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
-                                "/uploads/**"
+                                "/uploads/**",
+                                // /error debe ser público: en Spring Security 6 el filtro
+                                // de autorización también se aplica al despacho de tipo
+                                // ERROR. Sin este permitAll, cualquier 404 o 500 se
+                                // convierte en un 403 con cuerpo vacío y el error real
+                                // nunca llega al navegador.
+                                "/error"
                         ).permitAll()
                         
                         // ========================================
-                        // OFERTAS - Endpoints públicos para tienda virtual
+                        // PROMOCIONES - Endpoints públicos para tienda virtual
                         // ========================================
-                        .requestMatchers(HttpMethod.GET, "/api/ofertas/vigentes").permitAll() // Tienda virtual
-                        .requestMatchers(HttpMethod.GET, "/api/ofertas/activas").permitAll() // Tienda virtual
-                        .requestMatchers(HttpMethod.GET, "/api/ofertas/{id}").permitAll() // Detalle de oferta
-                        .requestMatchers("/api/ofertas/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_EMPLEADO") // Gestión ADMIN/EMPLEADO
-                        
-                        // ========================================
-                        // RESEÑAS - Endpoints públicos y de clientes
-                        // ========================================
-                        .requestMatchers(HttpMethod.GET, "/api/resenias/producto/{idProducto}").permitAll() // Reseñas aprobadas de producto (público)
-                        .requestMatchers(HttpMethod.GET, "/api/resenias/producto/{idProducto}/promedio").permitAll() // Calificación promedio (público)
-                        .requestMatchers(HttpMethod.POST, "/api/resenias").permitAll() // Crear reseña (público - luego requiere aprobación)
-                        .requestMatchers("/api/resenias/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_EMPLEADO") // Gestión ADMIN/EMPLEADO
+                        .requestMatchers(HttpMethod.GET, "/api/promociones/vigentes").permitAll() // Tienda virtual
+                        .requestMatchers(HttpMethod.GET, "/api/promociones/activas").permitAll() // Tienda virtual
+                        .requestMatchers(HttpMethod.GET, "/api/promociones/{id}").permitAll() // Detalle de promocion
+                        .requestMatchers("/api/promociones/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_EMPLEADO") // Gestión ADMIN/EMPLEADO
                         
                         // ========================================
                         // IMÁGENES DE PRODUCTO
@@ -73,6 +83,23 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/imagenes-producto/**").permitAll() // Lectura pública
                         .requestMatchers("/api/imagenes-producto/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_EMPLEADO") // Escritura ADMIN/EMPLEADO
                         
+                        // ========================================
+                        // CONTACTO - la tienda puede enviar consultas
+                        // ========================================
+                        // Único endpoint de escritura público del sistema: la
+                        // tienda no tiene login y este es el único canal por el
+                        // que un cliente puede comunicarse con el negocio.
+                        // Leer y gestionar los mensajes sigue siendo del personal.
+                        .requestMatchers(HttpMethod.POST, "/api/mensajes-contacto").permitAll()
+                        .requestMatchers("/api/mensajes-contacto/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_EMPLEADO")
+
+                        // ========================================
+                        // DATOS DEL NEGOCIO - públicos para la tienda
+                        // ========================================
+                        // Solo las claves "negocio_*" (nombre, dirección, teléfono,
+                        // horario). El resto de /api/configuracion sigue siendo ADMIN.
+                        .requestMatchers(HttpMethod.GET, "/api/configuracion/negocio").permitAll()
+
                         // ========================================
                         // CATEGORÍAS
                         // ========================================
@@ -95,7 +122,13 @@ public class SecurityConfig {
                         // ========================================
                         // MULTIMEDIA PRODUCTOS
                         // ========================================
-                        .requestMatchers("/api/multimedia-productos/**").permitAll()
+                        // La tienda publica necesita leer la multimedia para el visor 3D,
+                        // pero antes esta regla no filtraba el metodo: dejaba abiertos sin
+                        // token el POST de subida de modelos, el PUT y el DELETE. Cualquiera
+                        // que alcanzara la API podia subir archivos o borrar registros.
+                        // Mismo patron que productos: lectura publica, escritura solo ADMIN.
+                        .requestMatchers(HttpMethod.GET, "/api/multimedia-productos/**").permitAll()
+                        .requestMatchers("/api/multimedia-productos/**").hasAuthority("ROLE_ADMIN")
 
                         // ========================================
                         // REPORTES

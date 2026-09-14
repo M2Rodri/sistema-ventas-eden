@@ -1,13 +1,12 @@
 package com.mitienda.ecommerce.controllers;
 
-import com.mitienda.ecommerce.dto.AjusteInventarioRequest;
-import com.mitienda.ecommerce.dto.AjusteInventarioResponse;
+import com.mitienda.ecommerce.dto.MovimientoInventarioRequest;
+import com.mitienda.ecommerce.dto.MovimientoInventarioResponse;
 import com.mitienda.ecommerce.dto.AlertaInventarioResponse;
 import com.mitienda.ecommerce.dto.InventarioRequest;
 import com.mitienda.ecommerce.dto.InventarioResponse;
 import com.mitienda.ecommerce.services.InventarioService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,8 +24,19 @@ import java.util.Map;
 @PreAuthorize("hasAnyRole('ADMIN', 'EMPLEADO')")
 public class InventarioController {
 
-    @Autowired
-    private InventarioService inventarioService;
+    private final InventarioService inventarioService;
+
+    /**
+     * Inyeccion por constructor, no por campo.
+     *
+     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
+     * puede existir a medio construir, y una dependencia circular falla al
+     * arrancar en vez de aparecer en ejecucion.
+     */
+    public InventarioController(InventarioService inventarioService) {
+        this.inventarioService = inventarioService;
+    }
+
 
     /**
      * GET /api/inventario
@@ -106,7 +116,7 @@ public class InventarioController {
      * Ajustar inventario manualmente (entrada/salida)
      */
     @PostMapping("/ajustar")
-    public ResponseEntity<?> ajustarInventario(@Valid @RequestBody AjusteInventarioRequest request) {
+    public ResponseEntity<?> ajustarInventario(@Valid @RequestBody MovimientoInventarioRequest request) {
         try {
             InventarioResponse inventario = inventarioService.ajustarInventario(request);
             return ResponseEntity.ok(inventario);
@@ -121,7 +131,7 @@ public class InventarioController {
      * Ajustar inventario manualmente con registro de auditoría
      */
     @PostMapping("/ajustar-con-auditoria")
-    public ResponseEntity<?> ajustarInventarioConAuditoria(@Valid @RequestBody AjusteInventarioRequest request,
+    public ResponseEntity<?> ajustarInventarioConAuditoria(@Valid @RequestBody MovimientoInventarioRequest request,
                                                            @RequestParam Long idUsuario) {
         try {
             InventarioResponse inventario = inventarioService.ajustarInventarioConAuditoria(request, idUsuario);
@@ -137,8 +147,8 @@ public class InventarioController {
      * Historial de ajustes de un producto
      */
     @GetMapping("/producto/{idProducto}/historial")
-    public ResponseEntity<List<AjusteInventarioResponse>> getHistorialAjustes(@PathVariable Long idProducto) {
-        List<AjusteInventarioResponse> historial = inventarioService.getHistorialAjustes(idProducto);
+    public ResponseEntity<List<MovimientoInventarioResponse>> getHistorialAjustes(@PathVariable Long idProducto) {
+        List<MovimientoInventarioResponse> historial = inventarioService.getHistorialAjustes(idProducto);
         return ResponseEntity.ok(historial);
     }
 
@@ -147,8 +157,8 @@ public class InventarioController {
      * Últimos 50 ajustes de inventario
      */
     @GetMapping("/ajustes/ultimos")
-    public ResponseEntity<List<AjusteInventarioResponse>> getUltimosAjustes() {
-        List<AjusteInventarioResponse> ajustes = inventarioService.getUltimosAjustes();
+    public ResponseEntity<List<MovimientoInventarioResponse>> getUltimosAjustes() {
+        List<MovimientoInventarioResponse> ajustes = inventarioService.getUltimosAjustes();
         return ResponseEntity.ok(ajustes);
     }
 

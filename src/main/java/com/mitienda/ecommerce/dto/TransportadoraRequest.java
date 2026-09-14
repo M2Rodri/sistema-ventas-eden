@@ -25,8 +25,8 @@ public class TransportadoraRequest {
     @Size(max = 15, message = "El teléfono no puede exceder 15 caracteres")
     private String telefono;
 
-    @Size(max = 100, message = "El correo no puede exceder 100 caracteres")
-    private String correo;
+    @Size(max = 100, message = "El email no puede exceder 100 caracteres")
+    private String email;
 
     @DecimalMin(value = "0.0", message = "La tarifa base no puede ser negativa")
     private BigDecimal tarifaBase = BigDecimal.ZERO;

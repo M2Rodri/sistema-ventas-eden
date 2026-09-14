@@ -4,7 +4,6 @@ import com.mitienda.ecommerce.dto.ReporteClientesResponse;
 import com.mitienda.ecommerce.dto.ReporteProductosResponse;
 import com.mitienda.ecommerce.dto.ReporteVentasResponse;
 import com.mitienda.ecommerce.services.ReporteService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -23,8 +22,19 @@ import java.util.Map;
 @PreAuthorize("hasAnyRole('ADMIN', 'EMPLEADO')")
 public class ReporteController {
 
-    @Autowired
-    private ReporteService reporteService;
+    private final ReporteService reporteService;
+
+    /**
+     * Inyeccion por constructor, no por campo.
+     *
+     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
+     * puede existir a medio construir, y una dependencia circular falla al
+     * arrancar en vez de aparecer en ejecucion.
+     */
+    public ReporteController(ReporteService reporteService) {
+        this.reporteService = reporteService;
+    }
+
 
     /**
      * GET /api/reportes/ventas?inicio=...&fin=...

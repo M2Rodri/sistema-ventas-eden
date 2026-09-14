@@ -46,6 +46,14 @@ public class Pago {
     @Column(length = 100)
     private String referencia; // Número de referencia del pago
 
+    /**
+     * Nota libre del cobro. La columna existía en la base y la entidad no la
+     * mapeaba: sirve para anotar el contexto de un pago (a cuenta, cheque
+     * diferido, quién lo entregó).
+     */
+    @Column(columnDefinition = "text")
+    private String observacion;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private EstadoPago estado = EstadoPago.COMPLETADO;

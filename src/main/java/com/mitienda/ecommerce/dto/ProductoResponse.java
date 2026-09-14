@@ -24,10 +24,13 @@ public class ProductoResponse {
     private String nombre;
     private String descripcion;
     private String modelo;
+    private String marca;
+    private String firmeza;
+    private String materialNucleo;
     private Long idCategoria;
     private String nombreCategoria;
     private String calidad;
-    private BigDecimal precioUnitario;
+    private BigDecimal costoReferencial;
     private BigDecimal precioVenta;
     private BigDecimal peso;
     private String dimensiones;
@@ -45,10 +48,13 @@ public class ProductoResponse {
         this.nombre = producto.getNombre();
         this.descripcion = producto.getDescripcion();
         this.modelo = producto.getModelo();
+        this.marca = producto.getMarca();
+        this.firmeza = producto.getFirmeza();
+        this.materialNucleo = producto.getMaterialNucleo();
         this.idCategoria = producto.getCategoria().getId();
         this.nombreCategoria = producto.getCategoria().getNombre();
         this.calidad = producto.getCalidad();
-        this.precioUnitario = producto.getPrecioUnitario();
+        this.costoReferencial = producto.getCostoReferencial();
         this.precioVenta = producto.getPrecioVenta();
         this.peso = producto.getPeso();
         this.dimensiones = producto.getDimensiones();
@@ -66,7 +72,7 @@ public class ProductoResponse {
     // Constructor adicional que acepta la lista de imágenes como DTO
     // Este es el constructor que resuelve el error que mencionaste.
     public ProductoResponse(Long id, String sku, String nombre, String descripcion, String modelo,
-                           Long idCategoria, String nombreCategoria, String calidad, BigDecimal precioUnitario,
+                           Long idCategoria, String nombreCategoria, String calidad, BigDecimal costoReferencial,
                            BigDecimal precioVenta, BigDecimal peso, String dimensiones, Integer stockMinimo,
                            TipoProducto tipoProducto, Boolean activo, LocalDateTime fechaCreacion,
                            LocalDateTime fechaActualizacion, List<ImagenProductoDTO> imagenes) {
@@ -78,7 +84,7 @@ public class ProductoResponse {
         this.idCategoria = idCategoria;
         this.nombreCategoria = nombreCategoria;
         this.calidad = calidad;
-        this.precioUnitario = precioUnitario;
+        this.costoReferencial = costoReferencial;
         this.precioVenta = precioVenta;
         this.peso = peso;
         this.dimensiones = dimensiones;

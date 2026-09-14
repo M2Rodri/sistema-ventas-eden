@@ -5,7 +5,6 @@ import com.mitienda.ecommerce.dto.EnvioResponse;
 import com.mitienda.ecommerce.models.EstadoEnvio;
 import com.mitienda.ecommerce.services.EnvioService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -23,8 +22,19 @@ import java.util.Map;
 @PreAuthorize("hasAnyRole('ADMIN', 'EMPLEADO')")
 public class EnvioController {
 
-    @Autowired
-    private EnvioService envioService;
+    private final EnvioService envioService;
+
+    /**
+     * Inyeccion por constructor, no por campo.
+     *
+     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
+     * puede existir a medio construir, y una dependencia circular falla al
+     * arrancar en vez de aparecer en ejecucion.
+     */
+    public EnvioController(EnvioService envioService) {
+        this.envioService = envioService;
+    }
+
 
     /**
      * GET /api/envios

@@ -34,9 +34,9 @@ public class ProveedorRequest {
     @Size(max = 300, message = "La dirección no puede exceder 300 caracteres")
     private String direccion;
 
-    @Email(message = "El correo debe ser válido")
-    @Size(max = 100, message = "El correo no puede exceder 100 caracteres")
-    private String correo;
+    @Email(message = "El email debe ser válido")
+    @Size(max = 100, message = "El email no puede exceder 100 caracteres")
+    private String email;
 
     @Size(max = 500, message = "Las notas no pueden exceder 500 caracteres")
     private String notas;

@@ -24,8 +24,8 @@ public class ReporteClientesResponse {
     public static class ClienteReporteDTO {
         private Long idCliente;
         private String nombreCliente;
-        private String celular;
-        private String correo;
+        private String telefono;
+        private String email;
         private Long cantidadCompras;
         private BigDecimal montoTotalCompras;
         private BigDecimal promedioCompra;

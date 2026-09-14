@@ -14,6 +14,26 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Entidad Venta - Cabecera de una operación de venta (tabla 'ventas').
+ *
+ * Cambios respecto del esquema anterior:
+ *
+ *  - metodoPago se eliminó. Una venta admite varios pagos con métodos
+ *    distintos (parte en efectivo, parte por transferencia), así que un único
+ *    campo acá no podía representar el caso real. La fuente de verdad es
+ *    pagos.metodo_pago.
+ *
+ *  - nombreClienteDirecto y celularClienteDirecto se eliminaron. Duplicaban
+ *    lo que ya modela clientes.tipo_cliente = INVITADO: la venta de mostrador
+ *    sin datos del comprador se registra creando un cliente INVITADO.
+ *
+ *  - subtotal, descuento, saldoPendiente y requiereEnvio se agregaron: existían
+ *    en la base pero la entidad no los mapeaba. subtotal es NOT NULL, así que
+ *    sin mapearlo todo INSERT de venta fallaba.
+ *
+ *  - usuario pasa a ser obligatorio: no existe una venta sin vendedor.
+ */
 @Entity
 @Table(name = "ventas")
 @Data
@@ -29,32 +49,40 @@ public class Venta {
     @JoinColumn(name = "id_cliente")
     private Cliente cliente;
 
-    @Column(name = "nombre_cliente_directo", length = 100)
-    private String nombreClienteDirecto;
-
-    @Column(name = "celular_cliente_directo", length = 20)
-    private String celularClienteDirecto;
+    /** Vendedor que registró la venta. Obligatorio. */
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "id_usuario", nullable = false)
+    private Usuario usuario;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime fechaVenta;
+
+    /** Suma de los subtotales de las líneas, antes del descuento general. */
+    @NotNull(message = "El subtotal es obligatorio")
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal subtotal;
+
+    /** Descuento general aplicado sobre el subtotal. */
+    @Column(precision = 10, scale = 2)
+    private BigDecimal descuento = BigDecimal.ZERO;
 
     @NotNull(message = "El monto total es obligatorio")
     @DecimalMin(value = "0.0", inclusive = false, message = "El monto total debe ser mayor a 0")
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal montoTotal;
 
+    /** Lo que falta cobrar: montoTotal menos la suma de los pagos completados. */
+    @Column(precision = 10, scale = 2)
+    private BigDecimal saldoPendiente = BigDecimal.ZERO;
+
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(length = 20)
     private EstadoVenta estado = EstadoVenta.PENDIENTE_PAGO;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private MetodoPago metodoPago;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_usuario")
-    private User usuario;
+    /** Si es true, la venta genera un registro en envios. */
+    @Column(name = "requiere_envio")
+    private Boolean requiereEnvio = false;
 
     @UpdateTimestamp
     @Column(nullable = false)
@@ -66,34 +94,22 @@ public class Venta {
     @OneToMany(mappedBy = "venta", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Pago> pagos = new ArrayList<>();
 
-    public Venta(Cliente cliente, BigDecimal montoTotal, MetodoPago metodoPago, User usuario) {
+    public Venta(Cliente cliente, BigDecimal subtotal, BigDecimal montoTotal, Usuario usuario) {
         this.cliente = cliente;
+        this.subtotal = subtotal;
         this.montoTotal = montoTotal;
-        this.metodoPago = metodoPago;
+        this.saldoPendiente = montoTotal;
         this.usuario = usuario;
         this.estado = EstadoVenta.PENDIENTE_PAGO;
     }
 
-    public Venta(String nombreClienteDirecto, String celularClienteDirecto, BigDecimal montoTotal, MetodoPago metodoPago, User usuario) {
-        this.nombreClienteDirecto = nombreClienteDirecto;
-        this.celularClienteDirecto = celularClienteDirecto;
-        this.montoTotal = montoTotal;
-        this.metodoPago = metodoPago;
-        this.usuario = usuario;
-        this.estado = EstadoVenta.PENDIENTE_PAGO;
-    }
-
+    /** Nombre a mostrar del comprador. Los invitados son clientes tipo INVITADO. */
     public String getNombreClienteCompleto() {
-        if (nombreClienteDirecto != null && !nombreClienteDirecto.isEmpty()) {
-            return nombreClienteDirecto;
-        }
         return cliente != null ? cliente.getNombreCompleto() : "Cliente no especificado";
     }
 
-    public String getCelularClienteCompleto() {
-        if (celularClienteDirecto != null && !celularClienteDirecto.isEmpty()) {
-            return celularClienteDirecto;
-        }
-        return cliente != null ? cliente.getCelular() : null;
+    /** Teléfono del comprador, si está cargado. */
+    public String getTelefonoClienteCompleto() {
+        return cliente != null ? cliente.getTelefono() : null;
     }
 }

@@ -1,11 +1,11 @@
 package com.mitienda.ecommerce.repositories;
 
 import com.mitienda.ecommerce.models.EstadoVenta;
+import com.mitienda.ecommerce.models.MetodoPago;
 import com.mitienda.ecommerce.models.Venta;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -16,7 +16,6 @@ import java.util.Optional;
  * Repositorio para operaciones con ventas
  * Soporta búsquedas tanto por cliente registrado como cliente directo
  */
-@Repository
 public interface VentaRepository extends JpaRepository<Venta, Long> {
 
     /**
@@ -25,24 +24,23 @@ public interface VentaRepository extends JpaRepository<Venta, Long> {
     List<Venta> findByClienteIdOrderByFechaVentaDesc(Long clienteId);
 
     /**
-     * Buscar ventas por nombre de cliente (tanto registrado como directo)
-     * Busca en nombre y apellido del cliente registrado, o en nombreClienteDirecto
+     * Buscar ventas por nombre de cliente.
+     * Ya no hace falta buscar en dos lugares: la venta de mostrador también
+     * tiene su cliente (tipo INVITADO), así que basta con mirar 'clientes'.
      */
     @Query("SELECT v FROM Venta v WHERE " +
            "LOWER(v.cliente.nombre) LIKE LOWER(CONCAT('%', :nombre, '%')) OR " +
-           "LOWER(v.cliente.apellido) LIKE LOWER(CONCAT('%', :nombre, '%')) OR " +
-           "LOWER(v.nombreClienteDirecto) LIKE LOWER(CONCAT('%', :nombre, '%')) " +
+           "LOWER(v.cliente.apellido) LIKE LOWER(CONCAT('%', :nombre, '%')) " +
            "ORDER BY v.fechaVenta DESC")
     List<Venta> findByNombreClienteContaining(@Param("nombre") String nombre);
 
     /**
-     * Buscar ventas por celular de cliente (tanto registrado como directo)
+     * Buscar ventas por teléfono del cliente.
      */
     @Query("SELECT v FROM Venta v WHERE " +
-           "v.cliente.celular LIKE CONCAT('%', :celular, '%') OR " +
-           "v.celularClienteDirecto LIKE CONCAT('%', :celular, '%') " +
+           "v.cliente.telefono LIKE CONCAT('%', :telefono, '%') " +
            "ORDER BY v.fechaVenta DESC")
-    List<Venta> findByCelularClienteContaining(@Param("celular") String celular);
+    List<Venta> findByTelefonoClienteContaining(@Param("telefono") String telefono);
 
     /**
      * Filtrar ventas por estado
@@ -77,32 +75,41 @@ public interface VentaRepository extends JpaRepository<Venta, Long> {
     BigDecimal sumMontoTotalByFechaVentaBetween(@Param("inicio") LocalDateTime inicio, @Param("fin") LocalDateTime fin);
 
     /**
-     * Contar ventas con cliente rápido (sin cliente registrado)
+     * Contar ventas de mostrador (cliente cargado como INVITADO).
+     * Antes se distinguían por tener nombreClienteDirecto y ningún cliente;
+     * ahora la venta de mostrador sí tiene cliente, marcado como INVITADO.
      */
-    @Query("SELECT COUNT(v) FROM Venta v WHERE v.cliente IS NULL AND v.nombreClienteDirecto IS NOT NULL")
+    @Query("SELECT COUNT(v) FROM Venta v WHERE v.cliente.tipoCliente = com.mitienda.ecommerce.models.TipoCliente.INVITADO")
     Long countVentasClienteRapido();
 
     /**
-     * Contar ventas con cliente registrado
+     * Contar ventas de clientes con datos completos.
      */
-    @Query("SELECT COUNT(v) FROM Venta v WHERE v.cliente IS NOT NULL")
+    @Query("SELECT COUNT(v) FROM Venta v WHERE v.cliente.tipoCliente = com.mitienda.ecommerce.models.TipoCliente.REGISTRADO")
     Long countVentasClienteRegistrado();
 
     /**
-     * Listar todas las ventas con cliente rápido
+     * Listar las ventas de mostrador.
      */
-    @Query("SELECT v FROM Venta v WHERE v.cliente IS NULL AND v.nombreClienteDirecto IS NOT NULL ORDER BY v.fechaVenta DESC")
+    @Query("SELECT v FROM Venta v WHERE v.cliente.tipoCliente = com.mitienda.ecommerce.models.TipoCliente.INVITADO ORDER BY v.fechaVenta DESC")
     List<Venta> findVentasClienteRapido();
 
     // Obtiene una venta por ID, cargando también su cliente en una sola consulta para evitar errores de lazy loading.
     @Query("SELECT v FROM Venta v LEFT JOIN FETCH v.cliente WHERE v.id = :id")
     Optional<Venta> findByIdWithCliente(@Param("id") Long id);
     /**
-     * Buscar ventas por método de pago y rango de fechas
+     * Buscar ventas que tengan al menos un pago con el método indicado.
+     *
+     * El método de pago dejó de ser un campo de 'ventas' y vive en 'pagos',
+     * porque una venta admite varios cobros con métodos distintos. Por eso la
+     * consulta se hace por EXISTS sobre los pagos en lugar de comparar un
+     * campo de la venta.
      */
-    @Query("SELECT v FROM Venta v WHERE v.metodoPago = :metodoPago AND v.fechaVenta BETWEEN :inicio AND :fin ORDER BY v.fechaVenta DESC")
+    @Query("SELECT DISTINCT v FROM Venta v JOIN v.pagos p " +
+           "WHERE p.metodoPago = :metodoPago AND v.fechaVenta BETWEEN :inicio AND :fin " +
+           "ORDER BY v.fechaVenta DESC")
     List<Venta> findByMetodoPagoAndFechaVentaBetween(
-        @Param("metodoPago") String metodoPago,
+        @Param("metodoPago") MetodoPago metodoPago,
         @Param("inicio") LocalDateTime inicio,
         @Param("fin") LocalDateTime fin
     );

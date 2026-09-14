@@ -5,7 +5,6 @@ import com.mitienda.ecommerce.dto.ProductoResponse;
 import com.mitienda.ecommerce.models.TipoProducto;
 import com.mitienda.ecommerce.services.ProductoService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -19,8 +18,19 @@ import java.util.Map;
 @CrossOrigin(origins = "http://localhost:3000")
 public class ProductoController {
 
-    @Autowired
-    private ProductoService productoService;
+    private final ProductoService productoService;
+
+    /**
+     * Inyeccion por constructor, no por campo.
+     *
+     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
+     * puede existir a medio construir, y una dependencia circular falla al
+     * arrancar en vez de aparecer en ejecucion.
+     */
+    public ProductoController(ProductoService productoService) {
+        this.productoService = productoService;
+    }
+
 
     // ========================================
     // ENDPOINTS PÚBLICOS (sin autenticación)
@@ -99,6 +109,22 @@ public class ProductoController {
         try {
             ProductoResponse createdProducto = productoService.createProducto(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdProducto);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * PATCH /api/productos/{id}/stock-minimo
+     * Cambia el umbral que dispara las alertas de stock bajo.
+     */
+    @PatchMapping("/{id}/stock-minimo")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLEADO')")
+    public ResponseEntity<?> actualizarStockMinimo(@PathVariable Long id,
+                                                   @RequestParam Integer stockMinimo) {
+        try {
+            return ResponseEntity.ok(productoService.actualizarStockMinimo(id, stockMinimo));
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("error", e.getMessage()));

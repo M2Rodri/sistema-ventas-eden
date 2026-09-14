@@ -4,7 +4,6 @@ import com.mitienda.ecommerce.dto.CategoriaRequest;
 import com.mitienda.ecommerce.dto.CategoriaResponse;
 import com.mitienda.ecommerce.services.CategoriaService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,8 +21,19 @@ import java.util.Map;
 @CrossOrigin(origins = "http://localhost:3000")
 public class CategoriaController {
 
-    @Autowired
-    private CategoriaService categoriaService;
+    private final CategoriaService categoriaService;
+
+    /**
+     * Inyeccion por constructor, no por campo.
+     *
+     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
+     * puede existir a medio construir, y una dependencia circular falla al
+     * arrancar en vez de aparecer en ejecucion.
+     */
+    public CategoriaController(CategoriaService categoriaService) {
+        this.categoriaService = categoriaService;
+    }
+
 
     /**
      * GET /api/categorias

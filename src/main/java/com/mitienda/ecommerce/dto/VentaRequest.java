@@ -15,7 +15,7 @@ import java.util.List;
  * DTO para crear venta directa (sin pedido previo)
  * Soporta dos modos:
  * 1. Cliente registrado: Se envía idCliente
- * 2. Cliente rápido: Se envían nombreClienteDirecto y celularClienteDirecto
+ * 2. Cliente de mostrador: se envian nombre y telefono, y el backend crea un Cliente tipo INVITADO
  */
 @Data
 @NoArgsConstructor
@@ -27,10 +27,10 @@ public class VentaRequest {
 
     // OPCIÓN 2: Cliente rápido (datos directos)
     @Size(max = 100, message = "El nombre no puede exceder 100 caracteres")
-    private String nombreClienteDirecto;
+    private String nombreClienteInvitado;
 
-    @Size(max = 20, message = "El celular no puede exceder 20 caracteres")
-    private String celularClienteDirecto;
+    @Size(max = 20, message = "El teléfono no puede exceder 20 caracteres")
+    private String telefonoClienteInvitado;
 
     @NotNull(message = "El método de pago es obligatorio")
     private MetodoPago metodoPago;
@@ -46,7 +46,7 @@ public class VentaRequest {
      * Valida que se haya proporcionado al menos una forma de identificar al cliente
      */
     public boolean tieneCliente() {
-        return idCliente != null || (nombreClienteDirecto != null && !nombreClienteDirecto.trim().isEmpty());
+        return idCliente != null || (nombreClienteInvitado != null && !nombreClienteInvitado.trim().isEmpty());
     }
 
     /**
@@ -60,7 +60,7 @@ public class VentaRequest {
      * Determina si es una venta con cliente rápido
      */
     public boolean esClienteRapido() {
-        return !esClienteRegistrado() && nombreClienteDirecto != null && !nombreClienteDirecto.trim().isEmpty();
+        return !esClienteRegistrado() && nombreClienteInvitado != null && !nombreClienteInvitado.trim().isEmpty();
     }
 
     /**

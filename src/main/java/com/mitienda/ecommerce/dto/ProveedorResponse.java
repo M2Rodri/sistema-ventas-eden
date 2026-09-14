@@ -21,7 +21,7 @@ public class ProveedorResponse {
     private String contacto;
     private String telefono;
     private String direccion;
-    private String correo;
+    private String email;
     private String notas;
     private Boolean activo;
     private LocalDateTime fechaRegistro;
@@ -35,7 +35,7 @@ public class ProveedorResponse {
         this.contacto = proveedor.getContacto();
         this.telefono = proveedor.getTelefono();
         this.direccion = proveedor.getDireccion();
-        this.correo = proveedor.getCorreo();
+        this.email = proveedor.getEmail();
         this.notas = proveedor.getNotas();
         this.activo = proveedor.getActivo();
         this.fechaRegistro = proveedor.getFechaRegistro();

@@ -2,10 +2,9 @@ package com.mitienda.ecommerce.services;
 
 import com.mitienda.ecommerce.dto.AuditoriaResponse;
 import com.mitienda.ecommerce.models.Auditoria;
-import com.mitienda.ecommerce.models.User;
+import com.mitienda.ecommerce.models.Usuario;
 import com.mitienda.ecommerce.repositories.AuditoriaRepository;
-import com.mitienda.ecommerce.repositories.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.mitienda.ecommerce.repositories.UsuarioRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,13 +16,30 @@ import java.util.stream.Collectors;
  * Servicio para gestión de auditorías
  */
 @Service
+// Lectura dentro de transacción por defecto: con spring.jpa.open-in-view=false
+// no hay sesión de Hibernate fuera de la transacción, y los DTO de respuesta se
+// arman recorriendo relaciones perezosas. Sin esto, los endpoints de lectura
+// fallaban con LazyInitializationException.
+// Los métodos que escriben llevan su propio @Transactional, que tiene precedencia.
+@Transactional(readOnly = true)
 public class AuditoriaService {
 
-    @Autowired
-    private AuditoriaRepository auditoriaRepository;
+    private final AuditoriaRepository auditoriaRepository;
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UsuarioRepository usuarioRepository;
+
+    /**
+     * Inyeccion por constructor, no por campo.
+     *
+     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
+     * puede existir a medio construir, y una dependencia circular falla al
+     * arrancar en vez de aparecer en ejecucion.
+     */
+    public AuditoriaService(AuditoriaRepository auditoriaRepository, UsuarioRepository usuarioRepository) {
+        this.auditoriaRepository = auditoriaRepository;
+        this.usuarioRepository = usuarioRepository;
+    }
+
 
     /**
      * Listar todas las auditorías
@@ -50,9 +66,9 @@ public class AuditoriaService {
     @Transactional
     public AuditoriaResponse registrarAuditoria(Long idUsuario, String accion, String tablaAfectada, 
                                                String idRegistro, String detalles, String ipDispositivo) {
-        User usuario = null;
+        Usuario usuario = null;
         if (idUsuario != null) {
-            usuario = userRepository.findById(idUsuario).orElse(null);
+            usuario = usuarioRepository.findById(idUsuario).orElse(null);
         }
 
         Auditoria auditoria = new Auditoria();
@@ -131,23 +147,28 @@ public class AuditoriaService {
      * Métodos helper para registrar acciones comunes
      */
 
+    @Transactional
     public void registrarCreacion(Long idUsuario, String tabla, String idRegistro, String ip) {
         registrarAuditoria(idUsuario, "CREAR_" + tabla.toUpperCase(), tabla, idRegistro, null, ip);
     }
 
+    @Transactional
     public void registrarActualizacion(Long idUsuario, String tabla, String idRegistro, String ip) {
         registrarAuditoria(idUsuario, "ACTUALIZAR_" + tabla.toUpperCase(), tabla, idRegistro, null, ip);
     }
 
+    @Transactional
     public void registrarEliminacion(Long idUsuario, String tabla, String idRegistro, String ip) {
         registrarAuditoria(idUsuario, "ELIMINAR_" + tabla.toUpperCase(), tabla, idRegistro, null, ip);
     }
 
+    @Transactional
     public void registrarLogin(Long idUsuario, String ip) {
-        registrarAuditoria(idUsuario, "LOGIN", "users", idUsuario != null ? idUsuario.toString() : null, "Inicio de sesión", ip);
+        registrarAuditoria(idUsuario, "LOGIN", "usuarios", idUsuario != null ? idUsuario.toString() : null, "Inicio de sesión", ip);
     }
 
+    @Transactional
     public void registrarLogout(Long idUsuario, String ip) {
-        registrarAuditoria(idUsuario, "LOGOUT", "users", idUsuario != null ? idUsuario.toString() : null, "Cierre de sesión", ip);
+        registrarAuditoria(idUsuario, "LOGOUT", "usuarios", idUsuario != null ? idUsuario.toString() : null, "Cierre de sesión", ip);
     }
 }

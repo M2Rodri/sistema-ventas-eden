@@ -20,25 +20,28 @@ public class ClienteRequest {
     @Size(min = 2, max = 100, message = "El nombre debe tener entre 2 y 100 caracteres")
     private String nombre;
 
-    @NotBlank(message = "El apellido es obligatorio")
-    @Size(min = 2, max = 100, message = "El apellido debe tener entre 2 y 100 caracteres")
+    /**
+     * Opcional: una empresa no tiene apellido. La base lo permite nulo y la
+     * entidad también; este DTO era el único que seguía exigiéndolo, y por eso
+     * no se podía registrar un cliente como "Hotel Las Palmeras".
+     */
+    @Size(max = 100, message = "El apellido no puede exceder 100 caracteres")
     private String apellido;
 
     @Size(max = 20, message = "El NIT/CI no puede exceder 20 caracteres")
     private String nitCi;
 
-    @NotBlank(message = "El celular es obligatorio")
-    @Size(max = 15, message = "El celular no puede exceder 15 caracteres")
-    private String celular;
+    @NotBlank(message = "El telefono es obligatorio")
+    @Size(max = 15, message = "El telefono no puede exceder 15 caracteres")
+    private String telefono;
 
-    @Email(message = "El correo debe ser válido")
-    @Size(max = 100, message = "El correo no puede exceder 100 caracteres")
-    private String correo;
+    @Email(message = "El email debe ser válido")
+    @Size(max = 100, message = "El email no puede exceder 100 caracteres")
+    private String email;
 
-    @Size(max = 300, message = "La dirección no puede exceder 300 caracteres")
-    private String direccion;
+    
 
-    private TipoCliente tipo = TipoCliente.INVITADO;
+    private TipoCliente tipoCliente = TipoCliente.INVITADO;
 
     private Boolean activo = true;
 }

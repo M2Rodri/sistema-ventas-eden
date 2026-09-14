@@ -7,7 +7,6 @@ import com.mitienda.ecommerce.models.Pago;
 import com.mitienda.ecommerce.models.Venta;
 import com.mitienda.ecommerce.repositories.PagoRepository;
 import com.mitienda.ecommerce.repositories.VentaRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,13 +17,30 @@ import java.util.stream.Collectors;
  * Servicio para gestión de pagos
  */
 @Service
+// Lectura dentro de transacción por defecto: con spring.jpa.open-in-view=false
+// no hay sesión de Hibernate fuera de la transacción, y los DTO de respuesta se
+// arman recorriendo relaciones perezosas. Sin esto, los endpoints de lectura
+// fallaban con LazyInitializationException.
+// Los métodos que escriben llevan su propio @Transactional, que tiene precedencia.
+@Transactional(readOnly = true)
 public class PagoService {
 
-    @Autowired
-    private PagoRepository pagoRepository;
+    private final PagoRepository pagoRepository;
 
-    @Autowired
-    private VentaRepository ventaRepository;
+    private final VentaRepository ventaRepository;
+
+    /**
+     * Inyeccion por constructor, no por campo.
+     *
+     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
+     * puede existir a medio construir, y una dependencia circular falla al
+     * arrancar en vez de aparecer en ejecucion.
+     */
+    public PagoService(PagoRepository pagoRepository, VentaRepository ventaRepository) {
+        this.pagoRepository = pagoRepository;
+        this.ventaRepository = ventaRepository;
+    }
+
 
     /**
      * Listar todos los pagos
@@ -60,6 +76,7 @@ public class PagoService {
         pago.setMonto(request.getMonto());
         pago.setMetodoPago(request.getMetodoPago());
         pago.setReferencia(request.getReferencia());
+        pago.setObservacion(request.getObservacion());
         pago.setEstado(EstadoPago.COMPLETADO);
 
         Pago savedPago = pagoRepository.save(pago);

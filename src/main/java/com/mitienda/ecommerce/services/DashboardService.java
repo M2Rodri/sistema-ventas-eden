@@ -3,8 +3,10 @@ package com.mitienda.ecommerce.services;
 import com.mitienda.ecommerce.dto.DashboardResponse;
 import com.mitienda.ecommerce.models.*;
 import com.mitienda.ecommerce.repositories.*;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -17,24 +19,50 @@ import java.util.stream.Collectors;
 @Service
 public class DashboardService {
 
-    @Autowired
-    private VentaRepository ventaRepository;
+    private final VentaRepository ventaRepository;
 
-    @Autowired
-    private ProductoRepository productoRepository;
+    private final ProductoRepository productoRepository;
 
-    @Autowired
-    private InventarioRepository inventarioRepository;
+    private final InventarioRepository inventarioRepository;
 
-    @Autowired
-    private ClienteRepository clienteRepository;
+    private final ClienteRepository clienteRepository;
 
-    @Autowired
-    private AlertaInventarioRepository alertaInventarioRepository;
+    private final AlertaInventarioRepository alertaInventarioRepository;
 
-    @Autowired
-    private DetalleVentaRepository detalleVentaRepository;
+    private final DetalleVentaRepository detalleVentaRepository;
 
+    /**
+     * Inyeccion por constructor, no por campo.
+     *
+     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
+     * puede existir a medio construir, y una dependencia circular falla al
+     * arrancar en vez de aparecer en ejecucion.
+     */
+    public DashboardService(VentaRepository ventaRepository,
+                            ProductoRepository productoRepository,
+                            InventarioRepository inventarioRepository,
+                            ClienteRepository clienteRepository,
+                            AlertaInventarioRepository alertaInventarioRepository,
+                            DetalleVentaRepository detalleVentaRepository) {
+        this.ventaRepository = ventaRepository;
+        this.productoRepository = productoRepository;
+        this.inventarioRepository = inventarioRepository;
+        this.clienteRepository = clienteRepository;
+        this.alertaInventarioRepository = alertaInventarioRepository;
+        this.detalleVentaRepository = detalleVentaRepository;
+    }
+
+
+    /**
+     * Estadísticas del panel de inicio.
+     *
+     * Requiere transacción: getProductosMasVendidos() agrupa por el Producto de
+     * cada DetalleVenta, que es una relación perezosa. Con
+     * spring.jpa.open-in-view=false no hay sesión abierta fuera de la
+     * transacción, y sin esta anotación el endpoint fallaba entero con
+     * LazyInitializationException.
+     */
+    @Transactional(readOnly = true)
     public DashboardResponse getDashboardStats() {
         DashboardResponse dashboard = new DashboardResponse();
 
@@ -106,7 +134,7 @@ public class DashboardService {
 
         List<Inventario> inventarios = inventarioRepository.findAll();
         BigDecimal valorTotal = inventarios.stream()
-                .map(inv -> inv.getProducto().getPrecioUnitario()
+                .map(inv -> inv.getProducto().getCostoReferencial()
                         .multiply(BigDecimal.valueOf(inv.getCantidadDisponible())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
@@ -164,32 +192,58 @@ public class DashboardService {
         );
     }
 
+    /**
+     * Productos mas vendidos de toda la historia del negocio.
+     *
+     * Antes este metodo traia la tabla detalle_venta completa con findAll() y
+     * agrupaba en memoria, sin filtrar por estado: las ventas canceladas
+     * seguian sumando al ranking. Ahora agrupa la base de datos y solo cuenta
+     * las ventas COMPLETADAS.
+     */
     private List<DashboardResponse.ProductoMasVendidoDTO> getProductosMasVendidos(int limite) {
-        List<DetalleVenta> detalles = detalleVentaRepository.findAll();
+        // Desde una fecha bien anterior a cualquier venta posible: equivale a
+        // "sin limite inferior", sin necesitar una segunda consulta.
+        return getMasVendidosEntre(LocalDateTime.of(2000, 1, 1, 0, 0),
+                LocalDateTime.now().plusDays(1), limite);
+    }
 
-        Map<Producto, Long> productosCantidad = detalles.stream()
-                .collect(Collectors.groupingBy(
-                        DetalleVenta::getProducto,
-                        Collectors.summingLong(DetalleVenta::getCantidad)
-                ));
+    /**
+     * Productos mas vendidos dentro de un rango.
+     *
+     * Se expone aparte porque el aviso de cierre del dia necesita responder
+     * "que se vendio hoy", y el metodo anterior solo sabia de toda la historia.
+     *
+     * @param desde  inclusive
+     * @param hasta  exclusive
+     */
+    public List<DashboardResponse.ProductoMasVendidoDTO> getMasVendidosEntre(
+            LocalDateTime desde, LocalDateTime hasta, int limite) {
 
-        Map<Producto, BigDecimal> productosMontos = detalles.stream()
-                .collect(Collectors.groupingBy(
-                        DetalleVenta::getProducto,
-                        Collectors.reducing(BigDecimal.ZERO, DetalleVenta::getSubtotal, BigDecimal::add)
-                ));
+        Pageable tope = PageRequest.of(0, limite);
 
-        return productosCantidad.entrySet().stream()
-                .sorted(Map.Entry.<Producto, Long>comparingByValue().reversed())
-                .limit(limite)
-                .map(entry -> new DashboardResponse.ProductoMasVendidoDTO(
-                        entry.getKey().getId(),
-                        entry.getKey().getNombre(),
-                        entry.getKey().getSku(),
-                        entry.getValue(),
-                        productosMontos.get(entry.getKey())
+        return detalleVentaRepository.findMasVendidosEntre(desde, hasta, tope)
+                .stream()
+                .map(fila -> new DashboardResponse.ProductoMasVendidoDTO(
+                        (Long) fila[0],
+                        (String) fila[1],
+                        (String) fila[2],
+                        // SUM sobre un Integer devuelve Long en JPQL; SUM sobre
+                        // un BigDecimal devuelve BigDecimal.
+                        ((Number) fila[3]).longValue(),
+                        (BigDecimal) fila[4]
                 ))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Lo que se vendio hoy, para el aviso de cierre del dia.
+     *
+     * El dia va de las 00:00 de hoy a las 00:00 de manana, sin incluir ese
+     * limite: asi una venta registrada a las 23:59:59 entra en el dia correcto.
+     */
+    public List<DashboardResponse.ProductoMasVendidoDTO> getMasVendidosHoy(int limite) {
+        LocalDateTime inicioDelDia = LocalDate.now().atStartOfDay();
+        return getMasVendidosEntre(inicioDelDia, inicioDelDia.plusDays(1), limite);
     }
 
     private List<DashboardResponse.VentaPorDiaDTO> getVentasUltimosDias(int dias) {

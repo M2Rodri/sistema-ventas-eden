@@ -2,9 +2,9 @@
 package com.mitienda.ecommerce.repositories;
 
 import com.mitienda.ecommerce.models.Inventario;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
@@ -12,8 +12,19 @@ import java.util.Optional;
 /**
  * Repositorio para gestión de inventario
  */
-@Repository
 public interface InventarioRepository extends JpaRepository<Inventario, Long> {
+
+    /*
+     * InventarioResponse lee producto, y ademas la categoria del producto. Sin
+     * esto eran dos consultas extra por cada fila del inventario; la pantalla
+     * tardaba mas de 3 segundos contra Supabase. Ver el comentario equivalente
+     * en ProductoRepository.
+     */
+
+    /** Listado completo, con el producto y su categoria ya cargados. */
+    @Override
+    @EntityGraph(attributePaths = {"producto", "producto.categoria"})
+    List<Inventario> findAll();
 
     /**
      * Buscar inventario por ID de producto

@@ -38,7 +38,7 @@ public class Transportadora {
     private String telefono;
 
     @Column(length = 100)
-    private String correo;
+    private String email;
 
     @DecimalMin(value = "0.0", message = "La tarifa base no puede ser negativa")
     @Column(precision = 10, scale = 2)

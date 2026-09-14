@@ -89,12 +89,22 @@ public class FileStorageService {
             System.out.println("✅ Directorio ya existe");
         }
 
-        // Generar nombre único
-        String uniqueFileName = UUID.randomUUID().toString() + "_" + originalFilename;
-        Path filePath = uploadPath.resolve(uniqueFileName);
+        // Generar nombre unico.
+        //
+        // El nombre lo elige quien sube el archivo, asi que antes de usarlo hay
+        // que limpiarlo: se descarta cualquier componente de ruta. Sin esto, un
+        // nombre como "../../algo.glb" hacia que resolve() escribiera fuera de
+        // la carpeta de subidas.
+        String uniqueFileName = UUID.randomUUID() + "_" + limpiarNombreArchivo(originalFilename);
+        Path filePath = uploadPath.resolve(uniqueFileName).normalize();
 
-        System.out.println("Nombre único generado: " + uniqueFileName);
-        System.out.println("Ruta completa: " + filePath);
+        // Cinturon y tirantes: aunque el nombre ya viene saneado, se comprueba
+        // que la ruta final siga estando dentro de la carpeta de destino. Es la
+        // verificacion que de verdad cierra el paso, porque no depende de haber
+        // previsto todas las formas de escribir una ruta.
+        if (!filePath.startsWith(uploadPath)) {
+            throw new IllegalArgumentException("Nombre de archivo no permitido: " + originalFilename);
+        }
 
         // Guardar archivo
         try {
@@ -167,6 +177,39 @@ public class FileStorageService {
     /**
      * Obtener extensión de un archivo
      */
+    /**
+     * Deja solo el nombre del archivo, sin ninguna parte de ruta.
+     *
+     * Toma el ultimo segmento despues de / o de \\ (el cliente puede mandar
+     * separadores de Windows o de Unix) y reemplaza por guion bajo todo lo que
+     * no sea una letra, un numero, un punto, un guion o un guion bajo. Asi
+     * quedan fuera los ".." y cualquier caracter raro para el sistema de
+     * archivos, pero se conserva la extension, que se valida aparte.
+     */
+    private String limpiarNombreArchivo(String filename) {
+        String soloNombre = filename;
+
+        int ultimaBarra = Math.max(soloNombre.lastIndexOf('/'), soloNombre.lastIndexOf('\\'));
+        if (ultimaBarra >= 0) {
+            soloNombre = soloNombre.substring(ultimaBarra + 1);
+        }
+
+        soloNombre = soloNombre.replaceAll("[^a-zA-Z0-9._-]", "_");
+
+        // Un nombre que era solo puntos o separadores puede quedar vacio.
+        if (soloNombre.isBlank() || soloNombre.replace(".", "").isBlank()) {
+            throw new IllegalArgumentException("Nombre de archivo no permitido: " + filename);
+        }
+
+        // Evita nombres desmesurados que rompan el limite del sistema de archivos.
+        if (soloNombre.length() > 150) {
+            String extension = getFileExtension(soloNombre);
+            soloNombre = soloNombre.substring(0, 150 - extension.length()) + extension;
+        }
+
+        return soloNombre;
+    }
+
     private String getFileExtension(String filename) {
         if (filename == null || filename.trim().isEmpty()) {
             return "";

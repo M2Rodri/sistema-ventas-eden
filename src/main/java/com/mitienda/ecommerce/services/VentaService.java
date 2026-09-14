@@ -5,7 +5,6 @@ import com.mitienda.ecommerce.dto.VentaRequest;
 import com.mitienda.ecommerce.dto.VentaResponse;
 import com.mitienda.ecommerce.models.*;
 import com.mitienda.ecommerce.repositories.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,34 +14,63 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+// Lectura dentro de transacción por defecto: con spring.jpa.open-in-view=false
+// no hay sesión de Hibernate fuera de la transacción, y los DTO de respuesta se
+// arman recorriendo relaciones perezosas. Sin esto, los endpoints de lectura
+// fallaban con LazyInitializationException.
+// Los métodos que escriben llevan su propio @Transactional, que tiene precedencia.
+@Transactional(readOnly = true)
 public class VentaService {
 
-    @Autowired
-    private VentaRepository ventaRepository;
+    private final VentaRepository ventaRepository;
 
-    @Autowired
-    private DetalleVentaRepository detalleVentaRepository;
+    private final DetalleVentaRepository detalleVentaRepository;
 
-    @Autowired
-    private PagoRepository pagoRepository;
+    private final PagoRepository pagoRepository;
 
-    @Autowired
-    private ClienteRepository clienteRepository;
+    private final ClienteRepository clienteRepository;
 
-    @Autowired
-    private ProductoRepository productoRepository;
+    private final ProductoRepository productoRepository;
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UsuarioRepository usuarioRepository;
 
-    @Autowired
-    private InventarioService inventarioService;
+    private final InventarioService inventarioService;
 
-    @Autowired
-    private InventarioRepository inventarioRepository;
+    private final InventarioRepository inventarioRepository;
 
-    @Autowired
-    private ComprobanteService comprobanteService;
+    private final ComprobanteService comprobanteService;
+
+    private final RegistroAuditoria registroAuditoria;
+
+    /**
+     * Inyeccion por constructor, no por campo.
+     *
+     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
+     * puede existir a medio construir, y una dependencia circular falla al
+     * arrancar en vez de aparecer en ejecucion.
+     */
+    public VentaService(VentaRepository ventaRepository,
+                        DetalleVentaRepository detalleVentaRepository,
+                        PagoRepository pagoRepository,
+                        ClienteRepository clienteRepository,
+                        ProductoRepository productoRepository,
+                        UsuarioRepository usuarioRepository,
+                        InventarioService inventarioService,
+                        InventarioRepository inventarioRepository,
+                        ComprobanteService comprobanteService,
+                        RegistroAuditoria registroAuditoria) {
+        this.ventaRepository = ventaRepository;
+        this.detalleVentaRepository = detalleVentaRepository;
+        this.pagoRepository = pagoRepository;
+        this.clienteRepository = clienteRepository;
+        this.productoRepository = productoRepository;
+        this.usuarioRepository = usuarioRepository;
+        this.inventarioService = inventarioService;
+        this.inventarioRepository = inventarioRepository;
+        this.comprobanteService = comprobanteService;
+        this.registroAuditoria = registroAuditoria;
+    }
+
 
     @Transactional(readOnly = true)
     public List<VentaResponse> getAllVentas() {
@@ -63,10 +91,10 @@ public class VentaService {
     public VentaResponse createVentaDirecta(VentaRequest request, Long idUsuario) {
         if (!request.tieneCliente()) {
             throw new RuntimeException(
-                    "Debe proporcionar un cliente registrado (idCliente) o datos del cliente (nombreClienteDirecto)");
+                    "Debe proporcionar un cliente registrado (idCliente) o el nombre del cliente de mostrador");
         }
 
-        User usuario = userRepository.findById(idUsuario)
+        Usuario usuario = usuarioRepository.findById(idUsuario)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + idUsuario));
 
         if (request.getMetodoPago() != MetodoPago.EFECTIVO) {
@@ -82,12 +110,21 @@ public class VentaService {
                     .orElseThrow(() -> new RuntimeException("Cliente no encontrado con ID: " + request.getIdCliente()));
             venta.setCliente(cliente);
         } else if (request.esClienteRapido()) {
-            venta.setNombreClienteDirecto(request.getNombreClienteDirecto().trim());
-            venta.setCelularClienteDirecto(
-                    request.getCelularClienteDirecto() != null ? request.getCelularClienteDirecto().trim() : null);
+            // Venta de mostrador: en lugar de guardar el nombre suelto dentro de
+            // la venta, se crea un cliente tipo INVITADO. Así hay un solo
+            // mecanismo para identificar al comprador y el dato queda disponible
+            // para el resto del sistema (comprobante, envío, historial).
+            Cliente invitado = new Cliente();
+            invitado.setNombre(request.getNombreClienteInvitado().trim());
+            invitado.setTelefono(request.getTelefonoClienteInvitado() != null
+                    ? request.getTelefonoClienteInvitado().trim() : null);
+            invitado.setTipoCliente(TipoCliente.INVITADO);
+            invitado.setActivo(true);
+            venta.setCliente(clienteRepository.save(invitado));
         }
 
-        venta.setMetodoPago(request.getMetodoPago());
+        // El método de pago ya no se guarda en la venta: viaja al Pago (PASO 4),
+        // porque una venta admite varios cobros con métodos distintos.
         venta.setUsuario(usuario);
         venta.setEstado(EstadoVenta.COMPLETADA);
 
@@ -112,9 +149,9 @@ public class VentaService {
             if (item.getPrecioUnitarioConDescuento() != null &&
                     item.getPrecioUnitarioConDescuento().compareTo(precioOriginal) < 0) {
                 precioFinal = item.getPrecioUnitarioConDescuento();
-                if (precioFinal.compareTo(producto.getPrecioUnitario()) < 0) {
+                if (precioFinal.compareTo(producto.getCostoReferencial()) < 0) {
                     throw new RuntimeException("No se puede vender '" + producto.getNombre() +
-                            "' por debajo del costo (Bs. " + producto.getPrecioUnitario() + ")");
+                            "' por debajo del costo (Bs. " + producto.getCostoReferencial() + ")");
                 }
             } else {
                 precioFinal = precioOriginal;
@@ -124,7 +161,14 @@ public class VentaService {
         }
 
         // PASO 2: GUARDAR VENTA
+        // subtotal es NOT NULL en la base. Sin descuento general, subtotal y
+        // montoTotal coinciden; el descuento por línea ya está aplicado en
+        // cada precio unitario y queda registrado en detalle_venta.
+        venta.setSubtotal(total);
+        venta.setDescuento(BigDecimal.ZERO);
         venta.setMontoTotal(total);
+        // La venta se cobra completa en el PASO 4, así que no queda saldo.
+        venta.setSaldoPendiente(BigDecimal.ZERO);
         Venta savedVenta = ventaRepository.save(venta);
 
         // PASO 3: CREAR DETALLES Y REDUCIR INVENTARIO
@@ -197,8 +241,12 @@ public class VentaService {
             comprobanteRequest.setNombreCliente(savedVenta.getNombreClienteCompleto());
             comprobanteService.createComprobante(comprobanteRequest);
         } catch (Exception e) {
-            System.err.println("⚠️ Error al generar comprobante: " + e.getMessage());
+            System.err.println("Error al generar comprobante: " + e.getMessage());
         }
+
+        registroAuditoria.registrar("CREAR_VENTA", "ventas", savedVenta.getId(),
+                "Venta por Bs " + savedVenta.getMontoTotal()
+                        + " a " + savedVenta.getNombreClienteCompleto());
 
         return new VentaResponse(savedVenta);
     }
@@ -233,7 +281,15 @@ public class VentaService {
         }
 
         venta.setEstado(EstadoVenta.CANCELADA);
-        return new VentaResponse(ventaRepository.save(venta));
+        Venta cancelada = ventaRepository.save(venta);
+
+        // Cancelar una venta devuelve mercaderia al stock y anula plata cobrada:
+        // es de las operaciones que mas conviene poder rastrear despues.
+        registroAuditoria.registrar("CANCELAR_VENTA", "ventas", cancelada.getId(),
+                "Anulacion de la venta #" + cancelada.getId()
+                        + " por Bs " + cancelada.getMontoTotal());
+
+        return new VentaResponse(cancelada);
     }
 
     @Transactional(readOnly = true)

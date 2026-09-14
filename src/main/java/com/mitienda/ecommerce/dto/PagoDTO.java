@@ -24,6 +24,7 @@ public class PagoDTO {
     private MetodoPago metodoPago;
     private LocalDateTime fechaPago;
     private String referencia;
+    private String observacion;
     private EstadoPago estado;
 
     // Constructor desde entidad
@@ -34,6 +35,7 @@ public class PagoDTO {
         this.metodoPago = pago.getMetodoPago();
         this.fechaPago = pago.getFechaPago();
         this.referencia = pago.getReferencia();
+        this.observacion = pago.getObservacion();
         this.estado = pago.getEstado();
     }
 }

@@ -45,6 +45,20 @@ public class Producto {
     @Column(length = 100)
     private String modelo;
 
+    /**
+     * Campos propios del rubro que la base ya tenía y la entidad no mapeaba.
+     * En camas y colchones son criterios de compra reales: el cliente pregunta
+     * por la marca, por qué tan firme es y de qué está hecho el núcleo.
+     */
+    @Column(length = 100)
+    private String marca;
+
+    @Column(length = 50)
+    private String firmeza;
+
+    @Column(name = "material_nucleo", length = 100)
+    private String materialNucleo;
+
     @NotNull(message = "La categoría es obligatoria")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_categoria", nullable = false)
@@ -56,7 +70,7 @@ public class Producto {
     @NotNull(message = "El precio es obligatorio")
     @DecimalMin(value = "0.0", inclusive = false, message = "El precio debe ser mayor a 0")
     @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal precioUnitario;
+    private BigDecimal costoReferencial;
 
     @NotNull(message = "El precio de venta es obligatorio")
     @DecimalMin(value = "0.0", inclusive = false, message = "El precio de venta debe ser mayor a 0")

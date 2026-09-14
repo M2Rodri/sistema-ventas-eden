@@ -22,6 +22,7 @@ public class CompraRequest {
     private Long idProveedor;
 
     @Size(max = 500, message = "Las notas no pueden exceder 500 caracteres")
+    private String numeroFactura;
     private String notas;
 
     @NotNull(message = "Los productos son obligatorios")

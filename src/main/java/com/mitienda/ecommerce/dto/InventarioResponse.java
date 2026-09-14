@@ -19,6 +19,17 @@ public class InventarioResponse {
     private Long idProducto;
     private String nombreProducto;
     private String skuProducto;
+
+    /**
+     * Categoría real del producto. Antes no viajaba en la respuesta y la
+     * pantalla la adivinaba buscando texto en el nombre ("colchon"), lo que
+     * fallaba con las tildes y mostraba "Otro" en todos los colchones.
+     */
+    private Long idCategoria;
+    private String nombreCategoria;
+
+    /** Costo de referencia del producto: permite valorizar el inventario. */
+    private java.math.BigDecimal costoReferencial;
     private Integer cantidadDisponible;
     private Integer stockMinimo;
     private String ubicacion;
@@ -31,6 +42,11 @@ public class InventarioResponse {
         this.idProducto = inventario.getProducto().getId();
         this.nombreProducto = inventario.getProducto().getNombre();
         this.skuProducto = inventario.getProducto().getSku();
+        this.idCategoria = inventario.getProducto().getCategoria() != null
+                ? inventario.getProducto().getCategoria().getId() : null;
+        this.nombreCategoria = inventario.getProducto().getCategoria() != null
+                ? inventario.getProducto().getCategoria().getNombre() : null;
+        this.costoReferencial = inventario.getProducto().getCostoReferencial();
         this.cantidadDisponible = inventario.getCantidadDisponible();
         this.stockMinimo = inventario.getProducto().getStockMinimo();
         this.ubicacion = inventario.getUbicacion();

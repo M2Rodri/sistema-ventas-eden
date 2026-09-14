@@ -4,7 +4,6 @@ import com.mitienda.ecommerce.dto.ProveedorRequest;
 import com.mitienda.ecommerce.dto.ProveedorResponse;
 import com.mitienda.ecommerce.models.Proveedor;
 import com.mitienda.ecommerce.repositories.ProveedorRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,10 +14,30 @@ import java.util.stream.Collectors;
  * Servicio para gestión de proveedores
  */
 @Service
+// Lectura dentro de transacción por defecto: con spring.jpa.open-in-view=false
+// no hay sesión de Hibernate fuera de la transacción, y los DTO de respuesta se
+// arman recorriendo relaciones perezosas. Sin esto, los endpoints de lectura
+// fallaban con LazyInitializationException.
+// Los métodos que escriben llevan su propio @Transactional, que tiene precedencia.
+@Transactional(readOnly = true)
 public class ProveedorService {
 
-    @Autowired
-    private ProveedorRepository proveedorRepository;
+    private final ProveedorRepository proveedorRepository;
+
+    private final RegistroAuditoria registroAuditoria;
+
+    /**
+     * Inyeccion por constructor, no por campo.
+     *
+     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
+     * puede existir a medio construir, y una dependencia circular falla al
+     * arrancar en vez de aparecer en ejecucion.
+     */
+    public ProveedorService(ProveedorRepository proveedorRepository, RegistroAuditoria registroAuditoria) {
+        this.proveedorRepository = proveedorRepository;
+        this.registroAuditoria = registroAuditoria;
+    }
+
 
     /**
      * Listar todos los proveedores
@@ -74,11 +93,14 @@ public class ProveedorService {
         proveedor.setContacto(request.getContacto());
         proveedor.setTelefono(request.getTelefono());
         proveedor.setDireccion(request.getDireccion());
-        proveedor.setCorreo(request.getCorreo());
+        proveedor.setEmail(request.getEmail());
         proveedor.setNotas(request.getNotas());
         proveedor.setActivo(request.getActivo());
 
         Proveedor savedProveedor = proveedorRepository.save(proveedor);
+        registroAuditoria.registrar("CREAR_PROVEEDOR", "proveedores", savedProveedor.getId(),
+                "Alta de " + savedProveedor.getNombreEmpresa());
+
         return new ProveedorResponse(savedProveedor);
     }
 
@@ -101,11 +123,15 @@ public class ProveedorService {
         proveedor.setContacto(request.getContacto());
         proveedor.setTelefono(request.getTelefono());
         proveedor.setDireccion(request.getDireccion());
-        proveedor.setCorreo(request.getCorreo());
+        proveedor.setEmail(request.getEmail());
         proveedor.setNotas(request.getNotas());
         proveedor.setActivo(request.getActivo());
 
         Proveedor updatedProveedor = proveedorRepository.save(proveedor);
+
+        registroAuditoria.registrar("ACTUALIZAR_PROVEEDOR", "proveedores", updatedProveedor.getId(),
+                "Edicion de " + updatedProveedor.getNombreEmpresa());
+
         return new ProveedorResponse(updatedProveedor);
     }
 
@@ -119,6 +145,9 @@ public class ProveedorService {
 
         proveedor.setActivo(false);
         proveedorRepository.save(proveedor);
+
+        registroAuditoria.registrar("ELIMINAR_PROVEEDOR", "proveedores", proveedor.getId(),
+                "Baja de " + proveedor.getNombreEmpresa());
     }
 
     /**
@@ -131,6 +160,11 @@ public class ProveedorService {
 
         proveedor.setActivo(!proveedor.getActivo());
         Proveedor updatedProveedor = proveedorRepository.save(proveedor);
+
+        registroAuditoria.registrar(
+                Boolean.TRUE.equals(updatedProveedor.getActivo()) ? "ACTIVAR_PROVEEDOR" : "DESACTIVAR_PROVEEDOR",
+                "proveedores", updatedProveedor.getId(), updatedProveedor.getNombreEmpresa());
+
         return new ProveedorResponse(updatedProveedor);
     }
 

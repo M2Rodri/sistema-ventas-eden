@@ -4,7 +4,6 @@ import com.mitienda.ecommerce.dto.MultimediaProductoDTO;
 import com.mitienda.ecommerce.dto.MultimediaProductoRequest;
 import com.mitienda.ecommerce.services.MultimediaProductoService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,8 +18,19 @@ import java.util.Optional;
 @CrossOrigin(origins = "http://localhost:3000")
 public class MultimediaProductoController {
 
-    @Autowired
-    private MultimediaProductoService multimediaService;
+    private final MultimediaProductoService multimediaService;
+
+    /**
+     * Inyeccion por constructor, no por campo.
+     *
+     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
+     * puede existir a medio construir, y una dependencia circular falla al
+     * arrancar en vez de aparecer en ejecucion.
+     */
+    public MultimediaProductoController(MultimediaProductoService multimediaService) {
+        this.multimediaService = multimediaService;
+    }
+
 
     /**
      * ✅ NUEVO ENDPOINT: Subir modelo 3D con archivos

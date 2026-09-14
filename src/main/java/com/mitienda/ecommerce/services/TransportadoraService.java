@@ -4,7 +4,6 @@ import com.mitienda.ecommerce.dto.TransportadoraRequest;
 import com.mitienda.ecommerce.dto.TransportadoraResponse;
 import com.mitienda.ecommerce.models.Transportadora;
 import com.mitienda.ecommerce.repositories.TransportadoraRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,10 +14,27 @@ import java.util.stream.Collectors;
  * Servicio para gestión de transportadoras
  */
 @Service
+// Lectura dentro de transacción por defecto: con spring.jpa.open-in-view=false
+// no hay sesión de Hibernate fuera de la transacción, y los DTO de respuesta se
+// arman recorriendo relaciones perezosas. Sin esto, los endpoints de lectura
+// fallaban con LazyInitializationException.
+// Los métodos que escriben llevan su propio @Transactional, que tiene precedencia.
+@Transactional(readOnly = true)
 public class TransportadoraService {
 
-    @Autowired
-    private TransportadoraRepository transportadoraRepository;
+    private final TransportadoraRepository transportadoraRepository;
+
+    /**
+     * Inyeccion por constructor, no por campo.
+     *
+     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
+     * puede existir a medio construir, y una dependencia circular falla al
+     * arrancar en vez de aparecer en ejecucion.
+     */
+    public TransportadoraService(TransportadoraRepository transportadoraRepository) {
+        this.transportadoraRepository = transportadoraRepository;
+    }
+
 
     /**
      * Listar todas las transportadoras
@@ -57,7 +73,7 @@ public class TransportadoraService {
         Transportadora transportadora = new Transportadora();
         transportadora.setNombre(request.getNombre());
         transportadora.setTelefono(request.getTelefono());
-        transportadora.setCorreo(request.getCorreo());
+        transportadora.setEmail(request.getEmail());
         transportadora.setTarifaBase(request.getTarifaBase());
         transportadora.setTiempoEstimadoDias(request.getTiempoEstimadoDias());
         transportadora.setActivo(request.getActivo());
@@ -76,7 +92,7 @@ public class TransportadoraService {
 
         transportadora.setNombre(request.getNombre());
         transportadora.setTelefono(request.getTelefono());
-        transportadora.setCorreo(request.getCorreo());
+        transportadora.setEmail(request.getEmail());
         transportadora.setTarifaBase(request.getTarifaBase());
         transportadora.setTiempoEstimadoDias(request.getTiempoEstimadoDias());
         transportadora.setActivo(request.getActivo());

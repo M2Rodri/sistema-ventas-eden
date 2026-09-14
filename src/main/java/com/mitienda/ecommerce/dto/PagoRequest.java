@@ -30,4 +30,7 @@ public class PagoRequest {
 
     @Size(max = 100, message = "La referencia no puede exceder 100 caracteres")
     private String referencia;
+
+    /** Nota libre del cobro. */
+    private String observacion;
 }

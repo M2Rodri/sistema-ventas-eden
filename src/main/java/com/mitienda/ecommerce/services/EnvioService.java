@@ -4,7 +4,6 @@ import com.mitienda.ecommerce.dto.EnvioRequest;
 import com.mitienda.ecommerce.dto.EnvioResponse;
 import com.mitienda.ecommerce.models.*;
 import com.mitienda.ecommerce.repositories.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,16 +12,49 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+// Lectura dentro de transacción por defecto: con spring.jpa.open-in-view=false
+// no hay sesión de Hibernate fuera de la transacción, y los DTO de respuesta se
+// arman recorriendo relaciones perezosas. Sin esto, los endpoints de lectura
+// fallaban con LazyInitializationException.
+// Los métodos que escriben llevan su propio @Transactional, que tiene precedencia.
+@Transactional(readOnly = true)
 public class EnvioService {
 
-    @Autowired
-    private EnvioRepository envioRepository;
+    private final EnvioRepository envioRepository;
 
-    @Autowired
-    private VentaRepository ventaRepository;
+    private final VentaRepository ventaRepository;
 
-    @Autowired
-    private TransportadoraRepository transportadoraRepository;
+    private final TransportadoraRepository transportadoraRepository;
+
+    private final UsuarioRepository usuarioRepository;
+
+    /**
+     * Inyeccion por constructor, no por campo.
+     *
+     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
+     * puede existir a medio construir, y una dependencia circular falla al
+     * arrancar en vez de aparecer en ejecucion.
+     */
+    public EnvioService(EnvioRepository envioRepository,
+                        VentaRepository ventaRepository,
+                        TransportadoraRepository transportadoraRepository,
+                        UsuarioRepository usuarioRepository) {
+        this.envioRepository = envioRepository;
+        this.ventaRepository = ventaRepository;
+        this.transportadoraRepository = transportadoraRepository;
+        this.usuarioRepository = usuarioRepository;
+    }
+
+
+    /** Asigna el empleado responsable del envío, si el request lo trae. */
+    private void asignarResponsable(Envio envio, EnvioRequest request) {
+        if (request.getIdUsuarioResponsable() != null) {
+            Usuario responsable = usuarioRepository.findById(request.getIdUsuarioResponsable())
+                    .orElseThrow(() -> new RuntimeException(
+                            "Usuario no encontrado con ID: " + request.getIdUsuarioResponsable()));
+            envio.setUsuarioResponsable(responsable);
+        }
+    }
 
     @Transactional(readOnly = true)
     public List<EnvioResponse> getAllEnvios() {
@@ -70,7 +102,7 @@ public class EnvioService {
                     .orElseThrow(() -> new RuntimeException("Transportadora no encontrada con ID: " + request.getIdTransportadora()));
             envio.setTransportadora(transportadora);
         }
-
+        asignarResponsable(envio, request);
         envio.setDireccionDestino(request.getDireccionDestino());
         envio.setCiudad(request.getCiudad());
         envio.setDepartamento(request.getDepartamento());
@@ -93,7 +125,7 @@ public class EnvioService {
                     .orElseThrow(() -> new RuntimeException("Transportadora no encontrada con ID: " + request.getIdTransportadora()));
             envio.setTransportadora(transportadora);
         }
-
+        asignarResponsable(envio, request);
         envio.setDireccionDestino(request.getDireccionDestino());
         envio.setCiudad(request.getCiudad());
         envio.setDepartamento(request.getDepartamento());

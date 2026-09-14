@@ -11,7 +11,6 @@ import com.mitienda.ecommerce.models.Venta;
 import com.mitienda.ecommerce.models.DetalleVenta;
 import com.mitienda.ecommerce.repositories.ClienteRepository;
 import com.mitienda.ecommerce.repositories.VentaRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,13 +27,35 @@ import java.util.stream.Collectors;
  * Cumple con CU6 - Gestionar Clientes
  */
 @Service
+// Lectura dentro de transacción por defecto: con spring.jpa.open-in-view=false
+// no hay sesión de Hibernate fuera de la transacción, y los DTO de respuesta se
+// arman recorriendo relaciones perezosas. Sin esto, los endpoints de lectura
+// fallaban con LazyInitializationException.
+// Los métodos que escriben llevan su propio @Transactional, que tiene precedencia.
+@Transactional(readOnly = true)
 public class ClienteService {
 
-    @Autowired
-    private ClienteRepository clienteRepository;
+    private final ClienteRepository clienteRepository;
 
-    @Autowired
-    private VentaRepository ventaRepository;
+    private final VentaRepository ventaRepository;
+
+    private final RegistroAuditoria registroAuditoria;
+
+    /**
+     * Inyeccion por constructor, no por campo.
+     *
+     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
+     * puede existir a medio construir, y una dependencia circular falla al
+     * arrancar en vez de aparecer en ejecucion.
+     */
+    public ClienteService(ClienteRepository clienteRepository,
+                          VentaRepository ventaRepository,
+                          RegistroAuditoria registroAuditoria) {
+        this.clienteRepository = clienteRepository;
+        this.ventaRepository = ventaRepository;
+        this.registroAuditoria = registroAuditoria;
+    }
+
 
     /**
      * Listar todos los clientes
@@ -69,12 +90,12 @@ public class ClienteService {
     }
 
     /**
-     * Buscar cliente por correo
+     * Buscar cliente por email
      */
     @Transactional(readOnly = true)
-    public ClienteResponse getClienteByCorreo(String correo) {
-        Cliente cliente = clienteRepository.findByCorreo(correo)
-                .orElseThrow(() -> new RuntimeException("Cliente no encontrado con correo: " + correo));
+    public ClienteResponse getClienteByCorreo(String email) {
+        Cliente cliente = clienteRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Cliente no encontrado con email: " + email));
         return new ClienteResponse(cliente);
     }
 
@@ -83,10 +104,10 @@ public class ClienteService {
      */
     @Transactional
     public ClienteResponse createCliente(ClienteRequest request) {
-        // Validar que el correo no exista (si se proporcionó)
-        if (request.getCorreo() != null && !request.getCorreo().isEmpty() 
-            && clienteRepository.existsByCorreo(request.getCorreo())) {
-            throw new RuntimeException("Ya existe un cliente con el correo: " + request.getCorreo());
+        // Validar que el email no exista (si se proporcionó)
+        if (request.getEmail() != null && !request.getEmail().isEmpty() 
+            && clienteRepository.existsByEmail(request.getEmail())) {
+            throw new RuntimeException("Ya existe un cliente con el email: " + request.getEmail());
         }
 
         // Validar NIT/CI único (si se proporcionó)
@@ -99,13 +120,16 @@ public class ClienteService {
         cliente.setNombre(request.getNombre());
         cliente.setApellido(request.getApellido());
         cliente.setNitCi(request.getNitCi());
-        cliente.setCelular(request.getCelular());
-        cliente.setCorreo(request.getCorreo());
-        cliente.setDireccion(request.getDireccion());
-        cliente.setTipo(request.getTipo());
+        cliente.setTelefono(request.getTelefono());
+        cliente.setEmail(request.getEmail());
+        cliente.setTipoCliente(request.getTipoCliente());
         cliente.setActivo(request.getActivo());
 
         Cliente savedCliente = clienteRepository.save(cliente);
+
+        registroAuditoria.registrar("CREAR_CLIENTE", "clientes", savedCliente.getId(),
+                "Alta de " + savedCliente.getNombreCompleto());
+
         return new ClienteResponse(savedCliente);
     }
 
@@ -118,11 +142,11 @@ public class ClienteService {
         Cliente cliente = clienteRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Cliente no encontrado con ID: " + id));
 
-        // Validar correo único (si cambió y no es nulo)
-        if (request.getCorreo() != null && !request.getCorreo().isEmpty()
-            && !request.getCorreo().equals(cliente.getCorreo())
-            && clienteRepository.existsByCorreo(request.getCorreo())) {
-            throw new RuntimeException("Ya existe un cliente con el correo: " + request.getCorreo());
+        // Validar email único (si cambió y no es nulo)
+        if (request.getEmail() != null && !request.getEmail().isEmpty()
+            && !request.getEmail().equals(cliente.getEmail())
+            && clienteRepository.existsByEmail(request.getEmail())) {
+            throw new RuntimeException("Ya existe un cliente con el email: " + request.getEmail());
         }
 
         // Validar NIT/CI único (si cambió y no es nulo)
@@ -138,13 +162,16 @@ public class ClienteService {
         cliente.setNombre(request.getNombre());
         cliente.setApellido(request.getApellido());
         cliente.setNitCi(request.getNitCi());
-        cliente.setCelular(request.getCelular());
-        cliente.setCorreo(request.getCorreo());
-        cliente.setDireccion(request.getDireccion());
-        cliente.setTipo(request.getTipo());
+        cliente.setTelefono(request.getTelefono());
+        cliente.setEmail(request.getEmail());
+        cliente.setTipoCliente(request.getTipoCliente());
         cliente.setActivo(request.getActivo());
 
         Cliente updatedCliente = clienteRepository.save(cliente);
+
+        registroAuditoria.registrar("ACTUALIZAR_CLIENTE", "clientes", updatedCliente.getId(),
+                "Edicion de " + updatedCliente.getNombreCompleto());
+
         return new ClienteResponse(updatedCliente);
     }
 
@@ -158,6 +185,9 @@ public class ClienteService {
 
         cliente.setActivo(false);
         clienteRepository.save(cliente);
+
+        registroAuditoria.registrar("ELIMINAR_CLIENTE", "clientes", cliente.getId(),
+                "Baja de " + cliente.getNombreCompleto());
     }
 
     /**
@@ -170,6 +200,11 @@ public class ClienteService {
 
         cliente.setActivo(!cliente.getActivo());
         Cliente updatedCliente = clienteRepository.save(cliente);
+
+        registroAuditoria.registrar(
+                Boolean.TRUE.equals(updatedCliente.getActivo()) ? "ACTIVAR_CLIENTE" : "DESACTIVAR_CLIENTE",
+                "clientes", updatedCliente.getId(), updatedCliente.getNombreCompleto());
+
         return new ClienteResponse(updatedCliente);
     }
 
@@ -179,11 +214,11 @@ public class ClienteService {
      */
     @Transactional(readOnly = true)
     public List<ClienteResponse> searchClientes(String query) {
-        // Buscar por nombre, apellido, celular o NIT/CI
+        // Buscar por nombre, apellido, telefono o NIT/CI
         List<Cliente> resultados = clienteRepository.searchByNombre(query);
         
-        // También buscar por celular
-        clienteRepository.findByCelular(query).ifPresent(c -> {
+        // También buscar por telefono
+        clienteRepository.findByTelefono(query).ifPresent(c -> {
             if (!resultados.contains(c)) {
                 resultados.add(c);
             }
@@ -206,7 +241,7 @@ public class ClienteService {
      */
     @Transactional(readOnly = true)
     public List<ClienteResponse> getClientesByTipo(TipoCliente tipo) {
-        return clienteRepository.findByTipo(tipo)
+        return clienteRepository.findByTipoCliente(tipo)
                 .stream()
                 .map(ClienteResponse::new)
                 .collect(Collectors.toList());
@@ -225,7 +260,7 @@ public class ClienteService {
      */
     @Transactional(readOnly = true)
     public Long countClientesByTipo(TipoCliente tipo) {
-        return clienteRepository.countByTipo(tipo);
+        return clienteRepository.countByTipoCliente(tipo);
     }
 
     /**

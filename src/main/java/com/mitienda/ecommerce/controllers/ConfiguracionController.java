@@ -4,7 +4,6 @@ import com.mitienda.ecommerce.dto.ConfiguracionRequest;
 import com.mitienda.ecommerce.dto.ConfiguracionResponse;
 import com.mitienda.ecommerce.services.ConfiguracionService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,8 +21,40 @@ import java.util.Map;
 @PreAuthorize("hasRole('ADMIN')")
 public class ConfiguracionController {
 
-    @Autowired
-    private ConfiguracionService configuracionService;
+    private final ConfiguracionService configuracionService;
+
+    /**
+     * Inyeccion por constructor, no por campo.
+     *
+     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
+     * puede existir a medio construir, y una dependencia circular falla al
+     * arrancar en vez de aparecer en ejecucion.
+     */
+    public ConfiguracionController(ConfiguracionService configuracionService) {
+        this.configuracionService = configuracionService;
+    }
+
+
+    /**
+     * GET /api/configuracion/negocio
+     *
+     * Datos públicos del negocio (nombre, dirección, teléfono, horario) para
+     * que la tienda los muestre sin exponer el resto de la configuración del
+     * sistema, que sigue siendo solo para el ADMIN.
+     *
+     * Devuelve únicamente las claves que empiezan con "negocio_": así, agregar
+     * un parámetro interno nuevo nunca lo publica por accidente.
+     */
+    @GetMapping("/negocio")
+    @PreAuthorize("permitAll()")
+    public ResponseEntity<Map<String, String>> getDatosNegocio() {
+        Map<String, String> datos = configuracionService.getAllConfiguraciones().stream()
+                .filter(c -> c.getClave() != null && c.getClave().startsWith("negocio_"))
+                .collect(java.util.stream.Collectors.toMap(
+                        ConfiguracionResponse::getClave,
+                        c -> c.getValor() != null ? c.getValor() : ""));
+        return ResponseEntity.ok(datos);
+    }
 
     /**
      * GET /api/configuracion

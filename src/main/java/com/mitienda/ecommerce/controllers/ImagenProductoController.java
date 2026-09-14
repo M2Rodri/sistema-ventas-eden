@@ -3,7 +3,6 @@ package com.mitienda.ecommerce.controllers;
 import com.mitienda.ecommerce.dto.ImagenProductoDTO;
 import com.mitienda.ecommerce.models.ImagenProducto;
 import com.mitienda.ecommerce.services.ImagenProductoService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,8 +18,19 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/imagenes-producto")
 public class ImagenProductoController {
 
-    @Autowired
-    private ImagenProductoService imagenProductoService;
+    private final ImagenProductoService imagenProductoService;
+
+    /**
+     * Inyeccion por constructor, no por campo.
+     *
+     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
+     * puede existir a medio construir, y una dependencia circular falla al
+     * arrancar en vez de aparecer en ejecucion.
+     */
+    public ImagenProductoController(ImagenProductoService imagenProductoService) {
+        this.imagenProductoService = imagenProductoService;
+    }
+
 
     @GetMapping("/producto/{idProducto}")
     public ResponseEntity<List<ImagenProductoDTO>> getImagenesByProductoId(@PathVariable Long idProducto) {

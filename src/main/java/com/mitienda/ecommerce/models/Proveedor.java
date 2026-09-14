@@ -50,9 +50,9 @@ public class Proveedor {
     @Column(length = 300)
     private String direccion;
 
-    @Email(message = "El correo debe ser válido")
+    @Email(message = "El email debe ser válido")
     @Column(length = 100)
-    private String correo;
+    private String email;
 
     @Column(length = 500)
     private String notas;

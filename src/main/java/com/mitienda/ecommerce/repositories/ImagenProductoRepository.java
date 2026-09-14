@@ -2,7 +2,6 @@ package com.mitienda.ecommerce.repositories;
 
 import com.mitienda.ecommerce.models.ImagenProducto;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
@@ -10,7 +9,6 @@ import java.util.Optional;
 /**
  * Repositorio para operaciones con imágenes de productos
  */
-@Repository
 public interface ImagenProductoRepository extends JpaRepository<ImagenProducto, Long> {
 
     /**

@@ -3,7 +3,6 @@ package com.mitienda.ecommerce.repositories;
 import com.mitienda.ecommerce.models.Auditoria;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -11,7 +10,6 @@ import java.util.List;
 /**
  * Repositorio para auditorías
  */
-@Repository
 public interface AuditoriaRepository extends JpaRepository<Auditoria, Long> {
 
     /**

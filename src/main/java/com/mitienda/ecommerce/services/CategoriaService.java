@@ -4,7 +4,6 @@ import com.mitienda.ecommerce.dto.CategoriaRequest;
 import com.mitienda.ecommerce.dto.CategoriaResponse;
 import com.mitienda.ecommerce.models.Categoria;
 import com.mitienda.ecommerce.repositories.CategoriaRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional; // Importar esta anotación
 
@@ -15,10 +14,27 @@ import java.util.stream.Collectors;
  * Servicio para gestión de categorías
  */
 @Service
+// Lectura dentro de transacción por defecto: con spring.jpa.open-in-view=false
+// no hay sesión de Hibernate fuera de la transacción, y los DTO de respuesta se
+// arman recorriendo relaciones perezosas. Sin esto, los endpoints de lectura
+// fallaban con LazyInitializationException.
+// Los métodos que escriben llevan su propio @Transactional, que tiene precedencia.
+@Transactional(readOnly = true)
 public class CategoriaService {
 
-    @Autowired
-    private CategoriaRepository categoriaRepository;
+    private final CategoriaRepository categoriaRepository;
+
+    /**
+     * Inyeccion por constructor, no por campo.
+     *
+     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
+     * puede existir a medio construir, y una dependencia circular falla al
+     * arrancar en vez de aparecer en ejecucion.
+     */
+    public CategoriaService(CategoriaRepository categoriaRepository) {
+        this.categoriaRepository = categoriaRepository;
+    }
+
 
     /**
      * Listar todas las categorías
@@ -55,7 +71,7 @@ public class CategoriaService {
     /**
      * Crear nueva categoría
      */
-    @Transactional // Ya tiene @Transactional, está bien
+    @Transactional
     public CategoriaResponse createCategoria(CategoriaRequest request) {
         // Validar que el nombre no exista
         if (categoriaRepository.existsByNombre(request.getNombre())) {
@@ -74,7 +90,7 @@ public class CategoriaService {
     /**
      * Actualizar categoría existente
      */
-    @Transactional // Ya tiene @Transactional, está bien
+    @Transactional
     public CategoriaResponse updateCategoria(Long id, CategoriaRequest request) {
         Categoria categoria = categoriaRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Categoría no encontrada con ID: " + id));
@@ -96,7 +112,7 @@ public class CategoriaService {
     /**
      * Eliminar categoría (desactivar)
      */
-    @Transactional // Ya tiene @Transactional, está bien
+    @Transactional
     public void deleteCategoria(Long id) {
         Categoria categoria = categoriaRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Categoría no encontrada con ID: " + id));
@@ -114,7 +130,7 @@ public class CategoriaService {
     /**
      * Activar/Desactivar categoría
      */
-    @Transactional // Ya tiene @Transactional, está bien
+    @Transactional
     public CategoriaResponse toggleCategoriaStatus(Long id) {
         Categoria categoria = categoriaRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Categoría no encontrada con ID: " + id));

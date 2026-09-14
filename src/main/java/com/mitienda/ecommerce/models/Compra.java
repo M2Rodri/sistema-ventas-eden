@@ -1,7 +1,6 @@
 package com.mitienda.ecommerce.models;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -37,10 +36,34 @@ public class Compra {
     @Column(nullable = false, updatable = false)
     private LocalDateTime fechaCompra;
 
-    @NotNull(message = "El costo total es obligatorio")
-    @DecimalMin(value = "0.0", inclusive = false, message = "El costo total debe ser mayor a 0")
+    /**
+     * Número de factura del proveedor. Es el respaldo legal del gasto: sin él
+     * la compra no es auditable. La base impide cargar dos veces la misma
+     * factura del mismo proveedor.
+     */
+    @Column(name = "numero_factura", length = 50)
+    private String numeroFactura;
+
+    /** Suma de los subtotales de las líneas, antes del descuento. */
+    @NotNull(message = "El subtotal es obligatorio")
     @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal costoTotal;
+    private BigDecimal subtotal;
+
+    @Column(precision = 10, scale = 2)
+    private BigDecimal descuento = BigDecimal.ZERO;
+
+    /**
+     * Antes se llamaba costoTotal. Se renombró a montoTotal por simetría con
+     * ventas.monto_total: las dos mitades del negocio se leen igual.
+     *
+     * No lleva @DecimalMin: la compra se crea con importes en cero y recién
+     * al agregar las líneas se recalcula el total. Validar "mayor a 0" acá
+     * impedía crearla. El importe positivo lo garantizan el CHECK de la base
+     * y la validación de cada línea (cantidad > 0, precio >= 0).
+     */
+    @NotNull(message = "El monto total es obligatorio")
+    @Column(name = "monto_total", nullable = false, precision = 10, scale = 2)
+    private BigDecimal montoTotal;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -48,7 +71,7 @@ public class Compra {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_usuario")
-    private User usuario; // Usuario que registró la compra
+    private Usuario usuario; // Usuario que registró la compra
 
     @Column(length = 500)
     private String notas;
@@ -62,17 +85,21 @@ public class Compra {
     private List<DetalleCompra> detalles = new ArrayList<>();
 
     // Constructor personalizado
-    public Compra(Proveedor proveedor, BigDecimal costoTotal, User usuario) {
+    public Compra(Proveedor proveedor, BigDecimal montoTotal, Usuario usuario) {
         this.proveedor = proveedor;
-        this.costoTotal = costoTotal;
+        this.subtotal = montoTotal;
+        this.descuento = BigDecimal.ZERO;
+        this.montoTotal = montoTotal;
         this.usuario = usuario;
         this.estado = EstadoCompra.PENDIENTE;
     }
 
-    // Método para calcular el total desde los detalles
+    /** Recalcula subtotal y total a partir de las líneas de la compra. */
     public void calcularTotal() {
-        this.costoTotal = detalles.stream()
+        this.subtotal = detalles.stream()
                 .map(DetalleCompra::getSubtotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal desc = this.descuento != null ? this.descuento : BigDecimal.ZERO;
+        this.montoTotal = this.subtotal.subtract(desc);
     }
 }

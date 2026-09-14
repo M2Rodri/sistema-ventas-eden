@@ -7,7 +7,6 @@ import com.mitienda.ecommerce.models.TipoComprobante;
 import com.mitienda.ecommerce.models.Venta;
 import com.mitienda.ecommerce.repositories.ComprobanteRepository;
 import com.mitienda.ecommerce.repositories.VentaRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,13 +18,30 @@ import java.util.stream.Collectors;
  * Servicio para gestión de comprobantes
  */
 @Service
+// Lectura dentro de transacción por defecto: con spring.jpa.open-in-view=false
+// no hay sesión de Hibernate fuera de la transacción, y los DTO de respuesta se
+// arman recorriendo relaciones perezosas. Sin esto, los endpoints de lectura
+// fallaban con LazyInitializationException.
+// Los métodos que escriben llevan su propio @Transactional, que tiene precedencia.
+@Transactional(readOnly = true)
 public class ComprobanteService {
 
-    @Autowired
-    private ComprobanteRepository comprobanteRepository;
+    private final ComprobanteRepository comprobanteRepository;
 
-    @Autowired
-    private VentaRepository ventaRepository;
+    private final VentaRepository ventaRepository;
+
+    /**
+     * Inyeccion por constructor, no por campo.
+     *
+     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
+     * puede existir a medio construir, y una dependencia circular falla al
+     * arrancar en vez de aparecer en ejecucion.
+     */
+    public ComprobanteService(ComprobanteRepository comprobanteRepository, VentaRepository ventaRepository) {
+        this.comprobanteRepository = comprobanteRepository;
+        this.ventaRepository = ventaRepository;
+    }
+
 
     /**
      * Listar todos los comprobantes

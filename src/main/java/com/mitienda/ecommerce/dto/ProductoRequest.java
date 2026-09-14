@@ -29,6 +29,9 @@ public class ProductoRequest {
 
     @Size(max = 100, message = "El modelo no puede exceder 100 caracteres")
     private String modelo;
+    private String marca;
+    private String firmeza;
+    private String materialNucleo;
 
     @NotNull(message = "La categoría es obligatoria")
     private Long idCategoria;
@@ -38,7 +41,7 @@ public class ProductoRequest {
 
     @NotNull(message = "El precio unitario es obligatorio")
     @DecimalMin(value = "0.0", inclusive = false, message = "El precio unitario debe ser mayor a 0")
-    private BigDecimal precioUnitario;
+    private BigDecimal costoReferencial;
 
     @NotNull(message = "El precio de venta es obligatorio")
     @DecimalMin(value = "0.0", inclusive = false, message = "El precio de venta debe ser mayor a 0")

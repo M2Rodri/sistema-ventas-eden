@@ -18,7 +18,7 @@ public class EnvioResponse {
     private Long id;
     private Long idVenta;
     private String nombreCliente;
-    private String celularCliente;
+    private String telefonoCliente;
     private String direccionDestino;
     private String ciudad;
     private String departamento;
@@ -29,6 +29,8 @@ public class EnvioResponse {
     private BigDecimal costoEnvio;
     private Long idTransportadora;
     private String nombreTransportadora;
+    private Long idUsuarioResponsable;
+    private String nombreUsuarioResponsable;
     private String notas;
     private LocalDateTime fechaCreacion;
     private LocalDateTime fechaActualizacion;
@@ -40,7 +42,7 @@ public class EnvioResponse {
         if (envio.getVenta() != null) {
             var venta = envio.getVenta();
             this.nombreCliente = venta.getNombreClienteCompleto();
-            this.celularCliente = venta.getCelularClienteCompleto();
+            this.telefonoCliente = venta.getTelefonoClienteCompleto();
         }
 
         this.direccionDestino = envio.getDireccionDestino();
@@ -53,6 +55,8 @@ public class EnvioResponse {
         this.costoEnvio = envio.getCostoEnvio();
         this.idTransportadora = envio.getTransportadora() != null ? envio.getTransportadora().getId() : null;
         this.nombreTransportadora = envio.getTransportadora() != null ? envio.getTransportadora().getNombre() : null;
+        this.idUsuarioResponsable = envio.getUsuarioResponsable() != null ? envio.getUsuarioResponsable().getId() : null;
+        this.nombreUsuarioResponsable = envio.getUsuarioResponsable() != null ? envio.getUsuarioResponsable().getNombreCompleto() : null;
         this.notas = envio.getNotas();
         this.fechaCreacion = envio.getFechaCreacion();
         this.fechaActualizacion = envio.getFechaActualizacion();

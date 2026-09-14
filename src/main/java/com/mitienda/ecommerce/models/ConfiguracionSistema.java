@@ -26,7 +26,7 @@ public class ConfiguracionSistema {
 
     @NotBlank(message = "La clave es obligatoria")
     @Column(nullable = false, unique = true, length = 100)
-    private String clave; // Ej: "empresa_nombre", "empresa_logo", "iva_porcentaje"
+    private String clave; // Ej: "negocio_razon_social", "negocio_telefono", "iva_porcentaje"
 
     @NotBlank(message = "El valor es obligatorio")
     @Column(nullable = false, length = 500)

@@ -14,6 +14,19 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Entidad Cliente - Quien compra en el negocio (tabla 'clientes').
+ *
+ * No tiene credenciales: los clientes no inician sesión, los registra el
+ * vendedor en el mostrador. El personal del sistema vive en la entidad Usuario.
+ *
+ * Campos alineados con el esquema tras el ajuste de la base:
+ *   correo    -> email      (unificado con usuarios, proveedores, transportadoras)
+ *   celular   -> telefono   (unificado con el resto del esquema)
+ *   tipo      -> tipoCliente (una columna llamada solo "tipo" era ambigua)
+ *   direccion -> eliminada  (las direcciones viven en direcciones_cliente,
+ *                            que admite varias y marca una como principal)
+ */
 @Entity
 @Table(name = "clientes")
 @Data
@@ -30,29 +43,30 @@ public class Cliente {
     @Column(nullable = false, length = 100)
     private String nombre;
 
-    @NotBlank(message = "El apellido es obligatorio")
-    @Size(min = 2, max = 100, message = "El apellido debe tener entre 2 y 100 caracteres")
-    @Column(nullable = false, length = 100)
+    /** Opcional: una empresa no tiene apellido. Coincide con la base, que lo permite nulo. */
+    @Size(max = 100, message = "El apellido no puede exceder 100 caracteres")
+    @Column(length = 100)
     private String apellido;
 
-    @Column(length = 20)
+    /** NIT o CI, para la facturación. */
+    @Column(name = "nit_ci", length = 20)
     private String nitCi;
 
-    @NotBlank(message = "El celular es obligatorio")
-    @Size(max = 15, message = "El celular no puede exceder 15 caracteres")
-    @Column(nullable = false, length = 15)
-    private String celular;
+    @Size(max = 15, message = "El teléfono no puede exceder 15 caracteres")
+    @Column(length = 15)
+    private String telefono;
 
-    @Email(message = "El correo debe ser válido")
+    @Email(message = "El email debe ser válido")
     @Column(length = 100)
-    private String correo;
+    private String email;
 
-    @Column(length = 300)
-    private String direccion;
-
+    /**
+     * INVITADO: venta de mostrador sin datos del comprador.
+     * REGISTRADO: cliente con datos completos cargados.
+     */
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private TipoCliente tipo = TipoCliente.INVITADO;
+    @Column(name = "tipo_cliente", length = 20)
+    private TipoCliente tipoCliente = TipoCliente.INVITADO;
 
     @Column(nullable = false)
     private Boolean activo = true;
@@ -69,16 +83,18 @@ public class Cliente {
     @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Venta> ventas = new ArrayList<>();
 
-    public Cliente(String nombre, String apellido, String celular, String correo) {
+    public Cliente(String nombre, String apellido, String telefono, String email) {
         this.nombre = nombre;
         this.apellido = apellido;
-        this.celular = celular;
-        this.correo = correo;
-        this.tipo = TipoCliente.REGISTRADO;
+        this.telefono = telefono;
+        this.email = email;
+        this.tipoCliente = TipoCliente.REGISTRADO;
         this.activo = true;
     }
 
     public String getNombreCompleto() {
-        return this.nombre + " " + this.apellido;
+        return this.apellido != null && !this.apellido.isBlank()
+                ? this.nombre + " " + this.apellido
+                : this.nombre;
     }
 }

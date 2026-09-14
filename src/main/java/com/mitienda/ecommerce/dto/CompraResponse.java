@@ -24,7 +24,10 @@ public class CompraResponse {
     private String nombreProveedor;
     private String nitProveedor;
     private LocalDateTime fechaCompra;
-    private BigDecimal costoTotal;
+    private BigDecimal subtotal;
+    private BigDecimal descuento;
+    private BigDecimal montoTotal;
+    private String numeroFactura;
     private EstadoCompra estado;
     private Long idUsuario;
     private String nombreUsuario;
@@ -39,7 +42,10 @@ public class CompraResponse {
         this.nombreProveedor = compra.getProveedor().getNombreEmpresa();
         this.nitProveedor = compra.getProveedor().getNit();
         this.fechaCompra = compra.getFechaCompra();
-        this.costoTotal = compra.getCostoTotal();
+        this.subtotal = compra.getSubtotal();
+        this.descuento = compra.getDescuento();
+        this.montoTotal = compra.getMontoTotal();
+        this.numeroFactura = compra.getNumeroFactura();
         this.estado = compra.getEstado();
         this.idUsuario = compra.getUsuario() != null ? compra.getUsuario().getId() : null;
         this.nombreUsuario = compra.getUsuario() != null ? compra.getUsuario().getNombreCompleto() : null;
