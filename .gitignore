@@ -1,0 +1,114 @@
+# =============================================================================
+# Sistema de ventas Mueblería Edén — backend, frontend y app móvil
+# =============================================================================
+# Cada parte trae además su propio .gitignore dentro de su carpeta. Este cubre
+# lo común y, sobre todo, la sección de secretos del final, que vale para las
+# tres partes por igual.
+
+
+# -----------------------------------------------------------------------------
+# Sistema operativo y editores
+# -----------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+*.iml
+*.iws
+.vscode/
+*.swp
+*~
+
+
+# -----------------------------------------------------------------------------
+# Java / Maven (backend)
+# -----------------------------------------------------------------------------
+target/
+*.class
+*.log
+hs_err_pid*
+replay_pid*
+.mvn/wrapper/maven-wrapper.jar
+# Imagenes y modelos 3D que sube la gente desde el sistema: son datos, no
+# código, y pueden pesar decenas de megas.
+backend/uploads/
+
+
+# -----------------------------------------------------------------------------
+# Node / Next.js (frontend)
+# -----------------------------------------------------------------------------
+node_modules/
+.next/
+.next-verificacion/
+out/
+.vercel/
+coverage/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+
+# -----------------------------------------------------------------------------
+# Flutter / Dart (app)
+# -----------------------------------------------------------------------------
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub/
+.pub-cache/
+build/
+# Android
+.gradle/
+local.properties
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
+# iOS
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Flutter/ephemeral/
+xcuserdata/
+
+
+# =============================================================================
+# SECRETOS — no deben entrar nunca al repositorio
+# =============================================================================
+# Si alguno se sube por error, borrarlo en un commit nuevo NO alcanza: queda en
+# el historial. Hay que cambiar la credencial y reescribir el historial.
+
+# Variables de entorno. Solo se versionan las plantillas .env.example.
+.env
+.env.*
+!.env.example
+
+# Configuración del backend: lleva la contraseña de la base y el secreto JWT.
+# Se versionan solo las plantillas *.properties.example.
+application.properties
+application-*.properties
+
+# Configuración local de Flutter con URL y claves (usada en el proyecto del
+# módulo 3 con Supabase).
+local.json
+
+# Firebase: configuración del cliente y credenciales de servicio.
+google-services.json
+GoogleService-Info.plist
+firebase-credenciales*.json
+*firebase-adminsdk*.json
+*service-account*.json
+serviceAccountKey*.json
+
+# Llaves de firma de Android e iOS. Quien tenga el keystore y su contraseña
+# puede publicar actualizaciones de la app haciéndose pasar por el autor.
+*.jks
+*.keystore
+key.properties
+*.p12
+*.pem
+*.key
+*.mobileprovision
