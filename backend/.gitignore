@@ -1,0 +1,14 @@
+application.properties
+application-prod.properties
+*.env
+target/
+uploads/
+target/
+application-dev.properties
+
+# Credencial de servicio de Firebase.
+# Con este archivo cualquiera puede enviar notificaciones haciendose pasar por
+# la app. Nunca va al repositorio: en un servidor se pasa por variable de
+# entorno o se coloca a mano fuera del control de versiones.
+firebase-credenciales.json
+*firebase-adminsdk*.json

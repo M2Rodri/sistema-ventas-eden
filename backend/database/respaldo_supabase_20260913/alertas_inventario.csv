@@ -1,0 +1,3 @@
+id,id_producto,tipo_alerta,mensaje,estado,fecha_creacion
+1,5,STOCK_CERO,Stock agotado en Colchón Semidoble Espuma HR. Requerido pedido a proveedor.,PENDIENTE,2026-08-30 14:28:17.556041+00
+2,3,STOCK_MINIMO,Stock crítico (1 unidad) en Colchón Ortopédico King.,PENDIENTE,2026-08-30 14:28:17.556041+00

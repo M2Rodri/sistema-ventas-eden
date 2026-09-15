@@ -1,0 +1,309 @@
+package com.mitienda.ecommerce.services;
+
+import com.mitienda.ecommerce.dto.ReporteClientesResponse;
+import com.mitienda.ecommerce.dto.ReporteProductosResponse;
+import com.mitienda.ecommerce.dto.ReporteVentasResponse;
+import com.mitienda.ecommerce.models.Cliente;
+import com.mitienda.ecommerce.models.DetalleVenta;
+import com.mitienda.ecommerce.models.EstadoPago;
+import com.mitienda.ecommerce.models.Pago;
+import com.mitienda.ecommerce.models.Producto;
+import com.mitienda.ecommerce.models.Venta;
+import com.mitienda.ecommerce.repositories.DetalleVentaRepository;
+import com.mitienda.ecommerce.repositories.InventarioRepository;
+import com.mitienda.ecommerce.repositories.VentaRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/**
+ * Servicio para generación de reportes
+ */
+@Service
+// Lectura dentro de transacción por defecto: con spring.jpa.open-in-view=false
+// no hay sesión de Hibernate fuera de la transacción, y los DTO de respuesta se
+// arman recorriendo relaciones perezosas. Sin esto, los endpoints de lectura
+// fallaban con LazyInitializationException.
+// Los métodos que escriben llevan su propio @Transactional, que tiene precedencia.
+@Transactional(readOnly = true)
+public class ReporteService {
+
+    private final VentaRepository ventaRepository;
+
+    private final DetalleVentaRepository detalleVentaRepository;
+
+    private final InventarioRepository inventarioRepository;
+
+    /**
+     * Inyeccion por constructor, no por campo.
+     *
+     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
+     * puede existir a medio construir, y una dependencia circular falla al
+     * arrancar en vez de aparecer en ejecucion.
+     */
+    public ReporteService(VentaRepository ventaRepository,
+                          DetalleVentaRepository detalleVentaRepository,
+                          InventarioRepository inventarioRepository) {
+        this.ventaRepository = ventaRepository;
+        this.detalleVentaRepository = detalleVentaRepository;
+        this.inventarioRepository = inventarioRepository;
+    }
+
+
+    /**
+     * Resume en un texto los métodos de pago usados en una venta.
+     * El método dejó de ser un campo de 'ventas' y vive en 'pagos', porque una
+     * venta admite varios cobros con métodos distintos.
+     */
+    private String resumirMetodoPago(Venta venta) {
+        if (venta.getPagos() == null || venta.getPagos().isEmpty()) {
+            return "SIN PAGOS";
+        }
+        List<String> metodos = venta.getPagos().stream()
+                .filter(p -> p.getMetodoPago() != null)
+                .map(p -> p.getMetodoPago().name())
+                .distinct()
+                .collect(Collectors.toList());
+
+        if (metodos.isEmpty()) {
+            return "SIN PAGOS";
+        }
+        return metodos.size() == 1 ? metodos.get(0) : "VARIOS";
+    }
+
+    /**
+     * Reporte de ventas por período
+     */
+    public ReporteVentasResponse getReporteVentas(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
+        List<Venta> ventas = ventaRepository.findByFechaVentaBetweenOrderByFechaVentaDesc(fechaInicio, fechaFin);
+
+        Long totalVentas = (long) ventas.size();
+        BigDecimal montoTotalVentas = ventas.stream()
+                .map(Venta::getMontoTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal ticketPromedio = totalVentas > 0 
+                ? montoTotalVentas.divide(BigDecimal.valueOf(totalVentas), 2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+
+        List<ReporteVentasResponse.VentaDetalleDTO> ventasDetalle = ventas.stream()
+                .map(venta -> new ReporteVentasResponse.VentaDetalleDTO(
+                        venta.getId(),
+                        venta.getFechaVenta(),
+                        venta.getNombreClienteCompleto(),  // ✅ Corregido: maneja cliente nulo
+                        venta.getMontoTotal(),
+                        resumirMetodoPago(venta),
+                        venta.getEstado().name()
+                ))
+                .collect(Collectors.toList());
+
+        return new ReporteVentasResponse(
+                fechaInicio, fechaFin,
+                totalVentas, montoTotalVentas,
+                ticketPromedio, ventasDetalle
+        );
+    }
+
+    /**
+     * Reporte de productos más vendidos
+     */
+    public ReporteProductosResponse getReporteProductosMasVendidos(Integer limite) {
+        List<DetalleVenta> detalles = detalleVentaRepository.findAll();
+
+        // Agrupar por producto
+        Map<Producto, Long> productosCantidad = detalles.stream()
+                .collect(Collectors.groupingBy(
+                        DetalleVenta::getProducto,
+                        Collectors.summingLong(DetalleVenta::getCantidad)
+                ));
+
+        Map<Producto, BigDecimal> productosMontos = detalles.stream()
+                .collect(Collectors.groupingBy(
+                        DetalleVenta::getProducto,
+                        Collectors.reducing(BigDecimal.ZERO, DetalleVenta::getSubtotal, BigDecimal::add)
+                ));
+
+        List<ReporteProductosResponse.ProductoReporteDTO> productos = productosCantidad.entrySet().stream()
+                .sorted(Map.Entry.<Producto, Long>comparingByValue().reversed())
+                .limit(limite)
+                .map(entry -> {
+                    Producto producto = entry.getKey();
+                    Integer stockActual = inventarioRepository.findByProductoId(producto.getId())
+                            .map(inv -> inv.getCantidadDisponible())
+                            .orElse(0);
+
+                    return new ReporteProductosResponse.ProductoReporteDTO(
+                            producto.getId(),
+                            producto.getNombre(),
+                            producto.getSku(),
+                            producto.getCategoria().getNombre(),
+                            entry.getValue(),
+                            productosMontos.get(producto),
+                            stockActual
+                    );
+                })
+                .collect(Collectors.toList());
+
+        return new ReporteProductosResponse(limite, productos);
+    }
+
+    /**
+     * Reporte de clientes frecuentes
+     */
+    public ReporteClientesResponse getReporteClientesFrecuentes(Integer limite) {
+        List<Venta> ventas = ventaRepository.findAll();
+
+        // Filtrar ventas con cliente != null antes de agrupar
+        List<Venta> ventasConCliente = ventas.stream()
+                .filter(venta -> venta.getCliente() != null)
+                .collect(Collectors.toList());
+
+        // Agrupar por cliente (solo ventas con cliente registrado)
+        Map<Cliente, Long> clientesCantidad = ventasConCliente.stream()
+                .collect(Collectors.groupingBy(
+                        Venta::getCliente,
+                        Collectors.counting()
+                ));
+
+        Map<Cliente, BigDecimal> clientesMontos = ventasConCliente.stream()
+                .collect(Collectors.groupingBy(
+                        Venta::getCliente,
+                        Collectors.reducing(BigDecimal.ZERO, Venta::getMontoTotal, BigDecimal::add)
+                ));
+
+        List<ReporteClientesResponse.ClienteReporteDTO> clientes = clientesCantidad.entrySet().stream()
+                .sorted(Map.Entry.<Cliente, Long>comparingByValue().reversed())
+                .limit(limite)
+                .map(entry -> {
+                    Cliente cliente = entry.getKey();
+                    Long cantidadCompras = entry.getValue();
+                    BigDecimal montoTotal = clientesMontos.get(cliente);
+                    BigDecimal promedioCompra = cantidadCompras > 0
+                            ? montoTotal.divide(BigDecimal.valueOf(cantidadCompras), 2, RoundingMode.HALF_UP)
+                            : BigDecimal.ZERO;
+
+                    return new ReporteClientesResponse.ClienteReporteDTO(
+                            cliente.getId(),
+                            cliente.getNombreCompleto(),
+                            cliente.getTelefono(),
+                            cliente.getEmail(),
+                            cantidadCompras,
+                            montoTotal,
+                            promedioCompra
+                    );
+                })
+                .collect(Collectors.toList());
+
+        return new ReporteClientesResponse(limite, clientes);
+    }
+
+    /**
+     * Reporte de inventario valorizado
+     */
+    public Map<String, Object> getReporteInventarioValorizado() {
+        List<Map<String, Object>> inventarios = inventarioRepository.findAll().stream()
+                .map(inv -> {
+                    Map<String, Object> item = Map.of(
+                            "idProducto", inv.getProducto().getId(),
+                            "nombreProducto", inv.getProducto().getNombre(),
+                            "skuProducto", inv.getProducto().getSku(),
+                            "cantidadDisponible", inv.getCantidadDisponible(),
+                            "precioUnitario", inv.getProducto().getCostoReferencial(),
+                            "valorTotal", inv.getProducto().getCostoReferencial()
+                                    .multiply(BigDecimal.valueOf(inv.getCantidadDisponible())),
+                            "ubicacion", inv.getUbicacion()
+                    );
+                    return item;
+                })
+                .collect(Collectors.toList());
+
+        BigDecimal valorTotalInventario = inventarioRepository.findAll().stream()
+                .map(inv -> inv.getProducto().getCostoReferencial()
+                        .multiply(BigDecimal.valueOf(inv.getCantidadDisponible())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return Map.of(
+                "inventarios", inventarios,
+                "valorTotal", valorTotalInventario,
+                "totalProductos", inventarios.size()
+        );
+    }
+
+    /**
+     * Reporte de ventas por categoría
+     */
+    public List<Map<String, Object>> getReporteVentasPorCategoria(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
+        List<Venta> ventas = ventaRepository.findByFechaVentaBetweenOrderByFechaVentaDesc(fechaInicio, fechaFin);
+
+        Map<String, Long> ventasPorCategoria = new java.util.HashMap<>();
+        Map<String, BigDecimal> montosPorCategoria = new java.util.HashMap<>();
+
+        for (Venta venta : ventas) {
+            for (DetalleVenta detalle : venta.getDetalles()) {
+                String categoria = detalle.getProducto().getCategoria().getNombre();
+                
+                ventasPorCategoria.merge(categoria, (long) detalle.getCantidad(), Long::sum);
+                montosPorCategoria.merge(categoria, detalle.getSubtotal(), BigDecimal::add);
+            }
+        }
+
+        List<Map<String, Object>> resultado = new ArrayList<>();
+        for (String categoria : ventasPorCategoria.keySet()) {
+            resultado.add(Map.of(
+                    "categoria", categoria,
+                    "cantidadVendida", ventasPorCategoria.get(categoria),
+                    "montoTotal", montosPorCategoria.get(categoria)
+            ));
+        }
+
+        return resultado;
+    }
+
+    /**
+     * Reporte de cobros por método de pago.
+     *
+     * Se calcula sobre los pagos y no sobre las ventas. Antes cada venta tenía
+     * un único metodo_pago, lo que obligaba a elegir uno cuando el cliente
+     * pagaba parte en efectivo y parte por transferencia, y el reporte salía
+     * mal. Recorriendo los pagos, cada cobro suma en su propio método y los
+     * totales cuadran contra la caja.
+     */
+    public List<Map<String, Object>> getReporteVentasPorMetodoPago(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
+        List<Venta> ventas = ventaRepository.findByFechaVentaBetweenOrderByFechaVentaDesc(fechaInicio, fechaFin);
+
+        List<Pago> pagos = ventas.stream()
+                .flatMap(v -> v.getPagos().stream())
+                .filter(p -> p.getMetodoPago() != null && p.getEstado() == EstadoPago.COMPLETADO)
+                .collect(Collectors.toList());
+
+        Map<String, Long> cantidadPorMetodo = pagos.stream()
+                .collect(Collectors.groupingBy(
+                        p -> p.getMetodoPago().name(),
+                        Collectors.counting()
+                ));
+
+        Map<String, BigDecimal> montosPorMetodo = pagos.stream()
+                .collect(Collectors.groupingBy(
+                        p -> p.getMetodoPago().name(),
+                        Collectors.reducing(BigDecimal.ZERO, Pago::getMonto, BigDecimal::add)
+                ));
+
+        List<Map<String, Object>> resultado = new ArrayList<>();
+        for (String metodo : cantidadPorMetodo.keySet()) {
+            resultado.add(Map.of(
+                    "metodoPago", metodo,
+                    "cantidadPagos", cantidadPorMetodo.get(metodo),
+                    "montoTotal", montosPorMetodo.get(metodo)
+            ));
+        }
+
+        return resultado;
+    }
+}
