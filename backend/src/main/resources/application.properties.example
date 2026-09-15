@@ -1,0 +1,108 @@
+# =============================================================================
+# PLANTILLA — copiar como application.properties (sin el .example)
+# =============================================================================
+# El archivo real no se versiona. Este no tiene ningún valor sensible: las
+# credenciales salen de variables de entorno, que se pueden definir en
+# backend/.env (ver backend/.env.example).
+# =============================================================================
+
+# Lee backend/.env si existe. El sufijo [.properties] le indica a Spring que
+# lo interprete como un archivo de propiedades (CLAVE=valor). "optional:"
+# hace que no falle si el archivo no está, por ejemplo en un servidor donde
+# las variables se definen de otra forma.
+spring.config.import=optional:file:.env[.properties]
+
+# ==================== INFORMACIÓN DEL SERVIDOR ====================
+server.port=8080
+spring.application.name=camas-colchones-api
+
+# ==================== BASE DE DATOS ====================
+# La conexion NO se define aca: la eligen los perfiles.
+#
+#   application-dev.properties   -> PostgreSQL local (trabajo diario, demostraciones)
+#   application-prod.properties  -> Supabase         (entrega, app movil)
+#
+# Se arranca eligiendo uno:
+#   mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+#   mvnw spring-boot:run -Dspring-boot.run.profiles=prod
+#
+# Sin indicar nada arranca con dev. Es a proposito: equivocarse hacia la base
+# local no rompe nada, equivocarse hacia la de produccion si.
+spring.profiles.active=${SPRING_PROFILE:dev}
+spring.datasource.driver-class-name=org.postgresql.Driver
+
+# Pool de conexiones
+spring.datasource.hikari.maximum-pool-size=10
+spring.datasource.hikari.minimum-idle=5
+spring.datasource.hikari.idle-timeout=300000
+
+# ==================== JPA/HIBERNATE ====================
+# validate: Hibernate compara TODAS las entidades contra el esquema al arrancar
+# y falla con la lista completa de desajustes, en lugar de descubrirlos de a uno
+# cuando alguien entra a la pantalla equivocada.
+# La estructura de la base la manejan los scripts de database/, nunca Hibernate.
+# ddl-auto y show-sql los define cada perfil.
+spring.jpa.properties.hibernate.format_sql=true
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+spring.jpa.properties.hibernate.jdbc.lob.non_contextual_creation=true
+
+# Carga por lotes de las relaciones perezosas.
+#
+# Sin esto, armar un listado dispara una consulta por cada fila para traer sus
+# relaciones: listar 8 productos costaba 17 viajes a la base. Con la base en la
+# misma maquina no se notaba; con Supabase, cada viaje cuesta unos 200 ms de ida
+# y vuelta a Oregon, y las pantallas tardaban mas de 3 segundos.
+#
+# Con esto Hibernate agrupa esas cargas: en vez de 50 consultas sueltas hace
+# una sola que trae las 50. Aplica a TODAS las entidades a la vez, que es lo
+# que hace falta aca porque el patron aparece en 11 DTO distintos.
+#
+# Se prefiere esto antes que poner JOIN FETCH en cada repositorio porque Venta
+# tiene dos colecciones (detalles y pagos) y Hibernate no permite traer las dos
+# en la misma consulta.
+spring.jpa.properties.hibernate.default_batch_fetch_size=50
+
+# ==================== SEGURIDAD JWT ====================
+# La sintaxis ${VARIABLE:valor} toma la variable de entorno si existe y si no
+# usa el valor de despues de los dos puntos. Asi el arranque local no necesita
+# configurar nada, y al desplegar alcanza con exportar JWT_SECRET y DB_PASSWORD
+# para no depender de lo que diga este archivo.
+# Este archivo esta en .gitignore, asi que no viaja al repositorio.
+jwt.secret=${JWT_SECRET}
+jwt.expiration=86400000
+
+# ==================== SUBIDA DE ARCHIVOS ====================
+spring.servlet.multipart.enabled=true
+spring.servlet.multipart.max-file-size=150MB
+spring.servlet.multipart.max-request-size=150MB
+
+# ✅ CORREGIDO: Directorio de subida de archivos
+file.upload.dir=uploads/images/
+
+# ✅ NUEVO: Modelos 3D
+file.upload.models3d.dir=uploads/modelos-3d/
+file.upload.models3d.max-size=52428800
+# 50MB en bytes (los modelos 3D son más grandes que imágenes)
+
+# ✅ NUEVO: Extensiones permitidas para modelos 3D
+file.upload.models3d.allowed-extensions=.glb,.gltf,.usdz
+# ✅ CORREGIDO: Servir archivos estáticos
+#spring.web.resources.static-locations=file:uploads/images/
+#spring.mvc.static-path-pattern=/uploads/**
+
+# ==================== LOGS ====================
+# Estaba todo en DEBUG/TRACE. El problema no era el ruido sino que
+# BasicBinder=TRACE imprime los parametros de cada consulta SQL: al crear o
+# editar un usuario, el hash bcrypt de la contrasena terminaba en la consola.
+# Para depurar una consulta puntual, subir el nivel a mano y volver a bajarlo.
+logging.level.org.springframework.security=INFO
+logging.level.org.springframework.web=INFO
+logging.level.com.mitienda.ecommerce=INFO
+logging.level.org.hibernate.SQL=WARN
+
+# ==================== CORS ====================
+cors.allowed-origins=http://localhost:3000
+
+# ==================== CONFIGURACIÓN GENERAL ====================
+spring.jackson.serialization.indent_output=true
+spring.jpa.open-in-view=false

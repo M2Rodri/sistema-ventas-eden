@@ -1,0 +1,41 @@
+# =============================================================================
+# PLANTILLA — copiar como application-dev.properties (sin el .example)
+# =============================================================================
+# El archivo real no se versiona. Este no tiene ningún valor sensible: las
+# credenciales salen de variables de entorno, que se pueden definir en
+# backend/.env (ver backend/.env.example).
+# =============================================================================
+
+# =============================================================================
+# Perfil dev - Base de datos LOCAL
+# =============================================================================
+#
+# Para el trabajo diario y para las demostraciones.
+#
+# Se arranca con:
+#   .\mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=dev
+#
+# POR QUE EXISTE ESTE PERFIL
+#
+# Con la base en Supabase, cada consulta viaja de Bolivia a Oregon y vuelve:
+# unos 207 ms medidos. Una pantalla que hace tres consultas arranca en tres
+# cuartos de segundo aunque el codigo sea perfecto. Contra la base local eso
+# baja a milisegundos.
+#
+# Para la defensa conviene usar este perfil: no depende de internet, no depende
+# de que Supabase no este dormido, y las pantallas responden al instante.
+# =============================================================================
+
+spring.datasource.url=${DB_URL:jdbc:postgresql://localhost:5432/muebleria_eden_db}
+spring.datasource.username=${DB_USERNAME:postgres}
+spring.datasource.password=${DB_PASSWORD}
+
+# validate en los dos perfiles: si una entidad no coincide con la tabla, el
+# backend se niega a arrancar y muestra cual. Es la red de seguridad que evita
+# descubrir el desajuste cuando alguien entra a la pantalla equivocada.
+spring.jpa.hibernate.ddl-auto=validate
+
+# En local el costo de una consulta es despreciable, asi que se puede ver el
+# SQL cuando haga falta depurar. Cambiar a true solo mientras se investiga:
+# imprime cada consulta y ensucia la consola.
+spring.jpa.show-sql=false

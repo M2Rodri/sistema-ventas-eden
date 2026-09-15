@@ -1,0 +1,43 @@
+# =============================================================================
+# PLANTILLA — copiar como application-prod.properties (sin el .example)
+# =============================================================================
+# El archivo real no se versiona. Este no tiene ningún valor sensible: las
+# credenciales salen de variables de entorno, que se pueden definir en
+# backend/.env (ver backend/.env.example).
+# =============================================================================
+
+# =============================================================================
+# Perfil prod - Base de datos en Supabase
+# =============================================================================
+#
+# Para la entrega y para cuando la aplicacion movil tenga que alcanzar la base
+# desde un telefono real.
+#
+# Se arranca con:
+#   .\mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=prod
+#
+# CREDENCIALES
+#
+# Los valores despues de los dos puntos son solo el respaldo para desarrollo.
+# En un servidor de verdad hay que exportar DB_URL, DB_USERNAME, DB_PASSWORD y
+# JWT_SECRET como variables de entorno, y entonces lo que diga este archivo no
+# se usa. Este archivo esta en .gitignore y no viaja al repositorio.
+#
+# ANTES DE UNA DEMOSTRACION CON ESTE PERFIL
+#
+# El plan gratuito de Supabase pausa la base tras varios dias sin uso. Si esta
+# dormida, el backend no arranca. Conviene entrar al panel de Supabase el dia
+# anterior y despertarla.
+# =============================================================================
+
+spring.datasource.url=${DB_URL}
+spring.datasource.username=${DB_USERNAME}
+spring.datasource.password=${DB_PASSWORD}
+
+spring.jpa.hibernate.ddl-auto=validate
+spring.jpa.show-sql=false
+
+# La base esta lejos: conviene no abrir mas conexiones de las necesarias y no
+# dejarlas colgadas si la red se corta.
+spring.datasource.hikari.maximum-pool-size=10
+spring.datasource.hikari.connection-timeout=30000
