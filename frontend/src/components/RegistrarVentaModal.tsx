@@ -11,7 +11,12 @@ import {
   Trash2,
   Package,
 } from "lucide-react";
-import { VentaRequest, MetodoPago, ItemVentaRequest } from "@/types/venta";
+import {
+  VentaRequest,
+  MetodoPago,
+  ItemVentaRequest,
+  ModalidadEntrega,
+} from "@/types/venta";
 import { createVentaDirecta, getAllProductos, getAllClientes } from "@/lib/api";
 
 interface ProductoCarrito {
@@ -55,11 +60,15 @@ export default function RegistrarVentaModal({
   const [productosFiltrados, setProductosFiltrados] = useState<any[]>([]);
   const [carrito, setCarrito] = useState<ProductoCarrito[]>([]);
 
-  // Pago
-  const [metodoPago, setMetodoPago] = useState<MetodoPago>(MetodoPago.EFECTIVO);
-  const [referenciaPago, setReferenciaPago] = useState("");
-  const [requiereEnvio, setRequiereEnvio] = useState(false);
-  const [direccionEnvio, setDireccionEnvio] = useState("");
+  // Entrega
+  const [modalidadEntrega, setModalidadEntrega] = useState<ModalidadEntrega>(
+    ModalidadEntrega.RETIRO,
+  );
+  const [direccionDestino, setDireccionDestino] = useState("");
+  const [ciudad, setCiudad] = useState("");
+  const [transportadora, setTransportadora] = useState("");
+  const [guiaRemision, setGuiaRemision] = useState("");
+
   // Pagos mixtos
   const [pagos, setPagos] = useState<
     { metodo: MetodoPago; monto: number; referencia: string }[]
@@ -174,6 +183,17 @@ export default function RegistrarVentaModal({
 
   const totalVenta = carrito.reduce((acc, item) => acc + item.subtotal, 0);
 
+  // Por defecto se cobra el total. Si el cajero quiere registrar una venta
+  // a crédito (parcial o sin pago), reduce el monto a mano más abajo.
+  useEffect(() => {
+    if (pagos.length === 1) {
+      setPagos([{ ...pagos[0], monto: totalVenta }]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalVenta]);
+
+  const montoPagado = pagos.reduce((acc, p) => acc + p.monto, 0);
+
   const handleSubmit = async () => {
     setError(null);
 
@@ -187,9 +207,22 @@ export default function RegistrarVentaModal({
       return;
     }
 
-    if (metodoPago !== MetodoPago.EFECTIVO && !referenciaPago.trim()) {
-      setError("La referencia de pago es obligatoria para métodos digitales");
+    if (montoPagado > totalVenta) {
+      setError("El monto pagado no puede superar el total de la venta");
       return;
+    }
+
+    if (modalidadEntrega !== ModalidadEntrega.RETIRO) {
+      if (!direccionDestino.trim() || !ciudad.trim()) {
+        setError("La dirección y la ciudad son obligatorias para esta modalidad de entrega");
+        return;
+      }
+    }
+    if (modalidadEntrega === ModalidadEntrega.TRANSPORTADORA) {
+      if (!transportadora.trim() || !guiaRemision.trim()) {
+        setError("La transportadora y la guía de remisión son obligatorias para esta modalidad de entrega");
+        return;
+      }
     }
 
     setLoading(true);
@@ -214,6 +247,24 @@ export default function RegistrarVentaModal({
         metodoPago: pagos[0].metodo,
         referenciaPago: pagos[0].referencia || undefined,
         items,
+        montoPagado,
+        modalidadEntrega,
+        direccionDestino:
+          modalidadEntrega !== ModalidadEntrega.RETIRO
+            ? direccionDestino.trim()
+            : undefined,
+        ciudad:
+          modalidadEntrega !== ModalidadEntrega.RETIRO
+            ? ciudad.trim()
+            : undefined,
+        transportadora:
+          modalidadEntrega === ModalidadEntrega.TRANSPORTADORA
+            ? transportadora.trim()
+            : undefined,
+        guiaRemision:
+          modalidadEntrega === ModalidadEntrega.TRANSPORTADORA
+            ? guiaRemision.trim()
+            : undefined,
       };
 
       await createVentaDirecta(request, idUsuarioActual);
@@ -235,10 +286,11 @@ export default function RegistrarVentaModal({
     setClienteSeleccionado(null);
     setCarrito([]);
     setBusquedaProducto("");
-    setMetodoPago(MetodoPago.EFECTIVO);
-    setReferenciaPago("");
-    setRequiereEnvio(false);
-    setDireccionEnvio("");
+    setModalidadEntrega(ModalidadEntrega.RETIRO);
+    setDireccionDestino("");
+    setCiudad("");
+    setTransportadora("");
+    setGuiaRemision("");
     setError(null);
     setPaso(1);
     setPagos([{ metodo: MetodoPago.EFECTIVO, monto: 0, referencia: "" }]);
@@ -619,32 +671,96 @@ export default function RegistrarVentaModal({
                 </span>
               </div>
             </div>
-            {/* Requiere envío */}
-            <div className="mt-4 flex items-center gap-3">
-              <input
-                type="checkbox"
-                id="requiereEnvio"
-                checked={requiereEnvio}
-                onChange={(e) => setRequiereEnvio(e.target.checked)}
-                className="w-4 h-4"
-              />
-              <label
-                htmlFor="requiereEnvio"
-                className="text-sm font-medium text-gray-700"
-              >
-                ¿Requiere envío a domicilio?
+          </div>
+
+          {/* SECCIÓN 4 — ENTREGA */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Entrega
+            </h3>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Modalidad
               </label>
+              <select
+                value={modalidadEntrega}
+                onChange={(e) =>
+                  setModalidadEntrega(e.target.value as ModalidadEntrega)
+                }
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              >
+                <option value={ModalidadEntrega.RETIRO}>
+                  Retiro en tienda
+                </option>
+                <option value={ModalidadEntrega.DOMICILIO}>
+                  Entrega a domicilio
+                </option>
+                <option value={ModalidadEntrega.TRANSPORTADORA}>
+                  Envío por transportadora
+                </option>
+              </select>
             </div>
 
-            {requiereEnvio && (
-              <input
-                type="text"
-                value={direccionEnvio}
-                onChange={(e) => setDireccionEnvio(e.target.value)}
-                className="w-full mt-3 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder="Dirección de entrega"
-                maxLength={200}
-              />
+            {modalidadEntrega !== ModalidadEntrega.RETIRO && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Dirección <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={direccionDestino}
+                    onChange={(e) => setDireccionDestino(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="Dirección de entrega"
+                    maxLength={300}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Ciudad <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={ciudad}
+                    onChange={(e) => setCiudad(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="Ej: Santa Cruz de la Sierra"
+                    maxLength={50}
+                  />
+                </div>
+              </div>
+            )}
+
+            {modalidadEntrega === ModalidadEntrega.TRANSPORTADORA && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Transportadora <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={transportadora}
+                    onChange={(e) => setTransportadora(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="Nombre de la transportadora"
+                    maxLength={100}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Guía de remisión <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={guiaRemision}
+                    onChange={(e) => setGuiaRemision(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="Número de guía"
+                    maxLength={100}
+                  />
+                </div>
+              </div>
             )}
           </div>
 

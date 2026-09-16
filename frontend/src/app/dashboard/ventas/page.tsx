@@ -2,27 +2,29 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  getAllVentas, 
+import {
+  getAllVentas,
   getVentasEstadisticas,
   getVentasDelDia,
-  cancelarVenta
+  cancelarVenta,
+  marcarVentaEntregada
 } from '@/lib/api';
-import { Venta, VentaEstadisticas, EstadoVenta, MetodoPago } from '@/types/venta';
+import { Venta, VentaEstadisticas, EstadoVenta, MetodoPago, EstadoEntrega } from '@/types/venta';
 import { exportarCSV, fechaArchivo } from '@/lib/exportar';
-import { 
-  Search, 
-  Plus, 
-  Eye, 
-  XCircle, 
-  TrendingUp, 
-  DollarSign, 
-  ShoppingCart, 
-  Calendar, 
-  Filter, 
-  RefreshCw, 
+import {
+  Search,
+  Plus,
+  Eye,
+  XCircle,
+  TrendingUp,
+  DollarSign,
+  ShoppingCart,
+  Calendar,
+  Filter,
+  RefreshCw,
   Download,
-  Users 
+  Users,
+  Truck
 } from 'lucide-react';
 import RegistrarVentaModal from '@/components/RegistrarVentaModal';
 import DetalleVentaModal from '@/components/DetalleVentaModal';
@@ -153,6 +155,19 @@ export default function VentasPage() {
       await loadEstadisticas();
     } catch (err: any) {
       alert(err.message || 'Error al cancelar la venta');
+    }
+  };
+
+  const handleMarcarEntregado = async (id: number) => {
+    if (!window.confirm('¿Confirmar que esta venta ya fue entregada?')) {
+      return;
+    }
+
+    try {
+      await marcarVentaEntregada(id);
+      await loadVentas();
+    } catch (err: any) {
+      alert(err.message || 'Error al marcar la venta como entregada');
     }
   };
 
@@ -451,6 +466,9 @@ export default function VentasPage() {
                   Estado
                 </th>
                 <th className="px-6 py-4 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
+                  Entrega
+                </th>
+                <th className="px-6 py-4 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
                   Acciones
                 </th>
               </tr>
@@ -458,7 +476,7 @@ export default function VentasPage() {
             <tbody className="bg-white divide-y divide-gray-200">
               {ventasFiltradas.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-6 py-12 text-center">
+                  <td colSpan={10} className="px-6 py-12 text-center">
                     <ShoppingCart className="mx-auto text-gray-400 mb-3" size={48} />
                     <p className="text-gray-500 font-medium">No se encontraron ventas</p>
                     <p className="text-sm text-gray-400 mt-1">
@@ -505,9 +523,16 @@ export default function VentasPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <span className="px-3 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">
-                        {venta.metodoPago}
-                      </span>
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="px-3 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">
+                          {venta.metodoPago}
+                        </span>
+                        {venta.tienePagosSinRespaldo && (
+                          <span className="px-2 py-0.5 text-xs bg-orange-100 text-orange-700 rounded-full">
+                            Sin respaldo
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{venta.nombreUsuario}</div>
@@ -515,6 +540,15 @@ export default function VentasPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${getEstadoBadgeColor(venta.estado)}`}>
                         {venta.estado.replace('_', ' ')}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${
+                        venta.estadoEntrega === EstadoEntrega.ENTREGADO
+                          ? 'bg-green-100 text-green-800 border-green-200'
+                          : 'bg-gray-100 text-gray-800 border-gray-200'
+                      }`}>
+                        {venta.estadoEntrega === EstadoEntrega.ENTREGADO ? 'Entregado' : 'Pendiente'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
@@ -526,6 +560,15 @@ export default function VentasPage() {
                         >
                           <Eye size={18} />
                         </button>
+                        {venta.estado !== EstadoVenta.CANCELADA && venta.estadoEntrega === EstadoEntrega.PENDIENTE && (
+                          <button
+                            onClick={() => handleMarcarEntregado(venta.id)}
+                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                            title="Marcar entregado"
+                          >
+                            <Truck size={18} />
+                          </button>
+                        )}
                         {user?.role === 'ADMIN' && venta.estado === EstadoVenta.COMPLETADA && (
                           <button
                             onClick={() => handleCancelarVenta(venta.id)}
@@ -565,6 +608,7 @@ export default function VentasPage() {
             setVentaSeleccionada(null);
           }}
           venta={ventaSeleccionada}
+          onUpdated={loadVentas}
         />
       )}
     </div>

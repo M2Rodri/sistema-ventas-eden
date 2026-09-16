@@ -85,7 +85,6 @@ function ComprobanteContent() {
   const getMetodoPagoLabel = (metodo: string) => {
     const labels: Record<string, string> = {
       EFECTIVO: 'Efectivo',
-      TARJETA: 'Tarjeta',
       TRANSFERENCIA: 'Transferencia',
       QR: 'QR',
     };

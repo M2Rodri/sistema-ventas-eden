@@ -224,14 +224,16 @@ export default function EnviosPage() {
             ))}
           </select>
 
-          {/* Botón Gestionar Transportadoras */}
-          <Link
+          {/* Botón Gestionar Transportadoras: oculto, la entrega ahora vive
+              en la venta (modalidadEntrega/estadoEntrega). No se borra la
+              página, solo el acceso desde acá. */}
+          {/* <Link
             href="/dashboard/envios/transportadoras"
             className="flex items-center gap-2 px-4 py-2 bg-secondary-600 text-white rounded-lg hover:bg-secondary-700 transition-colors font-medium whitespace-nowrap"
           >
             <Building2 size={20} />
             <span className="hidden sm:inline">Transportadoras</span>
-          </Link>
+          </Link> */}
 
           {/* Botón Nuevo Envío */}
           <button

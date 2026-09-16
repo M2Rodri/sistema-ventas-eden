@@ -1,6 +1,6 @@
 // types/pago.ts
 
-export type MetodoPago = 'EFECTIVO' | 'TARJETA' | 'TRANSFERENCIA' | 'QR';
+export type MetodoPago = 'EFECTIVO' | 'TRANSFERENCIA' | 'QR';
 export type EstadoPago = 'PENDIENTE' | 'COMPLETADO' | 'RECHAZADO';
 
 export interface Pago {
@@ -11,6 +11,8 @@ export interface Pago {
   fechaPago: string; // LocalDateTime
   referencia: string | null;
   estado: EstadoPago;
+  urlComprobante?: string | null;
+  sinRespaldo?: boolean;
 }
 
 export interface PagoRequest {

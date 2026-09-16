@@ -709,10 +709,11 @@ export const getInventarioStatistics = async () => {
 // VENTAS
 // ============================================
 
-import { 
-  Venta, 
-  VentaRequest, 
-  VentaEstadisticas
+import {
+  Venta,
+  VentaRequest,
+  VentaEstadisticas,
+  Pago
 } from '@/types/venta';
 
 /**
@@ -780,6 +781,45 @@ export const cancelarVenta = async (id: number): Promise<Venta> => {
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || 'Error al cancelar venta');
+  }
+
+  return response.json();
+};
+
+/**
+ * Marcar la entrega de una venta como completada.
+ * Rechaza si la venta tiene saldo pendiente.
+ */
+export const marcarVentaEntregada = async (id: number): Promise<Venta> => {
+  const response = await fetch(`${API_URL}/ventas/${id}/entregar`, {
+    method: 'PATCH',
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Error al marcar la venta como entregada');
+  }
+
+  return response.json();
+};
+
+/**
+ * Adjuntar (o reemplazar) la foto de comprobante de un pago ya registrado.
+ */
+export const adjuntarComprobantePago = async (idPago: number, file: File): Promise<Pago> => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${API_URL}/pagos/${idPago}/comprobante`, {
+    method: 'POST',
+    headers: getAuthHeadersForFormData(),
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Error al subir el comprobante');
   }
 
   return response.json();

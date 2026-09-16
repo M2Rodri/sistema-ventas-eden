@@ -36,7 +36,10 @@ const menuItems: MenuItem[] = [
   { name: 'Inventario', icon: <Boxes size={20} />, href: '/dashboard/inventario' },
   { name: 'Ventas', icon: <DollarSign size={20} />, href: '/dashboard/ventas' },
   { name: 'Proveedores', icon: <Building2 size={20} />, href: '/dashboard/proveedores', adminOnly: true },
-  { name: 'Envíos', icon: <Truck size={20} />, href: '/dashboard/envios' },
+  // Entrega pasó a vivir en la venta (modalidadEntrega/estadoEntrega). El
+  // módulo de Envíos/Transportadoras se deja de exponer en el menú para no
+  // tener dos caminos para lo mismo, pero el código y las tablas siguen ahí.
+  // { name: 'Envíos', icon: <Truck size={20} />, href: '/dashboard/envios' },
   // { name: 'Pagos', icon: <CreditCard size={20} />, href: '/dashboard/pagos' },
   { name: 'Reportes', icon: <BarChart3 size={20} />, href: '/dashboard/reportes', adminOnly: true },
   { name: 'Promociones', icon: <Tag size={20} />, href: '/dashboard/promociones' },

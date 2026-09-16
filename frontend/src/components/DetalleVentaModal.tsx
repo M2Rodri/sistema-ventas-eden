@@ -1,18 +1,45 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, User, Calendar, CreditCard, Package, AlertCircle, FileText } from 'lucide-react';
-import { Venta } from '@/types/venta';
+import { X, User, Calendar, CreditCard, Package, AlertCircle, FileText, Upload, Image as ImageIcon } from 'lucide-react';
+import { Venta, Pago } from '@/types/venta';
+import { adjuntarComprobantePago, BACKEND_URL } from '@/lib/api';
 import ComprobanteModal from '@/components/ComprobanteModal';
 
 interface DetalleVentaModalProps {
   isOpen: boolean;
   onClose: () => void;
   venta: Venta;
+  onUpdated?: () => void;
 }
 
-export default function DetalleVentaModal({ isOpen, onClose, venta }: DetalleVentaModalProps) {
+export default function DetalleVentaModal({ isOpen, onClose, venta, onUpdated }: DetalleVentaModalProps) {
   const [showComprobanteModal, setShowComprobanteModal] = useState(false);
+  const [pagosState, setPagosState] = useState<Pago[]>(venta.pagos);
+  const [subiendoId, setSubiendoId] = useState<number | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const tienePagosSinRespaldo = pagosState.some((p) => p.sinRespaldo);
+
+  const handleAdjuntarComprobante = async (idPago: number, file: File) => {
+    setUploadError(null);
+    setSubiendoId(idPago);
+    try {
+      const actualizado = await adjuntarComprobantePago(idPago, file);
+      setPagosState((prev) =>
+        prev.map((p) =>
+          p.id === idPago
+            ? { ...p, urlComprobante: actualizado.urlComprobante, sinRespaldo: actualizado.sinRespaldo }
+            : p,
+        ),
+      );
+      onUpdated?.();
+    } catch (err: any) {
+      setUploadError(err.message || 'Error al subir el comprobante');
+    } finally {
+      setSubiendoId(null);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -50,7 +77,6 @@ export default function DetalleVentaModal({ isOpen, onClose, venta }: DetalleVen
   const getMetodoPagoIcon = () => {
     const icons: Record<string, string> = {
       EFECTIVO: '💵',
-      TARJETA: '💳',
       TRANSFERENCIA: '🏦',
       QR: '📱',
     };
@@ -62,7 +88,6 @@ export default function DetalleVentaModal({ isOpen, onClose, venta }: DetalleVen
   const getMetodoPagoLabel = (metodo: string) => {
     const labels: Record<string, string> = {
       EFECTIVO: 'Efectivo',
-      TARJETA: 'Tarjeta',
       TRANSFERENCIA: 'Transferencia',
       QR: 'QR',
     };
@@ -166,7 +191,20 @@ export default function DetalleVentaModal({ isOpen, onClose, venta }: DetalleVen
             </div>
           </div>
 
-          
+          {/* Aviso: pagos sin respaldo */}
+          {tienePagosSinRespaldo && (
+            <div className="px-6 pb-6">
+              <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg flex items-start gap-3">
+                <AlertCircle className="text-orange-600 flex-shrink-0" size={20} />
+                <p className="text-sm text-orange-800">
+                  Esta venta tiene pagos sin respaldo: falta la foto del comprobante de un pago
+                  por QR o transferencia. Se puede adjuntar más abajo, en "Pagos Registrados".
+                </p>
+              </div>
+            </div>
+          )}
+
+
 
           {/* Detalle de Productos */}
           <div className="px-6 pb-6">
@@ -221,25 +259,72 @@ export default function DetalleVentaModal({ isOpen, onClose, venta }: DetalleVen
           </div>
 
           {/* Pagos registrados */}
-          {venta.pagos && venta.pagos.length > 0 && (
+          {pagosState && pagosState.length > 0 && (
             <div className="px-6 pb-6">
               <div className="flex items-center gap-2 mb-4">
                 <CreditCard className="text-blue-600" size={20} />
                 <h3 className="font-semibold text-gray-900">Pagos Registrados</h3>
               </div>
+              {uploadError && (
+                <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+                  {uploadError}
+                </div>
+              )}
               <div className="space-y-3">
-                {venta.pagos.map((pago, index) => (
-                  <div key={index} className="bg-green-50 border border-green-200 p-3 rounded-lg flex justify-between items-center">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {getMetodoPagoLabel(pago.metodoPago)}
-                      </p>
-                      {pago.referencia && (
-                        <p className="text-xs text-gray-600">Ref: {pago.referencia}</p>
-                      )}
-                      <p className="text-xs text-gray-500">{formatDate(pago.fechaPago)}</p>
+                {pagosState.map((pago, index) => (
+                  <div key={index} className="bg-green-50 border border-green-200 p-3 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                          {getMetodoPagoLabel(pago.metodoPago)}
+                          {pago.sinRespaldo && (
+                            <span className="px-2 py-0.5 text-xs bg-orange-100 text-orange-700 rounded-full">
+                              Sin respaldo
+                            </span>
+                          )}
+                        </p>
+                        {pago.referencia && (
+                          <p className="text-xs text-gray-600">Ref: {pago.referencia}</p>
+                        )}
+                        <p className="text-xs text-gray-500">{formatDate(pago.fechaPago)}</p>
+                      </div>
+                      <span className="text-lg font-bold text-green-700">{formatPrice(pago.monto)}</span>
                     </div>
-                    <span className="text-lg font-bold text-green-700">{formatPrice(pago.monto)}</span>
+
+                    <div className="mt-2 pt-2 border-t border-green-200 flex items-center gap-3">
+                      {pago.urlComprobante ? (
+                        <a
+                          href={`${BACKEND_URL}${pago.urlComprobante}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                        >
+                          <ImageIcon size={14} /> Ver comprobante
+                        </a>
+                      ) : (
+                        <p className="text-xs text-gray-400">Sin comprobante adjunto</p>
+                      )}
+
+                      <label className="flex items-center gap-1 text-xs text-gray-600 hover:text-gray-900 cursor-pointer ml-auto">
+                        <Upload size={14} />
+                        {subiendoId === pago.id
+                          ? 'Subiendo...'
+                          : pago.urlComprobante
+                            ? 'Reemplazar'
+                            : 'Adjuntar comprobante'}
+                        <input
+                          type="file"
+                          accept=".jpg,.jpeg,.png,.webp"
+                          className="hidden"
+                          disabled={subiendoId === pago.id}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleAdjuntarComprobante(pago.id, file);
+                            e.target.value = '';
+                          }}
+                        />
+                      </label>
+                    </div>
                   </div>
                 ))}
               </div>

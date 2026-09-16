@@ -216,7 +216,6 @@ export default function PagoModal({ ventas, onClose, onSuccess }: PagoModalProps
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
             >
               <option value="EFECTIVO">💵 Efectivo</option>
-              <option value="TARJETA">💳 Tarjeta</option>
               <option value="TRANSFERENCIA">🏦 Transferencia Bancaria</option>
               <option value="QR">📱 QR (Pago Digital)</option>
             </select>

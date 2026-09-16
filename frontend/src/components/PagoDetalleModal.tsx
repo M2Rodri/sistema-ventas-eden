@@ -32,7 +32,6 @@ export default function PagoDetalleModal({ pago, venta, onClose }: PagoDetalleMo
   const getMetodoPagoIcon = (metodo: MetodoPago) => {
     const icons = {
       EFECTIVO: <Banknote size={24} className="text-green-600" />,
-      TARJETA: <CreditCard size={24} className="text-blue-600" />,
       TRANSFERENCIA: <DollarSign size={24} className="text-purple-600" />,
       QR: <Smartphone size={24} className="text-orange-600" />,
     };

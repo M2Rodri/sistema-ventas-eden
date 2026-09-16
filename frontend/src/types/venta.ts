@@ -8,9 +8,19 @@ export enum EstadoVenta {
 
 export enum MetodoPago {
   EFECTIVO = 'EFECTIVO',
-  TARJETA = 'TARJETA',
   TRANSFERENCIA = 'TRANSFERENCIA',
   QR = 'QR'
+}
+
+export enum ModalidadEntrega {
+  RETIRO = 'RETIRO',
+  DOMICILIO = 'DOMICILIO',
+  TRANSPORTADORA = 'TRANSPORTADORA'
+}
+
+export enum EstadoEntrega {
+  PENDIENTE = 'PENDIENTE',
+  ENTREGADO = 'ENTREGADO'
 }
 
 export interface ItemVentaRequest {
@@ -44,6 +54,16 @@ export interface VentaRequest {
   metodoPago: MetodoPago;
   referenciaPago?: string;
   items: ItemVentaRequest[];
+
+  // Monto efectivamente cobrado. Si no viene, el backend asume pago total.
+  montoPagado?: number;
+
+  // Entrega. Si no viene, el backend asume RETIRO.
+  modalidadEntrega?: ModalidadEntrega;
+  direccionDestino?: string; // obligatorio para DOMICILIO y TRANSPORTADORA
+  ciudad?: string; // obligatorio para DOMICILIO y TRANSPORTADORA
+  transportadora?: string; // obligatorio para TRANSPORTADORA
+  guiaRemision?: string; // obligatorio para TRANSPORTADORA
 }
 
 export interface DetalleVenta {
@@ -65,6 +85,8 @@ export interface Pago {
   observacion?: string;
   estado: string;
   fechaPago: string;
+  urlComprobante?: string | null;
+  sinRespaldo?: boolean;
 }
 
 export interface Venta {
@@ -83,6 +105,13 @@ export interface Venta {
   estado: EstadoVenta;
   requiereEnvio?: boolean;
 
+  modalidadEntrega?: ModalidadEntrega;
+  estadoEntrega?: EstadoEntrega;
+  direccionDestino?: string;
+  ciudad?: string;
+  transportadora?: string;
+  guiaRemision?: string;
+
   /**
    * Método de pago mostrado en los listados. Ya no es un campo de la venta:
    * el backend lo deriva de los pagos y devuelve el método cuando hay uno
@@ -96,6 +125,9 @@ export interface Venta {
   pagos: Pago[];
   fechaActualizacion: string;
   esClienteRegistrado: boolean;
+
+  /** Al menos un pago QR/transferencia no tiene foto de comprobante todavía. */
+  tienePagosSinRespaldo?: boolean;
 }
 
 export interface VentaEstadisticas {

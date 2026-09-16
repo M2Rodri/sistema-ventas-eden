@@ -160,7 +160,6 @@ export default function PagosPage() {
   const getMetodoPagoIcon = (metodo: MetodoPago) => {
     const icons = {
       EFECTIVO: <Banknote size={18} className="text-green-600" />,
-      TARJETA: <CreditCard size={18} className="text-blue-600" />,
       TRANSFERENCIA: <DollarSign size={18} className="text-purple-600" />,
       QR: <Smartphone size={18} className="text-orange-600" />,
     };
@@ -170,7 +169,6 @@ export default function PagosPage() {
   const getMetodoPagoLabel = (metodo: MetodoPago) => {
     const labels = {
       EFECTIVO: '💵 Efectivo',
-      TARJETA: '💳 Tarjeta',
       TRANSFERENCIA: '🏦 Transferencia',
       QR: '📱 QR',
     };
@@ -302,7 +300,6 @@ export default function PagosPage() {
           >
             <option value="TODOS">Todos los métodos</option>
             <option value="EFECTIVO">💵 Efectivo</option>
-            <option value="TARJETA">💳 Tarjeta</option>
             <option value="TRANSFERENCIA">🏦 Transferencia</option>
             <option value="QR">📱 QR</option>
           </select>
