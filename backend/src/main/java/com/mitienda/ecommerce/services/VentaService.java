@@ -1,6 +1,5 @@
 package com.mitienda.ecommerce.services;
 
-import com.mitienda.ecommerce.dto.ComprobanteRequest;
 import com.mitienda.ecommerce.dto.VentaRequest;
 import com.mitienda.ecommerce.dto.VentaResponse;
 import com.mitienda.ecommerce.models.*;
@@ -38,8 +37,6 @@ public class VentaService {
 
     private final InventarioRepository inventarioRepository;
 
-    private final ComprobanteService comprobanteService;
-
     private final RegistroAuditoria registroAuditoria;
 
     /**
@@ -57,7 +54,6 @@ public class VentaService {
                         UsuarioRepository usuarioRepository,
                         InventarioService inventarioService,
                         InventarioRepository inventarioRepository,
-                        ComprobanteService comprobanteService,
                         RegistroAuditoria registroAuditoria) {
         this.ventaRepository = ventaRepository;
         this.detalleVentaRepository = detalleVentaRepository;
@@ -67,7 +63,6 @@ public class VentaService {
         this.usuarioRepository = usuarioRepository;
         this.inventarioService = inventarioService;
         this.inventarioRepository = inventarioRepository;
-        this.comprobanteService = comprobanteService;
         this.registroAuditoria = registroAuditoria;
     }
 
@@ -275,16 +270,14 @@ public class VentaService {
             pagoRepository.save(pago);
         }
 
-        // PASO 5: GENERAR COMPROBANTE
-        try {
-            ComprobanteRequest comprobanteRequest = new ComprobanteRequest();
-            comprobanteRequest.setIdVenta(savedVenta.getId());
-            comprobanteRequest.setTipoComprobante(TipoComprobante.RECIBO);
-            comprobanteRequest.setNombreCliente(savedVenta.getNombreClienteCompleto());
-            comprobanteService.createComprobante(comprobanteRequest);
-        } catch (Exception e) {
-            System.err.println("Error al generar comprobante: " + e.getMessage());
-        }
+        // El comprobante se genera aparte, después de que esta transacción
+        // confirme (ver VentaController). Antes se generaba acá adentro
+        // envuelto en try/catch: como createComprobante es @Transactional y
+        // comparte esta misma transacción, si fallaba (por ejemplo un
+        // numeroComprobante repetido), Spring marcaba TODA la transacción
+        // como rollback-only. El catch de acá no evitaba nada: la venta
+        // igual se revertía entera al terminar el método, con un error
+        // "Transaction silently rolled back" que no explicaba la causa real.
 
         registroAuditoria.registrar("CREAR_VENTA", "ventas", savedVenta.getId(),
                 "Venta por Bs " + savedVenta.getMontoTotal()

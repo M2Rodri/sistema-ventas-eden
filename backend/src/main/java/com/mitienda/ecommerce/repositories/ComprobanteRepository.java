@@ -4,6 +4,7 @@ import com.mitienda.ecommerce.models.Comprobante;
 import com.mitienda.ecommerce.models.TipoComprobante;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -60,6 +61,17 @@ public interface ComprobanteRepository extends JpaRepository<Comprobante, Long> 
      */
     @Query("SELECT COUNT(c) FROM Comprobante c WHERE YEAR(c.fechaEmision) = YEAR(CURRENT_DATE) AND MONTH(c.fechaEmision) = MONTH(CURRENT_DATE)")
     Long countComprobantesDelMes();
+
+    /**
+     * Último número usado para un prefijo dado (ej: "REC-2026-"), el más
+     * alto por orden alfabético. Como el numero va con ceros a la
+     * izquierda (00001, 00002...), el orden alfabético coincide con el
+     * numérico mientras no se pasen de 5 dígitos.
+     */
+    @Query("SELECT c.numeroComprobante FROM Comprobante c " +
+           "WHERE c.numeroComprobante LIKE CONCAT(:prefijo, '%') " +
+           "ORDER BY c.numeroComprobante DESC LIMIT 1")
+    Optional<String> findUltimoNumeroConPrefijo(@Param("prefijo") String prefijo);
 
     /**
      * Últimos comprobantes

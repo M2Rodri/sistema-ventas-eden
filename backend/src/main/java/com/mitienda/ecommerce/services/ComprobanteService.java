@@ -106,7 +106,13 @@ public class ComprobanteService {
         comprobante.setNombreCliente(request.getNombreCliente());
         comprobante.setObservaciones(request.getObservaciones());
 
-        Comprobante savedComprobante = comprobanteRepository.save(comprobante);
+        // saveAndFlush (no solo save): fuerza el INSERT ahora mismo, en vez
+        // de dejarlo para el commit al final del método. Así, si choca con
+        // un numeroComprobante ya usado, la excepción sale acá, traducida
+        // por Spring a DataIntegrityViolationException, y el controlador la
+        // atrapa como un error normal (400) en vez de reventar como un 500
+        // sin explicación al momento del commit.
+        Comprobante savedComprobante = comprobanteRepository.saveAndFlush(comprobante);
         return new ComprobanteResponse(savedComprobante);
     }
 
@@ -181,17 +187,32 @@ public class ComprobanteService {
     }
 
     /**
-     * Generar número de comprobante correlativo
+     * Generar número de comprobante correlativo.
+     *
+     * Antes se basaba en un COUNT de comprobantes del mes, que no coincide
+     * con el número más alto realmente usado apenas hay un hueco (un
+     * comprobante que no llegó a crearse, uno de otro tipo mezclado en la
+     * cuenta, etc.). Eso generaba números repetidos y el INSERT fallaba
+     * por la restricción de unicidad. Ahora se calcula a partir del último
+     * número real con ese mismo prefijo (tipo + año).
      */
     private String generarNumeroComprobante(TipoComprobante tipo) {
         String prefijo = obtenerPrefijoTipo(tipo);
         String año = String.valueOf(LocalDateTime.now().getYear());
-        
-        // Obtener el último número
-        Long contadorMes = comprobanteRepository.countComprobantesDelMes();
-        String numero = String.format("%05d", contadorMes + 1);
-        
-        return prefijo + "-" + año + "-" + numero;
+        String prefijoCompleto = prefijo + "-" + año + "-";
+
+        int siguiente = comprobanteRepository.findUltimoNumeroConPrefijo(prefijoCompleto)
+                .map(ultimo -> {
+                    String parteNumerica = ultimo.substring(prefijoCompleto.length());
+                    try {
+                        return Integer.parseInt(parteNumerica) + 1;
+                    } catch (NumberFormatException e) {
+                        return 1;
+                    }
+                })
+                .orElse(1);
+
+        return prefijoCompleto + String.format("%05d", siguiente);
     }
 
     /**

@@ -1,9 +1,12 @@
 package com.mitienda.ecommerce.controllers;
 
+import com.mitienda.ecommerce.dto.ComprobanteRequest;
 import com.mitienda.ecommerce.dto.VentaRequest;
 import com.mitienda.ecommerce.dto.VentaResponse;
 import com.mitienda.ecommerce.models.EstadoVenta;
 import com.mitienda.ecommerce.models.MetodoPago;
+import com.mitienda.ecommerce.models.TipoComprobante;
+import com.mitienda.ecommerce.services.ComprobanteService;
 import com.mitienda.ecommerce.services.VentaService;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -28,6 +31,8 @@ public class VentaController {
 
     private final VentaService ventaService;
 
+    private final ComprobanteService comprobanteService;
+
     /**
      * Inyeccion por constructor, no por campo.
      *
@@ -35,8 +40,9 @@ public class VentaController {
      * puede existir a medio construir, y una dependencia circular falla al
      * arrancar en vez de aparecer en ejecucion.
      */
-    public VentaController(VentaService ventaService) {
+    public VentaController(VentaService ventaService, ComprobanteService comprobanteService) {
         this.ventaService = ventaService;
+        this.comprobanteService = comprobanteService;
     }
 
 
@@ -74,6 +80,23 @@ public class VentaController {
                                                 @RequestParam Long idUsuario) {
         try {
             VentaResponse createdVenta = ventaService.createVentaDirecta(request, idUsuario);
+
+            // Aparte y después de confirmada la venta: si esto falla (por
+            // ejemplo, un numeroComprobante repetido), la venta ya quedó
+            // registrada igual. Antes se generaba dentro de la misma
+            // transacción de la venta, y una falla acá revertía la venta
+            // entera con un error que no explicaba nada.
+            try {
+                ComprobanteRequest comprobanteRequest = new ComprobanteRequest();
+                comprobanteRequest.setIdVenta(createdVenta.getId());
+                comprobanteRequest.setTipoComprobante(TipoComprobante.RECIBO);
+                comprobanteRequest.setNombreCliente(createdVenta.getNombreCliente());
+                comprobanteService.createComprobante(comprobanteRequest);
+            } catch (Exception e) {
+                System.err.println("Error al generar comprobante de la venta "
+                        + createdVenta.getId() + ": " + e.getMessage());
+            }
+
             return ResponseEntity.status(HttpStatus.CREATED).body(createdVenta);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
