@@ -16,10 +16,13 @@ android {
 
     defaultConfig {
         applicationId = "com.muebleriaeden"
-        // Fijo en 23 (en vez del default de Flutter) porque flutter_secure_storage
-        // usa EncryptedSharedPreferences, que depende del AndroidKeyStore moderno:
-        // por debajo de API 23 el cifrado no es confiable.
-        minSdk = 23
+        // flutter_secure_storage necesita API 23+ para EncryptedSharedPreferences.
+        // No hace falta fijarlo a mano: el Flutter instalado ya exige minSdk 24
+        // como mínimo (lo impone flutter_tools, ver
+        // MinSdkVersionMigration/minSdkVersionInt), así que flutter.minSdkVersion
+        // ya cumple de sobra. Fijarlo más bajo (ej. 23) no sirve: el propio
+        // Flutter lo pisa de vuelta en cada `flutter run`/`flutter build`.
+        minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
