@@ -58,6 +58,15 @@ public class Pago {
     @Column(nullable = false, length = 20)
     private EstadoPago estado = EstadoPago.COMPLETADO;
 
+    /**
+     * Foto del comprobante (QR/transferencia). Opcional siempre: si falta en
+     * un pago que no es EFECTIVO, el pago queda "sin respaldo" (ver
+     * PagoDTO.sinRespaldo), pero nunca bloquea el registro. Se puede
+     * adjuntar en el momento o después, sobre un pago ya guardado.
+     */
+    @Column(length = 500)
+    private String urlComprobante;
+
     // Constructor personalizado
     public Pago(Venta venta, BigDecimal monto, MetodoPago metodoPago, String referencia) {
         this.venta = venta;

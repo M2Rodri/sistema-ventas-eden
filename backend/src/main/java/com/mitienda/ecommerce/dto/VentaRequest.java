@@ -1,6 +1,7 @@
 package com.mitienda.ecommerce.dto;
 
 import com.mitienda.ecommerce.models.MetodoPago;
+import com.mitienda.ecommerce.models.ModalidadEntrega;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -41,6 +42,33 @@ public class VentaRequest {
     @NotNull(message = "Los productos son obligatorios")
     @Size(min = 1, message = "Debe incluir al menos un producto")
     private List<ItemVentaRequest> items;
+
+    /**
+     * Monto efectivamente cobrado al registrar la venta. Opcional: si no
+     * viene, se asume que se cobró el total completo (comportamiento previo
+     * a la venta a crédito).
+     */
+    private BigDecimal montoPagado;
+
+    /**
+     * Modalidad de entrega. Opcional: si no viene, se asume RETIRO (el
+     * cliente se lleva la mercadería en el momento).
+     */
+    private ModalidadEntrega modalidadEntrega;
+
+    // Obligatorio para DOMICILIO y TRANSPORTADORA
+    @Size(max = 300, message = "La dirección no puede exceder 300 caracteres")
+    private String direccionDestino;
+
+    @Size(max = 50, message = "La ciudad no puede exceder 50 caracteres")
+    private String ciudad;
+
+    // Obligatorios solo para TRANSPORTADORA
+    @Size(max = 100, message = "El nombre de la transportadora no puede exceder 100 caracteres")
+    private String transportadora;
+
+    @Size(max = 100, message = "La guía de remisión no puede exceder 100 caracteres")
+    private String guiaRemision;
 
     /**
      * Valida que se haya proporcionado al menos una forma de identificar al cliente

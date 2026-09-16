@@ -97,9 +97,23 @@ public class VentaService {
         Usuario usuario = usuarioRepository.findById(idUsuario)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + idUsuario));
 
-        if (request.getMetodoPago() != MetodoPago.EFECTIVO) {
-            if (request.getReferenciaPago() == null || request.getReferenciaPago().trim().isEmpty()) {
-                throw new RuntimeException("La referencia de pago es obligatoria para métodos de pago digitales");
+        ModalidadEntrega modalidadEntrega = request.getModalidadEntrega() != null
+                ? request.getModalidadEntrega() : ModalidadEntrega.RETIRO;
+
+        if (modalidadEntrega != ModalidadEntrega.RETIRO) {
+            if (request.getDireccionDestino() == null || request.getDireccionDestino().trim().isEmpty()) {
+                throw new RuntimeException("La dirección de destino es obligatoria para esta modalidad de entrega");
+            }
+            if (request.getCiudad() == null || request.getCiudad().trim().isEmpty()) {
+                throw new RuntimeException("La ciudad es obligatoria para esta modalidad de entrega");
+            }
+        }
+        if (modalidadEntrega == ModalidadEntrega.TRANSPORTADORA) {
+            if (request.getTransportadora() == null || request.getTransportadora().trim().isEmpty()) {
+                throw new RuntimeException("La transportadora es obligatoria para esta modalidad de entrega");
+            }
+            if (request.getGuiaRemision() == null || request.getGuiaRemision().trim().isEmpty()) {
+                throw new RuntimeException("La guía de remisión es obligatoria para esta modalidad de entrega");
             }
         }
 
@@ -126,7 +140,17 @@ public class VentaService {
         // El método de pago ya no se guarda en la venta: viaja al Pago (PASO 4),
         // porque una venta admite varios cobros con métodos distintos.
         venta.setUsuario(usuario);
-        venta.setEstado(EstadoVenta.COMPLETADA);
+
+        venta.setModalidadEntrega(modalidadEntrega);
+        venta.setEstadoEntrega(EstadoEntrega.PENDIENTE);
+        if (modalidadEntrega != ModalidadEntrega.RETIRO) {
+            venta.setDireccionDestino(request.getDireccionDestino().trim());
+            venta.setCiudad(request.getCiudad().trim());
+        }
+        if (modalidadEntrega == ModalidadEntrega.TRANSPORTADORA) {
+            venta.setTransportadora(request.getTransportadora().trim());
+            venta.setGuiaRemision(request.getGuiaRemision().trim());
+        }
 
         // PASO 1: CALCULAR TOTAL
         BigDecimal total = BigDecimal.ZERO;
@@ -167,8 +191,22 @@ public class VentaService {
         venta.setSubtotal(total);
         venta.setDescuento(BigDecimal.ZERO);
         venta.setMontoTotal(total);
-        // La venta se cobra completa en el PASO 4, así que no queda saldo.
-        venta.setSaldoPendiente(BigDecimal.ZERO);
+
+        // Si no se indica montoPagado, se asume que se cobró todo (comportamiento
+        // previo a la venta a crédito).
+        BigDecimal montoPagado = request.getMontoPagado() != null ? request.getMontoPagado() : total;
+        if (montoPagado.compareTo(BigDecimal.ZERO) < 0) {
+            throw new RuntimeException("El monto pagado no puede ser negativo");
+        }
+        if (montoPagado.compareTo(total) > 0) {
+            throw new RuntimeException("El monto pagado no puede superar el total de la venta");
+        }
+
+        BigDecimal saldoPendiente = total.subtract(montoPagado);
+        venta.setSaldoPendiente(saldoPendiente);
+        venta.setEstado(saldoPendiente.compareTo(BigDecimal.ZERO) == 0
+                ? EstadoVenta.COMPLETADA : EstadoVenta.PENDIENTE_PAGO);
+
         Venta savedVenta = ventaRepository.save(venta);
 
         // PASO 3: CREAR DETALLES Y REDUCIR INVENTARIO
@@ -225,13 +263,17 @@ public class VentaService {
         }
 
         // PASO 4: REGISTRAR PAGO
-        Pago pago = new Pago();
-        pago.setVenta(savedVenta);
-        pago.setMonto(total);
-        pago.setMetodoPago(request.getMetodoPago());
-        pago.setReferencia(request.getReferenciaPago());
-        pago.setEstado(EstadoPago.COMPLETADO);
-        pagoRepository.save(pago);
+        // Si montoPagado vino en 0 (venta enteramente a crédito), no hay pago
+        // que registrar: Pago exige un monto mayor a 0.
+        if (montoPagado.compareTo(BigDecimal.ZERO) > 0) {
+            Pago pago = new Pago();
+            pago.setVenta(savedVenta);
+            pago.setMonto(montoPagado);
+            pago.setMetodoPago(request.getMetodoPago());
+            pago.setReferencia(request.getReferenciaPago());
+            pago.setEstado(EstadoPago.COMPLETADO);
+            pagoRepository.save(pago);
+        }
 
         // PASO 5: GENERAR COMPROBANTE
         try {
@@ -290,6 +332,36 @@ public class VentaService {
                         + " por Bs " + cancelada.getMontoTotal());
 
         return new VentaResponse(cancelada);
+    }
+
+    /**
+     * Marca la entrega de una venta como completada.
+     *
+     * No se puede entregar mercadería de una venta que todavía debe plata:
+     * primero se cobra, después se entrega.
+     */
+    @Transactional
+    public VentaResponse marcarEntregado(Long id) {
+        Venta venta = ventaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Venta no encontrada con ID: " + id));
+
+        if (venta.getEstado() == EstadoVenta.CANCELADA) {
+            throw new RuntimeException("No se puede entregar una venta cancelada");
+        }
+        if (venta.getEstadoEntrega() == EstadoEntrega.ENTREGADO) {
+            throw new RuntimeException("Esta venta ya está marcada como entregada");
+        }
+        if (venta.getSaldoPendiente().compareTo(BigDecimal.ZERO) > 0) {
+            throw new RuntimeException("No se puede entregar una venta con saldo pendiente");
+        }
+
+        venta.setEstadoEntrega(EstadoEntrega.ENTREGADO);
+        Venta entregada = ventaRepository.save(venta);
+
+        registroAuditoria.registrar("ENTREGAR_VENTA", "ventas", entregada.getId(),
+                "Entrega marcada para la venta #" + entregada.getId());
+
+        return new VentaResponse(entregada);
     }
 
     @Transactional(readOnly = true)

@@ -37,5 +37,16 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addResourceHandler("/uploads/modelos-3d/**")
                 .addResourceLocations(uploadDirModels)
                 .setCachePeriod(0); // Sin caché para desarrollo
+
+        // ========== COMPROBANTES DE PAGO (Nuevo) ==========
+        Path uploadPathComprobantes = Paths.get(currentDir, "uploads", "comprobantes-pago").toAbsolutePath().normalize();
+        String uploadDirComprobantes = "file:" + uploadPathComprobantes.toString() + "/";
+
+        System.out.println("Directorio COMPROBANTES DE PAGO: " + uploadDirComprobantes);
+
+        // Mapear /uploads/comprobantes-pago/** a la carpeta física uploads/comprobantes-pago/
+        registry.addResourceHandler("/uploads/comprobantes-pago/**")
+                .addResourceLocations(uploadDirComprobantes)
+                .setCachePeriod(0); // Sin caché para desarrollo
     }
 }

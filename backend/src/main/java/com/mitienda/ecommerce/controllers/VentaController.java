@@ -98,6 +98,21 @@ public class VentaController {
     }
 
     /**
+     * PATCH /api/ventas/{id}/entregar
+     * Marcar la entrega de una venta como completada
+     */
+    @PatchMapping("/{id}/entregar")
+    public ResponseEntity<?> marcarEntregado(@PathVariable Long id) {
+        try {
+            VentaResponse venta = ventaService.marcarEntregado(id);
+            return ResponseEntity.ok(venta);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
      * GET /api/ventas/cliente/{clienteId}
      * Listar ventas de un cliente
      */

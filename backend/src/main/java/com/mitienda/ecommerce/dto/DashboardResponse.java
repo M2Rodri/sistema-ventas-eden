@@ -44,6 +44,11 @@ public class DashboardResponse {
     private List<VentaPorDiaDTO> ventasUltimosDias;
 
     /**
+     * Ventas con entrega pendiente y modalidad distinta de RETIRO.
+     */
+    private Long ventasPorEntregar;
+
+    /**
      * Clase interna para estadísticas de ventas
      */
     @Data

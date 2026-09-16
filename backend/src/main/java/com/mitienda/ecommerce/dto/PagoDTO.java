@@ -26,6 +26,14 @@ public class PagoDTO {
     private String referencia;
     private String observacion;
     private EstadoPago estado;
+    private String urlComprobante;
+
+    /**
+     * Un pago que no es EFECTIVO y no tiene foto de respaldo. Se calcula acá
+     * en vez de guardarse en la tabla: así nunca puede quedar desincronizado
+     * del dato real (metodoPago + urlComprobante).
+     */
+    private boolean sinRespaldo;
 
     // Constructor desde entidad
     public PagoDTO(Pago pago) {
@@ -37,5 +45,8 @@ public class PagoDTO {
         this.referencia = pago.getReferencia();
         this.observacion = pago.getObservacion();
         this.estado = pago.getEstado();
+        this.urlComprobante = pago.getUrlComprobante();
+        this.sinRespaldo = pago.getMetodoPago() != MetodoPago.EFECTIVO
+                && (pago.getUrlComprobante() == null || pago.getUrlComprobante().isBlank());
     }
 }

@@ -5,7 +5,6 @@ package com.mitienda.ecommerce.models;
  */
 public enum MetodoPago {
     EFECTIVO,
-    TARJETA,
     TRANSFERENCIA,
     QR
 }

@@ -74,6 +74,7 @@ public class DashboardService {
         dashboard.setAlertasStats(getAlertasStats());
         dashboard.setProductosMasVendidos(getProductosMasVendidos(10));
         dashboard.setVentasUltimosDias(getVentasUltimosDias(7));
+        dashboard.setVentasPorEntregar(ventaRepository.countVentasPorEntregar());
 
         return dashboard;
     }
@@ -166,10 +167,19 @@ public class DashboardService {
         );
     }
 
+    /**
+     * "Cuotas" es el nombre historico del campo, pero en 'ventas' no hay tabla
+     * de cuotas: lo que hay es saldoPendiente por venta. Por cobrar = ventas
+     * con saldo o que nunca se marcaron como completadas.
+     *
+     * No hay fecha de vencimiento en 'ventas', asi que "vencidas" no tiene con
+     * que calcularse hoy y queda en cero.
+     */
     private DashboardResponse.PagosStats getPagosStats() {
-        Long cuotasPendientes = 0L;
+        Long cuotasPendientes = ventaRepository.countVentasPorCobrar();
+        BigDecimal montoCuotasPendientes = ventaRepository.sumSaldoPendientePorCobrar();
+
         Long cuotasVencidas = 0L;
-        BigDecimal montoCuotasPendientes = BigDecimal.ZERO;
         BigDecimal montoCuotasVencidas = BigDecimal.ZERO;
 
         return new DashboardResponse.PagosStats(

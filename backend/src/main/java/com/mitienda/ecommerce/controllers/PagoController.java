@@ -9,7 +9,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -70,6 +72,29 @@ public class PagoController {
         try {
             PagoDTO createdPago = pagoService.registrarPago(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdPago);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * POST /api/pagos/{id}/comprobante
+     * Adjuntar (o reemplazar) la foto de comprobante de un pago ya registrado
+     */
+    @PostMapping("/{id}/comprobante")
+    public ResponseEntity<?> adjuntarComprobante(@PathVariable Long id,
+                                                  @RequestParam("file") MultipartFile file) {
+        try {
+            if (file == null || file.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("error", "El archivo del comprobante no puede estar vacío."));
+            }
+            PagoDTO pago = pagoService.adjuntarComprobante(id, file);
+            return ResponseEntity.ok(pago);
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Error al guardar el comprobante: " + e.getMessage()));
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("error", e.getMessage()));

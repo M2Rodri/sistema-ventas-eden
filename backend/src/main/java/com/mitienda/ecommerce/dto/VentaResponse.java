@@ -1,6 +1,8 @@
 package com.mitienda.ecommerce.dto;
 
+import com.mitienda.ecommerce.models.EstadoEntrega;
 import com.mitienda.ecommerce.models.EstadoVenta;
+import com.mitienda.ecommerce.models.ModalidadEntrega;
 import com.mitienda.ecommerce.models.Venta;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -31,6 +33,13 @@ public class VentaResponse {
     private EstadoVenta estado;
     private Boolean requiereEnvio;
 
+    private ModalidadEntrega modalidadEntrega;
+    private EstadoEntrega estadoEntrega;
+    private String direccionDestino;
+    private String ciudad;
+    private String transportadora;
+    private String guiaRemision;
+
     /**
      * Método de pago mostrado en los listados.
      *
@@ -47,6 +56,9 @@ public class VentaResponse {
     private List<PagoDTO> pagos;
     private LocalDateTime fechaActualizacion;
     private boolean esClienteRegistrado;
+
+    /** Al menos uno de los pagos de la venta es QR/transferencia sin foto de comprobante. */
+    private boolean tienePagosSinRespaldo;
 
     public VentaResponse(Venta venta) {
         this.id = venta.getId();
@@ -73,6 +85,13 @@ public class VentaResponse {
         this.estado = venta.getEstado();
         this.requiereEnvio = venta.getRequiereEnvio();
 
+        this.modalidadEntrega = venta.getModalidadEntrega();
+        this.estadoEntrega = venta.getEstadoEntrega();
+        this.direccionDestino = venta.getDireccionDestino();
+        this.ciudad = venta.getCiudad();
+        this.transportadora = venta.getTransportadora();
+        this.guiaRemision = venta.getGuiaRemision();
+
         this.idUsuario = venta.getUsuario() != null ? venta.getUsuario().getId() : null;
         this.nombreUsuario = venta.getUsuario() != null ? venta.getUsuario().getNombreCompleto() : null;
 
@@ -82,6 +101,7 @@ public class VentaResponse {
         this.pagos = venta.getPagos().stream()
                 .map(PagoDTO::new)
                 .collect(Collectors.toList());
+        this.tienePagosSinRespaldo = this.pagos.stream().anyMatch(PagoDTO::isSinRespaldo);
 
         this.metodoPago = derivarMetodoPago(venta);
         this.fechaActualizacion = venta.getFechaActualizacion();

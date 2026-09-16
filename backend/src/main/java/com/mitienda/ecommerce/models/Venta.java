@@ -84,6 +84,30 @@ public class Venta {
     @Column(name = "requiere_envio")
     private Boolean requiereEnvio = false;
 
+    /** Cómo llega el mueble al cliente: retiro en tienda, domicilio o transportadora. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "modalidad_entrega", nullable = false, length = 20)
+    private ModalidadEntrega modalidadEntrega = ModalidadEntrega.RETIRO;
+
+    /** Independiente del pago: una venta puede estar COMPLETADA y seguir sin entregarse. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado_entrega", nullable = false, length = 20)
+    private EstadoEntrega estadoEntrega = EstadoEntrega.PENDIENTE;
+
+    /** Obligatorio solo para DOMICILIO y TRANSPORTADORA. */
+    @Column(name = "direccion_destino", length = 300)
+    private String direccionDestino;
+
+    @Column(length = 50)
+    private String ciudad;
+
+    /** Nombre libre de la transportadora, solo para modalidad TRANSPORTADORA. */
+    @Column(length = 100)
+    private String transportadora;
+
+    @Column(name = "guia_remision", length = 100)
+    private String guiaRemision;
+
     @UpdateTimestamp
     @Column(nullable = false)
     private LocalDateTime fechaActualizacion;

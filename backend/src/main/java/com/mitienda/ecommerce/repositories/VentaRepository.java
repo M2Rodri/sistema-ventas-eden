@@ -113,4 +113,24 @@ public interface VentaRepository extends JpaRepository<Venta, Long> {
         @Param("inicio") LocalDateTime inicio,
         @Param("fin") LocalDateTime fin
     );
+
+    /**
+     * Ventas por cobrar: quedó saldo pendiente o nunca se completó el pago.
+     */
+    @Query("SELECT COUNT(v) FROM Venta v WHERE v.saldoPendiente > 0 OR v.estado = com.mitienda.ecommerce.models.EstadoVenta.PENDIENTE_PAGO")
+    Long countVentasPorCobrar();
+
+    /**
+     * Monto total por cobrar de esas mismas ventas.
+     */
+    @Query("SELECT COALESCE(SUM(v.saldoPendiente), 0) FROM Venta v WHERE v.saldoPendiente > 0 OR v.estado = com.mitienda.ecommerce.models.EstadoVenta.PENDIENTE_PAGO")
+    BigDecimal sumSaldoPendientePorCobrar();
+
+    /**
+     * Ventas por entregar: entrega pendiente y con envío involucrado (RETIRO
+     * se resuelve en el momento, no cuenta como pendiente de entrega).
+     */
+    @Query("SELECT COUNT(v) FROM Venta v WHERE v.estadoEntrega = com.mitienda.ecommerce.models.EstadoEntrega.PENDIENTE " +
+           "AND v.modalidadEntrega <> com.mitienda.ecommerce.models.ModalidadEntrega.RETIRO")
+    Long countVentasPorEntregar();
 }
