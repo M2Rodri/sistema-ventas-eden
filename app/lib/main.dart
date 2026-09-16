@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'data/auth_repository.dart';
-import 'models/sesion.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/login/login_screen.dart';
 import 'theme/app_colors.dart';
@@ -49,20 +48,29 @@ class _ArranqueState extends State<_Arranque> {
     if (!mounted) return;
 
     if (sesion != null) {
-      _entrarConSesion(sesion);
+      // Acá sí es seguro usar el context de _Arranque: todavía no se navegó
+      // a ningún lado, esta pantalla sigue siendo la actual.
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(builder: (_) => HomeScreen(sesion: sesion)),
+      );
     } else {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute<void>(
-          builder: (_) => LoginScreen(onSesionIniciada: _entrarConSesion),
+          // Mismo cuidado que en HomeScreen._cerrarSesion: el login es
+          // async, así que para cuando el usuario complete el formulario,
+          // pushReplacement ya sacó a _Arranque del árbol y su context dejó
+          // de servir. Se usa el context de esta ruta (el de LoginScreen),
+          // que sigue vivo en ese momento.
+          builder: (routeContext) => LoginScreen(
+            onSesionIniciada: (sesion) {
+              Navigator.of(routeContext).pushReplacement(
+                MaterialPageRoute<void>(builder: (_) => HomeScreen(sesion: sesion)),
+              );
+            },
+          ),
         ),
       );
     }
-  }
-
-  void _entrarConSesion(Sesion sesion) {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(builder: (_) => HomeScreen(sesion: sesion)),
-    );
   }
 
   @override

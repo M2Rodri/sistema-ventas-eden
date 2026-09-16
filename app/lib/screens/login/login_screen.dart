@@ -56,7 +56,12 @@ class _LoginScreenState extends State<LoginScreen> {
       widget.onSesionIniciada(sesion);
     } on ApiException catch (error) {
       setState(() => _errorMensaje = error.mensaje);
-    } catch (_) {
+    } catch (error, stackTrace) {
+      // Cualquier error que no sea de la API (por ejemplo, uno de
+      // navegación al volver de esta pantalla) queda en el log en vez de
+      // perderse: el mensaje que ve el usuario no dice nada útil para
+      // depurar.
+      debugPrint('Error inesperado en login: $error\n$stackTrace');
       setState(() => _errorMensaje = 'Ocurrió un error inesperado. Probá de nuevo.');
     } finally {
       if (mounted) setState(() => _cargando = false);

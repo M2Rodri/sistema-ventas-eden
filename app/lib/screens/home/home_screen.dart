@@ -69,9 +69,15 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute<void>(
-        builder: (_) => LoginScreen(
+        // Importante: acá adentro no hay que usar el "context" de
+        // _HomeScreenState. pushAndRemoveUntil saca esta pantalla del árbol,
+        // así que ese context queda inválido para cuando el usuario
+        // finalmente inicia sesión de nuevo (es async, tarda). Se usa el
+        // "routeContext" que entrega este mismo builder, que es el de la
+        // pantalla de login recién creada y sigue vivo en ese momento.
+        builder: (routeContext) => LoginScreen(
           onSesionIniciada: (sesion) {
-            Navigator.of(context).pushReplacement(
+            Navigator.of(routeContext).pushReplacement(
               MaterialPageRoute<void>(builder: (_) => HomeScreen(sesion: sesion)),
             );
           },
