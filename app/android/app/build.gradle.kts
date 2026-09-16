@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "bo.muebleriaeden.muebleria_eden_app"
+    namespace = "com.muebleriaeden"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -15,11 +15,11 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "bo.muebleriaeden.muebleria_eden_app"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        applicationId = "com.muebleriaeden"
+        // Fijo en 23 (en vez del default de Flutter) porque flutter_secure_storage
+        // usa EncryptedSharedPreferences, que depende del AndroidKeyStore moderno:
+        // por debajo de API 23 el cifrado no es confiable.
+        minSdk = 23
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

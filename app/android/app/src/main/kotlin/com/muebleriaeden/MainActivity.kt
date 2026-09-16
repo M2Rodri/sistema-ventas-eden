@@ -1,4 +1,4 @@
-package bo.muebleriaeden.muebleria_eden_app
+package com.muebleriaeden
 
 import io.flutter.embedding.android.FlutterActivity
 
