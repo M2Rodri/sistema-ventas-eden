@@ -7,7 +7,8 @@ import {
   getVentasEstadisticas,
   getVentasDelDia,
   cancelarVenta,
-  marcarVentaEntregada
+  marcarVentaEntregada,
+  getVentaById
 } from '@/lib/api';
 import { Venta, VentaEstadisticas, EstadoVenta, MetodoPago, EstadoEntrega } from '@/types/venta';
 import { exportarCSV, fechaArchivo } from '@/lib/exportar';
@@ -24,11 +25,13 @@ import {
   RefreshCw,
   Download,
   Users,
-  Truck
+  Truck,
+  Banknote
 } from 'lucide-react';
 import RegistrarVentaModal from '@/components/RegistrarVentaModal';
 import DetalleVentaModal from '@/components/DetalleVentaModal';
-import { useAuth } from '@/contexts/AuthContext';
+import CobrarSaldoModal from '@/components/CobrarSaldoModal';
+import { useAuth } from '@/hooks/useAuth';
 
 import Link from 'next/link';
 
@@ -45,6 +48,8 @@ export default function VentasPage() {
   const [showRegistrarModal, setShowRegistrarModal] = useState(false);
   const [showDetalleModal, setShowDetalleModal] = useState(false);
   const [ventaSeleccionada, setVentaSeleccionada] = useState<Venta | null>(null);
+  const [showCobrarSaldoModal, setShowCobrarSaldoModal] = useState(false);
+  const [ventaACobrar, setVentaACobrar] = useState<Venta | null>(null);
 
   // Estados para filtros
   const [busqueda, setBusqueda] = useState('');
@@ -171,6 +176,11 @@ export default function VentasPage() {
     }
   };
 
+  const handleAbrirCobrarSaldo = (venta: Venta) => {
+    setVentaACobrar(venta);
+    setShowCobrarSaldoModal(true);
+  };
+
   // Antes esto solo mostraba un alert diciendo que el archivo se habia
   // generado, sin generar nada. Ahora arma el CSV con las ventas que estan
   // filtradas en pantalla y el navegador lo descarga.
@@ -237,7 +247,8 @@ export default function VentasPage() {
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      hour12: false
     });
   };
 
@@ -569,6 +580,15 @@ export default function VentasPage() {
                             <Truck size={18} />
                           </button>
                         )}
+                        {venta.estado === EstadoVenta.PENDIENTE_PAGO && (venta.saldoPendiente ?? 0) > 0 && (
+                          <button
+                            onClick={() => handleAbrirCobrarSaldo(venta)}
+                            className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                            title="Cobrar saldo pendiente"
+                          >
+                            <Banknote size={18} />
+                          </button>
+                        )}
                         {user?.role === 'ADMIN' && venta.estado === EstadoVenta.COMPLETADA && (
                           <button
                             onClick={() => handleCancelarVenta(venta.id)}
@@ -609,6 +629,35 @@ export default function VentasPage() {
           }}
           venta={ventaSeleccionada}
           onUpdated={loadVentas}
+          onCobrarSaldo={() => {
+            setVentaACobrar(ventaSeleccionada);
+            setShowCobrarSaldoModal(true);
+          }}
+        />
+      )}
+
+      {showCobrarSaldoModal && ventaACobrar && (
+        <CobrarSaldoModal
+          venta={ventaACobrar}
+          onClose={() => {
+            setShowCobrarSaldoModal(false);
+            setVentaACobrar(null);
+          }}
+          onSuccess={async () => {
+            loadVentas();
+            loadEstadisticas();
+            // Si la venta que se acaba de cobrar es la que está abierta en
+            // el detalle, se refresca también ahí (si no, queda mostrando
+            // el saldo y los pagos viejos hasta cerrar y volver a abrir).
+            if (ventaSeleccionada && ventaACobrar && ventaSeleccionada.id === ventaACobrar.id) {
+              try {
+                const actualizada = await getVentaById(ventaACobrar.id);
+                setVentaSeleccionada(actualizada);
+              } catch (err) {
+                console.error('Error al refrescar la venta:', err);
+              }
+            }
+          }}
         />
       )}
     </div>

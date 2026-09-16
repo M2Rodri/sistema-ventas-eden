@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { X, User, Calendar, CreditCard, Package, AlertCircle, FileText, Upload, Image as ImageIcon } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, User, Calendar, CreditCard, Package, AlertCircle, FileText, Upload, Image as ImageIcon, Banknote } from 'lucide-react';
 import { Venta, Pago } from '@/types/venta';
 import { adjuntarComprobantePago, BACKEND_URL } from '@/lib/api';
 import ComprobanteModal from '@/components/ComprobanteModal';
@@ -11,13 +11,20 @@ interface DetalleVentaModalProps {
   onClose: () => void;
   venta: Venta;
   onUpdated?: () => void;
+  onCobrarSaldo?: () => void;
 }
 
-export default function DetalleVentaModal({ isOpen, onClose, venta, onUpdated }: DetalleVentaModalProps) {
+export default function DetalleVentaModal({ isOpen, onClose, venta, onUpdated, onCobrarSaldo }: DetalleVentaModalProps) {
   const [showComprobanteModal, setShowComprobanteModal] = useState(false);
   const [pagosState, setPagosState] = useState<Pago[]>(venta.pagos);
   const [subiendoId, setSubiendoId] = useState<number | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+
+  // Si venta.pagos cambia (por ejemplo, al cobrar el saldo pendiente desde
+  // este mismo modal), este estado local se pone al día.
+  useEffect(() => {
+    setPagosState(venta.pagos);
+  }, [venta.pagos]);
 
   const tienePagosSinRespaldo = pagosState.some((p) => p.sinRespaldo);
 
@@ -57,6 +64,7 @@ export default function DetalleVentaModal({ isOpen, onClose, venta, onUpdated }:
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
+      hour12: false,
     });
   };
 
@@ -188,6 +196,14 @@ export default function DetalleVentaModal({ isOpen, onClose, venta, onUpdated }:
                   {estadoBadge.label}
                 </span>
               </div>
+              {venta.estado === 'PENDIENTE_PAGO' && (venta.saldoPendiente ?? 0) > 0 && (
+                <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-200">
+                  <span className="text-sm font-medium text-gray-700">Saldo pendiente:</span>
+                  <span className="text-lg font-bold text-red-600">
+                    {formatPrice(venta.saldoPendiente ?? 0)}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -334,17 +350,25 @@ export default function DetalleVentaModal({ isOpen, onClose, venta, onUpdated }:
           {/* Botones */}
           <div className="flex gap-3 p-6 border-t border-gray-200 bg-gray-50">
             
-            {/* NUEVOS BOTONES: Imprimir y Descargar (solo para ventas COMPLETADAS) */}
-            {venta.estado === 'COMPLETADA' && (
-              <>
-                <button
-                  onClick={handleVerComprobante}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
-                >
-                  <FileText size={20} />
-                  Ver Comprobante
-                </button>
-              </>
+            {/* El comprobante se genera para toda venta al registrarla, sin
+                importar el estado: documenta qué se vendió, no si está
+                pagada. Por eso este botón no depende del estado. */}
+            <button
+              onClick={handleVerComprobante}
+              className="flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+            >
+              <FileText size={20} />
+              Ver Comprobante
+            </button>
+
+            {venta.estado === 'PENDIENTE_PAGO' && (venta.saldoPendiente ?? 0) > 0 && onCobrarSaldo && (
+              <button
+                onClick={onCobrarSaldo}
+                className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
+              >
+                <Banknote size={20} />
+                Cobrar saldo pendiente
+              </button>
             )}
 
             <button

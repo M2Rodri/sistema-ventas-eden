@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { X, Printer } from 'lucide-react';
+import { X, Printer, Share2 } from 'lucide-react';
 import { getComprobanteByVenta, getVentaById, createComprobante } from '@/lib/api';
 import type { Comprobante } from '@/lib/api';
 import type { Venta } from '@/types/venta';
@@ -17,6 +17,8 @@ export default function ComprobanteModal({ isOpen, onClose, idVenta }: Comproban
   const [venta, setVenta] = useState<Venta | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [compartiendo, setCompartiendo] = useState(false);
+  const [avisoCompartir, setAvisoCompartir] = useState<string | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -64,6 +66,60 @@ export default function ComprobanteModal({ isOpen, onClose, idVenta }: Comproban
     window.print();
   };
 
+  // Convierte el mismo contenido que se imprime en un PDF real (en el
+  // navegador, sin pedirle nada al backend) y lo comparte directo con
+  // navigator.share. Donde el navegador no soporte compartir archivos, se
+  // descarga el PDF para adjuntarlo a mano.
+  const handleCompartir = async () => {
+    if (!printRef.current || !comprobante) return;
+
+    setCompartiendo(true);
+    setAvisoCompartir(null);
+
+    try {
+      const html2pdf = (await import('html2pdf.js')).default;
+      const nombreArchivo = `${comprobante.numeroComprobante}.pdf`;
+
+      const blob: Blob = await html2pdf()
+        .from(printRef.current)
+        .set({
+          margin: 10,
+          filename: nombreArchivo,
+          html2canvas: { scale: 2 },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        })
+        .outputPdf('blob');
+
+      const archivo = new File([blob], nombreArchivo, { type: 'application/pdf' });
+
+      if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+        await navigator.share({
+          files: [archivo],
+          title: `Comprobante ${comprobante.numeroComprobante}`,
+          text: `Comprobante de venta ${comprobante.numeroComprobante}`,
+        });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const enlace = document.createElement('a');
+        enlace.href = url;
+        enlace.download = nombreArchivo;
+        document.body.appendChild(enlace);
+        enlace.click();
+        document.body.removeChild(enlace);
+        URL.revokeObjectURL(url);
+        setAvisoCompartir(
+          'Este navegador no permite compartir el archivo directo: se descargó el PDF para adjuntarlo a mano.',
+        );
+      }
+    } catch (err: any) {
+      if (err?.name !== 'AbortError') {
+        setAvisoCompartir(err.message || 'Error al generar o compartir el comprobante');
+      }
+    } finally {
+      setCompartiendo(false);
+    }
+  };
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-BO', {
       style: 'currency',
@@ -78,6 +134,7 @@ export default function ComprobanteModal({ isOpen, onClose, idVenta }: Comproban
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
+      hour12: false,
     });
   };
 
@@ -109,6 +166,14 @@ export default function ComprobanteModal({ isOpen, onClose, idVenta }: Comproban
               Imprimir / Guardar PDF
             </button>
             <button
+              onClick={handleCompartir}
+              disabled={loading || !comprobante || compartiendo}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Share2 size={18} />
+              {compartiendo ? 'Generando...' : 'Compartir PDF'}
+            </button>
+            <button
               onClick={onClose}
               className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
             >
@@ -119,6 +184,11 @@ export default function ComprobanteModal({ isOpen, onClose, idVenta }: Comproban
 
         {/* Contenido del comprobante */}
         <div className="p-6">
+          {avisoCompartir && (
+            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+              {avisoCompartir}
+            </div>
+          )}
           {loading && (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">

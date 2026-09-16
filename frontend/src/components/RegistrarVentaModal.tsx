@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   X,
   AlertCircle,
@@ -10,6 +10,8 @@ import {
   Plus,
   Trash2,
   Package,
+  ChevronDown,
+  Upload,
 } from "lucide-react";
 import {
   VentaRequest,
@@ -17,7 +19,17 @@ import {
   ItemVentaRequest,
   ModalidadEntrega,
 } from "@/types/venta";
-import { createVentaDirecta, getAllProductos, getAllClientes } from "@/lib/api";
+import {
+  createVentaDirecta,
+  getAllProductos,
+  getAllClientes,
+  adjuntarComprobantePago,
+} from "@/lib/api";
+
+// Redondea a centavos apenas se calcula un monto, para que dos totales que
+// deberían coincidir (venta vs. pagado) no queden desalineados por un
+// residuo de coma flotante (ej: 0.1 + 0.2 = 0.30000000000000004).
+const redondear = (valor: number) => Math.round(valor * 100) / 100;
 
 interface ProductoCarrito {
   idProducto: number;
@@ -26,6 +38,7 @@ interface ProductoCarrito {
   precioOriginal: number;
   precioFinal: number;
   cantidad: number;
+  stock: number;
   descuentoPorcentaje: number;
   subtotal: number;
 }
@@ -53,12 +66,17 @@ export default function RegistrarVentaModal({
   const [clienteSeleccionado, setClienteSeleccionado] = useState<any | null>(
     null,
   );
+  const [mostrarListaClientes, setMostrarListaClientes] = useState(false);
+  const clienteBoxRef = useRef<HTMLDivElement>(null);
 
   // Productos
   const [productos, setProductos] = useState<any[]>([]);
   const [busquedaProducto, setBusquedaProducto] = useState("");
+  const [tipoActivo, setTipoActivo] = useState<string | null>(null);
   const [productosFiltrados, setProductosFiltrados] = useState<any[]>([]);
+  const [mostrarListaProductos, setMostrarListaProductos] = useState(false);
   const [carrito, setCarrito] = useState<ProductoCarrito[]>([]);
+  const productoBoxRef = useRef<HTMLDivElement>(null);
 
   // Entrega
   const [modalidadEntrega, setModalidadEntrega] = useState<ModalidadEntrega>(
@@ -73,6 +91,8 @@ export default function RegistrarVentaModal({
   const [pagos, setPagos] = useState<
     { metodo: MetodoPago; monto: number; referencia: string }[]
   >([{ metodo: MetodoPago.EFECTIVO, monto: 0, referencia: "" }]);
+  const [comprobanteFile, setComprobanteFile] = useState<File | null>(null);
+  const [saldoPendienteHabilitado, setSaldoPendienteHabilitado] = useState(false);
   const [clientes, setClientes] = useState<any[]>([]);
 
   // Estado
@@ -84,6 +104,27 @@ export default function RegistrarVentaModal({
     if (isOpen) cargarProductos();
     cargarClientes();
   }, [isOpen]);
+
+  // Cerrar los dropdowns de cliente/producto al hacer click fuera de su caja.
+  useEffect(() => {
+    const handleClickFuera = (e: MouseEvent) => {
+      if (
+        clienteBoxRef.current &&
+        !clienteBoxRef.current.contains(e.target as Node)
+      ) {
+        setMostrarListaClientes(false);
+      }
+      if (
+        productoBoxRef.current &&
+        !productoBoxRef.current.contains(e.target as Node)
+      ) {
+        setMostrarListaProductos(false);
+        setTipoActivo(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickFuera);
+    return () => document.removeEventListener("mousedown", handleClickFuera);
+  }, []);
 
   const cargarProductos = async () => {
     try {
@@ -103,28 +144,38 @@ export default function RegistrarVentaModal({
   };
 
   useEffect(() => {
-    if (busquedaProducto.trim().length > 0) {
-      const filtrados = productos.filter(
-        (p) =>
-          p.nombre.toLowerCase().includes(busquedaProducto.toLowerCase()) ||
-          p.sku.toLowerCase().includes(busquedaProducto.toLowerCase()),
-      );
-      setProductosFiltrados(filtrados);
-    } else {
+    const texto = busquedaProducto.trim().toLowerCase();
+    if (!texto && !tipoActivo) {
       setProductosFiltrados([]);
+      return;
     }
-  }, [busquedaProducto, productos]);
+    const filtrados = productos.filter((p) => {
+      const coincideTexto =
+        !texto ||
+        p.nombre.toLowerCase().includes(texto) ||
+        p.sku.toLowerCase().includes(texto);
+      const coincideTipo = !tipoActivo || p.tipoProducto === tipoActivo;
+      return coincideTexto && coincideTipo;
+    });
+    setProductosFiltrados(filtrados);
+  }, [busquedaProducto, tipoActivo, productos]);
+
+  const toggleTipoProducto = (tipo: string) => {
+    setTipoActivo((prev) => (prev === tipo ? null : tipo));
+    setMostrarListaProductos(true);
+  };
 
   const agregarAlCarrito = (producto: any) => {
     const existe = carrito.find((item) => item.idProducto === producto.id);
     if (existe) {
+      if (existe.cantidad >= existe.stock) return;
       setCarrito(
         carrito.map((item) =>
           item.idProducto === producto.id
             ? {
                 ...item,
                 cantidad: item.cantidad + 1,
-                subtotal: (item.cantidad + 1) * item.precioFinal,
+                subtotal: redondear((item.cantidad + 1) * item.precioFinal),
               }
             : item,
         ),
@@ -139,41 +190,114 @@ export default function RegistrarVentaModal({
           precioOriginal: producto.precioVenta,
           precioFinal: producto.precioVenta,
           cantidad: 1,
+          stock: producto.stock,
           descuentoPorcentaje: 0,
           subtotal: producto.precioVenta,
         },
       ]);
     }
     setBusquedaProducto("");
-    setProductosFiltrados([]);
+    setTipoActivo(null);
+    setMostrarListaProductos(false);
   };
 
-  const actualizarCantidad = (idProducto: number, cantidad: number) => {
-    if (cantidad < 1) return;
+  // Mientras se edita el campo se acepta vacío (se guarda como 0, que se
+  // muestra en blanco) para poder borrar y escribir otro número; recién al
+  // salir del campo (onBlur) se exige mínimo 1. El máximo nunca pasa del
+  // stock disponible.
+  const actualizarCantidad = (idProducto: number, valor: string) => {
+    if (valor === "") {
+      setCarrito(
+        carrito.map((item) =>
+          item.idProducto === idProducto
+            ? { ...item, cantidad: 0, subtotal: 0 }
+            : item,
+        ),
+      );
+      return;
+    }
+
+    const item = carrito.find((i) => i.idProducto === idProducto);
+    if (!item) return;
+
+    let cantidad = parseInt(valor, 10);
+    if (isNaN(cantidad) || cantidad < 0) return;
+    if (cantidad > item.stock) cantidad = item.stock;
+
     setCarrito(
       carrito.map((item) =>
         item.idProducto === idProducto
-          ? { ...item, cantidad, subtotal: cantidad * item.precioFinal }
+          ? {
+              ...item,
+              cantidad,
+              subtotal: redondear(cantidad * item.precioFinal),
+            }
           : item,
       ),
     );
   };
 
-  const aplicarDescuento = (idProducto: number, porcentaje: number) => {
-    if (porcentaje < 0 || porcentaje > 100) return;
+  // Si el campo queda en 0 (vacío) al salir, se completa con 1 en vez de
+  // dejar una cantidad inválida.
+  const confirmarCantidadMinima = (idProducto: number) => {
+    setCarrito((prev) =>
+      prev.map((item) =>
+        item.idProducto === idProducto && item.cantidad < 1
+          ? { ...item, cantidad: 1, subtotal: item.precioFinal }
+          : item,
+      ),
+    );
+  };
+
+  // El precio acordado es lo que se escribe; el % de descuento sale solo,
+  // calculado a partir de la diferencia con el precio de catálogo.
+  const actualizarPrecioAcordado = (idProducto: number, valor: string) => {
+    if (valor === "") return; // se deja vacío mientras se escribe, sin tocar el estado
+
+    const item = carrito.find((i) => i.idProducto === idProducto);
+    if (!item) return;
+
+    const precioFinal = parseFloat(valor);
+    if (isNaN(precioFinal) || precioFinal < 0) return;
+
+    const descuentoPorcentaje =
+      item.precioOriginal > 0
+        ? redondear(
+            ((item.precioOriginal - precioFinal) / item.precioOriginal) * 100,
+          )
+        : 0;
+
     setCarrito(
-      carrito.map((item) => {
-        if (item.idProducto === idProducto) {
-          const precioFinal = item.precioOriginal * (1 - porcentaje / 100);
-          return {
-            ...item,
-            descuentoPorcentaje: porcentaje,
-            precioFinal,
-            subtotal: item.cantidad * precioFinal,
-          };
-        }
-        return item;
-      }),
+      carrito.map((i) =>
+        i.idProducto === idProducto
+          ? {
+              ...i,
+              precioFinal,
+              descuentoPorcentaje,
+              subtotal: redondear(i.cantidad * precioFinal),
+            }
+          : i,
+      ),
+    );
+  };
+
+  // Al salir del campo: si quedó vacío, se redibuja con el último precio
+  // válido. El precio de venta nunca puede superar el catálogo: el backend
+  // hoy solo acepta precios menores (para el descuento), y uno mayor lo
+  // ignora en silencio y cobra igual el de catálogo. Hasta que eso se
+  // resuelva del lado del backend, un precio por encima se recorta acá.
+  const confirmarPrecioAcordado = (idProducto: number) => {
+    setCarrito((prev) =>
+      prev.map((i) =>
+        i.idProducto === idProducto && i.precioFinal > i.precioOriginal
+          ? {
+              ...i,
+              precioFinal: i.precioOriginal,
+              descuentoPorcentaje: 0,
+              subtotal: redondear(i.cantidad * i.precioOriginal),
+            }
+          : { ...i },
+      ),
     );
   };
 
@@ -181,18 +305,36 @@ export default function RegistrarVentaModal({
     setCarrito(carrito.filter((item) => item.idProducto !== idProducto));
   };
 
-  const totalVenta = carrito.reduce((acc, item) => acc + item.subtotal, 0);
+  // La rueda del mouse cambia el valor de un input numérico enfocado, aunque
+  // la intención sea solo desplazar el modal. Se le quita el foco antes de
+  // que el navegador aplique el scroll.
+  const evitarCambioPorRueda = (e: React.WheelEvent<HTMLInputElement>) => {
+    e.currentTarget.blur();
+  };
 
-  // Por defecto se cobra el total. Si el cajero quiere registrar una venta
-  // a crédito (parcial o sin pago), reduce el monto a mano más abajo.
+  const totalVenta = redondear(
+    carrito.reduce((acc, item) => acc + item.subtotal, 0),
+  );
+  const totalOriginal = redondear(
+    carrito.reduce(
+      (acc, item) => acc + item.precioOriginal * item.cantidad,
+      0,
+    ),
+  );
+  const totalDescuento = redondear(totalOriginal - totalVenta);
+
+  // Por defecto se cobra el total. Mientras no se habilite el saldo
+  // pendiente, "Monto a cobrar hoy" queda fijo en el total (no se puede
+  // reducir): dejar algo a deber es una decisión explícita, no un
+  // descuido de tipeo.
   useEffect(() => {
-    if (pagos.length === 1) {
+    if (!saldoPendienteHabilitado && pagos.length === 1) {
       setPagos([{ ...pagos[0], monto: totalVenta }]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [totalVenta]);
+  }, [totalVenta, saldoPendienteHabilitado]);
 
-  const montoPagado = pagos.reduce((acc, p) => acc + p.monto, 0);
+  const montoPagado = redondear(pagos.reduce((acc, p) => acc + p.monto, 0));
 
   const handleSubmit = async () => {
     setError(null);
@@ -204,6 +346,11 @@ export default function RegistrarVentaModal({
 
     if (carrito.length === 0) {
       setError("Debe agregar al menos un producto");
+      return;
+    }
+
+    if (carrito.some((item) => item.cantidad < 1)) {
+      setError("Hay un producto con cantidad inválida");
       return;
     }
 
@@ -267,7 +414,23 @@ export default function RegistrarVentaModal({
             : undefined,
       };
 
-      await createVentaDirecta(request, idUsuarioActual);
+      const creada = await createVentaDirecta(request, idUsuarioActual);
+
+      // El comprobante viaja aparte: la venta ya quedó registrada aunque
+      // esto falle. Si no hay pago (venta enteramente a crédito) no hay a
+      // qué pago adjuntarlo todavía; se hace después desde el detalle.
+      if (comprobanteFile && creada.pagos && creada.pagos.length > 0) {
+        try {
+          await adjuntarComprobantePago(creada.pagos[0].id, comprobanteFile);
+        } catch (errComprobante: any) {
+          alert(
+            "La venta se registró, pero no se pudo subir el comprobante: " +
+              (errComprobante.message || "error desconocido") +
+              ". Podés adjuntarlo después desde el detalle de la venta.",
+          );
+        }
+      }
+
       onSuccess();
       resetForm();
       onClose();
@@ -286,6 +449,11 @@ export default function RegistrarVentaModal({
     setClienteSeleccionado(null);
     setCarrito([]);
     setBusquedaProducto("");
+    setTipoActivo(null);
+    setMostrarListaProductos(false);
+    setMostrarListaClientes(false);
+    setComprobanteFile(null);
+    setSaldoPendienteHabilitado(false);
     setModalidadEntrega(ModalidadEntrega.RETIRO);
     setDireccionDestino("");
     setCiudad("");
@@ -333,7 +501,7 @@ export default function RegistrarVentaModal({
             </h3>
 
             {/* Buscador de cliente existente */}
-            <div className="relative mb-3">
+            <div className="relative mb-3" ref={clienteBoxRef}>
               <div className="flex items-center border border-gray-300 rounded-lg px-4 py-2 gap-2">
                 <Search size={18} className="text-gray-400" />
                 <input
@@ -342,7 +510,9 @@ export default function RegistrarVentaModal({
                   onChange={(e) => {
                     setBusquedaCliente(e.target.value);
                     setClienteSeleccionado(null);
+                    setMostrarListaClientes(true);
                   }}
+                  onFocus={() => setMostrarListaClientes(true)}
                   className="flex-1 outline-none text-sm"
                   placeholder="Buscar cliente por nombre o celular..."
                 />
@@ -351,15 +521,26 @@ export default function RegistrarVentaModal({
                     onClick={() => {
                       setClienteSeleccionado(null);
                       setBusquedaCliente("");
+                      setMostrarListaClientes(false);
                     }}
                   >
                     <X size={16} className="text-gray-400" />
                   </button>
                 )}
+                {!clienteSeleccionado && (
+                  <button
+                    type="button"
+                    onClick={() => setMostrarListaClientes((v) => !v)}
+                    className="flex items-center justify-center text-gray-400 hover:text-gray-600 border-l border-gray-200 pl-2"
+                    title="Ver todos los clientes"
+                  >
+                    <ChevronDown size={16} />
+                  </button>
+                )}
               </div>
 
               {/* Resultados búsqueda */}
-              {busquedaCliente.length > 1 && !clienteSeleccionado && (
+              {mostrarListaClientes && !clienteSeleccionado && (
                 <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-20 max-h-40 overflow-y-auto">
                   {clientes
                     .filter(
@@ -379,6 +560,7 @@ export default function RegistrarVentaModal({
                         onClick={() => {
                           setClienteSeleccionado(c);
                           setBusquedaCliente(`${c.nombre} ${c.apellido || ""}`);
+                          setMostrarListaClientes(false);
                         }}
                         className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b last:border-0"
                       >
@@ -453,38 +635,69 @@ export default function RegistrarVentaModal({
               <Package size={20} /> Productos
             </h3>
 
-            {/* Buscador */}
-            <div className="relative mb-4">
-              <div className="flex items-center border border-gray-300 rounded-lg px-4 py-2 gap-2">
-                <Search size={18} className="text-gray-400" />
-                <input
-                  type="text"
-                  value={busquedaProducto}
-                  onChange={(e) => setBusquedaProducto(e.target.value)}
-                  className="flex-1 outline-none text-sm"
-                  placeholder="Buscar por nombre o SKU..."
-                />
+            {/* Buscador + filtro por tipo, en la misma fila */}
+            <div className="relative mb-4" ref={productoBoxRef}>
+              <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr] items-stretch gap-2">
+                <div className="flex items-center border border-gray-300 rounded-lg px-3 py-1.5 gap-1.5">
+                  <Search size={14} className="text-gray-400 flex-shrink-0" />
+                  <input
+                    type="text"
+                    value={busquedaProducto}
+                    onChange={(e) => {
+                      setBusquedaProducto(e.target.value);
+                      setMostrarListaProductos(true);
+                    }}
+                    onFocus={() => setMostrarListaProductos(true)}
+                    className="w-full min-w-0 outline-none text-xs"
+                    placeholder="Buscar..."
+                  />
+                </div>
+                {[
+                  { valor: "CAMA", etiqueta: "Camas" },
+                  { valor: "COLCHON", etiqueta: "Colchones" },
+                  { valor: "ALMOHADA", etiqueta: "Almohadas" },
+                  { valor: "ACCESORIO", etiqueta: "Accesorios" },
+                ].map((tipo) => (
+                  <button
+                    key={tipo.valor}
+                    type="button"
+                    onClick={() => toggleTipoProducto(tipo.valor)}
+                    className={`w-full whitespace-nowrap border rounded-lg px-2 py-1.5 text-[11px] font-medium select-none text-center ${
+                      tipoActivo === tipo.valor
+                        ? "border-blue-500 bg-blue-50 text-blue-700"
+                        : "border-gray-300 text-gray-600"
+                    }`}
+                  >
+                    {tipo.etiqueta}
+                  </button>
+                ))}
               </div>
-              {productosFiltrados.length > 0 && (
+              {mostrarListaProductos && (busquedaProducto.trim() || tipoActivo) && (
                 <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-20 max-h-48 overflow-y-auto">
-                  {productosFiltrados.map((p) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => agregarAlCarrito(p)}
-                      className="w-full text-left px-4 py-3 hover:bg-gray-50 flex justify-between items-center border-b last:border-0"
-                    >
-                      <div>
-                        <p className="font-medium text-sm">{p.nombre}</p>
-                        <p className="text-xs text-gray-500">
-                          SKU: {p.sku} — Stock: {p.stock}
-                        </p>
-                      </div>
-                      <span className="text-sm font-semibold text-green-600">
-                        Bs. {p.precioVenta}
-                      </span>
-                    </button>
-                  ))}
+                  {productosFiltrados.length > 0 ? (
+                    productosFiltrados.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => agregarAlCarrito(p)}
+                        className="w-full text-left px-4 py-3 hover:bg-gray-50 flex justify-between items-center border-b last:border-0"
+                      >
+                        <div>
+                          <p className="font-medium text-sm">{p.nombre}</p>
+                          <p className="text-xs text-gray-500">
+                            SKU: {p.sku} — Stock: {p.stock}
+                          </p>
+                        </div>
+                        <span className="text-sm font-semibold text-green-600">
+                          Bs. {p.precioVenta}
+                        </span>
+                      </button>
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-400 px-4 py-3">
+                      No se encontraron productos.
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -513,7 +726,7 @@ export default function RegistrarVentaModal({
                         <Trash2 size={18} />
                       </button>
                     </div>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <div>
                         <label className="text-xs text-gray-500 block mb-1">
                           Cantidad
@@ -521,33 +734,53 @@ export default function RegistrarVentaModal({
                         <input
                           type="number"
                           min={1}
-                          value={item.cantidad}
+                          max={item.stock}
+                          value={item.cantidad === 0 ? "" : item.cantidad}
                           onChange={(e) =>
-                            actualizarCantidad(
-                              item.idProducto,
-                              parseInt(e.target.value),
-                            )
+                            actualizarCantidad(item.idProducto, e.target.value)
                           }
+                          onBlur={() =>
+                            confirmarCantidadMinima(item.idProducto)
+                          }
+                          onWheel={evitarCambioPorRueda}
                           className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
                         />
+                        <p className="text-[11px] text-gray-400 mt-0.5">
+                          Stock: {item.stock}
+                        </p>
                       </div>
                       <div>
                         <label className="text-xs text-gray-500 block mb-1">
-                          Descuento %
+                          Precio
                         </label>
-                        <input
-                          type="number"
-                          min={0}
-                          max={100}
-                          value={item.descuentoPorcentaje}
-                          onChange={(e) =>
-                            aplicarDescuento(
-                              item.idProducto,
-                              parseFloat(e.target.value) || 0,
-                            )
-                          }
-                          className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                        />
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {item.descuentoPorcentaje > 0 && (
+                            <span className="text-xs text-gray-400 line-through">
+                              Bs. {item.precioOriginal.toFixed(2)}
+                            </span>
+                          )}
+                          <input
+                            type="number"
+                            min={0}
+                            value={item.precioFinal}
+                            onChange={(e) =>
+                              actualizarPrecioAcordado(
+                                item.idProducto,
+                                e.target.value,
+                              )
+                            }
+                            onBlur={() =>
+                              confirmarPrecioAcordado(item.idProducto)
+                            }
+                            onWheel={evitarCambioPorRueda}
+                            className="w-24 border border-gray-300 rounded px-2 py-1 text-sm"
+                          />
+                          {item.descuentoPorcentaje > 0 && (
+                            <span className="text-xs font-medium text-orange-600">
+                              -{item.descuentoPorcentaje.toFixed(2)}%
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div>
                         <label className="text-xs text-gray-500 block mb-1">
@@ -560,11 +793,6 @@ export default function RegistrarVentaModal({
                     </div>
                   </div>
                 ))}
-                <div className="flex justify-end pt-2">
-                  <p className="text-lg font-bold text-gray-900">
-                    Total: Bs. {totalVenta.toFixed(2)}
-                  </p>
-                </div>
               </div>
             )}
           </div>
@@ -578,7 +806,11 @@ export default function RegistrarVentaModal({
                 key={index}
                 className="border border-gray-200 rounded-lg p-4 mb-3"
               >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
+                <div
+                  className={`grid grid-cols-1 gap-3 items-end ${
+                    index === 0 ? "md:grid-cols-3" : "md:grid-cols-2"
+                  }`}
+                >
                   <div>
                     <label className="text-xs text-gray-500 block mb-1">
                       Método
@@ -601,20 +833,98 @@ export default function RegistrarVentaModal({
                   </div>
                   <div>
                     <label className="text-xs text-gray-500 block mb-1">
-                      Monto (Bs.)
+                      Monto a cobrar hoy (Bs.)
                     </label>
                     <input
                       type="number"
                       min={0}
-                      value={pago.monto}
+                      value={pago.monto === 0 ? "" : pago.monto}
                       onChange={(e) => {
+                        const valor = e.target.value;
+                        const montoIngresado =
+                          valor === "" ? 0 : redondear(parseFloat(valor) || 0);
+                        // No puede cobrarse (entre todos los métodos) más
+                        // que el total de la venta.
+                        const sumaOtrasFilas = pagos.reduce(
+                          (acc, p, i) => (i === index ? acc : acc + p.monto),
+                          0,
+                        );
+                        const maximoPermitido = Math.max(
+                          0,
+                          redondear(totalVenta - sumaOtrasFilas),
+                        );
                         const nuevos = [...pagos];
-                        nuevos[index].monto = parseFloat(e.target.value) || 0;
+                        nuevos[index].monto = Math.min(
+                          montoIngresado,
+                          maximoPermitido,
+                        );
                         setPagos(nuevos);
                       }}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                      onWheel={evitarCambioPorRueda}
+                      disabled={index === 0 && !saldoPendienteHabilitado}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm disabled:bg-gray-100 disabled:text-gray-500"
                     />
                   </div>
+                  {index === 0 && !saldoPendienteHabilitado && (
+                    <div className="flex items-end">
+                      <button
+                        type="button"
+                        onClick={() => setSaldoPendienteHabilitado(true)}
+                        className="text-sm text-blue-600 hover:text-blue-800 font-medium underline underline-offset-2"
+                      >
+                        + Habilitar saldo pendiente
+                      </button>
+                    </div>
+                  )}
+                  {index === 0 && saldoPendienteHabilitado && (
+                    <div>
+                      <label className="text-xs text-gray-500 flex items-center justify-between mb-1">
+                        Saldo pendiente (Bs.)
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSaldoPendienteHabilitado(false);
+                            const nuevos = [...pagos];
+                            nuevos[0] = { ...nuevos[0], monto: totalVenta };
+                            setPagos(nuevos);
+                          }}
+                          className="text-red-500 hover:text-red-700 text-[11px] font-normal"
+                        >
+                          Quitar
+                        </button>
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={totalVenta}
+                        value={
+                          totalVenta - montoPagado === 0
+                            ? ""
+                            : redondear(totalVenta - montoPagado)
+                        }
+                        onChange={(e) => {
+                          const valor = e.target.value;
+                          if (valor === "") {
+                            const nuevos = [...pagos];
+                            nuevos[0] = { ...nuevos[0], monto: totalVenta };
+                            setPagos(nuevos);
+                            return;
+                          }
+                          const saldo = parseFloat(valor);
+                          if (isNaN(saldo) || saldo < 0) return;
+                          const saldoAjustado = Math.min(saldo, totalVenta);
+                          const nuevos = [...pagos];
+                          nuevos[0] = {
+                            ...nuevos[0],
+                            monto: redondear(totalVenta - saldoAjustado),
+                          };
+                          setPagos(nuevos);
+                        }}
+                        onWheel={evitarCambioPorRueda}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                      />
+                    </div>
+                  )}
                 </div>
                 {pagos.length > 1 && (
                   <div className="flex justify-end mt-2">
@@ -632,6 +942,41 @@ export default function RegistrarVentaModal({
               </div>
             ))}
 
+            {/* Comprobante: solo tiene sentido para QR/transferencia. Es
+                opcional siempre, y también se puede adjuntar después desde
+                el detalle de la venta si acá no se sube. */}
+            {pagos[0].metodo !== MetodoPago.EFECTIVO && (
+              <div className="mb-3 p-3 border border-dashed border-gray-300 rounded-lg">
+                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                  <Upload size={16} className="text-gray-500" />
+                  {comprobanteFile
+                    ? `Comprobante: ${comprobanteFile.name}`
+                    : "Adjuntar foto del comprobante (opcional)"}
+                  <input
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.webp"
+                    className="hidden"
+                    onChange={(e) =>
+                      setComprobanteFile(e.target.files?.[0] ?? null)
+                    }
+                  />
+                </label>
+                {comprobanteFile && (
+                  <button
+                    type="button"
+                    onClick={() => setComprobanteFile(null)}
+                    className="text-xs text-red-500 hover:text-red-700 mt-1"
+                  >
+                    Quitar
+                  </button>
+                )}
+                <p className="text-xs text-gray-400 mt-1">
+                  Si no la adjuntás ahora, se puede subir después desde el
+                  detalle de la venta.
+                </p>
+              </div>
+            )}
+
             <button
               type="button"
               onClick={() =>
@@ -640,43 +985,50 @@ export default function RegistrarVentaModal({
                   { metodo: MetodoPago.EFECTIVO, monto: 0, referencia: "" },
                 ])
               }
-              className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 font-medium"
+              className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 font-medium mb-3"
             >
               <Plus size={16} /> Agregar otro método de pago
             </button>
 
             {/* Resumen pagos */}
-            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+            <div className="p-3 bg-gray-50 rounded-lg">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Total venta:</span>
                 <span className="font-semibold">
                   Bs. {totalVenta.toFixed(2)}
                 </span>
               </div>
+              {totalDescuento > 0 && (
+                <div className="flex justify-between text-sm mt-1">
+                  <span className="text-gray-600">Descuento:</span>
+                  <span className="font-semibold">
+                    Bs. {totalDescuento.toFixed(2)}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between text-sm mt-1">
                 <span className="text-gray-600">Total pagado:</span>
                 <span className="font-semibold">
-                  Bs. {pagos.reduce((acc, p) => acc + p.monto, 0).toFixed(2)}
+                  Bs. {montoPagado.toFixed(2)}
                 </span>
               </div>
-              <div className="flex justify-between text-sm mt-1">
-                <span className="text-gray-600">Saldo pendiente:</span>
-                <span
-                  className={`font-semibold ${totalVenta - pagos.reduce((acc, p) => acc + p.monto, 0) > 0 ? "text-red-600" : "text-green-600"}`}
-                >
-                  Bs.{" "}
-                  {(
-                    totalVenta - pagos.reduce((acc, p) => acc + p.monto, 0)
-                  ).toFixed(2)}
-                </span>
-              </div>
+              {saldoPendienteHabilitado && (
+                <div className="flex justify-between text-sm mt-1">
+                  <span className="text-gray-600">Saldo pendiente:</span>
+                  <span
+                    className={`font-semibold ${totalVenta - montoPagado > 0 ? "text-red-600" : "text-green-600"}`}
+                  >
+                    Bs. {redondear(totalVenta - montoPagado).toFixed(2)}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
           {/* SECCIÓN 4 — ENTREGA */}
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Entrega
+              Venta
             </h3>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -690,7 +1042,7 @@ export default function RegistrarVentaModal({
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
               >
                 <option value={ModalidadEntrega.RETIRO}>
-                  Retiro en tienda
+                  En tienda
                 </option>
                 <option value={ModalidadEntrega.DOMICILIO}>
                   Entrega a domicilio
@@ -783,9 +1135,7 @@ export default function RegistrarVentaModal({
               disabled={loading || carrito.length === 0}
               className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 font-medium disabled:opacity-50"
             >
-              {loading
-                ? "Registrando..."
-                : `Registrar Venta — Bs. ${totalVenta.toFixed(2)}`}
+              {loading ? "Registrando..." : "Registrar Venta"}
             </button>
           </div>
         </div>

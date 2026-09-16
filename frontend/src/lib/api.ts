@@ -713,7 +713,7 @@ import {
   Venta,
   VentaRequest,
   VentaEstadisticas,
-  Pago
+  Pago as PagoDeVenta
 } from '@/types/venta';
 
 /**
@@ -807,7 +807,7 @@ export const marcarVentaEntregada = async (id: number): Promise<Venta> => {
 /**
  * Adjuntar (o reemplazar) la foto de comprobante de un pago ya registrado.
  */
-export const adjuntarComprobantePago = async (idPago: number, file: File): Promise<Pago> => {
+export const adjuntarComprobantePago = async (idPago: number, file: File): Promise<PagoDeVenta> => {
   const formData = new FormData();
   formData.append('file', file);
 
