@@ -1,6 +1,5 @@
 'use client';
 
-import { FolderOpen } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
@@ -17,6 +16,7 @@ import {
   Tag,
   Settings,
   Building2,
+  Contact,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
@@ -31,11 +31,12 @@ interface MenuItem {
 const menuItems: MenuItem[] = [
   { name: 'Inicio', icon: <LayoutDashboard size={20} />, href: '/dashboard' },
   { name: 'Usuarios', icon: <Users size={20} />, href: '/dashboard/usuarios', adminOnly: true },
-  { name: 'Categorías', icon: <FolderOpen size={20} />, href: '/dashboard/categorias' },
   { name: 'Productos', icon: <Package size={20} />, href: '/dashboard/productos' },
-  { name: 'Inventario', icon: <Boxes size={20} />, href: '/dashboard/inventario' },
   { name: 'Ventas', icon: <DollarSign size={20} />, href: '/dashboard/ventas' },
+  { name: 'Inventario', icon: <Boxes size={20} />, href: '/dashboard/inventario' },
+  { name: 'Compras', icon: <ShoppingCart size={20} />, href: '/dashboard/inventario/compras' },
   { name: 'Proveedores', icon: <Building2 size={20} />, href: '/dashboard/proveedores', adminOnly: true },
+  { name: 'Clientes', icon: <Contact size={20} />, href: '/dashboard/ventas/clientes' },
   // Entrega pasó a vivir en la venta (modalidadEntrega/estadoEntrega). El
   // módulo de Envíos/Transportadoras se deja de exponer en el menú para no
   // tener dos caminos para lo mismo, pero el código y las tablas siguen ahí.

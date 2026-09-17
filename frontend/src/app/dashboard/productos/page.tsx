@@ -13,7 +13,8 @@ import {
   setImagenPrincipal
 } from '@/lib/api';
 import { Producto, Categoria, TipoProducto, ImagenProducto } from '@/types/producto';
-import { Search, Package, Edit, Trash2, Power, Image as ImageIcon } from 'lucide-react';
+import { Search, Package, Edit, Trash2, Power, Image as ImageIcon, FolderOpen } from 'lucide-react';
+import Link from 'next/link';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import ProductoModal from '@/components/ProductoModal';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
@@ -377,6 +378,14 @@ export default function ProductosPage() {
             <option value="ACTIVOS">Activos</option>
             <option value="INACTIVOS">Inactivos</option>
           </select>
+
+          <Link
+            href="/dashboard/categorias"
+            className="flex items-center justify-center gap-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors font-medium whitespace-nowrap"
+          >
+            <FolderOpen size={20} />
+            Categorías
+          </Link>
 
           <button
             onClick={handleCreateProducto}
