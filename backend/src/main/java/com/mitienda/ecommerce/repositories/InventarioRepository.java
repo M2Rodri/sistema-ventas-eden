@@ -5,6 +5,7 @@ import com.mitienda.ecommerce.models.Inventario;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -53,4 +54,25 @@ public interface InventarioRepository extends JpaRepository<Inventario, Long> {
      */
     @Query("SELECT COUNT(i) FROM Inventario i WHERE i.cantidadDisponible <= i.producto.stockMinimo")
     Long countProductosConStockBajo();
+
+    /**
+     * Catálogo con precio y stock en una sola consulta, para la app móvil
+     * (Catálogo, Alertas de stock y Nueva venta comparten este mismo dato:
+     * ver InventarioController#getCatalogoApp).
+     *
+     * Arranca desde Inventario, no desde Producto: cada producto activo ya
+     * tiene su fila de inventario (se crea junto con el producto, ver
+     * ProductoService.createProducto), así que no hace falta un LEFT JOIN.
+     *
+     * "nombre IS NULL OR ..." y "soloBajoMinimo = false OR ..." son el mismo
+     * truco: cuando el filtro no aplica, esa mitad del OR es true y no
+     * descarta filas.
+     */
+    @EntityGraph(attributePaths = {"producto", "producto.categoria", "producto.imagenes"})
+    @Query("SELECT i FROM Inventario i "
+            + "WHERE i.producto.activo = true "
+            + "AND (:nombre IS NULL OR LOWER(i.producto.nombre) LIKE LOWER(CONCAT('%', :nombre, '%'))) "
+            + "AND (:soloBajoMinimo = false OR i.cantidadDisponible <= i.producto.stockMinimo) "
+            + "ORDER BY i.producto.nombre")
+    List<Inventario> findCatalogoApp(@Param("nombre") String nombre, @Param("soloBajoMinimo") boolean soloBajoMinimo);
 }

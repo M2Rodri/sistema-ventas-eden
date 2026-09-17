@@ -3,12 +3,8 @@ import '../config/api_config.dart';
 /// Producto para la pantalla de Catálogo: nombre, precio, stock y lo mínimo
 /// para mostrarlo en una tarjeta y en su detalle.
 ///
-/// No hay un endpoint que devuelva esto junto. Sale de cruzar dos:
-///   GET /api/productos/activos (ProductoResponse) -> nombre, precioVenta,
-///     sku, categoría, imágenes
-///   GET /api/inventario (InventarioResponse)       -> cantidadDisponible
-///     por idProducto
-/// Ver CatalogoRepository.obtenerCatalogo, que arma esta lista.
+/// Sale de GET /api/inventario/catalogo (CatalogoProductoResponse en el
+/// backend), que ya cruza producto + inventario en el servidor.
 class ProductoCatalogo {
   const ProductoCatalogo({
     required this.id,
@@ -35,14 +31,8 @@ class ProductoCatalogo {
   bool get agotado => cantidadDisponible <= 0;
   bool get bajoStockMinimo => cantidadDisponible > 0 && cantidadDisponible <= stockMinimo;
 
-  /// [productoJson] es un elemento de GET /api/productos/activos.
-  /// [cantidadDisponible] sale de cruzar ese id con GET /api/inventario; si
-  /// el producto no tiene fila de inventario todavía, se asume 0.
-  factory ProductoCatalogo.desdeApi(
-    Map<String, dynamic> productoJson, {
-    required int cantidadDisponible,
-  }) {
-    final imagenes = productoJson['imagenes'] as List<dynamic>? ?? const <dynamic>[];
+  factory ProductoCatalogo.desdeApi(Map<String, dynamic> json) {
+    final imagenes = json['imagenes'] as List<dynamic>? ?? const <dynamic>[];
     String? imagenUrl;
     if (imagenes.isNotEmpty) {
       final principal = imagenes.cast<Map<String, dynamic>>().firstWhere(
@@ -56,15 +46,15 @@ class ProductoCatalogo {
     }
 
     return ProductoCatalogo(
-      id: productoJson['id'] as int,
-      sku: productoJson['sku'] as String? ?? '',
-      nombre: productoJson['nombre'] as String? ?? '',
-      descripcion: productoJson['descripcion'] as String? ?? '',
-      nombreCategoria: productoJson['nombreCategoria'] as String?,
-      precioVenta: (productoJson['precioVenta'] as num?)?.toDouble() ?? 0.0,
+      id: json['id'] as int,
+      sku: json['sku'] as String? ?? '',
+      nombre: json['nombre'] as String? ?? '',
+      descripcion: json['descripcion'] as String? ?? '',
+      nombreCategoria: json['nombreCategoria'] as String?,
+      precioVenta: (json['precioVenta'] as num?)?.toDouble() ?? 0.0,
       imagenUrl: imagenUrl,
-      cantidadDisponible: cantidadDisponible,
-      stockMinimo: (productoJson['stockMinimo'] as num?)?.toInt() ?? 0,
+      cantidadDisponible: (json['cantidadDisponible'] as num?)?.toInt() ?? 0,
+      stockMinimo: (json['stockMinimo'] as num?)?.toInt() ?? 0,
     );
   }
 }

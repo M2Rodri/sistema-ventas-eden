@@ -3,6 +3,7 @@ package com.mitienda.ecommerce.controllers;
 import com.mitienda.ecommerce.dto.MovimientoInventarioRequest;
 import com.mitienda.ecommerce.dto.MovimientoInventarioResponse;
 import com.mitienda.ecommerce.dto.AlertaInventarioResponse;
+import com.mitienda.ecommerce.dto.CatalogoProductoResponse;
 import com.mitienda.ecommerce.dto.InventarioRequest;
 import com.mitienda.ecommerce.dto.InventarioResponse;
 import com.mitienda.ecommerce.services.InventarioService;
@@ -46,6 +47,19 @@ public class InventarioController {
     public ResponseEntity<List<InventarioResponse>> getAllInventario() {
         List<InventarioResponse> inventario = inventarioService.getAllInventario();
         return ResponseEntity.ok(inventario);
+    }
+
+    /**
+     * GET /api/inventario/catalogo
+     * Productos activos con precio y stock juntos, para la app móvil.
+     * Catálogo lo pide sin filtros; Alertas de stock con soloBajoMinimo=true;
+     * Nueva venta con nombre=... para buscar mientras se escribe.
+     */
+    @GetMapping("/catalogo")
+    public ResponseEntity<List<CatalogoProductoResponse>> getCatalogoApp(
+            @RequestParam(required = false) String nombre,
+            @RequestParam(defaultValue = "false") boolean soloBajoMinimo) {
+        return ResponseEntity.ok(inventarioService.getCatalogoApp(nombre, soloBajoMinimo));
     }
 
     /**

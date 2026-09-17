@@ -4,6 +4,7 @@ package com.mitienda.ecommerce.services;
 import com.mitienda.ecommerce.dto.MovimientoInventarioRequest;
 import com.mitienda.ecommerce.dto.MovimientoInventarioResponse;
 import com.mitienda.ecommerce.dto.AlertaInventarioResponse;
+import com.mitienda.ecommerce.dto.CatalogoProductoResponse;
 import com.mitienda.ecommerce.dto.InventarioRequest;
 import com.mitienda.ecommerce.dto.InventarioResponse;
 import com.mitienda.ecommerce.models.*;
@@ -77,6 +78,17 @@ public class InventarioService {
         return inventarioRepository.findAll()
                 .stream()
                 .map(InventarioResponse::new) // <-- Este constructor accede a .getProducto().getNombre(), etc.
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Catálogo con precio y stock para la app móvil (Catálogo, Alertas de
+     * stock y Nueva venta). Ver InventarioRepository#findCatalogoApp.
+     */
+    public List<CatalogoProductoResponse> getCatalogoApp(String nombre, boolean soloBajoMinimo) {
+        return inventarioRepository.findCatalogoApp(nombre, soloBajoMinimo)
+                .stream()
+                .map(CatalogoProductoResponse::new)
                 .collect(Collectors.toList());
     }
 
