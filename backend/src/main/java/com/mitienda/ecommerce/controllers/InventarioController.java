@@ -113,28 +113,14 @@ public class InventarioController {
 
     /**
      * POST /api/inventario/ajustar
-     * Ajustar inventario manualmente (entrada/salida)
+     * Ajustar inventario manualmente (entrada/salida). Siempre queda
+     * registrado en movimientos_inventario, con el usuario autenticado que
+     * hizo el ajuste: no existe un camino de ajuste manual sin rastro.
      */
     @PostMapping("/ajustar")
     public ResponseEntity<?> ajustarInventario(@Valid @RequestBody MovimientoInventarioRequest request) {
         try {
             InventarioResponse inventario = inventarioService.ajustarInventario(request);
-            return ResponseEntity.ok(inventario);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    /**
-     * POST /api/inventario/ajustar-con-auditoria
-     * Ajustar inventario manualmente con registro de auditoría
-     */
-    @PostMapping("/ajustar-con-auditoria")
-    public ResponseEntity<?> ajustarInventarioConAuditoria(@Valid @RequestBody MovimientoInventarioRequest request,
-                                                           @RequestParam Long idUsuario) {
-        try {
-            InventarioResponse inventario = inventarioService.ajustarInventarioConAuditoria(request, idUsuario);
             return ResponseEntity.ok(inventario);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)

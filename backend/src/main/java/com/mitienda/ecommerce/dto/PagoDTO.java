@@ -28,6 +28,9 @@ public class PagoDTO {
     private EstadoPago estado;
     private String urlComprobante;
 
+    private Long idUsuario;
+    private String nombreUsuario;
+
     /**
      * Un pago que no es EFECTIVO y no tiene foto de respaldo. Se calcula acá
      * en vez de guardarse en la tabla: así nunca puede quedar desincronizado
@@ -46,6 +49,8 @@ public class PagoDTO {
         this.observacion = pago.getObservacion();
         this.estado = pago.getEstado();
         this.urlComprobante = pago.getUrlComprobante();
+        this.idUsuario = pago.getUsuario() != null ? pago.getUsuario().getId() : null;
+        this.nombreUsuario = pago.getUsuario() != null ? pago.getUsuario().getNombreCompleto() : null;
         this.sinRespaldo = pago.getMetodoPago() != MetodoPago.EFECTIVO
                 && (pago.getUrlComprobante() == null || pago.getUrlComprobante().isBlank());
     }

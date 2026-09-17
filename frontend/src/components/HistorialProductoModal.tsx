@@ -170,7 +170,7 @@ export default function HistorialProductoModal({ inventario, onClose }: Historia
                         </td>
                         <td className="px-4 py-3 text-sm text-center font-semibold text-gray-900">{m.cantidadNueva}</td>
                         <td className="px-4 py-3 text-sm text-gray-700">
-                          {m.nombreUsuario || 'Sistema'}
+                          {m.nombreUsuario}
                         </td>
                       </tr>
                     ))}

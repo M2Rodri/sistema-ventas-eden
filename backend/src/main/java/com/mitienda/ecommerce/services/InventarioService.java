@@ -42,6 +42,8 @@ public class InventarioService {
 
     private final RegistroAuditoria registroAuditoria;
 
+    private final UsuarioActualService usuarioActualService;
+
     /**
      * Inyeccion por constructor, no por campo.
      *
@@ -54,13 +56,15 @@ public class InventarioService {
                              ProductoRepository productoRepository,
                              MovimientoInventarioRepository movimientoInventarioRepository,
                              UsuarioRepository usuarioRepository,
-                             RegistroAuditoria registroAuditoria) {
+                             RegistroAuditoria registroAuditoria,
+                             UsuarioActualService usuarioActualService) {
         this.inventarioRepository = inventarioRepository;
         this.alertaInventarioRepository = alertaInventarioRepository;
         this.productoRepository = productoRepository;
         this.movimientoInventarioRepository = movimientoInventarioRepository;
         this.usuarioRepository = usuarioRepository;
         this.registroAuditoria = registroAuditoria;
+        this.usuarioActualService = usuarioActualService;
     }
 
 
@@ -148,37 +152,16 @@ public class InventarioService {
     }
 
     /**
-     * Ajustar inventario (entrada o salida manual)
-     * (Ya tenía @Transactional implícito en el método de escritura)
+     * Ajustar inventario manualmente (entrada o salida).
+     *
+     * Antes existían dos caminos: este, que no dejaba rastro, y
+     * ajustarInventarioConAuditoria, que sí lo hacía pero confiaba en un
+     * idUsuario mandado por el cliente. Ahora hay uno solo: todo ajuste
+     * manual queda en movimientos_inventario, con el usuario que sale del
+     * token (ver UsuarioActualService), nunca de un parámetro.
      */
     @Transactional
     public InventarioResponse ajustarInventario(MovimientoInventarioRequest request) {
-        Inventario inventario = inventarioRepository.findByProductoId(request.getIdProducto())
-                .orElseThrow(() -> new RuntimeException("No existe inventario para el producto con ID: " + request.getIdProducto()));
-
-        // Aplicar movimiento según tipo
-        if ("ENTRADA".equalsIgnoreCase(request.getTipoMovimiento())) {
-            inventario.aumentarStock(request.getCantidad());
-        } else if ("SALIDA".equalsIgnoreCase(request.getTipoMovimiento())) {
-            inventario.reducirStock(request.getCantidad());
-        } else {
-            throw new RuntimeException("Tipo de movimiento inválido. Use 'ENTRADA' o 'SALIDA'");
-        }
-
-        Inventario updatedInventario = inventarioRepository.save(inventario);
-
-        // Verificar si requiere alerta
-        verificarYCrearAlerta(updatedInventario);
-
-        return new InventarioResponse(updatedInventario);
-    }
-
-    /**
-     * Ajustar inventario con registro de auditoría
-     * (Ya tenía @Transactional implícito en el método de escritura)
-     */
-    @Transactional
-    public InventarioResponse ajustarInventarioConAuditoria(MovimientoInventarioRequest request, Long idUsuario) {
         Inventario inventario = inventarioRepository.findByProductoId(request.getIdProducto())
                 .orElseThrow(() -> new RuntimeException("No existe inventario para el producto con ID: " + request.getIdProducto()));
         Integer cantidadAnterior = inventario.getCantidadDisponible();
@@ -194,7 +177,7 @@ public class InventarioService {
         Inventario updatedInventario = inventarioRepository.save(inventario);
 
         // Registrar auditoría
-        Usuario usuario = idUsuario != null ? usuarioRepository.findById(idUsuario).orElse(null) : null;
+        Usuario usuario = usuarioActualService.obtenerRequerido();
         String tipoMovimiento = request.getTipoMovimiento().toUpperCase();
 
         MovimientoInventario movimiento = new MovimientoInventario(

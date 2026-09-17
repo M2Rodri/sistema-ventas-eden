@@ -12,7 +12,6 @@ interface CompraModalProps {
   nombreProveedor?: string;
   onClose: () => void;
   onSuccess: () => void;
-  idUsuarioActual: number;
 }
 
 interface LineaCompra {
@@ -34,7 +33,6 @@ export default function CompraModal({
   nombreProveedor,
   onClose,
   onSuccess,
-  idUsuarioActual,
 }: CompraModalProps) {
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -113,7 +111,7 @@ export default function CompraModal({
         notas: notas.trim() || undefined,
         items: lineas,
       };
-      await createCompra(compra, idUsuarioActual);
+      await createCompra(compra);
       onSuccess();
     } catch (err: any) {
       setError(err.message);

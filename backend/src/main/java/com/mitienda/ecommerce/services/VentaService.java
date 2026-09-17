@@ -39,6 +39,8 @@ public class VentaService {
 
     private final RegistroAuditoria registroAuditoria;
 
+    private final UsuarioActualService usuarioActualService;
+
     /**
      * Inyeccion por constructor, no por campo.
      *
@@ -54,7 +56,8 @@ public class VentaService {
                         UsuarioRepository usuarioRepository,
                         InventarioService inventarioService,
                         InventarioRepository inventarioRepository,
-                        RegistroAuditoria registroAuditoria) {
+                        RegistroAuditoria registroAuditoria,
+                        UsuarioActualService usuarioActualService) {
         this.ventaRepository = ventaRepository;
         this.detalleVentaRepository = detalleVentaRepository;
         this.pagoRepository = pagoRepository;
@@ -64,6 +67,7 @@ public class VentaService {
         this.inventarioService = inventarioService;
         this.inventarioRepository = inventarioRepository;
         this.registroAuditoria = registroAuditoria;
+        this.usuarioActualService = usuarioActualService;
     }
 
 
@@ -83,14 +87,15 @@ public class VentaService {
     }
 
     @Transactional
-    public VentaResponse createVentaDirecta(VentaRequest request, Long idUsuario) {
+    public VentaResponse createVentaDirecta(VentaRequest request) {
         if (!request.tieneCliente()) {
             throw new RuntimeException(
                     "Debe proporcionar un cliente registrado (idCliente) o el nombre del cliente de mostrador");
         }
 
-        Usuario usuario = usuarioRepository.findById(idUsuario)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + idUsuario));
+        // El vendedor sale del token, no de lo que mande el cliente: ver
+        // UsuarioActualService.
+        Usuario usuario = usuarioActualService.obtenerRequerido();
 
         ModalidadEntrega modalidadEntrega = request.getModalidadEntrega() != null
                 ? request.getModalidadEntrega() : ModalidadEntrega.RETIRO;
@@ -254,7 +259,7 @@ public class VentaService {
                     inventarioActualizado.getCantidadDisponible(),
                     "SALIDA",
                     "Venta #" + savedVenta.getId(),
-                    idUsuario);
+                    usuario.getId());
         }
 
         // PASO 4: REGISTRAR PAGO
@@ -266,6 +271,7 @@ public class VentaService {
             pago.setMonto(montoPagado);
             pago.setMetodoPago(request.getMetodoPago());
             pago.setReferencia(request.getReferenciaPago());
+            pago.setUsuario(usuario);
             pago.setEstado(EstadoPago.COMPLETADO);
             pagoRepository.save(pago);
         }

@@ -40,6 +40,8 @@ public class CompraService {
 
     private final RegistroAuditoria registroAuditoria;
 
+    private final UsuarioActualService usuarioActualService;
+
     /**
      * Inyeccion por constructor, no por campo.
      *
@@ -54,7 +56,8 @@ public class CompraService {
                          UsuarioRepository usuarioRepository,
                          InventarioService inventarioService,
                          InventarioRepository inventarioRepository,
-                         RegistroAuditoria registroAuditoria) {
+                         RegistroAuditoria registroAuditoria,
+                         UsuarioActualService usuarioActualService) {
         this.compraRepository = compraRepository;
         this.detalleCompraRepository = detalleCompraRepository;
         this.proveedorRepository = proveedorRepository;
@@ -63,6 +66,7 @@ public class CompraService {
         this.inventarioService = inventarioService;
         this.inventarioRepository = inventarioRepository;
         this.registroAuditoria = registroAuditoria;
+        this.usuarioActualService = usuarioActualService;
     }
 
 
@@ -89,14 +93,14 @@ public class CompraService {
      * Crear nueva compra
      */
     @Transactional
-    public CompraResponse createCompra(CompraRequest request, Long idUsuario) {
+    public CompraResponse createCompra(CompraRequest request) {
         // Validar proveedor
         Proveedor proveedor = proveedorRepository.findById(request.getIdProveedor())
                 .orElseThrow(() -> new RuntimeException("Proveedor no encontrado con ID: " + request.getIdProveedor()));
 
-        // Validar usuario
-        Usuario usuario = usuarioRepository.findById(idUsuario)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + idUsuario));
+        // El usuario sale del token, no de lo que mande el cliente: ver
+        // UsuarioActualService.
+        Usuario usuario = usuarioActualService.obtenerRequerido();
 
         // Crear compra
         Compra compra = new Compra();

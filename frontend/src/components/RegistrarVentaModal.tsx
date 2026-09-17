@@ -47,7 +47,6 @@ interface RegistrarVentaModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  idUsuarioActual: number;
   userRole: "ADMIN" | "EMPLEADO";
 }
 
@@ -55,7 +54,6 @@ export default function RegistrarVentaModal({
   isOpen,
   onClose,
   onSuccess,
-  idUsuarioActual,
   userRole,
 }: RegistrarVentaModalProps) {
   // Cliente
@@ -414,7 +412,7 @@ export default function RegistrarVentaModal({
             : undefined,
       };
 
-      const creada = await createVentaDirecta(request, idUsuarioActual);
+      const creada = await createVentaDirecta(request);
 
       // El comprobante viaja aparte: la venta ya quedó registrada aunque
       // esto falle. Si no hay pago (venta enteramente a crédito) no hay a

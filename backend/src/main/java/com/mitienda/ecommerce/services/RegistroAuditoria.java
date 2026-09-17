@@ -4,9 +4,6 @@ import com.mitienda.ecommerce.models.Auditoria;
 import com.mitienda.ecommerce.repositories.AuditoriaRepository;
 import com.mitienda.ecommerce.repositories.UsuarioRepository;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,6 +39,8 @@ public class RegistroAuditoria {
 
     private final UsuarioRepository usuarioRepository;
 
+    private final UsuarioActualService usuarioActualService;
+
     /**
      * Inyeccion por constructor, no por campo.
      *
@@ -49,9 +48,11 @@ public class RegistroAuditoria {
      * puede existir a medio construir, y una dependencia circular falla al
      * arrancar en vez de aparecer en ejecucion.
      */
-    public RegistroAuditoria(AuditoriaRepository auditoriaRepository, UsuarioRepository usuarioRepository) {
+    public RegistroAuditoria(AuditoriaRepository auditoriaRepository, UsuarioRepository usuarioRepository,
+                              UsuarioActualService usuarioActualService) {
         this.auditoriaRepository = auditoriaRepository;
         this.usuarioRepository = usuarioRepository;
+        this.usuarioActualService = usuarioActualService;
     }
 
 
@@ -67,7 +68,7 @@ public class RegistroAuditoria {
     public void registrar(String accion, String tablaAfectada, Object idRegistro, String detalles) {
         try {
             Auditoria auditoria = new Auditoria();
-            auditoria.setUsuario(usuarioActual());
+            auditoria.setUsuario(usuarioActualService.obtener());
             auditoria.setAccion(accion);
             auditoria.setTablaAfectada(tablaAfectada);
             auditoria.setIdRegistro(idRegistro != null ? recortar(idRegistro.toString(), 20) : null);
@@ -102,33 +103,6 @@ public class RegistroAuditoria {
         } catch (Exception e) {
             System.err.println("No se pudo registrar la auditoría de " + accion + ": " + e.getMessage());
         }
-    }
-
-    /**
-     * Usuario detrás de la petición actual.
-     *
-     * El filtro JWT guarda como principal un UserDetails cuyo username es el
-     * email, así que hay que resolverlo contra la tabla usuarios. Devuelve null
-     * en las operaciones sin sesión, como el formulario público de contacto.
-     */
-    private com.mitienda.ecommerce.models.Usuario usuarioActual() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated()) {
-            return null;
-        }
-
-        String email = null;
-        Object principal = auth.getPrincipal();
-        if (principal instanceof UserDetails detalles) {
-            email = detalles.getUsername();
-        } else if (principal instanceof String texto && !"anonymousUser".equals(texto)) {
-            email = texto;
-        }
-
-        if (email == null) {
-            return null;
-        }
-        return usuarioRepository.findByEmail(email).orElse(null);
     }
 
     /**

@@ -15,12 +15,10 @@ import ProveedorModal from '@/components/ProveedorModal';
 import CompraModal from '@/components/CompraModal';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 import DetalleCompraModal from '@/components/DetalleCompraModal';
-import { useAuth } from '@/hooks/useAuth';
 import AvisoCargaParcial from '@/components/AvisoCargaParcial';
 import { crearRecolector } from '@/lib/cargaParcial';
 
 export default function ProveedoresPage() {
-  const { user } = useAuth();
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [filteredProveedores, setFilteredProveedores] = useState<Proveedor[]>([]);
   const [comprasRecientes, setComprasRecientes] = useState<Compra[]>([]);
@@ -405,7 +403,7 @@ export default function ProveedoresPage() {
                       </span>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {compra.nombreUsuario || 'Sistema'}
+                      {compra.nombreUsuario}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                       <button
@@ -444,7 +442,7 @@ export default function ProveedoresPage() {
         />
       )}
 
-      {isCompraModalOpen && selectedProveedor && user && (
+      {isCompraModalOpen && selectedProveedor && (
         <CompraModal
           idProveedor={selectedProveedor.id}
           nombreProveedor={selectedProveedor.nombreEmpresa}
@@ -454,7 +452,6 @@ export default function ProveedoresPage() {
             setIsCompraModalOpen(false);
             showMessage('success', 'Compra registrada correctamente');
           }}
-          idUsuarioActual={user.id}
         />
       )}
 

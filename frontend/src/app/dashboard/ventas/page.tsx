@@ -616,7 +616,6 @@ export default function VentasPage() {
           loadVentas();
           loadEstadisticas();
         }}
-        idUsuarioActual={user?.id || 0}
         userRole={user?.role === 'ADMIN' ? 'ADMIN' : 'EMPLEADO'}
       />
 

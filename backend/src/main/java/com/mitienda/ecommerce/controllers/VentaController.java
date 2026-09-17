@@ -76,10 +76,9 @@ public class VentaController {
      * Crear venta directa
      */
     @PostMapping
-    public ResponseEntity<?> createVentaDirecta(@Valid @RequestBody VentaRequest request,
-                                                @RequestParam Long idUsuario) {
+    public ResponseEntity<?> createVentaDirecta(@Valid @RequestBody VentaRequest request) {
         try {
-            VentaResponse createdVenta = ventaService.createVentaDirecta(request, idUsuario);
+            VentaResponse createdVenta = ventaService.createVentaDirecta(request);
 
             // Aparte y después de confirmada la venta: si esto falla (por
             // ejemplo, un numeroComprobante repetido), la venta ya quedó

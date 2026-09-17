@@ -87,6 +87,8 @@ export interface Pago {
   fechaPago: string;
   urlComprobante?: string | null;
   sinRespaldo?: boolean;
+  idUsuario?: number | null;
+  nombreUsuario?: string | null;
 }
 
 export interface Venta {

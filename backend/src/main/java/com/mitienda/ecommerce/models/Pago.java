@@ -67,6 +67,15 @@ public class Pago {
     @Column(length = 500)
     private String urlComprobante;
 
+    /**
+     * Quién registró el cobro. Nullable porque los pagos ya existentes no
+     * tienen este dato; para los nuevos sale del token, nunca de un
+     * parámetro que mande el cliente (ver UsuarioActualService).
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_usuario")
+    private Usuario usuario;
+
     // Constructor personalizado
     public Pago(Venta venta, BigDecimal monto, MetodoPago metodoPago, String referencia) {
         this.venta = venta;

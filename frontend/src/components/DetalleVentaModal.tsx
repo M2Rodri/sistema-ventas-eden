@@ -162,7 +162,7 @@ export default function DetalleVentaModal({ isOpen, onClose, venta, onUpdated, o
                 <User className="text-blue-600" size={20} />
                 <h3 className="font-semibold text-gray-900">Vendedor</h3>
               </div>
-              <p className="text-gray-900 font-medium">{venta.nombreUsuario || 'Sistema'}</p>
+              <p className="text-gray-900 font-medium">{venta.nombreUsuario}</p>
             </div>
 
             {/* Fecha */}
@@ -302,7 +302,10 @@ export default function DetalleVentaModal({ isOpen, onClose, venta, onUpdated, o
                         {pago.referencia && (
                           <p className="text-xs text-gray-600">Ref: {pago.referencia}</p>
                         )}
-                        <p className="text-xs text-gray-500">{formatDate(pago.fechaPago)}</p>
+                        <p className="text-xs text-gray-500">
+                          {formatDate(pago.fechaPago)}
+                          {pago.nombreUsuario && ` · Registrado por ${pago.nombreUsuario}`}
+                        </p>
                       </div>
                       <span className="text-lg font-bold text-green-700">{formatPrice(pago.monto)}</span>
                     </div>

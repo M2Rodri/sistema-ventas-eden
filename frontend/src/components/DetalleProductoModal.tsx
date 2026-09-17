@@ -181,7 +181,7 @@ export default function DetalleProductoModal({ inventario, onClose }: DetallePro
                             {mov.cantidad >= 0 ? `+${mov.cantidad}` : mov.cantidad}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{mov.nombreUsuario || 'Sistema'}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{mov.nombreUsuario}</td>
                       </tr>
                     ))
                   )}

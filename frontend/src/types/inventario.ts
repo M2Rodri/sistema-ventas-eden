@@ -65,7 +65,7 @@ export interface MovimientoInventario {
   motivo: string;
   observacion?: string;
   idUsuario: number | null;
-  nombreUsuario: string;
+  nombreUsuario: string | null;
   fecha: string;
 }
 

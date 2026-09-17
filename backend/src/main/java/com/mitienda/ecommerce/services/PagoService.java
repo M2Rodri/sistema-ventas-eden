@@ -36,6 +36,8 @@ public class PagoService {
 
     private final FileStorageService fileStorageService;
 
+    private final UsuarioActualService usuarioActualService;
+
     private static final List<String> EXTENSIONES_COMPROBANTE = Arrays.asList(".jpg", ".jpeg", ".png", ".webp");
 
     private static final long TAMANO_MAXIMO_COMPROBANTE = 10 * 1024 * 1024; // 10MB, igual que las demas fotos
@@ -48,10 +50,11 @@ public class PagoService {
      * arrancar en vez de aparecer en ejecucion.
      */
     public PagoService(PagoRepository pagoRepository, VentaRepository ventaRepository,
-                        FileStorageService fileStorageService) {
+                        FileStorageService fileStorageService, UsuarioActualService usuarioActualService) {
         this.pagoRepository = pagoRepository;
         this.ventaRepository = ventaRepository;
         this.fileStorageService = fileStorageService;
+        this.usuarioActualService = usuarioActualService;
     }
 
 
@@ -99,6 +102,7 @@ public class PagoService {
         pago.setReferencia(request.getReferencia());
         pago.setObservacion(request.getObservacion());
         pago.setEstado(EstadoPago.COMPLETADO);
+        pago.setUsuario(usuarioActualService.obtenerRequerido());
 
         Pago savedPago = pagoRepository.save(pago);
 

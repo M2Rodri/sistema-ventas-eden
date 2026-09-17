@@ -87,7 +87,7 @@ export default function DetalleCompraModal({ compra, onClose }: DetalleCompraMod
               <User className="text-secondary-600" size={20} />
               <h3 className="font-semibold text-gray-900">Registrado por</h3>
             </div>
-            <p className="text-gray-900 font-medium">{compra.nombreUsuario || 'Sistema'}</p>
+            <p className="text-gray-900 font-medium">{compra.nombreUsuario}</p>
           </div>
 
           {/* Fecha */}

@@ -5,7 +5,6 @@ import Link from 'next/link';
 import {
   ArrowLeft, Plus, Search, Eye, PackageCheck, XCircle, Truck, CheckCircle2, ShoppingCart,
 } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
 import {
   getAllCompras, recibirCompra, cancelarCompra, cambiarEstadoCompra,
 } from '@/lib/api';
@@ -25,7 +24,6 @@ import DetalleCompraModal from '@/components/DetalleCompraModal';
  * stock, se registra la compra, llega, y el stock sube.
  */
 export default function ComprasPage() {
-  const { user } = useAuth();
   const [compras, setCompras] = useState<Compra[]>([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState('');
@@ -307,9 +305,8 @@ export default function ComprasPage() {
         )}
       </div>
 
-      {modalNuevaAbierto && user?.id && (
+      {modalNuevaAbierto && (
         <CompraModal
-          idUsuarioActual={user.id}
           onClose={() => setModalNuevaAbierto(false)}
           onSuccess={() => {
             setModalNuevaAbierto(false);

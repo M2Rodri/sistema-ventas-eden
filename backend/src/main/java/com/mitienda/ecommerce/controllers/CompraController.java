@@ -69,10 +69,9 @@ public class CompraController {
      * Crear nueva compra
      */
     @PostMapping
-    public ResponseEntity<?> createCompra(@Valid @RequestBody CompraRequest request,
-                                         @RequestParam Long idUsuario) {
+    public ResponseEntity<?> createCompra(@Valid @RequestBody CompraRequest request) {
         try {
-            CompraResponse createdCompra = compraService.createCompra(request, idUsuario);
+            CompraResponse createdCompra = compraService.createCompra(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdCompra);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)

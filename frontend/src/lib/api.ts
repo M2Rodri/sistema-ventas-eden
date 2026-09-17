@@ -751,10 +751,9 @@ export const getVentaById = async (id: number): Promise<Venta> => {
  * Soporta tanto cliente registrado (idCliente) como cliente rápido (nombreClienteDirecto)
  */
 export const createVentaDirecta = async (
-  request: VentaRequest,
-  idUsuario: number
+  request: VentaRequest
 ): Promise<Venta> => {
-  const response = await fetch(`${API_URL}/ventas?idUsuario=${idUsuario}`, {
+  const response = await fetch(`${API_URL}/ventas`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify(request),
@@ -1400,8 +1399,8 @@ export const getCompraById = async (id: number): Promise<Compra> => {
 };
 
 // Crear compra
-export const createCompra = async (data: CompraRequest, idUsuario: number): Promise<Compra> => {
-  const response = await fetch(`${API_URL}/compras?idUsuario=${idUsuario}`, {
+export const createCompra = async (data: CompraRequest): Promise<Compra> => {
+  const response = await fetch(`${API_URL}/compras`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify(data),
