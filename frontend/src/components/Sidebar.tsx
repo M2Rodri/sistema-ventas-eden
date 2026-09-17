@@ -43,8 +43,10 @@ const menuItems: MenuItem[] = [
   // { name: 'Envíos', icon: <Truck size={20} />, href: '/dashboard/envios' },
   // { name: 'Pagos', icon: <CreditCard size={20} />, href: '/dashboard/pagos' },
   { name: 'Reportes', icon: <BarChart3 size={20} />, href: '/dashboard/reportes', adminOnly: true },
-  { name: 'Promociones', icon: <Tag size={20} />, href: '/dashboard/promociones' },
-  { name: 'Configuración', icon: <Settings size={20} />, href: '/dashboard/configuracion', adminOnly: true },
+  // Promociones y Configuración se sacan del menú a pedido, sin tocar las
+  // pantallas ni las rutas: siguen existiendo, solo dejan de estar a un clic.
+  // { name: 'Promociones', icon: <Tag size={20} />, href: '/dashboard/promociones' },
+  // { name: 'Configuración', icon: <Settings size={20} />, href: '/dashboard/configuracion', adminOnly: true },
 ];
 
 interface SidebarProps {
