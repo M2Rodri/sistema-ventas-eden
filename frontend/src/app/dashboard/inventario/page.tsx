@@ -310,7 +310,7 @@ export default function InventarioPage() {
             se ve que falta stock, se registra la compra, llega, y el stock sube.
           */}
           <Link
-            href="/dashboard/inventario/compras"
+            href="/dashboard/compras"
             className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
             title="Compras a proveedores"
           >

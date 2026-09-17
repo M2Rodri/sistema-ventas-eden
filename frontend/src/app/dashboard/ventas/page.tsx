@@ -278,7 +278,7 @@ export default function VentasPage() {
           <div className="flex items-center gap-3">
             {/* NUEVO: Botón Gestionar Clientes */}
             <Link
-              href="/dashboard/ventas/clientes"
+              href="/dashboard/clientes"
               className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl"
             >
               <Users size={20} />

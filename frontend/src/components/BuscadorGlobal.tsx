@@ -88,7 +88,7 @@ export default function BuscadorGlobal() {
             clave: `cliente-${c.id}`,
             titulo: c.nombreCompleto,
             detalle: c.telefono || c.email || 'Cliente',
-            destino: `/dashboard/ventas/clientes?q=${encodeURIComponent(consulta)}`,
+            destino: `/dashboard/clientes?q=${encodeURIComponent(consulta)}`,
             tipo: 'cliente',
           })
         );
