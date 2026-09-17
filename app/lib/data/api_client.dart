@@ -39,6 +39,16 @@ class ApiClient {
     return _decodificar(respuesta);
   }
 
+  /// Igual que [get], pero para endpoints que devuelven un array JSON
+  /// (`[...]`) en vez de un objeto (`{...}`), como los listados de
+  /// productos e inventario.
+  Future<List<dynamic>> getList(String path, {required String token}) async {
+    final respuesta = await _enviar(
+      () => http.get(_uri(path), headers: _headers(token)),
+    );
+    return _decodificarLista(respuesta);
+  }
+
   Future<http.Response> _enviar(Future<http.Response> Function() accion) async {
     try {
       return await accion().timeout(const Duration(seconds: 12));
@@ -52,6 +62,21 @@ class ApiClient {
   }
 
   Map<String, dynamic> _decodificar(http.Response respuesta) {
+    _verificarError(respuesta);
+    if (respuesta.body.isEmpty) return <String, dynamic>{};
+    return jsonDecode(respuesta.body) as Map<String, dynamic>;
+  }
+
+  List<dynamic> _decodificarLista(http.Response respuesta) {
+    _verificarError(respuesta);
+    if (respuesta.body.isEmpty) return <dynamic>[];
+    return jsonDecode(respuesta.body) as List<dynamic>;
+  }
+
+  /// Traduce un status HTTP de error a ApiException. No devuelve nada: si la
+  /// respuesta está bien, simplemente vuelve y quien llamó sigue con el
+  /// decodificado (de objeto o de lista) que corresponda.
+  void _verificarError(http.Response respuesta) {
     if (respuesta.statusCode == 401) {
       throw ApiException(
         _extraerMensaje(respuesta.body) ?? 'Credenciales inválidas',
@@ -70,8 +95,6 @@ class ApiClient {
         ApiErrorTipo.desconocido,
       );
     }
-    if (respuesta.body.isEmpty) return <String, dynamic>{};
-    return jsonDecode(respuesta.body) as Map<String, dynamic>;
   }
 
   /// El backend a veces manda el error como JSON ({"error": "..."} o el

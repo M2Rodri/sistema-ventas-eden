@@ -7,6 +7,7 @@ import '../../data/dashboard_repository.dart';
 import '../../models/dashboard_resumen.dart';
 import '../../models/sesion.dart';
 import '../../theme/app_colors.dart';
+import '../catalogo/catalogo_screen.dart';
 import '../login/login_screen.dart';
 
 enum _EstadoResumen { cargando, conDatos, vacio, error }
@@ -93,6 +94,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _abrirCatalogo() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => CatalogoScreen(token: widget.sesion.token)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final usuario = widget.sesion.usuario;
@@ -175,7 +182,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     titulo: 'Catálogo',
                     colorFondo: const Color(0xFFEFE6FA),
                     colorAcento: const Color(0xFF7C3AED),
-                    onTap: () => _proximamente('Catálogo'),
+                    onTap: _abrirCatalogo,
                   ),
                 ),
               ],
