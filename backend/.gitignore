@@ -6,6 +6,11 @@ uploads/
 target/
 application-dev.properties
 
+# Carpeta de salida que algun IDE (el .classpath sugiere Eclipse/VS Code)
+# arma apuntando aca, con una copia completa del proyecto adentro —
+# .env incluido. Nunca debe versionarse.
+bin/
+
 # Credencial de servicio de Firebase.
 # Con este archivo cualquiera puede enviar notificaciones haciendose pasar por
 # la app. Nunca va al repositorio: en un servidor se pasa por variable de

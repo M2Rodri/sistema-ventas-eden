@@ -7,5 +7,9 @@ build/
 # Cache incremental de TypeScript: se regenera sola en cada maquina.
 *.tsbuildinfo
 
+# Next.js la regenera sola en cada `next dev`/`next build`; es la
+# convencion oficial de create-next-app ignorarla.
+next-env.d.ts
+
 # Carpeta para verificar compilaciones de produccion sin pisar la de desarrollo.
 .next-verificacion/
