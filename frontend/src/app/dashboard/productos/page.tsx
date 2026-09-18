@@ -294,13 +294,7 @@ export default function ProductosPage() {
   };
 
   const getTipoBadge = (tipo: TipoProducto) => {
-    const colors = {
-      CAMA: 'bg-blue-100 text-blue-800',
-      COLCHON: 'bg-green-100 text-green-800',
-      ALMOHADA: 'bg-purple-100 text-purple-800',
-      ACCESORIO: 'bg-orange-100 text-orange-800',
-    };
-    return colors[tipo] || 'bg-gray-100 text-gray-800';
+    return 'bg-gray-100 text-gray-700 border border-gray-200';
   };
 
   const formatPrice = (price: number) => {
@@ -467,7 +461,7 @@ export default function ProductosPage() {
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => handleEditProducto(producto)}
-                        className="text-blue-600 hover:text-blue-800 transition-colors"
+                        className="text-primary-600 hover:text-primary-800 transition-colors"
                         title="Editar"
                       >
                         <Edit size={18} />

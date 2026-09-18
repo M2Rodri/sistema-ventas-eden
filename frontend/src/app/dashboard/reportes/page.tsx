@@ -28,7 +28,7 @@ export default function ReportesPage() {
       titulo: 'Reporte de Ventas',
       descripcion: 'Análisis de ventas por período, productos y clientes',
       icono: 'TrendingUp',
-      color: 'from-blue-500 to-blue-600',
+      color: 'from-primary-500 to-primary-600',
       requiereFechas: true,
       requiereLimite: false,
       categorias: ['Ventas', 'Financiero']
@@ -38,7 +38,7 @@ export default function ReportesPage() {
       titulo: 'Productos Más Vendidos',
       descripcion: 'Top de productos con mayor cantidad de ventas',
       icono: 'Package',
-      color: 'from-green-500 to-green-600',
+      color: 'from-primary-500 to-primary-600',
       requiereFechas: false,
       requiereLimite: true,
       categorias: ['Productos', 'Ventas']
@@ -48,7 +48,7 @@ export default function ReportesPage() {
       titulo: 'Clientes Frecuentes',
       descripcion: 'Clientes con mayor cantidad de compras',
       icono: 'Users',
-      color: 'from-purple-500 to-purple-600',
+      color: 'from-primary-500 to-primary-600',
       requiereFechas: false,
       requiereLimite: true,
       categorias: ['Clientes', 'Ventas']
@@ -58,7 +58,7 @@ export default function ReportesPage() {
       titulo: 'Inventario Valorizado',
       descripcion: 'Valor total del inventario actual',
       icono: 'DollarSign',
-      color: 'from-yellow-500 to-yellow-600',
+      color: 'from-primary-500 to-primary-600',
       requiereFechas: false,
       requiereLimite: false,
       categorias: ['Inventario', 'Financiero']
@@ -68,7 +68,7 @@ export default function ReportesPage() {
       titulo: 'Ventas por Categoría',
       descripcion: 'Distribución de ventas según categorías de productos',
       icono: 'PieChart',
-      color: 'from-pink-500 to-pink-600',
+      color: 'from-primary-500 to-primary-600',
       requiereFechas: true,
       requiereLimite: false,
       categorias: ['Ventas', 'Productos']
@@ -78,7 +78,7 @@ export default function ReportesPage() {
       titulo: 'Ventas por Método de Pago',
       descripcion: 'Métodos de pago más utilizados',
       icono: 'CreditCard',
-      color: 'from-indigo-500 to-indigo-600',
+      color: 'from-primary-500 to-primary-600',
       requiereFechas: true,
       requiereLimite: false,
       categorias: ['Ventas', 'Pagos']
@@ -88,7 +88,7 @@ export default function ReportesPage() {
       titulo: 'Inventario Stock Bajo',
       descripcion: 'Productos que requieren reabastecimiento',
       icono: 'AlertTriangle',
-      color: 'from-red-500 to-red-600',
+      color: 'from-primary-500 to-primary-600',
       requiereFechas: false,
       requiereLimite: false,
       categorias: ['Inventario', 'Alertas']
@@ -98,7 +98,7 @@ export default function ReportesPage() {
       titulo: 'Reporte de Proveedores',
       descripcion: 'Análisis de compras y proveedores activos',
       icono: 'Building2',
-      color: 'from-orange-500 to-orange-600',
+      color: 'from-primary-500 to-primary-600',
       requiereFechas: false,
       requiereLimite: false,
       categorias: ['Proveedores', 'Compras']
@@ -108,7 +108,7 @@ export default function ReportesPage() {
       titulo: 'Reporte de Transportadoras',
       descripcion: 'Rendimiento y estadísticas de envíos',
       icono: 'Truck',
-      color: 'from-teal-500 to-teal-600',
+      color: 'from-primary-500 to-primary-600',
       requiereFechas: false,
       requiereLimite: false,
       categorias: ['Envíos', 'Logística']
@@ -118,7 +118,7 @@ export default function ReportesPage() {
       titulo: 'Reporte Financiero',
       descripcion: 'Ingresos, gastos y ganancias del negocio',
       icono: 'BarChart3',
-      color: 'from-cyan-500 to-cyan-600',
+      color: 'from-primary-500 to-primary-600',
       requiereFechas: true,
       requiereLimite: false,
       categorias: ['Financiero', 'Análisis']
@@ -157,12 +157,12 @@ export default function ReportesPage() {
       </div>
 
       {/* Información */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+      <div className="bg-primary-50 border border-primary-200 rounded-lg p-4 mb-6">
         <div className="flex items-start gap-3">
-          <BarChart3 className="text-blue-600 flex-shrink-0 mt-0.5" size={20} />
+          <BarChart3 className="text-primary-600 flex-shrink-0 mt-0.5" size={20} />
           <div>
-            <h3 className="text-sm font-semibold text-blue-900 mb-1">¿Cómo generar un reporte?</h3>
-            <p className="text-sm text-blue-800">
+            <h3 className="text-sm font-semibold text-primary-900 mb-1">¿Cómo generar un reporte?</h3>
+            <p className="text-sm text-primary-800">
               Selecciona el tipo de reporte que deseas consultar y configura los parámetros
               (fechas, límites, etc.) para verlo en pantalla con sus gráficos.
             </p>

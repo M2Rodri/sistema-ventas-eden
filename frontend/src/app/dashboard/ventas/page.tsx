@@ -31,6 +31,7 @@ import {
 import RegistrarVentaModal from '@/components/RegistrarVentaModal';
 import DetalleVentaModal from '@/components/DetalleVentaModal';
 import CobrarSaldoModal from '@/components/CobrarSaldoModal';
+import StatCard from '@/components/StatCard';
 import { useAuth } from '@/hooks/useAuth';
 
 import Link from 'next/link';
@@ -256,7 +257,7 @@ export default function VentasPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Cargando ventas...</p>
         </div>
       </div>
@@ -270,25 +271,24 @@ export default function VentasPage() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-              <ShoppingCart className="text-blue-600" size={36} />
+              <ShoppingCart className="text-primary-600" size={36} />
               Gestión de Ventas
             </h1>
             <p className="text-gray-600 mt-2">Registro y seguimiento de ventas realizadas</p>
           </div>
           <div className="flex items-center gap-3">
-            {/* NUEVO: Botón Gestionar Clientes */}
             <Link
               href="/dashboard/clientes"
-              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl"
+              className="flex items-center gap-2 px-5 py-2.5 border border-gray-300 bg-white text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm shadow-sm"
             >
-              <Users size={20} />
+              <Users size={18} />
               Gestionar Clientes
             </Link>
             <button
               onClick={() => setShowRegistrarModal(true)}
-              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl"
+              className="flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium text-sm shadow-sm"
             >
-              <Plus size={20} />
+              <Plus size={18} />
               Registrar Venta
             </button>
           </div>
@@ -297,51 +297,30 @@ export default function VentasPage() {
         {/* Estadísticas */}
         {estadisticas && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-6 text-white shadow-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-blue-100 text-sm font-medium">Ventas del Día</p>
-                  <p className="text-3xl font-bold mt-2">{estadisticas.ventasDelDia}</p>
-                  <p className="text-blue-100 text-sm mt-1">
-                    Bs. {estadisticas.montoDelDia.toFixed(2)}
-                  </p>
-                </div>
-                <Calendar size={40} className="text-blue-200" />
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-6 text-white shadow-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-green-100 text-sm font-medium">Completadas</p>
-                  <p className="text-3xl font-bold mt-2">{estadisticas.ventasCompletadas}</p>
-                  <p className="text-green-100 text-sm mt-1">Total ventas</p>
-                </div>
-                <TrendingUp size={40} className="text-green-200" />
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg p-6 text-white shadow-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-yellow-100 text-sm font-medium">Pendientes</p>
-                  <p className="text-3xl font-bold mt-2">{estadisticas.ventasPendientes}</p>
-                  <p className="text-yellow-100 text-sm mt-1">Por cobrar</p>
-                </div>
-                <ShoppingCart size={40} className="text-yellow-200" />
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-6 text-white shadow-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-purple-100 text-sm font-medium">Monto Total</p>
-                  <p className="text-2xl font-bold mt-2">Bs. {estadisticas.montoTotal.toFixed(2)}</p>
-                  <p className="text-purple-100 text-sm mt-1">Ingresos totales</p>
-                </div>
-                <DollarSign size={40} className="text-purple-200" />
-              </div>
-            </div>
+            <StatCard
+              titulo="Ventas del Día"
+              valor={estadisticas.ventasDelDia}
+              subtitulo={`Bs. ${estadisticas.montoDelDia.toFixed(2)}`}
+              icon={<Calendar size={22} />}
+            />
+            <StatCard
+              titulo="Completadas"
+              valor={estadisticas.ventasCompletadas}
+              subtitulo="Total ventas"
+              icon={<TrendingUp size={22} />}
+            />
+            <StatCard
+              titulo="Pendientes"
+              valor={estadisticas.ventasPendientes}
+              subtitulo="Por cobrar"
+              icon={<ShoppingCart size={22} />}
+            />
+            <StatCard
+              titulo="Monto Total"
+              valor={`Bs. ${estadisticas.montoTotal.toFixed(2)}`}
+              subtitulo="Ingresos totales"
+              icon={<DollarSign size={22} />}
+            />
           </div>
         )}
 
@@ -361,7 +340,7 @@ export default function VentasPage() {
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
                 placeholder="Buscar por cliente, ID o celular..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
 
@@ -369,7 +348,7 @@ export default function VentasPage() {
             <select
               value={filtroPeriodo}
               onChange={(e) => setFiltroPeriodo(e.target.value as any)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             >
               <option value="TODOS">Todos los períodos</option>
               <option value="HOY">Hoy</option>
@@ -381,7 +360,7 @@ export default function VentasPage() {
             <select
               value={filtroMetodoPago}
               onChange={(e) => setFiltroMetodoPago(e.target.value as any)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             >
               <option value="TODOS">Todos los métodos</option>
               {Object.values(MetodoPago).map(metodo => (
@@ -393,7 +372,7 @@ export default function VentasPage() {
             <select
               value={filtroVendedor}
               onChange={(e) => setFiltroVendedor(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             >
               <option value="TODOS">Todos los vendedores</option>
               {obtenerVendedores().map(vendedor => (
@@ -405,7 +384,7 @@ export default function VentasPage() {
             <select
               value={filtroEstado}
               onChange={(e) => setFiltroEstado(e.target.value as any)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             >
               <option value="TODOS">Todos los estados</option>
               {Object.values(EstadoVenta).map(estado => (
@@ -429,7 +408,7 @@ export default function VentasPage() {
               </button>
               <button
                 onClick={loadVentas}
-                className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors font-medium"
               >
                 <RefreshCw size={16} />
                 Actualizar
@@ -501,7 +480,7 @@ export default function VentasPage() {
                 ventasFiltradas.map((venta) => (
                   <tr key={venta.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm font-bold text-blue-600">#{venta.id}</span>
+                      <span className="text-sm font-bold text-primary-700">#{venta.id}</span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
@@ -509,7 +488,7 @@ export default function VentasPage() {
                           <div className="text-sm font-medium text-gray-900 flex items-center gap-2">
                             {venta.nombreCliente}
                             {!venta.esClienteRegistrado && (
-                              <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">
+                              <span className="px-2 py-0.5 text-xs bg-primary-50 text-primary-700 border border-primary-200 rounded-full font-medium">
                                 Rápido
                               </span>
                             )}
@@ -566,7 +545,7 @@ export default function VentasPage() {
                       <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() => handleVerDetalle(venta)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
                           title="Ver detalle"
                         >
                           <Eye size={18} />

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { getDashboardEstadisticas } from '@/lib/api';
 import { DashboardEstadisticas } from '@/types/dashboard';
+import StatCard from '@/components/StatCard';
 
 /**
  * Panel de inicio.
@@ -88,57 +89,34 @@ export default function DashboardPage() {
 
       {/* Tarjetas de estadísticas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-gradient-to-br from-primary-500 to-primary-600 p-6 rounded-xl shadow-lg text-white">
-          <div className="flex items-start justify-between">
-            <h3 className="text-sm font-medium opacity-90">Ventas del mes</h3>
-            <TrendingUp size={18} className="opacity-80" />
-          </div>
-          <p className="text-3xl font-bold mt-2">
-            {loading ? '—' : bs(stats?.ventasStats?.montoVentasMes)}
-          </p>
-          <p className="text-sm mt-2 opacity-90">
-            {loading ? '' : `${num(stats?.ventasStats?.totalVentasMes)} ventas registradas`}
-          </p>
-        </div>
-
-        <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
-          <div className="flex items-start justify-between">
-            <h3 className="text-sm font-medium text-gray-500">Ventas de hoy</h3>
-            <DollarSign size={18} className="text-gray-400" />
-          </div>
-          <p className="text-3xl font-bold mt-2 text-gray-900">
-            {loading ? '—' : bs(stats?.ventasStats?.montoVentasHoy)}
-          </p>
-          <p className="text-sm mt-2 text-gray-500">
-            {loading ? '' : `${num(stats?.ventasStats?.totalVentasHoy)} hoy`}
-          </p>
-        </div>
-
-        <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
-          <div className="flex items-start justify-between">
-            <h3 className="text-sm font-medium text-gray-500">Productos activos</h3>
-            <Package size={18} className="text-gray-400" />
-          </div>
-          <p className="text-3xl font-bold mt-2 text-gray-900">
-            {loading ? '—' : num(stats?.productosStats?.productosActivos)}
-          </p>
-          <p className="text-sm mt-2 text-gray-500">
-            {loading ? '' : `${num(stats?.productosStats?.totalProductos)} en el catálogo`}
-          </p>
-        </div>
-
-        <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
-          <div className="flex items-start justify-between">
-            <h3 className="text-sm font-medium text-gray-500">Clientes</h3>
-            <Users size={18} className="text-gray-400" />
-          </div>
-          <p className="text-3xl font-bold mt-2 text-gray-900">
-            {loading ? '—' : num(stats?.clientesStats?.totalClientes)}
-          </p>
-          <p className="text-sm mt-2 text-gray-500">
-            {loading ? '' : `${num(stats?.clientesStats?.clientesNuevosMes)} nuevos este mes`}
-          </p>
-        </div>
+        <StatCard
+          titulo="Ventas del mes"
+          valor={bs(stats?.ventasStats?.montoVentasMes)}
+          subtitulo={`${num(stats?.ventasStats?.totalVentasMes)} ventas registradas`}
+          icon={<TrendingUp size={22} />}
+          loading={loading}
+        />
+        <StatCard
+          titulo="Ventas de hoy"
+          valor={bs(stats?.ventasStats?.montoVentasHoy)}
+          subtitulo={`${num(stats?.ventasStats?.totalVentasHoy)} hoy`}
+          icon={<DollarSign size={22} />}
+          loading={loading}
+        />
+        <StatCard
+          titulo="Productos activos"
+          valor={num(stats?.productosStats?.productosActivos)}
+          subtitulo={`${num(stats?.productosStats?.totalProductos)} en el catálogo`}
+          icon={<Package size={22} />}
+          loading={loading}
+        />
+        <StatCard
+          titulo="Clientes"
+          valor={num(stats?.clientesStats?.totalClientes)}
+          subtitulo={`${num(stats?.clientesStats?.clientesNuevosMes)} nuevos este mes`}
+          icon={<Users size={22} />}
+          loading={loading}
+        />
       </div>
 
       {/* Alertas de stock */}
@@ -167,7 +145,7 @@ export default function DashboardPage() {
           {user?.role === 'ADMIN' && (
             <Link
               href="/dashboard/productos"
-              className="flex items-center justify-center gap-2 bg-gray-900 text-white px-6 py-4 rounded-xl hover:bg-gray-800 transition-colors font-medium text-sm shadow-md"
+              className="flex items-center justify-center gap-2 bg-primary-600 text-white px-6 py-4 rounded-xl hover:bg-primary-700 transition-colors font-medium text-sm shadow-sm"
             >
               <PackagePlus size={18} />
               Nuevo producto

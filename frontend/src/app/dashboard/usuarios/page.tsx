@@ -115,10 +115,10 @@ export default function UsuariosPage() {
 
   const getRoleBadge = (role: string) => {
     const colors = {
-      ADMIN: 'bg-red-100 text-red-800',
-      EMPLEADO: 'bg-blue-100 text-blue-800',
+      ADMIN: 'bg-purple-50 text-purple-700 border border-purple-200',
+      EMPLEADO: 'bg-primary-50 text-primary-700 border border-primary-200',
     };
-    return colors[role as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+    return colors[role as keyof typeof colors] || 'bg-gray-100 text-gray-700 border border-gray-200';
   };
 
   const formatDate = (dateString: string) => {
@@ -252,7 +252,7 @@ export default function UsuariosPage() {
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => handleEditUser(user)}
-                        className="text-blue-600 hover:text-blue-800 transition-colors"
+                        className="text-primary-600 hover:text-primary-800 transition-colors"
                         title="Editar"
                       >
                         <Edit size={18} />

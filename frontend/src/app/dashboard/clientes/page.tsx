@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import ModificarClienteModal from '@/components/ModificarClienteModal';
 import HistorialComprasModal from '@/components/HistorialComprasModal';
+import StatCard from '@/components/StatCard';
 import { useAuth } from '@/contexts/AuthContext';
 
 import Link from 'next/link';
@@ -261,7 +262,7 @@ export default function ClientesPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Cargando clientes...</p>
         </div>
       </div>
@@ -272,15 +273,15 @@ export default function ClientesPage() {
     <div className="p-6 max-w-7xl mx-auto">
       {/* Header con botón volver */}
       <div className="mb-8">
-        <Link href="/dashboard/ventas" className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors">
-        <ArrowLeft size={20} />
-        <span className="font-medium">Volver a Ventas</span>
-      </Link>
+        <Link href="/dashboard/ventas" className="flex items-center gap-2 text-gray-600 hover:text-primary-700 mb-4 transition-colors font-medium">
+          <ArrowLeft size={18} />
+          <span>Volver a Ventas</span>
+        </Link>
 
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-              <Users className="text-blue-600" size={36} />
+              <Users className="text-primary-600" size={36} />
               Gestión de Clientes
             </h1>
             <p className="text-gray-600 mt-2">
@@ -292,48 +293,28 @@ export default function ClientesPage() {
         {/* Estadísticas - Indicadores superiores (P6.1) */}
         {estadisticas && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-6 text-white shadow-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-blue-100 text-sm font-medium">Total de Clientes</p>
-                  <p className="text-3xl font-bold mt-2">{estadisticas.totalClientes}</p>
-                  <p className="text-blue-100 text-sm mt-1">Registrados en el sistema</p>
-                </div>
-                <Users size={40} className="text-blue-200" />
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-6 text-white shadow-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-green-100 text-sm font-medium">Compras Este Mes</p>
-                  <p className="text-3xl font-bold mt-2">{estadisticas.clientesConComprasEsteMes}</p>
-                  <p className="text-green-100 text-sm mt-1">Clientes activos</p>
-                </div>
-                <ShoppingBag size={40} className="text-green-200" />
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-6 text-white shadow-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-purple-100 text-sm font-medium">Cliente Top</p>
-                  {estadisticas.clienteTopNombre ? (
-                    <>
-                      <p className="text-xl font-bold mt-2 truncate">
-                        {estadisticas.clienteTopNombre}
-                      </p>
-                      <p className="text-purple-100 text-sm mt-1">
-                        Bs. {estadisticas.clienteTopMonto?.toFixed(2)}
-                      </p>
-                    </>
-                  ) : (
-                    <p className="text-lg mt-2">Sin datos</p>
-                  )}
-                </div>
-                <Crown size={40} className="text-purple-200" />
-              </div>
-            </div>
+            <StatCard
+              titulo="Total de Clientes"
+              valor={estadisticas.totalClientes}
+              subtitulo="Registrados en el sistema"
+              icon={<Users size={22} />}
+            />
+            <StatCard
+              titulo="Compras Este Mes"
+              valor={estadisticas.clientesConComprasEsteMes}
+              subtitulo="Clientes activos"
+              icon={<ShoppingBag size={22} />}
+            />
+            <StatCard
+              titulo="Cliente Top"
+              valor={estadisticas.clienteTopNombre || 'Sin datos'}
+              subtitulo={
+                estadisticas.clienteTopMonto
+                  ? `Bs. ${estadisticas.clienteTopMonto.toFixed(2)}`
+                  : undefined
+              }
+              icon={<Crown size={22} />}
+            />
           </div>
         )}
 
@@ -356,7 +337,7 @@ export default function ClientesPage() {
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
                 placeholder="Buscar por nombre, teléfono o NIT/CI..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -369,7 +350,7 @@ export default function ClientesPage() {
                 type="date"
                 value={filtroFechaDesde}
                 onChange={(e) => setFiltroFechaDesde(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
 
@@ -379,7 +360,7 @@ export default function ClientesPage() {
                 type="date"
                 value={filtroFechaHasta}
                 onChange={(e) => setFiltroFechaHasta(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
 
@@ -392,7 +373,7 @@ export default function ClientesPage() {
                 placeholder="0.00"
                 step="0.01"
                 min="0"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
 
@@ -405,7 +386,7 @@ export default function ClientesPage() {
                 placeholder="10000.00"
                 step="0.01"
                 min="0"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -435,7 +416,7 @@ export default function ClientesPage() {
                   loadClientes();
                   loadEstadisticas();
                 }}
-                className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors font-medium"
               >
                 <RefreshCw size={16} />
                 Actualizar
@@ -546,7 +527,7 @@ export default function ClientesPage() {
                       {cliente.nitCi || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <span className="px-3 py-1 text-sm font-semibold bg-blue-100 text-blue-800 rounded-full">
+                      <span className="px-3 py-1 text-sm font-semibold bg-primary-50 text-primary-700 border border-primary-200 rounded-full">
                         {cliente.numeroCompras}
                       </span>
                     </td>
@@ -562,7 +543,7 @@ export default function ClientesPage() {
                       <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() => handleModificar(cliente)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
                           title="Modificar cliente"
                         >
                           <Edit2 size={18} />

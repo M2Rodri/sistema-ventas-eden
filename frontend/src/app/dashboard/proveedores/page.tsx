@@ -325,14 +325,14 @@ export default function ProveedoresPage() {
                       </button>
                       <button
                         onClick={() => handleVerCompras(proveedor)}
-                        className="text-purple-600 hover:text-purple-800 transition-colors"
+                        className="text-gray-600 hover:text-gray-900 transition-colors"
                         title="Ver compras"
                       >
                         <Package size={18} />
                       </button>
                       <button
                         onClick={() => handleEditProveedor(proveedor)}
-                        className="text-blue-600 hover:text-blue-800 transition-colors"
+                        className="text-primary-600 hover:text-primary-800 transition-colors"
                         title="Editar"
                       >
                         <Edit size={18} />

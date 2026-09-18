@@ -18,6 +18,7 @@ import ConfigurarStockMinimoModal from '@/components/ConfigurarStockMinimoModal'
 import HistorialProductoModal from '@/components/HistorialProductoModal';
 import AvisoCargaParcial from '@/components/AvisoCargaParcial';
 import { crearRecolector } from '@/lib/cargaParcial';
+import StatCard from '@/components/StatCard';
 
 export default function InventarioPage() {
   const [inventario, setInventario] = useState<Inventario[]>([]);
@@ -190,49 +191,25 @@ export default function InventarioPage() {
 
       {/* INDICADORES SUPERIORES - P4.1 */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        {/* Total Productos */}
-        <div className="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 font-medium">Total de Productos</p>
-              <p className="text-3xl font-bold text-gray-900 mt-1">{totalProductos}</p>
-            </div>
-            <div className="bg-blue-100 p-3 rounded-lg">
-              <Package className="text-blue-600" size={28} />
-            </div>
-          </div>
-        </div>
+        <StatCard
+          titulo="Total de Productos"
+          valor={totalProductos}
+          icon={<Package size={22} />}
+        />
 
-        {/* Productos con Stock Bajo - CLICKEABLE */}
-        <button
+        <StatCard
+          titulo="Productos con Stock Bajo"
+          valor={productosConAlerta}
+          icon={<AlertTriangle size={22} />}
           onClick={() => setStockFilter(stockFilter === 'STOCK_BAJO' ? 'TODOS' : 'STOCK_BAJO')}
-          className="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-md transition-shadow text-left w-full"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 font-medium">Productos con Stock Bajo</p>
-              <p className="text-3xl font-bold text-yellow-600 mt-1">{productosConAlerta}</p>
-            </div>
-            <div className="bg-yellow-100 p-3 rounded-lg">
-              <AlertTriangle className="text-yellow-600" size={28} />
-            </div>
-          </div>
-        </button>
+          className="hover:border-slate-500"
+        />
 
-        {/* Valor Total del Inventario */}
-        <div className="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 font-medium">Valor Total del Inventario</p>
-              <p className="text-3xl font-bold text-green-600 mt-1">
-                {valorTotalInventario.toLocaleString('es-BO')} Bs
-              </p>
-            </div>
-            <div className="bg-green-100 p-3 rounded-lg">
-              <DollarSign className="text-green-600" size={28} />
-            </div>
-          </div>
-        </div>
+        <StatCard
+          titulo="Valor Total del Inventario"
+          valor={`${valorTotalInventario.toLocaleString('es-BO')} Bs`}
+          icon={<DollarSign size={22} />}
+        />
       </div>
 
       {/* Header con filtros responsive */}
@@ -524,25 +501,25 @@ export default function InventarioPage() {
                       {formatDate(item.fechaActualizacion)}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
                         <button
                           onClick={() => handleAjustarStock(item)}
-                          className="flex items-center gap-1 px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
+                          className="flex items-center gap-1 px-2.5 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-xs font-medium shadow-sm"
                           title="Ajustar Inventario"
                         >
-                          <Edit size={16} />
+                          <Edit size={14} />
                           Ajustar
                         </button>
                         <button
                           onClick={() => handleVerHistorialProducto(item)}
-                          className="flex items-center gap-1 px-3 py-1.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium"
+                          className="p-1.5 border border-gray-200 bg-white text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
                           title="Ver Historial"
                         >
                           <History size={16} />
                         </button>
                         <button
                           onClick={() => handleConfigurarStockMinimo(item)}
-                          className="flex items-center gap-1 px-3 py-1.5 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium"
+                          className="p-1.5 border border-gray-200 bg-white text-gray-600 hover:text-primary-700 hover:bg-gray-50 rounded-lg transition-colors"
                           title="Configurar Stock Mínimo"
                         >
                           <Settings size={16} />
