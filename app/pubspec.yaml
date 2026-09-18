@@ -45,6 +45,10 @@ dependencies:
   # Formato de moneda (Bs. 1.234,50) y fechas para el resumen del día.
   intl: ^0.19.0
 
+  # Foto del comprobante de pago en Nueva venta: cámara (el papel del banco
+  # se fotografía ahí mismo) o galería (el comprobante llegó por WhatsApp).
+  image_picker: ^1.1.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

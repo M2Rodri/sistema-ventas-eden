@@ -26,6 +26,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Se usa para fotografiar el comprobante de pago al registrar una venta.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Se usa para adjuntar una foto ya tomada del comprobante de pago.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

@@ -42,6 +42,23 @@ class ApiClient {
     return _decodificar(respuesta);
   }
 
+  /// Sube un único archivo como multipart/form-data, en el campo "file" (el
+  /// mismo nombre que espera POST /api/pagos/{id}/comprobante).
+  Future<Map<String, dynamic>> postArchivo(
+    String path, {
+    required File archivo,
+    required String token,
+  }) async {
+    final respuesta = await _enviar(() async {
+      final request = http.MultipartRequest('POST', _uri(path))
+        ..headers['Authorization'] = 'Bearer $token'
+        ..files.add(await http.MultipartFile.fromPath('file', archivo.path));
+      final streamed = await request.send();
+      return http.Response.fromStream(streamed);
+    });
+    return _decodificar(respuesta);
+  }
+
   Future<Map<String, dynamic>> get(String path, {required String token}) async {
     final respuesta = await _enviar(
       () => http.get(_uri(path), headers: _headers(token)),

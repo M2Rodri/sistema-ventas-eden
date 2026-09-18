@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import '../models/venta.dart';
 import 'api_client.dart';
 
@@ -48,5 +50,17 @@ class VentasRepository {
   Future<Venta> marcarEntregado(int idVenta, String token) async {
     final json = await _apiClient.patch('/api/ventas/$idVenta/entregar', token: token);
     return Venta.desdeApi(json);
+  }
+
+  Future<Venta> crearVenta(NuevaVentaRequest request, String token) async {
+    final json = await _apiClient.post('/api/ventas', request.toJson(), token: token);
+    return Venta.desdeApi(json);
+  }
+
+  /// El comprobante viaja aparte, sobre un pago ya creado: si esto falla la
+  /// venta ya quedó registrada igual (mismo comportamiento que el formulario
+  /// web, que avisa el error pero no revierte nada).
+  Future<void> adjuntarComprobante(int idPago, File archivo, String token) async {
+    await _apiClient.postArchivo('/api/pagos/$idPago/comprobante', archivo: archivo, token: token);
   }
 }

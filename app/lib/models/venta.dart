@@ -130,6 +130,114 @@ class Pago {
   }
 }
 
+/// Un producto elegido en el carrito de Nueva venta, con la cantidad y el
+/// precio acordado (que puede venir con descuento respecto al de catálogo).
+class ItemCarrito {
+  const ItemCarrito({
+    required this.idProducto,
+    required this.nombre,
+    required this.skuProducto,
+    required this.precioOriginal,
+    required this.precioFinal,
+    required this.cantidad,
+    required this.stockDisponible,
+  });
+
+  final int idProducto;
+  final String nombre;
+  final String? skuProducto;
+  final double precioOriginal;
+  final double precioFinal;
+  final int cantidad;
+  final int stockDisponible;
+
+  double get subtotal => precioFinal * cantidad;
+
+  /// % de descuento respecto al precio de catálogo. Se deriva, igual que en
+  /// el formulario web: no se tipea directo.
+  double get descuentoPorcentaje {
+    if (precioOriginal <= 0 || precioFinal >= precioOriginal) return 0;
+    return ((precioOriginal - precioFinal) / precioOriginal) * 100;
+  }
+
+  ItemCarrito copyWith({double? precioFinal, int? cantidad}) {
+    return ItemCarrito(
+      idProducto: idProducto,
+      nombre: nombre,
+      skuProducto: skuProducto,
+      precioOriginal: precioOriginal,
+      precioFinal: precioFinal ?? this.precioFinal,
+      cantidad: cantidad ?? this.cantidad,
+      stockDisponible: stockDisponible,
+    );
+  }
+}
+
+/// Lo que manda POST /api/ventas (VentaRequest en el backend). Mismos
+/// campos y las mismas reglas de armado que RegistrarVentaModal.tsx.
+class NuevaVentaRequest {
+  const NuevaVentaRequest({
+    this.idCliente,
+    this.nombreClienteInvitado,
+    this.telefonoClienteInvitado,
+    required this.metodoPago,
+    required this.items,
+    required this.montoPagado,
+    required this.modalidadEntrega,
+    this.direccionDestino,
+    this.ciudad,
+    this.transportadora,
+    this.guiaRemision,
+  });
+
+  final int? idCliente;
+  final String? nombreClienteInvitado;
+  final String? telefonoClienteInvitado;
+  final MetodoPago metodoPago;
+  final List<ItemCarrito> items;
+  final double montoPagado;
+  final ModalidadEntrega modalidadEntrega;
+  final String? direccionDestino;
+  final String? ciudad;
+  final String? transportadora;
+  final String? guiaRemision;
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      if (idCliente != null) 'idCliente': idCliente,
+      if (idCliente == null) 'nombreClienteInvitado': nombreClienteInvitado,
+      if (idCliente == null && telefonoClienteInvitado != null && telefonoClienteInvitado!.isNotEmpty)
+        'telefonoClienteInvitado': telefonoClienteInvitado,
+      'metodoPago': metodoPago.valorApi,
+      'items': items
+          .map((item) => <String, dynamic>{
+                'idProducto': item.idProducto,
+                'cantidad': item.cantidad,
+                if (item.descuentoPorcentaje > 0) 'precioUnitarioConDescuento': item.precioFinal,
+                if (item.descuentoPorcentaje > 0) 'descuentoPorcentaje': item.descuentoPorcentaje,
+              })
+          .toList(),
+      'montoPagado': montoPagado,
+      'modalidadEntrega': _modalidadValorApi(modalidadEntrega),
+      if (modalidadEntrega != ModalidadEntrega.retiro) 'direccionDestino': direccionDestino,
+      if (modalidadEntrega != ModalidadEntrega.retiro) 'ciudad': ciudad,
+      if (modalidadEntrega == ModalidadEntrega.transportadora) 'transportadora': transportadora,
+      if (modalidadEntrega == ModalidadEntrega.transportadora) 'guiaRemision': guiaRemision,
+    };
+  }
+}
+
+String _modalidadValorApi(ModalidadEntrega modalidad) {
+  switch (modalidad) {
+    case ModalidadEntrega.retiro:
+      return 'RETIRO';
+    case ModalidadEntrega.domicilio:
+      return 'DOMICILIO';
+    case ModalidadEntrega.transportadora:
+      return 'TRANSPORTADORA';
+  }
+}
+
 class Venta {
   const Venta({
     required this.id,

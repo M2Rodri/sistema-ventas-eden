@@ -10,6 +10,7 @@ import '../../theme/app_colors.dart';
 import '../alertas_stock/alertas_stock_screen.dart';
 import '../catalogo/catalogo_screen.dart';
 import '../login/login_screen.dart';
+import '../ventas/nueva_venta_screen.dart';
 import '../ventas/ventas_screen.dart';
 
 enum _EstadoResumen { cargando, conDatos, vacio, error }
@@ -90,12 +91,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _proximamente(String modulo) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$modulo: todavía no está disponible en esta versión.')),
-    );
-  }
-
   void _abrirCatalogo() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => CatalogoScreen(token: widget.sesion.token)),
@@ -112,6 +107,13 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => VentasScreen(token: widget.sesion.token)),
     );
+  }
+
+  Future<void> _abrirNuevaVenta() async {
+    final registrada = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(builder: (_) => NuevaVentaScreen(token: widget.sesion.token)),
+    );
+    if (registrada == true && mounted) _cargarResumen();
   }
 
   @override
@@ -131,7 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: AppColors.verdeOscuro,
-        onPressed: () => _proximamente('Nueva venta'),
+        onPressed: _abrirNuevaVenta,
         icon: const Icon(Icons.add),
         label: const Text('Nueva venta'),
       ),
