@@ -7,6 +7,7 @@ import '../../data/dashboard_repository.dart';
 import '../../models/dashboard_resumen.dart';
 import '../../models/sesion.dart';
 import '../../theme/app_colors.dart';
+import '../alertas_stock/alertas_stock_screen.dart';
 import '../catalogo/catalogo_screen.dart';
 import '../login/login_screen.dart';
 
@@ -100,6 +101,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _abrirAlertasStock() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => AlertasStockScreen(token: widget.sesion.token)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final usuario = widget.sesion.usuario;
@@ -172,7 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     titulo: 'Alertas de\nstock',
                     colorFondo: const Color(0xFFFEEEDB),
                     colorAcento: const Color(0xFFD97706),
-                    onTap: () => _proximamente('Alertas de stock'),
+                    onTap: _abrirAlertasStock,
                   ),
                 ),
                 const SizedBox(width: 12),

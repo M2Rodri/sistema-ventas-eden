@@ -15,4 +15,13 @@ class CatalogoRepository {
     final json = await _apiClient.getList('/api/inventario/catalogo', token: token);
     return json.map((item) => ProductoCatalogo.desdeApi(item as Map<String, dynamic>)).toList();
   }
+
+  /// Mismo endpoint, con soloBajoMinimo=true: usado por Alertas de stock.
+  Future<List<ProductoCatalogo>> obtenerBajoMinimo(String token) async {
+    final json = await _apiClient.getList(
+      '/api/inventario/catalogo?soloBajoMinimo=true',
+      token: token,
+    );
+    return json.map((item) => ProductoCatalogo.desdeApi(item as Map<String, dynamic>)).toList();
+  }
 }
