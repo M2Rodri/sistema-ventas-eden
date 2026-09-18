@@ -32,6 +32,16 @@ class ApiClient {
     return _decodificar(respuesta);
   }
 
+  /// PATCH sin body: alcanza para las acciones de estado que expone el
+  /// backend (marcar entregado, cancelar), que no reciben nada más que el id
+  /// en la ruta.
+  Future<Map<String, dynamic>> patch(String path, {required String token}) async {
+    final respuesta = await _enviar(
+      () => http.patch(_uri(path), headers: _headers(token)),
+    );
+    return _decodificar(respuesta);
+  }
+
   Future<Map<String, dynamic>> get(String path, {required String token}) async {
     final respuesta = await _enviar(
       () => http.get(_uri(path), headers: _headers(token)),

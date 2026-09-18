@@ -10,6 +10,7 @@ import '../../theme/app_colors.dart';
 import '../alertas_stock/alertas_stock_screen.dart';
 import '../catalogo/catalogo_screen.dart';
 import '../login/login_screen.dart';
+import '../ventas/ventas_screen.dart';
 
 enum _EstadoResumen { cargando, conDatos, vacio, error }
 
@@ -107,6 +108,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _abrirVentas() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => VentasScreen(token: widget.sesion.token)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final usuario = widget.sesion.usuario;
@@ -169,7 +176,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     titulo: 'Ventas y\nentregas',
                     colorFondo: const Color(0xFFE2F4E9),
                     colorAcento: const Color(0xFF1E7A3E),
-                    onTap: () => _proximamente('Ventas y entregas'),
+                    onTap: _abrirVentas,
                   ),
                 ),
                 const SizedBox(width: 12),
