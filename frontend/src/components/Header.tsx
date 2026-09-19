@@ -17,21 +17,22 @@ export default function Header() {
       {/* Usuario y acciones */}
       <div className="flex items-center gap-4">
         {/*
-          Acceso directo a la tienda publica.
-          Antes habia que editar la URL a mano, cambiando /dashboard por /tienda.
-          Se abre en una pestana nueva a proposito: quien administra suele querer
-          mirar como quedo la tienda sin perder lo que tenia abierto en el panel.
+          La tienda publica queda fuera del alcance de este trabajo: no debe
+          ser alcanzable desde el panel de administracion. Se comenta el
+          acceso sin borrar el codigo, mismo patron que Envios/Promociones
+          en Sidebar.tsx.
+
+          <Link
+            href="/tienda"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Ver la tienda online (se abre en otra pestana)"
+            className="flex items-center gap-2 rounded-lg px-3 py-2 text-gray-600 transition-colors hover:bg-primary-50 hover:text-primary-700"
+          >
+            <Store size={20} />
+            <span className="hidden text-sm font-medium lg:inline">Ver tienda</span>
+          </Link>
         */}
-        <Link
-          href="/tienda"
-          target="_blank"
-          rel="noopener noreferrer"
-          title="Ver la tienda online (se abre en otra pestana)"
-          className="flex items-center gap-2 rounded-lg px-3 py-2 text-gray-600 transition-colors hover:bg-primary-50 hover:text-primary-700"
-        >
-          <Store size={20} />
-          <span className="hidden text-sm font-medium lg:inline">Ver tienda</span>
-        </Link>
 
         {/* Notificaciones */}
         <NotificacionesMenu />

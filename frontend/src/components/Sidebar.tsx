@@ -34,7 +34,7 @@ const menuItems: MenuItem[] = [
   { name: 'Productos', icon: <Package size={20} />, href: '/dashboard/productos' },
   { name: 'Ventas', icon: <DollarSign size={20} />, href: '/dashboard/ventas' },
   { name: 'Inventario', icon: <Boxes size={20} />, href: '/dashboard/inventario' },
-  { name: 'Compras', icon: <ShoppingCart size={20} />, href: '/dashboard/compras' },
+  { name: 'Compras', icon: <ShoppingCart size={20} />, href: '/dashboard/compras', adminOnly: true },
   { name: 'Proveedores', icon: <Building2 size={20} />, href: '/dashboard/proveedores', adminOnly: true },
   { name: 'Clientes', icon: <Contact size={20} />, href: '/dashboard/clientes' },
   // Entrega pasó a vivir en la venta (modalidadEntrega/estadoEntrega). El
