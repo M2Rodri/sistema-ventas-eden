@@ -67,11 +67,18 @@ public interface InventarioRepository extends JpaRepository<Inventario, Long> {
      * "nombre IS NULL OR ..." y "soloBajoMinimo = false OR ..." son el mismo
      * truco: cuando el filtro no aplica, esa mitad del OR es true y no
      * descarta filas.
+     *
+     * CAST(:nombre AS string): sin esto, Postgres tira "no existe la función
+     * lower(bytea)" cada vez que nombre viaja null (o sea, siempre que no se
+     * manda filtro). Al preparar la consulta, Postgres necesita el tipo de
+     * cada parámetro de antemano; sin una pista explícita, un parámetro nulo
+     * usado dentro de LOWER() lo resuelve mal. El cast fuerza el tipo y
+     * saca la ambigüedad.
      */
     @EntityGraph(attributePaths = {"producto", "producto.categoria", "producto.imagenes"})
     @Query("SELECT i FROM Inventario i "
             + "WHERE i.producto.activo = true "
-            + "AND (:nombre IS NULL OR LOWER(i.producto.nombre) LIKE LOWER(CONCAT('%', :nombre, '%'))) "
+            + "AND (:nombre IS NULL OR LOWER(i.producto.nombre) LIKE LOWER(CONCAT('%', CAST(:nombre AS string), '%'))) "
             + "AND (:soloBajoMinimo = false OR i.cantidadDisponible <= i.producto.stockMinimo) "
             + "ORDER BY i.producto.nombre")
     List<Inventario> findCatalogoApp(@Param("nombre") String nombre, @Param("soloBajoMinimo") boolean soloBajoMinimo);
