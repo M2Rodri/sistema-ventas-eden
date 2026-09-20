@@ -132,7 +132,8 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColors.verdeOscuro,
+        backgroundColor: AppColors.verdeAgua,
+        foregroundColor: Colors.white,
         onPressed: _abrirNuevaVenta,
         icon: const Icon(Icons.add),
         label: const Text('Nueva venta'),
