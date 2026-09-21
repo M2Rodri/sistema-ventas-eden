@@ -10,7 +10,6 @@ import { ClienteConEstadisticas, ClienteEstadisticas } from '@/types/cliente';
 import { exportarCSV, fechaArchivo } from '@/lib/exportar';
 import {
   Search,
-  ArrowLeft,
   Users,
   TrendingUp,
   ShoppingBag,
@@ -25,9 +24,8 @@ import {
 import ModificarClienteModal from '@/components/ModificarClienteModal';
 import HistorialComprasModal from '@/components/HistorialComprasModal';
 import StatCard from '@/components/StatCard';
+import Breadcrumbs from '@/components/Breadcrumbs';
 import { useAuth } from '@/contexts/AuthContext';
-
-import Link from 'next/link';
 
 export default function ClientesPage() {
   const router = useRouter();
@@ -257,170 +255,146 @@ export default function ClientesPage() {
     });
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Cargando clientes...</p>
+  return (
+    <div>
+      <Breadcrumbs items={[{ label: 'Clientes' }]} />
+
+      {/* Estadísticas - Indicadores superiores (P6.1) */}
+      {(loading || estadisticas) && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <StatCard
+            titulo="Total de Clientes"
+            valor={estadisticas?.totalClientes ?? 0}
+            subtitulo="Registrados en el sistema"
+            icon={<Users size={22} />}
+            loading={loading}
+          />
+          <StatCard
+            titulo="Compras Este Mes"
+            valor={estadisticas?.clientesConComprasEsteMes ?? 0}
+            subtitulo="Clientes activos"
+            icon={<ShoppingBag size={22} />}
+            loading={loading}
+          />
+          <StatCard
+            titulo="Cliente Top"
+            valor={estadisticas?.clienteTopNombre || 'Sin datos'}
+            subtitulo={
+              estadisticas?.clienteTopMonto
+                ? `Bs. ${estadisticas.clienteTopMonto.toFixed(2)}`
+                : undefined
+            }
+            icon={<Crown size={22} />}
+            loading={loading}
+          />
+        </div>
+      )}
+
+      {/* Header con búsqueda */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+        <div className="flex-shrink-0">
+          <h1 className="text-2xl font-bold text-gray-900">Gestión de Clientes</h1>
+          <p className="text-gray-600 mt-1">
+            Administra la información de tus clientes y consulta su historial de compras
+          </p>
+        </div>
+
+        <div className="relative w-full sm:w-72">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+          <input
+            type="text"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar por nombre, teléfono o NIT/CI..."
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+          />
         </div>
       </div>
-    );
-  }
 
-  return (
-    <div className="p-6 max-w-7xl mx-auto">
-      {/* Header con botón volver */}
-      <div className="mb-8">
-        <Link href="/dashboard/ventas" className="flex items-center gap-2 text-gray-600 hover:text-primary-700 mb-4 transition-colors font-medium">
-          <ArrowLeft size={18} />
-          <span>Volver a Ventas</span>
-        </Link>
-
-        <div className="flex justify-between items-center mb-6">
+      {/* Filtros avanzados */}
+      <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+        <div className="flex items-center gap-2 mb-3">
+          <Filter size={18} className="text-gray-600" />
+          <h3 className="text-sm font-semibold text-gray-900">Filtros avanzados</h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-              <Users className="text-primary-600" size={36} />
-              Gestión de Clientes
-            </h1>
-            <p className="text-gray-600 mt-2">
-              Administra la información de tus clientes y consulta su historial de compras
-            </p>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Fecha Desde</label>
+            <input
+              type="date"
+              value={filtroFechaDesde}
+              onChange={(e) => setFiltroFechaDesde(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Fecha Hasta</label>
+            <input
+              type="date"
+              value={filtroFechaHasta}
+              onChange={(e) => setFiltroFechaHasta(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Monto Mínimo (Bs.)</label>
+            <input
+              type="number"
+              value={filtroMontoMin}
+              onChange={(e) => setFiltroMontoMin(e.target.value)}
+              placeholder="0.00"
+              step="0.01"
+              min="0"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Monto Máximo (Bs.)</label>
+            <input
+              type="number"
+              value={filtroMontoMax}
+              onChange={(e) => setFiltroMontoMax(e.target.value)}
+              placeholder="10000.00"
+              step="0.01"
+              min="0"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            />
           </div>
         </div>
 
-        {/* Estadísticas - Indicadores superiores (P6.1) */}
-        {estadisticas && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <StatCard
-              titulo="Total de Clientes"
-              valor={estadisticas.totalClientes}
-              subtitulo="Registrados en el sistema"
-              icon={<Users size={22} />}
-            />
-            <StatCard
-              titulo="Compras Este Mes"
-              valor={estadisticas.clientesConComprasEsteMes}
-              subtitulo="Clientes activos"
-              icon={<ShoppingBag size={22} />}
-            />
-            <StatCard
-              titulo="Cliente Top"
-              valor={estadisticas.clienteTopNombre || 'Sin datos'}
-              subtitulo={
-                estadisticas.clienteTopMonto
-                  ? `Bs. ${estadisticas.clienteTopMonto.toFixed(2)}`
-                  : undefined
-              }
-              icon={<Crown size={22} />}
-            />
-          </div>
-        )}
-
-        {/* Filtros */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Filter size={20} className="text-gray-600" />
-            <h3 className="font-semibold text-gray-900">Filtros de Búsqueda</h3>
-          </div>
-
-          {/* Búsqueda principal */}
-          <div className="mb-4">
-            <div className="relative">
-              <Search
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                size={18}
-              />
-              <input
-                type="text"
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                placeholder="Buscar por nombre, teléfono o NIT/CI..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
-            </div>
-          </div>
-
-          {/* Filtros avanzados */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Fecha Desde</label>
-              <input
-                type="date"
-                value={filtroFechaDesde}
-                onChange={(e) => setFiltroFechaDesde(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Fecha Hasta</label>
-              <input
-                type="date"
-                value={filtroFechaHasta}
-                onChange={(e) => setFiltroFechaHasta(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Monto Mínimo (Bs.)</label>
-              <input
-                type="number"
-                value={filtroMontoMin}
-                onChange={(e) => setFiltroMontoMin(e.target.value)}
-                placeholder="0.00"
-                step="0.01"
-                min="0"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Monto Máximo (Bs.)</label>
-              <input
-                type="number"
-                value={filtroMontoMax}
-                onChange={(e) => setFiltroMontoMax(e.target.value)}
-                placeholder="10000.00"
-                step="0.01"
-                min="0"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
-            </div>
-          </div>
-
-          <div className="mt-4 flex items-center justify-between">
-            <p className="text-sm text-gray-600">
-              Mostrando <span className="font-semibold">{clientesFiltrados.length}</span> de{' '}
-              <span className="font-semibold">{clientes.length}</span> clientes
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={handleExportarExcel}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors shadow-md"
-              >
-                <Download size={16} />
-                Exportar a CSV
-              </button>
-              <button
-                onClick={limpiarFiltros}
-                className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X size={16} />
-                Limpiar Filtros
-              </button>
-              <button
-                onClick={() => {
-                  loadClientes();
-                  loadEstadisticas();
-                }}
-                className="flex items-center gap-2 px-4 py-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors font-medium"
-              >
-                <RefreshCw size={16} />
-                Actualizar
-              </button>
-            </div>
+        <div className="mt-4 flex items-center justify-between">
+          <p className="text-sm text-gray-600">
+            Mostrando <span className="font-semibold">{clientesFiltrados.length}</span> de{' '}
+            <span className="font-semibold">{clientes.length}</span> clientes
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={handleExportarExcel}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors shadow-md"
+            >
+              <Download size={16} />
+              Exportar a CSV
+            </button>
+            <button
+              onClick={limpiarFiltros}
+              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <X size={16} />
+              Limpiar Filtros
+            </button>
+            <button
+              onClick={() => {
+                loadClientes();
+                loadEstadisticas();
+              }}
+              className="flex items-center gap-2 px-4 py-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors font-medium"
+            >
+              <RefreshCw size={16} />
+              Actualizar
+            </button>
           </div>
         </div>
       </div>
@@ -436,6 +410,11 @@ export default function ClientesPage() {
       )}
 
       {/* Tabla de clientes (P6.1) */}
+      {loading ? (
+        <div className="bg-white rounded-lg shadow-md flex items-center justify-center py-16">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        </div>
+      ) : (
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -566,6 +545,7 @@ export default function ClientesPage() {
           </table>
         </div>
       </div>
+      )}
 
       {/* Modales */}
       {clienteSeleccionado && (

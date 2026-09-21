@@ -135,7 +135,7 @@ export default function ComprasPage() {
 
   return (
     <div className="space-y-6">
-      <Breadcrumbs items={[{ label: "Inventario", href: "/dashboard/inventario" }, { label: "Compras" }]} />
+      <Breadcrumbs items={[{ label: "Compras" }]} />
 
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
@@ -231,7 +231,9 @@ export default function ComprasPage() {
       {/* Tabla */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         {loading ? (
-          <p className="p-8 text-center text-gray-500">Cargando compras…</p>
+          <div className="flex items-center justify-center py-16">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          </div>
         ) : loadError ? (
           <div className="p-12 text-center">
             <AlertCircle size={40} className="mx-auto text-red-400 mb-3" />

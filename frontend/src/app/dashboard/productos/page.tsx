@@ -298,17 +298,6 @@ export default function ProductosPage() {
     }).format(price);
   };
 
-  if (loading) {
-    return (
-      <div>
-        <Breadcrumbs items={[{ label: 'Productos' }]} />
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div>
       <Breadcrumbs items={[{ label: 'Productos' }]} />
@@ -397,6 +386,11 @@ export default function ProductosPage() {
 
       {/* Tabla */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          </div>
+        ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -484,6 +478,7 @@ export default function ProductosPage() {
             </div>
           )}
         </div>
+        )}
       </div>
 
       {/* Modals */}

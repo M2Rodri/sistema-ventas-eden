@@ -135,36 +135,6 @@ export default function UsuariosPage() {
     });
   };
 
-  if (loading) {
-    return (
-      <div>
-        <Breadcrumbs items={[{ label: 'Usuarios' }]} />
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        </div>
-      </div>
-    );
-  }
-
-  if (loadError) {
-    return (
-      <div>
-        <Breadcrumbs items={[{ label: 'Usuarios' }]} />
-        <div className="flex flex-col items-center justify-center h-64 text-center">
-          <AlertCircle className="text-red-500 mb-3" size={40} />
-          <p className="text-gray-700 font-medium mb-1">No se pudieron cargar los usuarios</p>
-          <p className="text-sm text-gray-500 mb-4">{loadError}</p>
-          <button
-            onClick={loadUsers}
-            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
-          >
-            Reintentar
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div>
       <Breadcrumbs items={[{ label: 'Usuarios' }]} />
@@ -236,6 +206,23 @@ export default function UsuariosPage() {
 
       {/* Tabla */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          </div>
+        ) : loadError ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center px-6">
+            <AlertCircle className="text-red-500 mb-3" size={40} />
+            <p className="text-gray-700 font-medium mb-1">No se pudieron cargar los usuarios</p>
+            <p className="text-sm text-gray-500 mb-4">{loadError}</p>
+            <button
+              onClick={loadUsers}
+              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
+            >
+              Reintentar
+            </button>
+          </div>
+        ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -305,6 +292,7 @@ export default function UsuariosPage() {
             </div>
           )}
         </div>
+        )}
       </div>
 
       {/* Modals */}

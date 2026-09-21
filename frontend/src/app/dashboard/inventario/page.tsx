@@ -176,17 +176,6 @@ export default function InventarioPage() {
     0
   );
 
-  if (loading) {
-    return (
-      <div>
-        <Breadcrumbs items={[{ label: 'Inventario' }]} />
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="max-w-full">
       <Breadcrumbs items={[{ label: 'Inventario' }]} />
@@ -199,6 +188,7 @@ export default function InventarioPage() {
           titulo="Total de Productos"
           valor={totalProductos}
           icon={<Package size={22} />}
+          loading={loading}
         />
 
         <StatCard
@@ -207,12 +197,14 @@ export default function InventarioPage() {
           icon={<AlertTriangle size={22} />}
           onClick={() => setStockFilter(stockFilter === 'STOCK_BAJO' ? 'TODOS' : 'STOCK_BAJO')}
           className="hover:border-slate-500"
+          loading={loading}
         />
 
         <StatCard
           titulo="Valor Total del Inventario"
           valor={`${valorTotalInventario.toLocaleString('es-BO')} Bs`}
           icon={<DollarSign size={22} />}
+          loading={loading}
         />
       </div>
 
@@ -338,8 +330,14 @@ export default function InventarioPage() {
         </div>
       )}
 
+      {loading && (
+        <div className="flex items-center justify-center py-16">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        </div>
+      )}
+
       {/* Alertas de Stock Bajo */}
-      {alertas.length > 0 && !showHistorial && (
+      {!loading && alertas.length > 0 && !showHistorial && (
         <div className="mb-6">
           <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
             <AlertTriangle className="text-red-600" size={22} />
@@ -376,7 +374,7 @@ export default function InventarioPage() {
       )}
 
       {/* Historial de Ajustes */}
-      {showHistorial && (
+      {!loading && showHistorial && (
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden mb-6">
           <div className="p-4 bg-gray-50 border-b border-gray-200">
             <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
@@ -451,7 +449,7 @@ export default function InventarioPage() {
       )}
 
       {/* Tabla de Inventario */}
-      {!showHistorial && (
+      {!loading && !showHistorial && (
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">

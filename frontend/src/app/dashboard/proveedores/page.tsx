@@ -6,24 +6,18 @@ import {
   getAllProveedores,
   deleteProveedor,
   toggleProveedorStatus,
-  getUltimasCompras,
 } from '@/lib/api';
-import { Proveedor, Compra } from '@/types/proveedor';
-import { Search, Building2, Edit, Trash2, Power, ShoppingCart, Package, Eye, X } from 'lucide-react';
+import { Proveedor } from '@/types/proveedor';
+import { Search, Building2, Edit, Trash2, Power, ShoppingCart, Package, X } from 'lucide-react';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import ProveedorModal from '@/components/ProveedorModal';
 import CompraModal from '@/components/CompraModal';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
-import DetalleCompraModal from '@/components/DetalleCompraModal';
-import AvisoCargaParcial from '@/components/AvisoCargaParcial';
-import { crearRecolector } from '@/lib/cargaParcial';
 
 export default function ProveedoresPage() {
   const router = useRouter();
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [filteredProveedores, setFilteredProveedores] = useState<Proveedor[]>([]);
-  const [comprasRecientes, setComprasRecientes] = useState<Compra[]>([]);
-  const [fallosCarga, setFallosCarga] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -47,10 +41,8 @@ export default function ProveedoresPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCompraModalOpen, setIsCompraModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isDetalleCompraModalOpen, setIsDetalleCompraModalOpen] = useState(false);
   const [selectedProveedor, setSelectedProveedor] = useState<Proveedor | null>(null);
   const [proveedorToDelete, setProveedorToDelete] = useState<Proveedor | null>(null);
-  const [selectedCompra, setSelectedCompra] = useState<Compra | null>(null);
 
   // Mensajes
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -62,21 +54,10 @@ export default function ProveedoresPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      // allSettled: las ultimas compras son un panel de apoyo; si falla ese
-      // endpoint, los proveedores igual se listan.
-      const [rProveedores, rCompras] = await Promise.allSettled([
-        getAllProveedores(),
-        getUltimasCompras()
-      ]);
-
-      const { tomar, fallos } = crearRecolector();
-      const proveedoresData = tomar(rProveedores, 'los proveedores', [] as Proveedor[]);
-      const comprasData = tomar(rCompras, 'las ultimas compras', [] as Compra[]);
+      const proveedoresData = await getAllProveedores();
 
       setProveedores(proveedoresData);
       setFilteredProveedores(proveedoresData);
-      setComprasRecientes(comprasData);
-      setFallosCarga(fallos);
     } catch (error: any) {
       showMessage('error', error.message);
     } finally {
@@ -164,60 +145,9 @@ export default function ProveedoresPage() {
     router.push(`/dashboard/compras?proveedor=${proveedor.id}`);
   };
 
-  const handleVerDetalleCompra = (compra: Compra) => {
-    setSelectedCompra(compra);
-    setIsDetalleCompraModalOpen(true);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-BO', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
-  };
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('es-BO', {
-      style: 'currency',
-      currency: 'BOB',
-    }).format(price);
-  };
-
-  const getEstadoBadge = (estado: string) => {
-    const colors: Record<string, string> = {
-      PENDIENTE: 'bg-yellow-100 text-yellow-800',
-      CONFIRMADA: 'bg-blue-100 text-blue-800',
-      EN_TRANSITO: 'bg-purple-100 text-purple-800',
-      RECIBIDA: 'bg-green-100 text-green-800',
-      CANCELADA: 'bg-red-100 text-red-800',
-    };
-    const labels: Record<string, string> = {
-      PENDIENTE: 'Pendiente',
-      CONFIRMADA: 'Confirmada',
-      EN_TRANSITO: 'En Tránsito',
-      RECIBIDA: 'Recibida',
-      CANCELADA: 'Cancelada',
-    };
-    return { color: colors[estado] || 'bg-gray-100 text-gray-800', label: labels[estado] || estado };
-  };
-
-  if (loading) {
-    return (
-      <div>
-        <Breadcrumbs items={[{ label: 'Proveedores' }]} />
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="max-w-full">
       <Breadcrumbs items={[{ label: 'Proveedores' }]} />
-
-      <AvisoCargaParcial fallos={fallosCarga} onReintentar={loadData} />
 
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
@@ -273,6 +203,11 @@ export default function ProveedoresPage() {
       )}
 
       {/* Tabla de Proveedores */}
+      {loading ? (
+        <div className="bg-white rounded-lg border border-gray-200 flex items-center justify-center py-16 mb-6">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        </div>
+      ) : (
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden mb-6">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -357,75 +292,7 @@ export default function ProveedoresPage() {
           )}
         </div>
       </div>
-
-      {/* Compras Recientes */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="p-4 bg-gray-50 border-b border-gray-200">
-          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-            <ShoppingCart size={20} />
-            Compras Recientes (Últimas 10)
-          </h2>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">ID</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Proveedor</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Fecha</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Costo Total</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Estado</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Usuario</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {comprasRecientes.map((compra) => {
-                const estadoBadge = getEstadoBadge(compra.estado);
-                return (
-                  <tr key={compra.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-4 whitespace-nowrap text-sm font-mono text-gray-900">#{compra.id}</td>
-                    <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{compra.nombreProveedor}</div>
-                      <div className="text-xs text-gray-500">NIT: {compra.nitProveedor}</div>
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {formatDate(compra.fechaCompra)}
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm font-bold text-primary-600">
-                      {formatPrice(compra.montoTotal)}
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap">
-                      <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${estadoBadge.color}`}>
-                        {estadoBadge.label}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {compra.nombreUsuario}
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
-                      <button
-                        onClick={() => handleVerDetalleCompra(compra)}
-                        className="text-blue-600 hover:text-blue-800 transition-colors"
-                        title="Ver detalle"
-                      >
-                        <Eye size={18} />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-
-          {comprasRecientes.length === 0 && (
-            <div className="text-center py-12">
-              <ShoppingCart size={48} className="mx-auto text-gray-400 mb-4" />
-              <p className="text-gray-500">No hay compras registradas</p>
-            </div>
-          )}
-        </div>
-      </div>
+      )}
 
       {/* Modals */}
       {isModalOpen && (
@@ -465,12 +332,6 @@ export default function ProveedoresPage() {
         />
       )}
 
-      {isDetalleCompraModalOpen && selectedCompra && (
-        <DetalleCompraModal
-          compra={selectedCompra}
-          onClose={() => setIsDetalleCompraModalOpen(false)}
-        />
-      )}
     </div>
   );
 }

@@ -21,7 +21,6 @@ import {
   DollarSign,
   ShoppingCart,
   Calendar,
-  Filter,
   RefreshCw,
   Download,
   Users,
@@ -34,6 +33,7 @@ import DetalleVentaModal from '@/components/DetalleVentaModal';
 import CobrarSaldoModal from '@/components/CobrarSaldoModal';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 import StatCard from '@/components/StatCard';
+import Breadcrumbs from '@/components/Breadcrumbs';
 import { useAuth } from '@/hooks/useAuth';
 
 import Link from 'next/link';
@@ -253,168 +253,146 @@ export default function VentasPage() {
     });
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Cargando ventas...</p>
+  return (
+    <div>
+      <Breadcrumbs items={[{ label: 'Ventas' }]} />
+
+      {/* Estadísticas */}
+      {(loading || estadisticas) && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <StatCard
+            titulo="Ventas del Día"
+            valor={estadisticas?.ventasDelDia ?? 0}
+            subtitulo={`Bs. ${(estadisticas?.montoDelDia ?? 0).toFixed(2)}`}
+            icon={<Calendar size={22} />}
+            loading={loading}
+          />
+          <StatCard
+            titulo="Completadas"
+            valor={estadisticas?.ventasCompletadas ?? 0}
+            subtitulo="Total ventas"
+            icon={<TrendingUp size={22} />}
+            loading={loading}
+          />
+          <StatCard
+            titulo="Pendientes"
+            valor={estadisticas?.ventasPendientes ?? 0}
+            subtitulo="Por cobrar"
+            icon={<ShoppingCart size={22} />}
+            loading={loading}
+          />
+          <StatCard
+            titulo="Monto Total"
+            valor={`Bs. ${(estadisticas?.montoTotal ?? 0).toFixed(2)}`}
+            subtitulo="Ingresos totales"
+            icon={<DollarSign size={22} />}
+            loading={loading}
+          />
+        </div>
+      )}
+
+      {/* Header con filtros */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+        <div className="flex-shrink-0">
+          <h1 className="text-2xl font-bold text-gray-900">Gestión de Ventas</h1>
+          <p className="text-gray-600 mt-1">Registro y seguimiento de ventas realizadas</p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative w-full sm:w-56">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+            <input
+              type="text"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="Buscar por cliente, ID o celular..."
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+
+          <select
+            value={filtroPeriodo}
+            onChange={(e) => setFiltroPeriodo(e.target.value as any)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+          >
+            <option value="TODOS">Todos los períodos</option>
+            <option value="HOY">Hoy</option>
+            <option value="SEMANA">Última semana</option>
+            <option value="MES">Último mes</option>
+          </select>
+
+          <select
+            value={filtroMetodoPago}
+            onChange={(e) => setFiltroMetodoPago(e.target.value as any)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+          >
+            <option value="TODOS">Todos los métodos</option>
+            {Object.values(MetodoPago).map(metodo => (
+              <option key={metodo} value={metodo}>{metodo}</option>
+            ))}
+          </select>
+
+          <select
+            value={filtroVendedor}
+            onChange={(e) => setFiltroVendedor(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+          >
+            <option value="TODOS">Todos los vendedores</option>
+            {obtenerVendedores().map(vendedor => (
+              <option key={vendedor} value={vendedor}>{vendedor}</option>
+            ))}
+          </select>
+
+          <select
+            value={filtroEstado}
+            onChange={(e) => setFiltroEstado(e.target.value as any)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+          >
+            <option value="TODOS">Todos los estados</option>
+            {Object.values(EstadoVenta).map(estado => (
+              <option key={estado} value={estado}>{estado.replace('_', ' ')}</option>
+            ))}
+          </select>
+
+          <Link
+            href="/dashboard/clientes"
+            className="flex items-center justify-center gap-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors font-medium whitespace-nowrap"
+          >
+            <Users size={18} />
+            Gestionar Clientes
+          </Link>
+
+          <button
+            onClick={() => setShowRegistrarModal(true)}
+            className="flex items-center justify-center gap-2 bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors font-medium whitespace-nowrap"
+          >
+            <Plus size={18} />
+            Registrar Venta
+          </button>
         </div>
       </div>
-    );
-  }
 
-  return (
-    <div className="p-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-              <ShoppingCart className="text-primary-600" size={36} />
-              Gestión de Ventas
-            </h1>
-            <p className="text-gray-600 mt-2">Registro y seguimiento de ventas realizadas</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/dashboard/clientes"
-              className="flex items-center gap-2 px-5 py-2.5 border border-gray-300 bg-white text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm shadow-sm"
-            >
-              <Users size={18} />
-              Gestionar Clientes
-            </Link>
-            <button
-              onClick={() => setShowRegistrarModal(true)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium text-sm shadow-sm"
-            >
-              <Plus size={18} />
-              Registrar Venta
-            </button>
-          </div>
-        </div>
-
-        {/* Estadísticas */}
-        {estadisticas && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <StatCard
-              titulo="Ventas del Día"
-              valor={estadisticas.ventasDelDia}
-              subtitulo={`Bs. ${estadisticas.montoDelDia.toFixed(2)}`}
-              icon={<Calendar size={22} />}
-            />
-            <StatCard
-              titulo="Completadas"
-              valor={estadisticas.ventasCompletadas}
-              subtitulo="Total ventas"
-              icon={<TrendingUp size={22} />}
-            />
-            <StatCard
-              titulo="Pendientes"
-              valor={estadisticas.ventasPendientes}
-              subtitulo="Por cobrar"
-              icon={<ShoppingCart size={22} />}
-            />
-            <StatCard
-              titulo="Monto Total"
-              valor={`Bs. ${estadisticas.montoTotal.toFixed(2)}`}
-              subtitulo="Ingresos totales"
-              icon={<DollarSign size={22} />}
-            />
-          </div>
-        )}
-
-        {/* Filtros */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Filter size={20} className="text-gray-600" />
-            <h3 className="font-semibold text-gray-900">Filtros</h3>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            {/* Búsqueda */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-              <input
-                type="text"
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                placeholder="Buscar por cliente, ID o celular..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
-            </div>
-
-            {/* Filtro por período */}
-            <select
-              value={filtroPeriodo}
-              onChange={(e) => setFiltroPeriodo(e.target.value as any)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            >
-              <option value="TODOS">Todos los períodos</option>
-              <option value="HOY">Hoy</option>
-              <option value="SEMANA">Última semana</option>
-              <option value="MES">Último mes</option>
-            </select>
-
-            {/* Filtro por método de pago */}
-            <select
-              value={filtroMetodoPago}
-              onChange={(e) => setFiltroMetodoPago(e.target.value as any)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            >
-              <option value="TODOS">Todos los métodos</option>
-              {Object.values(MetodoPago).map(metodo => (
-                <option key={metodo} value={metodo}>{metodo}</option>
-              ))}
-            </select>
-
-            {/* Filtro por vendedor */}
-            <select
-              value={filtroVendedor}
-              onChange={(e) => setFiltroVendedor(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            >
-              <option value="TODOS">Todos los vendedores</option>
-              {obtenerVendedores().map(vendedor => (
-                <option key={vendedor} value={vendedor}>{vendedor}</option>
-              ))}
-            </select>
-
-            {/* Filtro por estado */}
-            <select
-              value={filtroEstado}
-              onChange={(e) => setFiltroEstado(e.target.value as any)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            >
-              <option value="TODOS">Todos los estados</option>
-              {Object.values(EstadoVenta).map(estado => (
-                <option key={estado} value={estado}>{estado.replace('_', ' ')}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="mt-4 flex items-center justify-between">
-            <p className="text-sm text-gray-600">
-              Mostrando <span className="font-semibold">{ventasFiltradas.length}</span> de{' '}
-              <span className="font-semibold">{ventas.length}</span> ventas
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={handleExportarExcel}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors shadow-md"
-              >
-                <Download size={16} />
-                Exportar a CSV
-              </button>
-              <button
-                onClick={loadVentas}
-                className="flex items-center gap-2 px-4 py-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors font-medium"
-              >
-                <RefreshCw size={16} />
-                Actualizar
-              </button>
-            </div>
-          </div>
+      {/* Contador y acciones */}
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <p className="text-sm text-gray-600">
+          Mostrando <span className="font-semibold">{ventasFiltradas.length}</span> de{' '}
+          <span className="font-semibold">{ventas.length}</span> ventas
+        </p>
+        <div className="flex gap-3">
+          <button
+            onClick={handleExportarExcel}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors shadow-md"
+          >
+            <Download size={16} />
+            Exportar a CSV
+          </button>
+          <button
+            onClick={loadVentas}
+            className="flex items-center gap-2 px-4 py-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors font-medium"
+          >
+            <RefreshCw size={16} />
+            Actualizar
+          </button>
         </div>
       </div>
 
@@ -429,6 +407,11 @@ export default function VentasPage() {
       )}
 
       {/* Tabla de ventas */}
+      {loading ? (
+        <div className="bg-white rounded-lg shadow-md flex items-center justify-center py-16">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        </div>
+      ) : (
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -589,6 +572,7 @@ export default function VentasPage() {
           </table>
         </div>
       </div>
+      )}
 
       {/* Modales */}
       <RegistrarVentaModal
