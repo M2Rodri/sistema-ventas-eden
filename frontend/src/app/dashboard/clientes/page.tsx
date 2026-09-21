@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import {
   getClientesConEstadisticas,
   getEstadisticasGeneralesClientes,
-  searchClientes,
 } from '@/lib/api';
 import { ClienteConEstadisticas, ClienteEstadisticas } from '@/types/cliente';
 import { exportarCSV, fechaArchivo } from '@/lib/exportar';
@@ -402,7 +401,7 @@ export default function ClientesPage() {
                 className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors shadow-md"
               >
                 <Download size={16} />
-                Exportar a Excel
+                Exportar a CSV
               </button>
               <button
                 onClick={limpiarFiltros}

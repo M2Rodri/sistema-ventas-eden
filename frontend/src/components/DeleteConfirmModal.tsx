@@ -7,6 +7,10 @@ interface DeleteConfirmModalProps {
   message: string;
   onConfirm: () => void;
   onCancel: () => void;
+  /** Texto del botón de confirmar. Por defecto "Eliminar", para no romper
+   * los usos existentes; se pasa distinto en confirmaciones que no borran
+   * nada (cancelar venta, marcar entregado, recibir compra). */
+  confirmLabel?: string;
 }
 
 export default function DeleteConfirmModal({
@@ -14,6 +18,7 @@ export default function DeleteConfirmModal({
   message,
   onConfirm,
   onCancel,
+  confirmLabel = 'Eliminar',
 }: DeleteConfirmModalProps) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -24,7 +29,7 @@ export default function DeleteConfirmModal({
           </div>
           <div>
             <h3 className="text-lg font-bold text-gray-900">{title}</h3>
-            <p className="text-sm text-gray-600 mt-1">{message}</p>
+            <p className="text-sm text-gray-600 mt-1 whitespace-pre-line">{message}</p>
           </div>
         </div>
 
@@ -39,7 +44,7 @@ export default function DeleteConfirmModal({
             onClick={onConfirm}
             className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
           >
-            Eliminar
+            {confirmLabel}
           </button>
         </div>
       </div>

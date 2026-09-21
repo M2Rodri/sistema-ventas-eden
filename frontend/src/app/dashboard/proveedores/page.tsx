@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-  getAllProveedores, 
-  deleteProveedor, 
+import { useRouter } from 'next/navigation';
+import {
+  getAllProveedores,
+  deleteProveedor,
   toggleProveedorStatus,
   getUltimasCompras,
-  getComprasByProveedor
 } from '@/lib/api';
 import { Proveedor, Compra } from '@/types/proveedor';
 import { Search, Building2, Edit, Trash2, Power, ShoppingCart, Package, Eye } from 'lucide-react';
@@ -19,6 +19,7 @@ import AvisoCargaParcial from '@/components/AvisoCargaParcial';
 import { crearRecolector } from '@/lib/cargaParcial';
 
 export default function ProveedoresPage() {
+  const router = useRouter();
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [filteredProveedores, setFilteredProveedores] = useState<Proveedor[]>([]);
   const [comprasRecientes, setComprasRecientes] = useState<Compra[]>([]);
@@ -155,18 +156,8 @@ export default function ProveedoresPage() {
     setIsCompraModalOpen(true);
   };
 
-  const handleVerCompras = async (proveedor: Proveedor) => {
-    try {
-      const compras = await getComprasByProveedor(proveedor.id);
-      if (compras.length === 0) {
-        showMessage('error', 'Este proveedor no tiene compras registradas');
-        return;
-      }
-      // Aquí podrías abrir un modal o navegar a una vista de compras del proveedor
-      showMessage('success', `Este proveedor tiene ${compras.length} compra(s) registrada(s)`);
-    } catch (error: any) {
-      showMessage('error', error.message);
-    }
+  const handleVerCompras = (proveedor: Proveedor) => {
+    router.push(`/dashboard/compras?proveedor=${proveedor.id}`);
   };
 
   const handleVerDetalleCompra = (compra: Compra) => {

@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  ArrowLeft, Plus, Search, Eye, PackageCheck, XCircle, Truck, CheckCircle2, ShoppingCart,
+  ArrowLeft, Plus, Search, Eye, PackageCheck, XCircle, Truck, CheckCircle2, ShoppingCart, X,
 } from 'lucide-react';
 import {
   getAllCompras, recibirCompra, cancelarCompra, cambiarEstadoCompra,
@@ -12,6 +13,7 @@ import { Compra, EstadoCompra } from '@/types/proveedor';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import CompraModal from '@/components/CompraModal';
 import DetalleCompraModal from '@/components/DetalleCompraModal';
+import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 
 /**
  * Compras a proveedores.
@@ -24,6 +26,10 @@ import DetalleCompraModal from '@/components/DetalleCompraModal';
  * stock, se registra la compra, llega, y el stock sube.
  */
 export default function ComprasPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const proveedorFiltroId = searchParams.get('proveedor');
+
   const [compras, setCompras] = useState<Compra[]>([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState('');
@@ -32,6 +38,8 @@ export default function ComprasPage() {
 
   const [modalNuevaAbierto, setModalNuevaAbierto] = useState(false);
   const [compraDetalle, setCompraDetalle] = useState<Compra | null>(null);
+  const [compraARecibir, setCompraARecibir] = useState<Compra | null>(null);
+  const [compraACancelar, setCompraACancelar] = useState<Compra | null>(null);
 
   const cargar = async () => {
     try {
@@ -78,30 +86,26 @@ export default function ComprasPage() {
   };
 
   const handleRecibir = async (compra: Compra) => {
-    const confirmar = window.confirm(
-      `¿Confirmás que llegó la mercadería de la compra #${compra.id}?\n\n` +
-      `Las cantidades se van a sumar al inventario y queda registrado el movimiento. ` +
-      `Esta acción no se deshace.`
-    );
-    if (!confirmar) return;
-
     try {
       await recibirCompra(compra.id);
       avisar('success', `Compra #${compra.id} recibida. El stock fue actualizado.`);
       cargar();
     } catch (error: any) {
       avisar('error', error.message);
+    } finally {
+      setCompraARecibir(null);
     }
   };
 
   const handleCancelar = async (compra: Compra) => {
-    if (!window.confirm(`¿Cancelar la compra #${compra.id}?`)) return;
     try {
       await cancelarCompra(compra.id);
       avisar('success', `Compra #${compra.id} cancelada`);
       cargar();
     } catch (error: any) {
       avisar('error', error.message);
+    } finally {
+      setCompraACancelar(null);
     }
   };
 
@@ -113,8 +117,13 @@ export default function ComprasPage() {
       (c.numeroFactura ?? '').toLowerCase().includes(texto) ||
       String(c.id).includes(texto);
     const coincideEstado = estadoFiltro === 'TODOS' || c.estado === estadoFiltro;
-    return coincide && coincideEstado;
+    const coincideProveedor = !proveedorFiltroId || c.idProveedor === Number(proveedorFiltroId);
+    return coincide && coincideEstado && coincideProveedor;
   });
+
+  const nombreProveedorFiltrado = proveedorFiltroId
+    ? compras.find((c) => c.idProveedor === Number(proveedorFiltroId))?.nombreProveedor
+    : null;
 
   const contar = (estado: string) => compras.filter((c) => c.estado === estado).length;
 
@@ -196,6 +205,18 @@ export default function ComprasPage() {
           <option value="RECIBIDA">Recibidas</option>
           <option value="CANCELADA">Canceladas</option>
         </select>
+        {proveedorFiltroId && (
+          <span className="inline-flex items-center gap-2 px-3 py-2 bg-primary-50 text-primary-700 rounded-lg text-sm font-medium">
+            Proveedor: {nombreProveedorFiltrado ?? `#${proveedorFiltroId}`}
+            <button
+              onClick={() => router.push('/dashboard/compras')}
+              className="hover:text-primary-900"
+              title="Quitar filtro de proveedor"
+            >
+              <X size={14} />
+            </button>
+          </span>
+        )}
       </div>
 
       {/* Tabla */}
@@ -278,7 +299,7 @@ export default function ComprasPage() {
 
                         {compra.estado !== 'RECIBIDA' && compra.estado !== 'CANCELADA' && (
                           <button
-                            onClick={() => handleRecibir(compra)}
+                            onClick={() => setCompraARecibir(compra)}
                             className="text-green-600 hover:text-green-800 p-1.5"
                             title="Recibir mercadería y sumar al stock"
                           >
@@ -288,7 +309,7 @@ export default function ComprasPage() {
 
                         {(compra.estado === 'PENDIENTE' || compra.estado === 'CONFIRMADA') && (
                           <button
-                            onClick={() => handleCancelar(compra)}
+                            onClick={() => setCompraACancelar(compra)}
                             className="text-red-600 hover:text-red-800 p-1.5"
                             title="Cancelar compra"
                           >
@@ -318,6 +339,30 @@ export default function ComprasPage() {
 
       {compraDetalle && (
         <DetalleCompraModal compra={compraDetalle} onClose={() => setCompraDetalle(null)} />
+      )}
+
+      {compraARecibir && (
+        <DeleteConfirmModal
+          title="Recibir mercadería"
+          message={
+            `¿Confirmás que llegó la mercadería de la compra #${compraARecibir.id}?\n\n` +
+            `Las cantidades se van a sumar al inventario y queda registrado el movimiento. ` +
+            `Esta acción no se deshace.`
+          }
+          confirmLabel="Recibir mercadería"
+          onConfirm={() => handleRecibir(compraARecibir)}
+          onCancel={() => setCompraARecibir(null)}
+        />
+      )}
+
+      {compraACancelar && (
+        <DeleteConfirmModal
+          title="Cancelar compra"
+          message={`¿Cancelar la compra #${compraACancelar.id}?`}
+          confirmLabel="Cancelar compra"
+          onConfirm={() => handleCancelar(compraACancelar)}
+          onCancel={() => setCompraACancelar(null)}
+        />
       )}
     </div>
   );

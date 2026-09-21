@@ -277,7 +277,7 @@ export default function InventarioPage() {
           >
             <option value="TODOS">Todos los Estados</option>
             <option value="STOCK_BAJO">⚠️ Con Alerta</option>
-            <option value="SIN_STOCK">🚫 Sin Alerta</option>
+            <option value="SIN_STOCK">🚫 Sin stock</option>
             <option value="STOCK_OK">✅ Stock OK</option>
           </select>
 

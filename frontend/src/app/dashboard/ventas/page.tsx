@@ -31,6 +31,7 @@ import {
 import RegistrarVentaModal from '@/components/RegistrarVentaModal';
 import DetalleVentaModal from '@/components/DetalleVentaModal';
 import CobrarSaldoModal from '@/components/CobrarSaldoModal';
+import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 import StatCard from '@/components/StatCard';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -51,6 +52,8 @@ export default function VentasPage() {
   const [ventaSeleccionada, setVentaSeleccionada] = useState<Venta | null>(null);
   const [showCobrarSaldoModal, setShowCobrarSaldoModal] = useState(false);
   const [ventaACobrar, setVentaACobrar] = useState<Venta | null>(null);
+  const [ventaACancelarId, setVentaACancelarId] = useState<number | null>(null);
+  const [ventaAEntregarId, setVentaAEntregarId] = useState<number | null>(null);
 
   // Estados para filtros
   const [busqueda, setBusqueda] = useState('');
@@ -151,29 +154,25 @@ export default function VentasPage() {
   };
 
   const handleCancelarVenta = async (id: number) => {
-    if (!window.confirm('¿Está seguro de cancelar esta venta? Esta acción restaurará el stock de los productos.')) {
-      return;
-    }
-
     try {
       await cancelarVenta(id);
       await loadVentas();
       await loadEstadisticas();
     } catch (err: any) {
       alert(err.message || 'Error al cancelar la venta');
+    } finally {
+      setVentaACancelarId(null);
     }
   };
 
   const handleMarcarEntregado = async (id: number) => {
-    if (!window.confirm('¿Confirmar que esta venta ya fue entregada?')) {
-      return;
-    }
-
     try {
       await marcarVentaEntregada(id);
       await loadVentas();
     } catch (err: any) {
       alert(err.message || 'Error al marcar la venta como entregada');
+    } finally {
+      setVentaAEntregarId(null);
     }
   };
 
@@ -404,7 +403,7 @@ export default function VentasPage() {
                 className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors shadow-md"
               >
                 <Download size={16} />
-                Exportar a Excel
+                Exportar a CSV
               </button>
               <button
                 onClick={loadVentas}
@@ -552,7 +551,7 @@ export default function VentasPage() {
                         </button>
                         {venta.estado !== EstadoVenta.CANCELADA && venta.estadoEntrega === EstadoEntrega.PENDIENTE && (
                           <button
-                            onClick={() => handleMarcarEntregado(venta.id)}
+                            onClick={() => setVentaAEntregarId(venta.id)}
                             className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                             title="Marcar entregado"
                           >
@@ -570,7 +569,7 @@ export default function VentasPage() {
                         )}
                         {user?.role === 'ADMIN' && venta.estado === EstadoVenta.COMPLETADA && (
                           <button
-                            onClick={() => handleCancelarVenta(venta.id)}
+                            onClick={() => setVentaACancelarId(venta.id)}
                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                             title="Cancelar venta"
                           >
@@ -636,6 +635,26 @@ export default function VentasPage() {
               }
             }
           }}
+        />
+      )}
+
+      {ventaAEntregarId !== null && (
+        <DeleteConfirmModal
+          title="Marcar como entregada"
+          message="¿Confirmar que esta venta ya fue entregada?"
+          confirmLabel="Marcar entregado"
+          onConfirm={() => handleMarcarEntregado(ventaAEntregarId)}
+          onCancel={() => setVentaAEntregarId(null)}
+        />
+      )}
+
+      {ventaACancelarId !== null && (
+        <DeleteConfirmModal
+          title="Cancelar venta"
+          message="¿Está seguro de cancelar esta venta? Esta acción restaurará el stock de los productos."
+          confirmLabel="Cancelar venta"
+          onConfirm={() => handleCancelarVenta(ventaACancelarId)}
+          onCancel={() => setVentaACancelarId(null)}
         />
       )}
     </div>

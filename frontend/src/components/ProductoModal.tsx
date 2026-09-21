@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Producto, ProductoRequest, Categoria, ImagenProducto, MultimediaProducto } from '@/types/producto';
 import { createProducto, updateProducto, BACKEND_URL, getMultimediaProducto, subirModelo3D, eliminarMultimedia } from '@/lib/api';
 import { X, Image as ImageIcon, Star, Upload, Trash2, Eye } from 'lucide-react';
+import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 
 interface ProductoModalProps {
   producto: Producto | null;
@@ -329,6 +330,7 @@ function GestionarImagenesModal({
 
   // SECCIÓN 2: MODELO 3D
   const [multimedia, setMultimedia] = useState<MultimediaProducto | null>(null);
+  const [confirmarEliminarModelo, setConfirmarEliminarModelo] = useState(false);
   const [loadingModelo, setLoadingModelo] = useState(false);
   const [archivoModeloPendiente, setArchivoModeloPendiente] = useState<File | null>(null);
   const [archivoPreviewPendiente, setArchivoPreviewPendiente] = useState<File | null>(null);
@@ -467,7 +469,7 @@ function GestionarImagenesModal({
   };
 
   const handleEliminarModelo = async () => {
-    if (!multimedia || !window.confirm('¿Está seguro de eliminar el modelo 3D?')) return;
+    if (!multimedia) return;
 
     setLoadingModelo(true);
     try {
@@ -478,10 +480,12 @@ function GestionarImagenesModal({
       setMensaje3D({ type: 'error', text: error.message });
     } finally {
       setLoadingModelo(false);
+      setConfirmarEliminarModelo(false);
     }
   };
 
   return (
+    <>
     <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] p-4">
       <div className="bg-white rounded-lg shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center z-10">
@@ -597,7 +601,7 @@ function GestionarImagenesModal({
                     )}
                   </div>
                   <button
-                    onClick={handleEliminarModelo}
+                    onClick={() => setConfirmarEliminarModelo(true)}
                     disabled={loadingModelo}
                     className="flex items-center gap-1 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm disabled:opacity-50"
                   >
@@ -685,5 +689,15 @@ Modelo 3D (GLB) *
     </div>
   </div>
 </div>
+
+{confirmarEliminarModelo && (
+  <DeleteConfirmModal
+    title="Eliminar modelo 3D"
+    message="¿Está seguro de eliminar el modelo 3D?"
+    onConfirm={handleEliminarModelo}
+    onCancel={() => setConfirmarEliminarModelo(false)}
+  />
+)}
+</>
 );
 }

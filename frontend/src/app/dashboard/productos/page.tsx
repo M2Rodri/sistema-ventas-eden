@@ -55,6 +55,7 @@ export default function ProductosPage() {
   const [imagenesDelProducto, setImagenesDelProducto] = useState<ImagenProducto[]>([]);
   const [loadingImages, setLoadingImages] = useState(false);
   const [productoToDelete, setProductoToDelete] = useState<Producto | null>(null);
+  const [idImagenAEliminar, setIdImagenAEliminar] = useState<number | null>(null);
 
   // Mensajes
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -236,22 +237,10 @@ export default function ProductosPage() {
   };
 
   const handleEliminarImagen = async (idImagen: number) => {
-    console.log("=== ELIMINANDO IMAGEN ===");
-    console.log("ID de imagen a eliminar:", idImagen);
-    
-    if (!window.confirm('¿Estás seguro de que deseas eliminar esta imagen?')) {
-      console.log("Eliminación cancelada por el usuario");
-      return;
-    }
-    
     setLoadingImages(true);
     try {
-      console.log("Llamando a deleteImagenProducto...");
       await deleteImagenProducto(idImagen);
-      
       const nuevasImagenes = imagenesDelProducto.filter(img => img.id !== idImagen);
-      console.log("Imágenes restantes:", nuevasImagenes);
-      
       setImagenesDelProducto(nuevasImagenes);
       showMessage('success', 'Imagen eliminada correctamente');
     } catch (error: any) {
@@ -259,6 +248,7 @@ export default function ProductosPage() {
       showMessage('error', `Error al eliminar imagen: ${error.message}`);
     } finally {
       setLoadingImages(false);
+      setIdImagenAEliminar(null);
     }
   };
 
@@ -497,7 +487,7 @@ export default function ProductosPage() {
           imagenesActuales={imagenesDelProducto}
           onImagenesChange={(nuevasImagenes: ImagenProducto[]) => setImagenesDelProducto(nuevasImagenes)}
           onAgregarImagen={handleAgregarImagen}
-          onEliminarImagen={handleEliminarImagen}
+          onEliminarImagen={setIdImagenAEliminar}
           onMarcarComoPrincipal={handleMarcarComoPrincipal}
           loadingImages={loadingImages}
           categorias={categorias}
@@ -525,6 +515,15 @@ export default function ProductosPage() {
             setIsDeleteModalOpen(false);
             setProductoToDelete(null);
           }}
+        />
+      )}
+
+      {idImagenAEliminar !== null && (
+        <DeleteConfirmModal
+          title="Eliminar imagen"
+          message="¿Estás seguro de que deseas eliminar esta imagen?"
+          onConfirm={() => handleEliminarImagen(idImagenAEliminar)}
+          onCancel={() => setIdImagenAEliminar(null)}
         />
       )}
     </div>

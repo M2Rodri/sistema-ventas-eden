@@ -103,16 +103,19 @@ export default function ReportesPage() {
       requiereLimite: false,
       categorias: ['Proveedores', 'Compras']
     },
-    {
-      id: 'TRANSPORTADORAS',
-      titulo: 'Reporte de Transportadoras',
-      descripcion: 'Rendimiento y estadísticas de envíos',
-      icono: 'Truck',
-      color: 'from-primary-500 to-primary-600',
-      requiereFechas: false,
-      requiereLimite: false,
-      categorias: ['Envíos', 'Logística']
-    },
+    // Transportadoras queda fuera de alcance (declarado en el documento del
+    // entregable): el módulo de Envíos/Transportadoras ya está comentado en
+    // el menú lateral, mismo patrón acá.
+    // {
+    //   id: 'TRANSPORTADORAS',
+    //   titulo: 'Reporte de Transportadoras',
+    //   descripcion: 'Rendimiento y estadísticas de envíos',
+    //   icono: 'Truck',
+    //   color: 'from-primary-500 to-primary-600',
+    //   requiereFechas: false,
+    //   requiereLimite: false,
+    //   categorias: ['Envíos', 'Logística']
+    // },
     {
       id: 'FINANCIERO',
       titulo: 'Reporte Financiero',

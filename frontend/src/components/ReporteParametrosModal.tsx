@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Calendar, Hash, Eye } from 'lucide-react';
+import { X, Calendar, Hash, Eye, AlertCircle } from 'lucide-react';
 import { TipoReporte, ConfiguracionReporte } from '@/types/reporte';
 import ReporteVistaPrevia from './ReporteVistaPrevia';
 
@@ -20,12 +20,14 @@ export default function ReporteParametrosModal({
   const [fechaFin, setFechaFin] = useState('');
   const [limite, setLimite] = useState(10);
   const [mostrarVistaPrevia, setMostrarVistaPrevia] = useState(false);
+  const [errorParametros, setErrorParametros] = useState<string | null>(null);
 
   const handleVistaPrevia = () => {
     if (configuracion.requiereFechas && (!fechaInicio || !fechaFin)) {
-      alert('Por favor, selecciona el rango de fechas');
+      setErrorParametros('Seleccioná el rango de fechas para generar el reporte.');
       return;
     }
+    setErrorParametros(null);
     setMostrarVistaPrevia(true);
   };
 
@@ -50,6 +52,13 @@ export default function ReporteParametrosModal({
         <div className="p-6">
           {!mostrarVistaPrevia ? (
             <>
+              {errorParametros && (
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+                  <AlertCircle className="text-red-600 flex-shrink-0" size={20} />
+                  <p className="text-sm text-red-700">{errorParametros}</p>
+                </div>
+              )}
+
               {/* Parámetros */}
               <div className="space-y-6">
                 {/* Rango de Fechas */}
@@ -65,7 +74,7 @@ export default function ReporteParametrosModal({
                         <input
                           type="date"
                           value={fechaInicio}
-                          onChange={(e) => setFechaInicio(e.target.value)}
+                          onChange={(e) => { setFechaInicio(e.target.value); setErrorParametros(null); }}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                         />
                       </div>
@@ -74,7 +83,7 @@ export default function ReporteParametrosModal({
                         <input
                           type="date"
                           value={fechaFin}
-                          onChange={(e) => setFechaFin(e.target.value)}
+                          onChange={(e) => { setFechaFin(e.target.value); setErrorParametros(null); }}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                         />
                       </div>
