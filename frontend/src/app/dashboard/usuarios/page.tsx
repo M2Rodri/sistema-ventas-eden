@@ -6,6 +6,7 @@ import { Search, UserPlus, Edit, Trash2, Power, AlertCircle, X } from 'lucide-re
 import Breadcrumbs from '@/components/Breadcrumbs';
 import UserModal from '@/components/UserModal';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
+import { mensajeError } from '@/lib/errores';
 
 export default function UsuariosPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -38,7 +39,7 @@ export default function UsuariosPage() {
       setUsers(data);
       setFilteredUsers(data);
     } catch (error: any) {
-      setLoadError(error.message || 'No se pudieron cargar los usuarios.');
+      setLoadError(mensajeError(error, 'No se pudieron cargar los usuarios.'));
     } finally {
       setLoading(false);
     }
@@ -105,7 +106,7 @@ export default function UsuariosPage() {
       setIsDeleteModalOpen(false);
       setUserToDelete(null);
     } catch (error: any) {
-      showMessage('error', error.message);
+      showMessage('error', mensajeError(error));
     }
   };
 
@@ -115,7 +116,7 @@ export default function UsuariosPage() {
       showMessage('success', `Usuario ${user.activo ? 'desactivado' : 'activado'} correctamente`);
       loadUsers();
     } catch (error: any) {
-      showMessage('error', error.message);
+      showMessage('error', mensajeError(error));
     }
   };
 

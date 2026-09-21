@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { login } from "@/lib/api";
+import { mensajeError } from "@/lib/errores";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -73,7 +74,7 @@ export default function LoginPage() {
       }
     } catch (err: any) {
       console.error("❌ Error en login:", err);
-      setError(err.message || "Error al iniciar sesión");
+      setError(mensajeError(err, "Error al iniciar sesión."));
     } finally {
       setLoading(false);
     }

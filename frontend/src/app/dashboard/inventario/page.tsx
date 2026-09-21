@@ -19,6 +19,7 @@ import HistorialProductoModal from '@/components/HistorialProductoModal';
 import AvisoCargaParcial from '@/components/AvisoCargaParcial';
 import { crearRecolector } from '@/lib/cargaParcial';
 import StatCard from '@/components/StatCard';
+import { mensajeError } from '@/lib/errores';
 
 export default function InventarioPage() {
   const [inventario, setInventario] = useState<Inventario[]>([]);
@@ -69,7 +70,7 @@ export default function InventarioPage() {
       setHistorial(historialData);
       setFallosCarga(fallos);
     } catch (error: any) {
-      showMessage('error', error.message);
+      showMessage('error', mensajeError(error, 'No se pudo cargar el inventario.'));
     } finally {
       setLoading(false);
     }
@@ -141,7 +142,7 @@ export default function InventarioPage() {
       showMessage('success', 'Alerta marcada como atendida');
       loadData();
     } catch (error: any) {
-      showMessage('error', error.message);
+      showMessage('error', mensajeError(error));
     }
   };
 

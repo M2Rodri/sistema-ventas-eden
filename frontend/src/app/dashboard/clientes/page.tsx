@@ -25,6 +25,7 @@ import ModificarClienteModal from '@/components/ModificarClienteModal';
 import HistorialComprasModal from '@/components/HistorialComprasModal';
 import StatCard from '@/components/StatCard';
 import Breadcrumbs from '@/components/Breadcrumbs';
+import { mensajeError } from '@/lib/errores';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function ClientesPage() {
@@ -95,7 +96,7 @@ export default function ClientesPage() {
       const data = await getClientesConEstadisticas();
       setClientes(data);
     } catch (err: any) {
-      setError(err.message || 'Error al cargar clientes');
+      setError(mensajeError(err, 'No se pudieron cargar los clientes.'));
     } finally {
       setLoading(false);
     }

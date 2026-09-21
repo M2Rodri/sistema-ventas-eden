@@ -14,6 +14,7 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import CompraModal from '@/components/CompraModal';
 import DetalleCompraModal from '@/components/DetalleCompraModal';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
+import { mensajeError } from '@/lib/errores';
 
 /**
  * Compras a proveedores.
@@ -48,7 +49,7 @@ export default function ComprasPage() {
       setLoadError(null);
       setCompras(await getAllCompras());
     } catch (error: any) {
-      setLoadError(error.message || 'No se pudieron cargar las compras.');
+      setLoadError(mensajeError(error, 'No se pudieron cargar las compras.'));
     } finally {
       setLoading(false);
     }
@@ -87,7 +88,7 @@ export default function ComprasPage() {
       avisar('success', `Compra #${compra.id} marcada como ${accion.replace('_', ' ').toLowerCase()}`);
       cargar();
     } catch (error: any) {
-      avisar('error', error.message);
+      avisar('error', mensajeError(error));
     }
   };
 
@@ -97,7 +98,7 @@ export default function ComprasPage() {
       avisar('success', `Compra #${compra.id} recibida. El stock fue actualizado.`);
       cargar();
     } catch (error: any) {
-      avisar('error', error.message);
+      avisar('error', mensajeError(error));
     } finally {
       setCompraARecibir(null);
     }
@@ -109,7 +110,7 @@ export default function ComprasPage() {
       avisar('success', `Compra #${compra.id} cancelada`);
       cargar();
     } catch (error: any) {
-      avisar('error', error.message);
+      avisar('error', mensajeError(error));
     } finally {
       setCompraACancelar(null);
     }

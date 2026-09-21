@@ -13,6 +13,7 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import ProveedorModal from '@/components/ProveedorModal';
 import CompraModal from '@/components/CompraModal';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
+import { mensajeError } from '@/lib/errores';
 
 export default function ProveedoresPage() {
   const router = useRouter();
@@ -59,7 +60,7 @@ export default function ProveedoresPage() {
       setProveedores(proveedoresData);
       setFilteredProveedores(proveedoresData);
     } catch (error: any) {
-      showMessage('error', error.message);
+      showMessage('error', mensajeError(error, 'No se pudieron cargar los proveedores.'));
     } finally {
       setLoading(false);
     }
@@ -122,7 +123,7 @@ export default function ProveedoresPage() {
       setIsDeleteModalOpen(false);
       setProveedorToDelete(null);
     } catch (error: any) {
-      showMessage('error', error.message);
+      showMessage('error', mensajeError(error));
     }
   };
 
@@ -132,7 +133,7 @@ export default function ProveedoresPage() {
       showMessage('success', `Proveedor ${proveedor.activo ? 'desactivado' : 'activado'} correctamente`);
       loadData();
     } catch (error: any) {
-      showMessage('error', error.message);
+      showMessage('error', mensajeError(error));
     }
   };
 

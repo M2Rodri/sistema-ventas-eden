@@ -14,6 +14,7 @@ import {
   getReporteTransportadoras,
   getReporteFinanciero,
 } from '@/lib/api';
+import { mensajeError } from '@/lib/errores';
 import {
   BarChart,
   Bar,
@@ -124,7 +125,7 @@ export default function ReporteVistaPrevia({
       }
       setData(resultado);
     } catch (err: any) {
-      setError(err.message);
+      setError(mensajeError(err, 'No se pudo generar el reporte.'));
     } finally {
       setLoading(false);
     }

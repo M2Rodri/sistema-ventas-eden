@@ -34,6 +34,7 @@ import CobrarSaldoModal from '@/components/CobrarSaldoModal';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 import StatCard from '@/components/StatCard';
 import Breadcrumbs from '@/components/Breadcrumbs';
+import { mensajeError } from '@/lib/errores';
 import { useAuth } from '@/hooks/useAuth';
 
 import Link from 'next/link';
@@ -79,7 +80,7 @@ export default function VentasPage() {
       const data = await getAllVentas();
       setVentas(data);
     } catch (err: any) {
-      setError(err.message || 'Error al cargar las ventas');
+      setError(mensajeError(err, 'No se pudieron cargar las ventas.'));
     } finally {
       setLoading(false);
     }
@@ -160,7 +161,7 @@ export default function VentasPage() {
       await loadVentas();
       await loadEstadisticas();
     } catch (err: any) {
-      alert(err.message || 'Error al cancelar la venta');
+      alert(mensajeError(err, 'No se pudo cancelar la venta.'));
     } finally {
       setVentaACancelarId(null);
     }
@@ -171,7 +172,7 @@ export default function VentasPage() {
       await marcarVentaEntregada(id);
       await loadVentas();
     } catch (err: any) {
-      alert(err.message || 'Error al marcar la venta como entregada');
+      alert(mensajeError(err, 'No se pudo marcar la venta como entregada.'));
     } finally {
       setVentaAEntregarId(null);
     }

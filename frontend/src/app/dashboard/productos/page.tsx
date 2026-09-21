@@ -20,6 +20,7 @@ import ProductoModal from '@/components/ProductoModal';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 import AvisoCargaParcial from '@/components/AvisoCargaParcial';
 import { crearRecolector } from '@/lib/cargaParcial';
+import { mensajeError } from '@/lib/errores';
 
 export default function ProductosPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -84,7 +85,7 @@ export default function ProductosPage() {
       setCategorias(categoriasData);
       setFallosCarga(fallos);
     } catch (error: any) {
-      showMessage('error', error.message);
+      showMessage('error', mensajeError(error));
     } finally {
       setLoading(false);
     }
@@ -164,7 +165,7 @@ export default function ProductosPage() {
       setIsModalOpen(true);
     } catch (error: any) {
       console.error("❌ ERROR en handleEditProducto:", error);
-      showMessage('error', `Error al cargar producto para editar: ${error.message}`);
+      showMessage('error', mensajeError(error, 'No se pudo cargar el producto para editar.'));
     } finally {
       setLoadingImages(false);
     }
@@ -185,7 +186,7 @@ export default function ProductosPage() {
       setIsDeleteModalOpen(false);
       setProductoToDelete(null);
     } catch (error: any) {
-      showMessage('error', error.message);
+      showMessage('error', mensajeError(error));
     }
   };
 
@@ -195,7 +196,7 @@ export default function ProductosPage() {
       showMessage('success', `Producto ${producto.activo ? 'desactivado' : 'activado'} correctamente`);
       loadData();
     } catch (error: any) {
-      showMessage('error', error.message);
+      showMessage('error', mensajeError(error));
     }
   };
 
@@ -234,7 +235,7 @@ export default function ProductosPage() {
       showMessage('success', 'Imagen agregada correctamente');
     } catch (error: any) {
       console.error("❌ Error al subir imagen:", error);
-      showMessage('error', `Error al subir imagen: ${error.message}`);
+      showMessage('error', mensajeError(error, 'No se pudo subir la imagen.'));
     } finally {
       setLoadingImages(false);
     }
@@ -249,7 +250,7 @@ export default function ProductosPage() {
       showMessage('success', 'Imagen eliminada correctamente');
     } catch (error: any) {
       console.error("❌ Error al eliminar imagen:", error);
-      showMessage('error', `Error al eliminar imagen: ${error.message}`);
+      showMessage('error', mensajeError(error, 'No se pudo eliminar la imagen.'));
     } finally {
       setLoadingImages(false);
       setIdImagenAEliminar(null);
@@ -281,7 +282,7 @@ export default function ProductosPage() {
       showMessage('success', 'Imagen principal actualizada');
     } catch (error: any) {
       console.error("❌ Error al marcar como principal:", error);
-      showMessage('error', `Error al marcar como principal: ${error.message}`);
+      showMessage('error', mensajeError(error, 'No se pudo marcar la imagen como principal.'));
     } finally {
       setLoadingImages(false);
     }

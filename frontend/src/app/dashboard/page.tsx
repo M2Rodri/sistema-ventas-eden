@@ -19,6 +19,7 @@ import {
 import { getDashboardEstadisticas } from '@/lib/api';
 import { DashboardEstadisticas } from '@/types/dashboard';
 import StatCard from '@/components/StatCard';
+import { mensajeError } from '@/lib/errores';
 
 /**
  * Panel de inicio.
@@ -50,7 +51,7 @@ export default function DashboardPage() {
         const data = await getDashboardEstadisticas();
         if (activo) setStats(data);
       } catch (err: any) {
-        if (activo) setError(err?.message ?? 'No se pudieron cargar las estadísticas');
+        if (activo) setError(mensajeError(err, 'No se pudieron cargar las estadísticas.'));
       } finally {
         if (activo) setLoading(false);
       }
