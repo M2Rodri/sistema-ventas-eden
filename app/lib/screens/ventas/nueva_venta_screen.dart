@@ -63,6 +63,25 @@ class _NuevaVentaScreenState extends State<NuevaVentaScreen> {
   bool _enviando = false;
   String? _errorEnvio;
 
+  // Errores de validación, uno por campo, para mostrarlos junto al campo
+  // que los provoca en vez de en un único banner arriba del formulario.
+  String? _errorCliente;
+  String? _errorProductos;
+  String? _errorSaldo;
+  String? _errorDireccion;
+  String? _errorCiudad;
+  String? _errorTransportadora;
+  String? _errorGuia;
+
+  final _scrollController = ScrollController();
+  final _keyCliente = GlobalKey();
+  final _keyProductos = GlobalKey();
+  final _keySaldo = GlobalKey();
+  final _keyDireccion = GlobalKey();
+  final _keyCiudad = GlobalKey();
+  final _keyTransportadora = GlobalKey();
+  final _keyGuia = GlobalKey();
+
   @override
   void initState() {
     super.initState();
@@ -78,6 +97,7 @@ class _NuevaVentaScreenState extends State<NuevaVentaScreen> {
     _ciudadCtrl.dispose();
     _transportadoraCtrl.dispose();
     _guiaCtrl.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -174,36 +194,68 @@ class _NuevaVentaScreenState extends State<NuevaVentaScreen> {
     if (archivo != null) setState(() => _comprobante = File(archivo.path));
   }
 
-  String? _validar() {
-    if (_clienteSeleccionado == null && _nombreClienteCtrl.text.trim().isEmpty) {
-      return 'El nombre del cliente es obligatorio';
+  /// Valida cada campo por separado y deja el mensaje correspondiente en su
+  /// propio `_errorX`, para mostrarlo junto al campo que falló. Devuelve la
+  /// llave del primer campo con error (en el mismo orden en que aparecen en
+  /// el formulario), o null si todo está bien.
+  GlobalKey? _validarCampos() {
+    GlobalKey? primero;
+    void marcar(GlobalKey key) => primero ??= key;
+
+    final sinCliente = _clienteSeleccionado == null && _nombreClienteCtrl.text.trim().isEmpty;
+    _errorCliente = sinCliente ? 'El nombre del cliente es obligatorio' : null;
+    if (_errorCliente != null) marcar(_keyCliente);
+
+    _errorProductos = _carrito.isEmpty
+        ? 'Debe agregar al menos un producto'
+        : _carrito.any((item) => item.cantidad < 1)
+            ? 'Hay un producto con cantidad inválida'
+            : null;
+    if (_errorProductos != null) marcar(_keyProductos);
+
+    if (_ventaACredito) {
+      final saldo = double.tryParse(_saldoCtrl.text.replaceAll(',', '.'));
+      _errorSaldo = (saldo != null && saldo > _totalVenta)
+          ? 'El saldo pendiente no puede superar el total de la venta'
+          : null;
+    } else {
+      _errorSaldo = null;
     }
-    if (_carrito.isEmpty) {
-      return 'Debe agregar al menos un producto';
-    }
-    if (_carrito.any((item) => item.cantidad < 1)) {
-      return 'Hay un producto con cantidad inválida';
-    }
-    if (_montoPagado > _totalVenta) {
-      return 'El monto pagado no puede superar el total de la venta';
-    }
-    if (_modalidad != ModalidadEntrega.retiro) {
-      if (_direccionCtrl.text.trim().isEmpty || _ciudadCtrl.text.trim().isEmpty) {
-        return 'La dirección y la ciudad son obligatorias para esta modalidad de entrega';
-      }
-    }
-    if (_modalidad == ModalidadEntrega.transportadora) {
-      if (_transportadoraCtrl.text.trim().isEmpty || _guiaCtrl.text.trim().isEmpty) {
-        return 'La transportadora y la guía de remisión son obligatorias para esta modalidad de entrega';
-      }
-    }
-    return null;
+    if (_errorSaldo != null) marcar(_keySaldo);
+
+    final requiereDireccion = _modalidad != ModalidadEntrega.retiro;
+    _errorDireccion = requiereDireccion && _direccionCtrl.text.trim().isEmpty ? 'La dirección es obligatoria para esta modalidad de entrega' : null;
+    if (_errorDireccion != null) marcar(_keyDireccion);
+    _errorCiudad = requiereDireccion && _ciudadCtrl.text.trim().isEmpty ? 'La ciudad es obligatoria para esta modalidad de entrega' : null;
+    if (_errorCiudad != null) marcar(_keyCiudad);
+
+    final requiereTransportadora = _modalidad == ModalidadEntrega.transportadora;
+    _errorTransportadora = requiereTransportadora && _transportadoraCtrl.text.trim().isEmpty ? 'La transportadora es obligatoria para esta modalidad de entrega' : null;
+    if (_errorTransportadora != null) marcar(_keyTransportadora);
+    _errorGuia = requiereTransportadora && _guiaCtrl.text.trim().isEmpty ? 'La guía de remisión es obligatoria para esta modalidad de entrega' : null;
+    if (_errorGuia != null) marcar(_keyGuia);
+
+    return primero;
   }
 
   Future<void> _registrarVenta() async {
-    final error = _validar();
-    if (error != null) {
-      setState(() => _errorEnvio = error);
+    GlobalKey? primerCampoConError;
+    setState(() => primerCampoConError = _validarCampos());
+    if (primerCampoConError != null) {
+      // Se espera a que termine este frame para que el campo ya tenga su
+      // errorText dibujado (y por lo tanto su alto final) antes de calcular
+      // hasta dónde hay que desplazar la vista.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final contexto = primerCampoConError!.currentContext;
+        if (contexto != null) {
+          Scrollable.ensureVisible(
+            contexto,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            alignment: 0.1,
+          );
+        }
+      });
       return;
     }
 
@@ -267,12 +319,17 @@ class _NuevaVentaScreenState extends State<NuevaVentaScreen> {
         _EstadoCarga.cargando => const Center(child: CircularProgressIndicator(color: AppColors.verdeOscuro)),
         _EstadoCarga.error => _CentroError(mensaje: _errorCarga, onReintentar: _cargarDatos),
         _EstadoCarga.listo => _Formulario(
+            scrollController: _scrollController,
             clienteSeleccionado: _clienteSeleccionado,
             nombreClienteCtrl: _nombreClienteCtrl,
             telefonoClienteCtrl: _telefonoClienteCtrl,
             onElegirCliente: _elegirCliente,
             onQuitarCliente: () => setState(() => _clienteSeleccionado = null),
+            errorCliente: _errorCliente,
+            keyCliente: _keyCliente,
             carrito: _carrito,
+            errorProductos: _errorProductos,
+            keyProductos: _keyProductos,
             formatoMoneda: _formatoMoneda,
             onAgregarProducto: _elegirProducto,
             onQuitarProducto: (id) => setState(() => _carrito.removeWhere((i) => i.idProducto == id)),
@@ -295,6 +352,8 @@ class _NuevaVentaScreenState extends State<NuevaVentaScreen> {
             }),
             saldoCtrl: _saldoCtrl,
             onCambiarSaldo: () => setState(() {}),
+            errorSaldo: _errorSaldo,
+            keySaldo: _keySaldo,
             totalVenta: _totalVenta,
             montoPagado: _montoPagado,
             comprobante: _comprobante,
@@ -306,6 +365,14 @@ class _NuevaVentaScreenState extends State<NuevaVentaScreen> {
             ciudadCtrl: _ciudadCtrl,
             transportadoraCtrl: _transportadoraCtrl,
             guiaCtrl: _guiaCtrl,
+            errorDireccion: _errorDireccion,
+            keyDireccion: _keyDireccion,
+            errorCiudad: _errorCiudad,
+            keyCiudad: _keyCiudad,
+            errorTransportadora: _errorTransportadora,
+            keyTransportadora: _keyTransportadora,
+            errorGuia: _errorGuia,
+            keyGuia: _keyGuia,
             errorEnvio: _errorEnvio,
             enviando: _enviando,
             onRegistrar: _registrarVenta,
@@ -343,23 +410,30 @@ class _CentroError extends StatelessWidget {
 
 class _Formulario extends StatelessWidget {
   const _Formulario({
+    required this.scrollController,
     required this.clienteSeleccionado,
     required this.nombreClienteCtrl,
     required this.telefonoClienteCtrl,
     required this.onElegirCliente,
     required this.onQuitarCliente,
+    required this.errorCliente,
+    required this.keyCliente,
     required this.carrito,
     required this.formatoMoneda,
     required this.onAgregarProducto,
     required this.onQuitarProducto,
     required this.onCambiarCantidad,
     required this.onCambiarPrecio,
+    required this.errorProductos,
+    required this.keyProductos,
     required this.metodo,
     required this.onCambiarMetodo,
     required this.ventaACredito,
     required this.onCambiarVentaACredito,
     required this.saldoCtrl,
     required this.onCambiarSaldo,
+    required this.errorSaldo,
+    required this.keySaldo,
     required this.totalVenta,
     required this.montoPagado,
     required this.comprobante,
@@ -371,16 +445,28 @@ class _Formulario extends StatelessWidget {
     required this.ciudadCtrl,
     required this.transportadoraCtrl,
     required this.guiaCtrl,
+    required this.errorDireccion,
+    required this.keyDireccion,
+    required this.errorCiudad,
+    required this.keyCiudad,
+    required this.errorTransportadora,
+    required this.keyTransportadora,
+    required this.errorGuia,
+    required this.keyGuia,
     required this.errorEnvio,
     required this.enviando,
     required this.onRegistrar,
   });
+
+  final ScrollController scrollController;
 
   final Cliente? clienteSeleccionado;
   final TextEditingController nombreClienteCtrl;
   final TextEditingController telefonoClienteCtrl;
   final VoidCallback onElegirCliente;
   final VoidCallback onQuitarCliente;
+  final String? errorCliente;
+  final GlobalKey keyCliente;
 
   final List<ItemCarrito> carrito;
   final NumberFormat formatoMoneda;
@@ -388,6 +474,8 @@ class _Formulario extends StatelessWidget {
   final void Function(int idProducto) onQuitarProducto;
   final void Function(int idProducto, int cantidad) onCambiarCantidad;
   final void Function(int idProducto, double precio) onCambiarPrecio;
+  final String? errorProductos;
+  final GlobalKey keyProductos;
 
   final MetodoPago metodo;
   final ValueChanged<MetodoPago> onCambiarMetodo;
@@ -395,6 +483,8 @@ class _Formulario extends StatelessWidget {
   final ValueChanged<bool> onCambiarVentaACredito;
   final TextEditingController saldoCtrl;
   final VoidCallback onCambiarSaldo;
+  final String? errorSaldo;
+  final GlobalKey keySaldo;
   final double totalVenta;
   final double montoPagado;
   final File? comprobante;
@@ -407,6 +497,14 @@ class _Formulario extends StatelessWidget {
   final TextEditingController ciudadCtrl;
   final TextEditingController transportadoraCtrl;
   final TextEditingController guiaCtrl;
+  final String? errorDireccion;
+  final GlobalKey keyDireccion;
+  final String? errorCiudad;
+  final GlobalKey keyCiudad;
+  final String? errorTransportadora;
+  final GlobalKey keyTransportadora;
+  final String? errorGuia;
+  final GlobalKey keyGuia;
 
   final String? errorEnvio;
   final bool enviando;
@@ -417,6 +515,7 @@ class _Formulario extends StatelessWidget {
     final saldoPendiente = ventaACredito ? (totalVenta - montoPagado).clamp(0, totalVenta) : 0.0;
 
     return ListView(
+      controller: scrollController,
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
       children: <Widget>[
         if (errorEnvio != null) ...<Widget>[
@@ -458,9 +557,10 @@ class _Formulario extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     TextField(
+                      key: keyCliente,
                       controller: nombreClienteCtrl,
                       textCapitalization: TextCapitalization.words,
-                      decoration: const InputDecoration(labelText: 'O nombre del cliente nuevo *'),
+                      decoration: InputDecoration(labelText: 'O nombre del cliente nuevo *', errorText: errorCliente),
                     ),
                     const SizedBox(height: 12),
                     TextField(
@@ -476,6 +576,7 @@ class _Formulario extends StatelessWidget {
         _SeccionNumerada(numero: '2', titulo: 'PRODUCTOS', icono: Icons.bed_outlined),
         const SizedBox(height: 8),
         _Tarjeta(
+          key: keyProductos,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
@@ -484,6 +585,13 @@ class _Formulario extends StatelessWidget {
                 icon: const Icon(Icons.add_rounded),
                 label: const Text('Agregar producto'),
               ),
+              if (errorProductos != null) ...<Widget>[
+                const SizedBox(height: 6),
+                Text(
+                  errorProductos!,
+                  style: const TextStyle(color: AppColors.error, fontSize: 12, fontWeight: FontWeight.w500),
+                ),
+              ],
               if (carrito.isEmpty) ...<Widget>[
                 const SizedBox(height: 12),
                 const Text('Ningún producto agregado todavía.', style: TextStyle(color: AppColors.textoSecundario)),
@@ -547,9 +655,10 @@ class _Formulario extends StatelessWidget {
               ),
               if (ventaACredito) ...<Widget>[
                 TextField(
+                  key: keySaldo,
                   controller: saldoCtrl,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(labelText: 'Saldo pendiente (Bs.)'),
+                  decoration: InputDecoration(labelText: 'Saldo pendiente (Bs.)', errorText: errorSaldo),
                   onChanged: (_) => onCambiarSaldo(),
                 ),
                 const SizedBox(height: 8),
@@ -640,15 +749,31 @@ class _Formulario extends StatelessWidget {
               ),
               if (modalidad != ModalidadEntrega.retiro) ...<Widget>[
                 const SizedBox(height: 12),
-                TextField(controller: direccionCtrl, decoration: const InputDecoration(labelText: 'Dirección *')),
+                TextField(
+                  key: keyDireccion,
+                  controller: direccionCtrl,
+                  decoration: InputDecoration(labelText: 'Dirección *', errorText: errorDireccion),
+                ),
                 const SizedBox(height: 12),
-                TextField(controller: ciudadCtrl, decoration: const InputDecoration(labelText: 'Ciudad *')),
+                TextField(
+                  key: keyCiudad,
+                  controller: ciudadCtrl,
+                  decoration: InputDecoration(labelText: 'Ciudad *', errorText: errorCiudad),
+                ),
               ],
               if (modalidad == ModalidadEntrega.transportadora) ...<Widget>[
                 const SizedBox(height: 12),
-                TextField(controller: transportadoraCtrl, decoration: const InputDecoration(labelText: 'Transportadora *')),
+                TextField(
+                  key: keyTransportadora,
+                  controller: transportadoraCtrl,
+                  decoration: InputDecoration(labelText: 'Transportadora *', errorText: errorTransportadora),
+                ),
                 const SizedBox(height: 12),
-                TextField(controller: guiaCtrl, decoration: const InputDecoration(labelText: 'Guía de remisión *')),
+                TextField(
+                  key: keyGuia,
+                  controller: guiaCtrl,
+                  decoration: InputDecoration(labelText: 'Guía de remisión *', errorText: errorGuia),
+                ),
               ],
             ],
           ),
@@ -690,7 +815,7 @@ class _SeccionNumerada extends StatelessWidget {
 }
 
 class _Tarjeta extends StatelessWidget {
-  const _Tarjeta({required this.child});
+  const _Tarjeta({super.key, required this.child});
 
   final Widget child;
 
