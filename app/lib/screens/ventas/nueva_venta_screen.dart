@@ -525,12 +525,15 @@ class _Formulario extends StatelessWidget {
                 spacing: 8,
                 children: MetodoPago.values.map((m) {
                   final sel = metodo == m;
-                  return ChoiceChip(
-                    label: Text(m.etiqueta),
-                    selected: sel,
-                    selectedColor: AppColors.verdeOscuro,
-                    labelStyle: TextStyle(color: sel ? Colors.white : AppColors.textoPrincipal, fontWeight: FontWeight.w600),
-                    onSelected: (_) => onCambiarMetodo(m),
+                  return SizedBox(
+                    height: 48,
+                    child: ChoiceChip(
+                      label: Text(m.etiqueta),
+                      selected: sel,
+                      selectedColor: AppColors.verdeOscuro,
+                      labelStyle: TextStyle(color: sel ? Colors.white : AppColors.textoPrincipal, fontWeight: FontWeight.w600),
+                      onSelected: (_) => onCambiarMetodo(m),
+                    ),
                   );
                 }).toList(),
               ),
@@ -623,12 +626,15 @@ class _Formulario extends StatelessWidget {
                   (ModalidadEntrega.transportadora, 'Transportadora'),
                 ].map((par) {
                   final sel = modalidad == par.$1;
-                  return ChoiceChip(
-                    label: Text(par.$2),
-                    selected: sel,
-                    selectedColor: AppColors.verdeOscuro,
-                    labelStyle: TextStyle(color: sel ? Colors.white : AppColors.textoPrincipal, fontWeight: FontWeight.w600),
-                    onSelected: (_) => onCambiarModalidad(par.$1),
+                  return SizedBox(
+                    height: 48,
+                    child: ChoiceChip(
+                      label: Text(par.$2),
+                      selected: sel,
+                      selectedColor: AppColors.verdeOscuro,
+                      labelStyle: TextStyle(color: sel ? Colors.white : AppColors.textoPrincipal, fontWeight: FontWeight.w600),
+                      onSelected: (_) => onCambiarModalidad(par.$1),
+                    ),
                   );
                 }).toList(),
               ),
@@ -765,7 +771,6 @@ class _FilaCarrito extends StatelessWidget {
                 onPressed: onQuitar,
                 icon: const Icon(Icons.delete_outline, color: AppColors.error, size: 20),
                 padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
               ),
             ],
           ),
@@ -822,19 +827,27 @@ class _BotonPaso extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        width: 28,
-        height: 28,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: onTap != null ? Colors.white : Colors.grey.shade200,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey.shade300),
+    // El área tocable mide 48x48 (mínimo declarado), aunque el ícono se
+    // vea del mismo tamaño de siempre dentro de esa zona.
+    return SizedBox(
+      width: 48,
+      height: 48,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Center(
+          child: Container(
+            width: 28,
+            height: 28,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: onTap != null ? Colors.white : Colors.grey.shade200,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            child: Icon(icono, size: 16, color: onTap != null ? AppColors.verdeOscuro : Colors.grey),
+          ),
         ),
-        child: Icon(icono, size: 16, color: onTap != null ? AppColors.verdeOscuro : Colors.grey),
       ),
     );
   }

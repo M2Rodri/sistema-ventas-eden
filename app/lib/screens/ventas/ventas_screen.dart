@@ -170,7 +170,7 @@ class _ChipFiltro extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 9),
+        height: 48,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: seleccionado ? AppColors.verdeOscuro : Colors.white,

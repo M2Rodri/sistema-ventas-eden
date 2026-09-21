@@ -522,12 +522,15 @@ class _FormularioPagoSheetState extends State<_FormularioPagoSheet> {
                 spacing: 8,
                 children: MetodoPago.values.map((m) {
                   final sel = _metodo == m;
-                  return ChoiceChip(
-                    label: Text(m.etiqueta),
-                    selected: sel,
-                    onSelected: _enviando ? null : (_) => setState(() => _metodo = m),
-                    selectedColor: AppColors.verdeOscuro,
-                    labelStyle: TextStyle(color: sel ? Colors.white : AppColors.textoPrincipal, fontWeight: FontWeight.w600),
+                  return SizedBox(
+                    height: 48,
+                    child: ChoiceChip(
+                      label: Text(m.etiqueta),
+                      selected: sel,
+                      onSelected: _enviando ? null : (_) => setState(() => _metodo = m),
+                      selectedColor: AppColors.verdeOscuro,
+                      labelStyle: TextStyle(color: sel ? Colors.white : AppColors.textoPrincipal, fontWeight: FontWeight.w600),
+                    ),
                   );
                 }).toList(),
               ),
