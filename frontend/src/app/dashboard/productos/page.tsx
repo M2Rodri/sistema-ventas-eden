@@ -13,7 +13,7 @@ import {
   setImagenPrincipal
 } from '@/lib/api';
 import { Producto, Categoria, TipoProducto, ImagenProducto } from '@/types/producto';
-import { Search, Package, Edit, Trash2, Power, Image as ImageIcon, FolderOpen } from 'lucide-react';
+import { Search, Package, Edit, Trash2, Power, Image as ImageIcon, FolderOpen, X } from 'lucide-react';
 import Link from 'next/link';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import ProductoModal from '@/components/ProductoModal';
@@ -118,9 +118,13 @@ export default function ProductosPage() {
     setFilteredProductos(filtered);
   }, [searchTerm, categoriaFilter, tipoFilter, statusFilter, productos]);
 
+  // Los de éxito se cierran solos; los de error se quedan hasta que el
+  // usuario los cierra a mano (el botón X del banner).
   const showMessage = (type: 'success' | 'error', text: string) => {
     setMessage({ type, text });
-    setTimeout(() => setMessage(null), 4000);
+    if (type === 'success') {
+      setTimeout(() => setMessage(null), 4000);
+    }
   };
 
   const handleCreateProducto = () => {
@@ -383,8 +387,11 @@ export default function ProductosPage() {
 
       {/* Mensaje */}
       {message && (
-        <div className={`p-4 rounded-lg mb-6 ${message.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
-          {message.text}
+        <div className={`p-4 rounded-lg mb-6 flex items-start justify-between gap-3 ${message.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
+          <span>{message.text}</span>
+          <button onClick={() => setMessage(null)} className="flex-shrink-0 opacity-70 hover:opacity-100" title="Cerrar">
+            <X size={16} />
+          </button>
         </div>
       )}
 

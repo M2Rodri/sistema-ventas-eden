@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getAllUsers, deleteUser, toggleUserStatus, User } from '@/lib/api';
-import { Search, UserPlus, Edit, Trash2, Power } from 'lucide-react';
+import { Search, UserPlus, Edit, Trash2, Power, AlertCircle, X } from 'lucide-react';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import UserModal from '@/components/UserModal';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
@@ -11,6 +11,7 @@ export default function UsuariosPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('TODOS');
   const [statusFilter, setStatusFilter] = useState<string>('TODOS');
@@ -32,11 +33,12 @@ export default function UsuariosPage() {
   const loadUsers = async () => {
     try {
       setLoading(true);
+      setLoadError(null);
       const data = await getAllUsers();
       setUsers(data);
       setFilteredUsers(data);
     } catch (error: any) {
-      showMessage('error', error.message);
+      setLoadError(error.message || 'No se pudieron cargar los usuarios.');
     } finally {
       setLoading(false);
     }
@@ -69,9 +71,13 @@ export default function UsuariosPage() {
     setFilteredUsers(filtered);
   }, [searchTerm, roleFilter, statusFilter, users]);
 
+  // Los de éxito se cierran solos; los de error se quedan hasta que el
+  // usuario los cierra a mano (el botón X del banner).
   const showMessage = (type: 'success' | 'error', text: string) => {
     setMessage({ type, text });
-    setTimeout(() => setMessage(null), 4000);
+    if (type === 'success') {
+      setTimeout(() => setMessage(null), 4000);
+    }
   };
 
   const handleCreateUser = () => {
@@ -140,6 +146,25 @@ export default function UsuariosPage() {
     );
   }
 
+  if (loadError) {
+    return (
+      <div>
+        <Breadcrumbs items={[{ label: 'Usuarios' }]} />
+        <div className="flex flex-col items-center justify-center h-64 text-center">
+          <AlertCircle className="text-red-500 mb-3" size={40} />
+          <p className="text-gray-700 font-medium mb-1">No se pudieron cargar los usuarios</p>
+          <p className="text-sm text-gray-500 mb-4">{loadError}</p>
+          <button
+            onClick={loadUsers}
+            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
+          >
+            Reintentar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <Breadcrumbs items={[{ label: 'Usuarios' }]} />
@@ -201,8 +226,11 @@ export default function UsuariosPage() {
 
       {/* Mensaje de éxito/error */}
       {message && (
-        <div className={`p-4 rounded-lg mb-6 ${message.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
-          {message.text}
+        <div className={`p-4 rounded-lg mb-6 flex items-start justify-between gap-3 ${message.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
+          <span>{message.text}</span>
+          <button onClick={() => setMessage(null)} className="flex-shrink-0 opacity-70 hover:opacity-100" title="Cerrar">
+            <X size={16} />
+          </button>
         </div>
       )}
 

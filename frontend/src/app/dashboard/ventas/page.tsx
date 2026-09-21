@@ -26,7 +26,8 @@ import {
   Download,
   Users,
   Truck,
-  Banknote
+  Banknote,
+  X
 } from 'lucide-react';
 import RegistrarVentaModal from '@/components/RegistrarVentaModal';
 import DetalleVentaModal from '@/components/DetalleVentaModal';
@@ -419,8 +420,11 @@ export default function VentasPage() {
 
       {/* Error */}
       {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start justify-between gap-3">
           <p className="text-red-800">{error}</p>
+          <button onClick={() => setError(null)} className="flex-shrink-0 text-red-700 opacity-70 hover:opacity-100" title="Cerrar">
+            <X size={16} />
+          </button>
         </div>
       )}
 

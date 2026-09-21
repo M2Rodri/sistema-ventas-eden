@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   Boxes,
   DollarSign,
+  X,
 } from 'lucide-react';
 import { getDashboardEstadisticas } from '@/lib/api';
 import { DashboardEstadisticas } from '@/types/dashboard';
@@ -82,8 +83,11 @@ export default function DashboardPage() {
       </div>
 
       {error && (
-        <div className="p-4 rounded-lg bg-red-50 border border-red-200 text-red-800">
-          {error}
+        <div className="p-4 rounded-lg bg-red-50 border border-red-200 text-red-800 flex items-start justify-between gap-3">
+          <span>{error}</span>
+          <button onClick={() => setError(null)} className="flex-shrink-0 opacity-70 hover:opacity-100" title="Cerrar">
+            <X size={16} />
+          </button>
         </div>
       )}
 

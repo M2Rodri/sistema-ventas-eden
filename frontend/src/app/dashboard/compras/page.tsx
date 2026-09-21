@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  ArrowLeft, Plus, Search, Eye, PackageCheck, XCircle, Truck, CheckCircle2, ShoppingCart, X,
+  ArrowLeft, Plus, Search, Eye, PackageCheck, XCircle, Truck, CheckCircle2, ShoppingCart, X, AlertCircle,
 } from 'lucide-react';
 import {
   getAllCompras, recibirCompra, cancelarCompra, cambiarEstadoCompra,
@@ -32,6 +32,7 @@ export default function ComprasPage() {
 
   const [compras, setCompras] = useState<Compra[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState('');
   const [estadoFiltro, setEstadoFiltro] = useState<string>('TODOS');
   const [mensaje, setMensaje] = useState<{ tipo: 'success' | 'error'; texto: string } | null>(null);
@@ -44,9 +45,10 @@ export default function ComprasPage() {
   const cargar = async () => {
     try {
       setLoading(true);
+      setLoadError(null);
       setCompras(await getAllCompras());
     } catch (error: any) {
-      avisar('error', error.message);
+      setLoadError(error.message || 'No se pudieron cargar las compras.');
     } finally {
       setLoading(false);
     }
@@ -54,9 +56,13 @@ export default function ComprasPage() {
 
   useEffect(() => { cargar(); }, []);
 
+  // Los de éxito se cierran solos; los de error se quedan hasta que el
+  // usuario los cierra a mano (el botón X del banner).
   const avisar = (tipo: 'success' | 'error', texto: string) => {
     setMensaje({ tipo, texto });
-    setTimeout(() => setMensaje(null), 4000);
+    if (tipo === 'success') {
+      setTimeout(() => setMensaje(null), 4000);
+    }
   };
 
   const bs = (n?: number) =>
@@ -156,10 +162,13 @@ export default function ComprasPage() {
       </div>
 
       {mensaje && (
-        <div className={`p-4 rounded-lg ${
+        <div className={`p-4 rounded-lg flex items-start justify-between gap-3 ${
           mensaje.tipo === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
         }`}>
-          {mensaje.texto}
+          <span>{mensaje.texto}</span>
+          <button onClick={() => setMensaje(null)} className="flex-shrink-0 opacity-70 hover:opacity-100" title="Cerrar">
+            <X size={16} />
+          </button>
         </div>
       )}
 
@@ -223,6 +232,18 @@ export default function ComprasPage() {
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         {loading ? (
           <p className="p-8 text-center text-gray-500">Cargando compras…</p>
+        ) : loadError ? (
+          <div className="p-12 text-center">
+            <AlertCircle size={40} className="mx-auto text-red-400 mb-3" />
+            <p className="text-gray-700 font-medium mb-1">No se pudieron cargar las compras</p>
+            <p className="text-sm text-gray-500 mb-4">{loadError}</p>
+            <button
+              onClick={cargar}
+              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
+            >
+              Reintentar
+            </button>
+          </div>
         ) : filtradas.length === 0 ? (
           <div className="p-12 text-center">
             <ShoppingCart size={40} className="mx-auto text-gray-300 mb-3" />

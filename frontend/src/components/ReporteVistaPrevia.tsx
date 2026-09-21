@@ -40,6 +40,19 @@ interface ReporteVistaPreviaProps {
 
 const COLORS = ['#00a0a0', '#aa8f67', '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
+/** Reemplaza el gráfico/tabla de un reporte cuando el rango elegido no trae
+ * ningún dato, en vez de dejar una tabla con encabezado y cero filas. */
+function SinDatosReporte({ mensaje }: { mensaje?: string }) {
+  return (
+    <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
+      <TrendingUp size={40} className="mx-auto text-gray-300 mb-3" />
+      <p className="text-gray-600 font-medium">
+        {mensaje ?? 'No hay datos para mostrar en el período o los parámetros elegidos.'}
+      </p>
+    </div>
+  );
+}
+
 export default function ReporteVistaPrevia({
   tipoReporte,
   fechaInicio,
@@ -186,41 +199,48 @@ export default function ReporteVistaPrevia({
                 <p className="text-2xl font-bold text-purple-900">{formatPrice(data.ticketPromedio)}</p>
               </div>
             </div>
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Monto</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Método Pago</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {data.ventas.map((venta: any) => (
-                    <tr key={venta.idVenta}>
-                      <td className="px-4 py-3 text-sm">#{venta.idVenta}</td>
-                      <td className="px-4 py-3 text-sm">{formatDate(venta.fechaVenta)}</td>
-                      <td className="px-4 py-3 text-sm">{venta.nombreCliente}</td>
-                      <td className="px-4 py-3 text-sm font-semibold">{formatPrice(venta.montoTotal)}</td>
-                      <td className="px-4 py-3 text-sm">{venta.metodoPago}</td>
-                      <td className="px-4 py-3 text-sm">
-                        <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-                          {venta.estado}
-                        </span>
-                      </td>
+            {data.ventas.length === 0 ? (
+              <SinDatosReporte />
+            ) : (
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Monto</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Método Pago</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {data.ventas.map((venta: any) => (
+                      <tr key={venta.idVenta}>
+                        <td className="px-4 py-3 text-sm">#{venta.idVenta}</td>
+                        <td className="px-4 py-3 text-sm">{formatDate(venta.fechaVenta)}</td>
+                        <td className="px-4 py-3 text-sm">{venta.nombreCliente}</td>
+                        <td className="px-4 py-3 text-sm font-semibold">{formatPrice(venta.montoTotal)}</td>
+                        <td className="px-4 py-3 text-sm">{venta.metodoPago}</td>
+                        <td className="px-4 py-3 text-sm">
+                          <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                            {venta.estado}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </>
         )}
 
         {/* REPORTE DE PRODUCTOS MÁS VENDIDOS */}
         {tipoReporte === 'PRODUCTOS_MAS_VENDIDOS' && data && (
+          data.productos.length === 0 ? (
+            <SinDatosReporte />
+          ) : (
           <>
             <div className="bg-white border border-gray-200 rounded-lg p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Top {limite} Productos</h3>
@@ -262,10 +282,14 @@ export default function ReporteVistaPrevia({
               </table>
             </div>
           </>
+          )
         )}
 
         {/* REPORTE DE CLIENTES FRECUENTES */}
         {tipoReporte === 'CLIENTES_FRECUENTES' && data && (
+          data.clientes.length === 0 ? (
+            <SinDatosReporte />
+          ) : (
           <div className="border border-gray-200 rounded-lg overflow-hidden">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -293,6 +317,7 @@ export default function ReporteVistaPrevia({
               </tbody>
             </table>
           </div>
+          )
         )}
 
         {/* REPORTE DE INVENTARIO VALORIZADO */}
@@ -308,37 +333,44 @@ export default function ReporteVistaPrevia({
                 <p className="text-2xl font-bold text-blue-900">{data.totalProductos}</p>
               </div>
             </div>
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cantidad</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Precio Unit.</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Valor Total</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ubicación</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {data.inventarios.map((item: any) => (
-                    <tr key={item.idProducto}>
-                      <td className="px-4 py-3 text-sm font-medium">{item.nombreProducto}</td>
-                      <td className="px-4 py-3 text-sm font-mono">{item.skuProducto}</td>
-                      <td className="px-4 py-3 text-sm">{item.cantidadDisponible}</td>
-                      <td className="px-4 py-3 text-sm">{formatPrice(item.precioUnitario)}</td>
-                      <td className="px-4 py-3 text-sm font-semibold text-primary-600">{formatPrice(item.valorTotal)}</td>
-                      <td className="px-4 py-3 text-sm">{item.ubicacion || '-'}</td>
+            {data.inventarios.length === 0 ? (
+              <SinDatosReporte />
+            ) : (
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cantidad</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Precio Unit.</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Valor Total</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ubicación</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {data.inventarios.map((item: any) => (
+                      <tr key={item.idProducto}>
+                        <td className="px-4 py-3 text-sm font-medium">{item.nombreProducto}</td>
+                        <td className="px-4 py-3 text-sm font-mono">{item.skuProducto}</td>
+                        <td className="px-4 py-3 text-sm">{item.cantidadDisponible}</td>
+                        <td className="px-4 py-3 text-sm">{formatPrice(item.precioUnitario)}</td>
+                        <td className="px-4 py-3 text-sm font-semibold text-primary-600">{formatPrice(item.valorTotal)}</td>
+                        <td className="px-4 py-3 text-sm">{item.ubicacion || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </>
         )}
 
         {/* REPORTE DE VENTAS POR CATEGORÍA */}
         {tipoReporte === 'VENTAS_POR_CATEGORIA' && data && (
+          data.length === 0 ? (
+            <SinDatosReporte />
+          ) : (
           <>
             <div className="bg-white border border-gray-200 rounded-lg p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Distribución por Categoría</h3>
@@ -389,10 +421,14 @@ export default function ReporteVistaPrevia({
               </table>
             </div>
           </>
+          )
         )}
 
         {/* REPORTE DE VENTAS POR MÉTODO DE PAGO */}
         {tipoReporte === 'VENTAS_POR_METODO_PAGO' && data && (
+          data.length === 0 ? (
+            <SinDatosReporte />
+          ) : (
           <>
             <div className="bg-white border border-gray-200 rounded-lg p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Ventas por Método de Pago</h3>
@@ -428,10 +464,14 @@ export default function ReporteVistaPrevia({
               </table>
             </div>
           </>
+          )
         )}
 
         {/* REPORTE DE INVENTARIO STOCK BAJO */}
         {tipoReporte === 'INVENTARIO_STOCK_BAJO' && data && (
+          data.productos.length === 0 ? (
+            <SinDatosReporte mensaje="Ningún producto está por debajo de su stock mínimo." />
+          ) : (
           <div className="border border-gray-200 rounded-lg overflow-hidden">
             <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-3">
               <p className="text-sm text-yellow-700">
@@ -461,10 +501,14 @@ export default function ReporteVistaPrevia({
               </tbody>
             </table>
           </div>
+          )
         )}
 
         {/* REPORTE DE PROVEEDORES */}
         {tipoReporte === 'PROVEEDORES' && data && (
+          data.proveedores.length === 0 ? (
+            <SinDatosReporte />
+          ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
@@ -515,10 +559,14 @@ export default function ReporteVistaPrevia({
               </table>
             </div>
           </>
+          )
         )}
 
         {/* REPORTE DE TRANSPORTADORAS */}
         {tipoReporte === 'TRANSPORTADORAS' && data && (
+          data.transportadoras.length === 0 ? (
+            <SinDatosReporte />
+          ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
@@ -569,10 +617,14 @@ export default function ReporteVistaPrevia({
               </table>
             </div>
           </>
+          )
         )}
 
         {/* REPORTE FINANCIERO */}
         {tipoReporte === 'FINANCIERO' && data && (
+          data.detalleIngresos.length === 0 && data.detalleGastos.length === 0 ? (
+            <SinDatosReporte />
+          ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
@@ -632,6 +684,7 @@ export default function ReporteVistaPrevia({
               </ResponsiveContainer>
             </div>
           </>
+          )
         )}
 
         {/* Mensaje genérico para reportes sin vista específica (por si acaso) */}

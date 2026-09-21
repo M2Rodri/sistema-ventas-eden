@@ -9,7 +9,7 @@ import {
   getUltimosAjustes
 } from '@/lib/api';
 import { Inventario, AlertaInventario, MovimientoInventario } from '@/types/inventario';
-import { Search, Package, AlertTriangle, Edit, History, TrendingUp, TrendingDown, Settings, Eye, DollarSign, ShoppingCart } from 'lucide-react';
+import { Search, Package, AlertTriangle, Edit, History, TrendingUp, TrendingDown, Settings, Eye, DollarSign, ShoppingCart, X } from 'lucide-react';
 import Link from 'next/link';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import MovimientoInventarioModal from '@/components/MovimientoInventarioModal';
@@ -106,9 +106,13 @@ export default function InventarioPage() {
     setFilteredInventario(filtered);
   }, [searchTerm, stockFilter, categoriaFilter, inventario]);
 
+  // Los de éxito se cierran solos; los de error se quedan hasta que el
+  // usuario los cierra a mano (el botón X del banner).
   const showMessage = (type: 'success' | 'error', text: string) => {
     setMessage({ type, text });
-    setTimeout(() => setMessage(null), 4000);
+    if (type === 'success') {
+      setTimeout(() => setMessage(null), 4000);
+    }
   };
 
   const handleAjustarStock = (item: Inventario) => {
@@ -326,8 +330,11 @@ export default function InventarioPage() {
 
       {/* Mensaje de éxito/error */}
       {message && (
-        <div className={`p-4 rounded-lg mb-6 ${message.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
-          {message.text}
+        <div className={`p-4 rounded-lg mb-6 flex items-start justify-between gap-3 ${message.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
+          <span>{message.text}</span>
+          <button onClick={() => setMessage(null)} className="flex-shrink-0 opacity-70 hover:opacity-100" title="Cerrar">
+            <X size={16} />
+          </button>
         </div>
       )}
 
