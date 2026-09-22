@@ -214,9 +214,8 @@ public class CompraService {
         Compra compra = compraRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Compra no encontrada con ID: " + id));
 
-        // Solo se puede cancelar si está PENDIENTE o CONFIRMADA
-        if (compra.getEstado() != EstadoCompra.PENDIENTE && 
-            compra.getEstado() != EstadoCompra.CONFIRMADA) {
+        // Solo se puede cancelar si está PENDIENTE
+        if (compra.getEstado() != EstadoCompra.PENDIENTE) {
             throw new RuntimeException("No se puede cancelar una compra en estado: " + compra.getEstado());
         }
 

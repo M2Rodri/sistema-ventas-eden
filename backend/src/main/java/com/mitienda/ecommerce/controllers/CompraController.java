@@ -192,15 +192,11 @@ public class CompraController {
     @GetMapping("/estadisticas")
     public ResponseEntity<?> getCompraStatistics() {
         Long totalPendientes = compraService.countComprasByEstado(EstadoCompra.PENDIENTE);
-        Long totalConfirmadas = compraService.countComprasByEstado(EstadoCompra.CONFIRMADA);
-        Long totalEnTransito = compraService.countComprasByEstado(EstadoCompra.EN_TRANSITO);
         Long totalRecibidas = compraService.countComprasByEstado(EstadoCompra.RECIBIDA);
         Long totalCanceladas = compraService.countComprasByEstado(EstadoCompra.CANCELADA);
 
         return ResponseEntity.ok(Map.of(
             "pendientes", totalPendientes,
-            "confirmadas", totalConfirmadas,
-            "enTransito", totalEnTransito,
             "recibidas", totalRecibidas,
             "canceladas", totalCanceladas
         ));

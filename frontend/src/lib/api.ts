@@ -1414,21 +1414,6 @@ export const createCompra = async (data: CompraRequest): Promise<Compra> => {
   return response.json();
 };
 
-// Cambiar estado de compra
-export const cambiarEstadoCompra = async (id: number, nuevoEstado: string): Promise<Compra> => {
-  const response = await fetch(`${API_URL}/compras/${id}/estado?nuevoEstado=${nuevoEstado}`, {
-    method: 'PATCH',
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al cambiar estado de compra');
-  }
-
-  return response.json();
-};
-
 // Recibir compra
 export const recibirCompra = async (id: number): Promise<Compra> => {
   const response = await fetch(`${API_URL}/compras/${id}/recibir`, {

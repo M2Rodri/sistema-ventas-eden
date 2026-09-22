@@ -1,13 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  ArrowLeft, Plus, Search, Eye, PackageCheck, XCircle, Truck, CheckCircle2, ShoppingCart, X, AlertCircle,
+  Plus, Search, Eye, PackageCheck, XCircle, ShoppingCart, X, AlertCircle,
 } from 'lucide-react';
 import {
-  getAllCompras, recibirCompra, cancelarCompra, cambiarEstadoCompra,
+  getAllCompras, recibirCompra, cancelarCompra,
 } from '@/lib/api';
 import { Compra, EstadoCompra } from '@/types/proveedor';
 import Breadcrumbs from '@/components/Breadcrumbs';
@@ -74,22 +73,10 @@ export default function ComprasPage() {
   const badge = (estado: EstadoCompra | string) => {
     const estilos: Record<string, string> = {
       PENDIENTE: 'bg-amber-100 text-amber-800',
-      CONFIRMADA: 'bg-blue-100 text-blue-800',
-      EN_TRANSITO: 'bg-indigo-100 text-indigo-800',
       RECIBIDA: 'bg-green-100 text-green-800',
       CANCELADA: 'bg-red-100 text-red-800',
     };
     return estilos[estado] ?? 'bg-gray-100 text-gray-800';
-  };
-
-  const handleAvanzar = async (compra: Compra, accion: 'CONFIRMADA' | 'EN_TRANSITO') => {
-    try {
-      await cambiarEstadoCompra(compra.id, accion);
-      avisar('success', `Compra #${compra.id} marcada como ${accion.replace('_', ' ').toLowerCase()}`);
-      cargar();
-    } catch (error: any) {
-      avisar('error', mensajeError(error));
-    }
   };
 
   const handleRecibir = async (compra: Compra) => {
@@ -140,16 +127,9 @@ export default function ComprasPage() {
 
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <Link
-            href="/dashboard/inventario"
-            className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 mb-2"
-          >
-            <ArrowLeft size={16} />
-            Volver a Inventario
-          </Link>
           <h1 className="text-3xl font-bold text-gray-900">Compras a proveedores</h1>
           <p className="text-gray-600 mt-1">
-            Registrá la mercadería que ingresa. Al marcarla como recibida, el stock se actualiza solo.
+            Registrá los productos que ingresan. Al marcarlos como recibidos, el stock se actualiza solo.
           </p>
         </div>
 
@@ -174,11 +154,9 @@ export default function ComprasPage() {
       )}
 
       {/* Resumen por estado */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         {[
           { estado: 'PENDIENTE', etiqueta: 'Pendientes', icono: ShoppingCart },
-          { estado: 'CONFIRMADA', etiqueta: 'Confirmadas', icono: CheckCircle2 },
-          { estado: 'EN_TRANSITO', etiqueta: 'En tránsito', icono: Truck },
           { estado: 'RECIBIDA', etiqueta: 'Recibidas', icono: PackageCheck },
         ].map(({ estado, etiqueta, icono: Icono }) => (
           <div key={estado} className="bg-white p-5 rounded-xl border border-gray-200">
@@ -210,8 +188,6 @@ export default function ComprasPage() {
         >
           <option value="TODOS">Todos los estados</option>
           <option value="PENDIENTE">Pendientes</option>
-          <option value="CONFIRMADA">Confirmadas</option>
-          <option value="EN_TRANSITO">En tránsito</option>
           <option value="RECIBIDA">Recibidas</option>
           <option value="CANCELADA">Canceladas</option>
         </select>
@@ -255,7 +231,7 @@ export default function ComprasPage() {
             </p>
             {compras.length === 0 && (
               <p className="text-sm text-gray-500 mt-1">
-                Registrá una compra para dejar constancia de la mercadería que ingresa y de su costo real.
+                Registrá una compra para dejar constancia de los productos que ingresan y de su costo real.
               </p>
             )}
           </div>
@@ -301,37 +277,17 @@ export default function ComprasPage() {
                           <Eye size={18} />
                         </button>
 
-                        {compra.estado === 'PENDIENTE' && (
-                          <button
-                            onClick={() => handleAvanzar(compra, 'CONFIRMADA')}
-                            className="text-blue-600 hover:text-blue-800 p-1.5"
-                            title="Confirmar pedido al proveedor"
-                          >
-                            <CheckCircle2 size={18} />
-                          </button>
-                        )}
-
-                        {compra.estado === 'CONFIRMADA' && (
-                          <button
-                            onClick={() => handleAvanzar(compra, 'EN_TRANSITO')}
-                            className="text-indigo-600 hover:text-indigo-800 p-1.5"
-                            title="Marcar en tránsito"
-                          >
-                            <Truck size={18} />
-                          </button>
-                        )}
-
                         {compra.estado !== 'RECIBIDA' && compra.estado !== 'CANCELADA' && (
                           <button
                             onClick={() => setCompraARecibir(compra)}
                             className="text-green-600 hover:text-green-800 p-1.5"
-                            title="Recibir mercadería y sumar al stock"
+                            title="Recibir productos y sumar al stock"
                           >
                             <PackageCheck size={18} />
                           </button>
                         )}
 
-                        {(compra.estado === 'PENDIENTE' || compra.estado === 'CONFIRMADA') && (
+                        {compra.estado === 'PENDIENTE' && (
                           <button
                             onClick={() => setCompraACancelar(compra)}
                             className="text-red-600 hover:text-red-800 p-1.5"
@@ -355,7 +311,7 @@ export default function ComprasPage() {
           onClose={() => setModalNuevaAbierto(false)}
           onSuccess={() => {
             setModalNuevaAbierto(false);
-            avisar('success', 'Compra registrada. Marcala como recibida cuando llegue la mercadería.');
+            avisar('success', 'Compra registrada. Marcala como recibida cuando lleguen los productos.');
             cargar();
           }}
         />
@@ -367,13 +323,13 @@ export default function ComprasPage() {
 
       {compraARecibir && (
         <DeleteConfirmModal
-          title="Recibir mercadería"
+          title="Recibir productos"
           message={
-            `¿Confirmás que llegó la mercadería de la compra #${compraARecibir.id}?\n\n` +
+            `¿Confirmás que llegaron los productos de la compra #${compraARecibir.id}?\n\n` +
             `Las cantidades se van a sumar al inventario y queda registrado el movimiento. ` +
             `Esta acción no se deshace.`
           }
-          confirmLabel="Recibir mercadería"
+          confirmLabel="Recibir productos"
           onConfirm={() => handleRecibir(compraARecibir)}
           onCancel={() => setCompraARecibir(null)}
         />

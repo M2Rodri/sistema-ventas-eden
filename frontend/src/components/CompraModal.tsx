@@ -131,7 +131,7 @@ export default function CompraModal({
             <p className="text-sm text-gray-600 mt-1">
               {nombreProveedor
                 ? <>Proveedor: <strong>{nombreProveedor}</strong></>
-                : 'La compra queda pendiente hasta que marques la mercadería como recibida'}
+                : 'La compra queda pendiente hasta que marques los productos como recibidos'}
             </p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600" disabled={loading}>
