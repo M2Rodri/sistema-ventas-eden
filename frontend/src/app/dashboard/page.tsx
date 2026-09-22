@@ -132,10 +132,10 @@ export default function DashboardPage() {
         >
           <AlertTriangle className="text-amber-600 flex-shrink-0" size={22} />
           <div>
-            <p className="font-medium text-amber-900">
+            <p className="font-bold text-gray-900">
               {num(stats?.productosStats?.productosBajoStock)} producto(s) por debajo del stock mínimo
             </p>
-            <p className="text-sm text-amber-800">
+            <p className="text-sm font-normal text-gray-600">
               {num(stats?.productosStats?.productosSinStock)} sin stock · Valor del inventario:{' '}
               {bs(stats?.inventarioStats?.valorTotalInventario)}
             </p>
