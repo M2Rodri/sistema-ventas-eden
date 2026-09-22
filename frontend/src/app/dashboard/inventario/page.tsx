@@ -9,8 +9,7 @@ import {
   getUltimosAjustes
 } from '@/lib/api';
 import { Inventario, AlertaInventario, MovimientoInventario } from '@/types/inventario';
-import { Search, Package, AlertTriangle, Edit, History, TrendingUp, TrendingDown, Settings, Eye, DollarSign, ShoppingCart, X } from 'lucide-react';
-import Link from 'next/link';
+import { Search, Package, AlertTriangle, Edit, History, TrendingUp, TrendingDown, Settings, Eye, DollarSign, X } from 'lucide-react';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import MovimientoInventarioModal from '@/components/MovimientoInventarioModal';
 import DetalleProductoModal from '@/components/DetalleProductoModal';
@@ -278,20 +277,10 @@ export default function InventarioPage() {
             <option value="STOCK_OK">✅ Stock OK</option>
           </select>
 
-          {/* Botón Configurar Notificaciones - NUEVO */}
           {/*
-            Compras vive dentro de Inventario porque ese es el recorrido real:
-            se ve que falta stock, se registra la compra, llega, y el stock sube.
+            Se sacó el botón "Compras" de acá: ya es su propio ítem del menú
+            lateral, no hace falta un segundo acceso.
           */}
-          <Link
-            href="/dashboard/compras"
-            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
-            title="Compras a proveedores"
-          >
-            <ShoppingCart size={20} />
-            <span className="hidden sm:inline">Compras</span>
-          </Link>
-
           {/*
             Se quitó "Configurar Notificaciones": prometía avisar por correo
             cuando un producto cayera bajo el mínimo, pero el sistema no tiene
@@ -364,7 +353,7 @@ export default function InventarioPage() {
                 </div>
                 <button
                   onClick={() => handleAtenderAlerta(alerta.id)}
-                  className="w-full px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+                  className="w-full px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
                 >
                   Marcar como Atendida
                 </button>
@@ -486,11 +475,7 @@ export default function InventarioPage() {
                       {item.nombreCategoria || 'Sin categoría'}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-center">
-                      <span className={`text-lg font-bold ${
-                        item.cantidadDisponible === 0 ? 'text-red-600' :
-                        item.bajoStockMinimo ? 'text-yellow-600' :
-                        'text-green-600'
-                      }`}>
+                      <span className="text-sm font-semibold text-gray-900">
                         {item.cantidadDisponible}
                       </span>
                     </td>
