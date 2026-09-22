@@ -179,13 +179,12 @@ export interface ReporteTransportadoras {
 export interface ReporteFinanciero {
   fechaInicio: string;
   fechaFin: string;
+  /** Ganancia real de lo vendido: precio menos costo de cada producto, por la cantidad. */
+  gananciaVentas: number;
+  /** Flujo de caja del período (ventas contra compras). No es ganancia. */
   ingresosTotales: number;
   gastosTotales: number;
-  gananciaNeta: number;
-  margenGanancia: number;
-  totalVentas: number;
-  totalCompras: number;
-  totalPagosRecibidos: number;
+  saldoPeriodo: number;
   detalleIngresos: Array<{ fecha: string; monto: number }>;
   detalleGastos: Array<{ fecha: string; monto: number }>;
 }

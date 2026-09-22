@@ -11,13 +11,26 @@ interface ReporteParametrosModalProps {
   onClose: () => void;
 }
 
-export default function ReporteParametrosModal({ 
-  tipoReporte, 
-  configuracion, 
-  onClose 
+// Formatea una fecha local como YYYY-MM-DD para precargar los <input type="date">.
+const aFechaInput = (fecha: Date) => {
+  const anio = fecha.getFullYear();
+  const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+  const dia = String(fecha.getDate()).padStart(2, '0');
+  return `${anio}-${mes}-${dia}`;
+};
+
+export default function ReporteParametrosModal({
+  tipoReporte,
+  configuracion,
+  onClose
 }: ReporteParametrosModalProps) {
-  const [fechaInicio, setFechaInicio] = useState('');
-  const [fechaFin, setFechaFin] = useState('');
+  // Los reportes con rango de fechas arrancan con el mes actual precargado:
+  // del día 1 hasta hoy. El usuario lo puede cambiar antes de generar.
+  const hoy = new Date();
+  const primerDiaDelMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+
+  const [fechaInicio, setFechaInicio] = useState(aFechaInput(primerDiaDelMes));
+  const [fechaFin, setFechaFin] = useState(aFechaInput(hoy));
   const [limite, setLimite] = useState(10);
   const [mostrarVistaPrevia, setMostrarVistaPrevia] = useState(false);
   const [errorParametros, setErrorParametros] = useState<string | null>(null);

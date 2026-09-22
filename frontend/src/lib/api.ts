@@ -2181,66 +2181,25 @@ export const getReporteTransportadoras = async (): Promise<ReporteTransportadora
   };
 };
 
-// Reporte Financiero (construido desde datos existentes)
+// Reporte Financiero.
+// El cálculo vive en el backend (solo ADMIN puede pedir este endpoint): la
+// ganancia real sale de sumar, por cada línea de venta, precio menos costo
+// unitario por la cantidad. Ese costo por producto no debe llegarle al
+// frontend en ninguna respuesta que también pueda ver un EMPLEADO, así que
+// acá solo se recibe el resultado ya calculado.
 export const getReporteFinanciero = async (fechaInicio: string, fechaFin: string): Promise<ReporteFinanciero> => {
-  const inicio = new Date(fechaInicio);
-  const fin = new Date(fechaFin);
+  const response = await fetch(
+    `${API_URL}/reportes/financiero?inicio=${encodeURIComponent(fechaInicio)}&fin=${encodeURIComponent(fechaFin)}`,
+    {
+      headers: getAuthHeaders(),
+    }
+  );
 
-  // Promise.all a proposito: es el reporte financiero. Si faltaran las
-  // compras, el margen saldria inflado; si faltaran las ventas, saldria en
-  // perdida. Mejor no mostrar nada que mostrar plata mal calculada.
-  const [ventas, compras, pagos] = await Promise.all([
-    getAllVentas(),
-    getAllCompras(),
-    getAllPagos()
-  ]);
+  if (!response.ok) {
+    throw new Error('Error al obtener reporte financiero');
+  }
 
-  // Filtrar por rango de fechas
-  const ventasFiltradas = ventas.filter(v => {
-    const fecha = new Date(v.fechaVenta);
-    return fecha >= inicio && fecha <= fin && v.estado === 'COMPLETADA';
-  });
-
-  const comprasFiltradas = compras.filter(c => {
-    const fecha = new Date(c.fechaCompra);
-    return fecha >= inicio && fecha <= fin && c.estado === 'RECIBIDA';
-  });
-
-  const pagosFiltrados = pagos.filter(p => {
-    const fecha = new Date(p.fechaPago);
-    return fecha >= inicio && fecha <= fin && p.estado === 'COMPLETADO';
-  });
-
-  const ingresosTotales = ventasFiltradas.reduce((sum, v) => sum + v.montoTotal, 0);
-  const gastosTotales = comprasFiltradas.reduce((sum, c) => sum + c.montoTotal, 0);
-  const totalPagosRecibidos = pagosFiltrados.reduce((sum, p) => sum + p.monto, 0);
-  const gananciaNeta = ingresosTotales - gastosTotales;
-  const margenGanancia = ingresosTotales > 0 ? (gananciaNeta / ingresosTotales) * 100 : 0;
-
-  // Agrupar por fecha
-  const detalleIngresos = ventasFiltradas.map(v => ({
-    fecha: new Date(v.fechaVenta).toISOString().split('T')[0],
-    monto: v.montoTotal
-  }));
-
-  const detalleGastos = comprasFiltradas.map(c => ({
-    fecha: new Date(c.fechaCompra).toISOString().split('T')[0],
-    monto: c.montoTotal
-  }));
-
-  return {
-    fechaInicio,
-    fechaFin,
-    ingresosTotales,
-    gastosTotales,
-    gananciaNeta,
-    margenGanancia,
-    totalVentas: ventasFiltradas.length,
-    totalCompras: comprasFiltradas.length,
-    totalPagosRecibidos,
-    detalleIngresos,
-    detalleGastos
-  };
+  return response.json();
 };
 
 

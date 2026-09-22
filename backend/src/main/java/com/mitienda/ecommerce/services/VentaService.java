@@ -245,6 +245,9 @@ public class VentaService {
             detalle.setPrecioUnitario(precioFinal);
             detalle.setDescuentoUnitario(descuentoUnitario);
             detalle.setDescuentoPorcentaje(descuentoPorcentaje);
+            // Costo al momento de la venta: si el costo referencial del
+            // producto cambia despues, la ganancia de esta venta no se mueve.
+            detalle.setCostoUnitario(producto.getCostoReferencial());
             detalle.calcularSubtotal();
             detalleVentaRepository.save(detalle);
 

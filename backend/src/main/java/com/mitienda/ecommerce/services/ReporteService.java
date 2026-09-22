@@ -1,14 +1,19 @@
 package com.mitienda.ecommerce.services;
 
 import com.mitienda.ecommerce.dto.ReporteClientesResponse;
+import com.mitienda.ecommerce.dto.ReporteFinancieroResponse;
 import com.mitienda.ecommerce.dto.ReporteProductosResponse;
 import com.mitienda.ecommerce.dto.ReporteVentasResponse;
 import com.mitienda.ecommerce.models.Cliente;
+import com.mitienda.ecommerce.models.Compra;
 import com.mitienda.ecommerce.models.DetalleVenta;
+import com.mitienda.ecommerce.models.EstadoCompra;
 import com.mitienda.ecommerce.models.EstadoPago;
+import com.mitienda.ecommerce.models.EstadoVenta;
 import com.mitienda.ecommerce.models.Pago;
 import com.mitienda.ecommerce.models.Producto;
 import com.mitienda.ecommerce.models.Venta;
+import com.mitienda.ecommerce.repositories.CompraRepository;
 import com.mitienda.ecommerce.repositories.DetalleVentaRepository;
 import com.mitienda.ecommerce.repositories.InventarioRepository;
 import com.mitienda.ecommerce.repositories.VentaRepository;
@@ -18,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +47,8 @@ public class ReporteService {
 
     private final InventarioRepository inventarioRepository;
 
+    private final CompraRepository compraRepository;
+
     /**
      * Inyeccion por constructor, no por campo.
      *
@@ -50,10 +58,12 @@ public class ReporteService {
      */
     public ReporteService(VentaRepository ventaRepository,
                           DetalleVentaRepository detalleVentaRepository,
-                          InventarioRepository inventarioRepository) {
+                          InventarioRepository inventarioRepository,
+                          CompraRepository compraRepository) {
         this.ventaRepository = ventaRepository;
         this.detalleVentaRepository = detalleVentaRepository;
         this.inventarioRepository = inventarioRepository;
+        this.compraRepository = compraRepository;
     }
 
 
@@ -305,5 +315,71 @@ public class ReporteService {
         }
 
         return resultado;
+    }
+
+    /**
+     * Reporte financiero del periodo.
+     *
+     * Separa dos cosas que antes se mezclaban en un solo numero
+     * (ventas menos compras del periodo, mostrado como "ganancia"):
+     *
+     * - gananciaVentas: ganancia real de lo vendido. Por cada linea de
+     *   venta, precio unitario menos costo unitario (el costo que quedo
+     *   fijo al momento de esa venta), por la cantidad.
+     * - ingresosTotales / gastosTotales / saldoPeriodo: flujo de caja del
+     *   periodo (ventas contra compras). No es ganancia: un mes de compra
+     *   grande para abastecerse puede dar saldo negativo aunque lo vendido
+     *   haya dejado margen positivo.
+     *
+     * Solo ADMIN llega a este metodo (el controller exige ese rol): el
+     * costo por producto no debe llegarle a un EMPLEADO en ninguna
+     * respuesta, por eso el calculo vive aca y no se expone
+     * detalle_venta.costo_unitario en ningun DTO de venta.
+     */
+    public ReporteFinancieroResponse getReporteFinanciero(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
+        List<Venta> ventas = ventaRepository.findByFechaVentaBetweenOrderByFechaVentaDesc(fechaInicio, fechaFin)
+                .stream()
+                .filter(v -> v.getEstado() == EstadoVenta.COMPLETADA)
+                .collect(Collectors.toList());
+
+        List<Compra> compras = compraRepository.findByFechaCompraBetweenOrderByFechaCompraDesc(fechaInicio, fechaFin)
+                .stream()
+                .filter(c -> c.getEstado() == EstadoCompra.RECIBIDA)
+                .collect(Collectors.toList());
+
+        BigDecimal gananciaVentas = ventas.stream()
+                .flatMap(v -> v.getDetalles().stream())
+                .map(d -> d.getPrecioUnitario()
+                        .subtract(d.getCostoUnitario())
+                        .multiply(BigDecimal.valueOf(d.getCantidad())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal ingresosTotales = ventas.stream()
+                .map(Venta::getMontoTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal gastosTotales = compras.stream()
+                .map(Compra::getMontoTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal saldoPeriodo = ingresosTotales.subtract(gastosTotales);
+
+        DateTimeFormatter formatoFecha = DateTimeFormatter.ISO_LOCAL_DATE;
+        List<ReporteFinancieroResponse.DetalleFechaMontoDTO> detalleIngresos = ventas.stream()
+                .map(v -> new ReporteFinancieroResponse.DetalleFechaMontoDTO(
+                        v.getFechaVenta().format(formatoFecha), v.getMontoTotal()))
+                .collect(Collectors.toList());
+
+        List<ReporteFinancieroResponse.DetalleFechaMontoDTO> detalleGastos = compras.stream()
+                .map(c -> new ReporteFinancieroResponse.DetalleFechaMontoDTO(
+                        c.getFechaCompra().format(formatoFecha), c.getMontoTotal()))
+                .collect(Collectors.toList());
+
+        return new ReporteFinancieroResponse(
+                fechaInicio, fechaFin,
+                gananciaVentas,
+                ingresosTotales, gastosTotales, saldoPeriodo,
+                detalleIngresos, detalleGastos
+        );
     }
 }

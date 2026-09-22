@@ -24,6 +24,16 @@ export default function ReportesPage() {
 
   const configuracionesReportes: ConfiguracionReporte[] = [
     {
+      id: 'FINANCIERO',
+      titulo: 'Reporte Financiero',
+      descripcion: 'Ingresos, gastos y ganancias del negocio',
+      icono: 'BarChart3',
+      color: 'from-primary-500 to-primary-600',
+      requiereFechas: true,
+      requiereLimite: false,
+      categorias: ['Financiero', 'Análisis']
+    },
+    {
       id: 'VENTAS',
       titulo: 'Reporte de Ventas',
       descripcion: 'Análisis de ventas por período, productos y clientes',
@@ -116,16 +126,6 @@ export default function ReportesPage() {
     //   requiereLimite: false,
     //   categorias: ['Envíos', 'Logística']
     // },
-    {
-      id: 'FINANCIERO',
-      titulo: 'Reporte Financiero',
-      descripcion: 'Ingresos, gastos y ganancias del negocio',
-      icono: 'BarChart3',
-      color: 'from-primary-500 to-primary-600',
-      requiereFechas: true,
-      requiereLimite: false,
-      categorias: ['Financiero', 'Análisis']
-    }
   ];
 
   const handleOpenReporte = (tipoReporte: TipoReporte) => {
@@ -155,22 +155,8 @@ export default function ReportesPage() {
 
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Reportes y Análisis</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Reportes del negocio</h1>
         <p className="text-gray-600 mt-1">Genera informes detallados del sistema</p>
-      </div>
-
-      {/* Información */}
-      <div className="bg-primary-50 border border-primary-200 rounded-lg p-4 mb-6">
-        <div className="flex items-start gap-3">
-          <BarChart3 className="text-primary-600 flex-shrink-0 mt-0.5" size={20} />
-          <div>
-            <h3 className="text-sm font-semibold text-primary-900 mb-1">¿Cómo generar un reporte?</h3>
-            <p className="text-sm text-primary-800">
-              Selecciona el tipo de reporte que deseas consultar y configura los parámetros
-              (fechas, límites, etc.) para verlo en pantalla con sus gráficos.
-            </p>
-          </div>
-        </div>
       </div>
 
       {/* Grid de Reportes */}

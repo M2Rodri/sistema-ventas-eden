@@ -1,6 +1,7 @@
 package com.mitienda.ecommerce.controllers;
 
 import com.mitienda.ecommerce.dto.ReporteClientesResponse;
+import com.mitienda.ecommerce.dto.ReporteFinancieroResponse;
 import com.mitienda.ecommerce.dto.ReporteProductosResponse;
 import com.mitienda.ecommerce.dto.ReporteVentasResponse;
 import com.mitienda.ecommerce.services.ReporteService;
@@ -101,6 +102,22 @@ public class ReporteController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime inicio,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fin) {
         List<Map<String, Object>> reporte = reporteService.getReporteVentasPorMetodoPago(inicio, fin);
+        return ResponseEntity.ok(reporte);
+    }
+
+    /**
+     * GET /api/reportes/financiero?inicio=...&fin=...
+     * Reporte financiero: ganancia real de lo vendido, e ingresos/egresos
+     * del periodo. Solo ADMIN: el costo por producto que arma la ganancia
+     * no debe llegarle a un EMPLEADO. Sobrescribe el @PreAuthorize de la
+     * clase (que permite ADMIN y EMPLEADO) con uno mas estricto.
+     */
+    @GetMapping("/financiero")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ReporteFinancieroResponse> getReporteFinanciero(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime inicio,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fin) {
+        ReporteFinancieroResponse reporte = reporteService.getReporteFinanciero(inicio, fin);
         return ResponseEntity.ok(reporte);
     }
 }

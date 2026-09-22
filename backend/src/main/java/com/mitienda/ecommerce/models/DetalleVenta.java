@@ -64,6 +64,18 @@ public class DetalleVenta {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal subtotal;
 
+    /**
+     * Costo del producto en el momento de la venta (copiado de
+     * producto.costoReferencial al crear el detalle). Queda fijo: si el
+     * costo referencial cambia despues, la ganancia de esta venta no se
+     * recalcula sola. No se expone en DetalleVentaDTO: el rol EMPLEADO
+     * puede ver ventas y no tiene que ver costos ni margenes.
+     */
+    @NotNull(message = "El costo unitario es obligatorio")
+    @DecimalMin(value = "0.0", message = "El costo no puede ser negativo")
+    @Column(name = "costo_unitario", nullable = false, precision = 10, scale = 2)
+    private BigDecimal costoUnitario;
+
     // Constructor personalizado (sin descuento)
     public DetalleVenta(Venta venta, Producto producto, Integer cantidad, BigDecimal precioUnitario) {
         this.venta = venta;

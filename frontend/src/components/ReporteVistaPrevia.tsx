@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Loader2, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Loader2, Printer, TrendingUp } from 'lucide-react';
 import { TipoReporte } from '@/types/reporte';
 import {
   getReporteVentas,
@@ -170,19 +170,36 @@ export default function ReporteVistaPrevia({
     );
   }
 
+  // La hoja de estilos @media print de globals.css oculta todo salvo
+  // .area-impresion, así que basta con pedir la impresión: no hace falta
+  // armar una vista aparte ni un botón de descarga, "Guardar como PDF" ya
+  // está en el diálogo de impresión del navegador.
+  const handleImprimir = () => {
+    window.print();
+  };
+
   return (
     <div>
-      {/* Botón Volver */}
-      <button
-        onClick={onVolver}
-        className="flex items-center gap-2 text-primary-600 hover:text-primary-700 mb-6 font-medium"
-      >
-        <ArrowLeft size={20} />
-        Volver a parámetros
-      </button>
+      {/* Botón Volver / Imprimir */}
+      <div className="flex items-center justify-between mb-6">
+        <button
+          onClick={onVolver}
+          className="flex items-center gap-2 text-primary-600 hover:text-primary-700 font-medium"
+        >
+          <ArrowLeft size={20} />
+          Volver a parámetros
+        </button>
+        <button
+          onClick={handleImprimir}
+          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
+        >
+          <Printer size={18} />
+          Imprimir
+        </button>
+      </div>
 
       {/* Contenido del Reporte */}
-      <div className="space-y-6">
+      <div className="space-y-6 area-impresion">
         {/* REPORTE DE VENTAS */}
         {tipoReporte === 'VENTAS' && data && (
           <>
@@ -627,28 +644,41 @@ export default function ReporteVistaPrevia({
             <SinDatosReporte />
           ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <p className="text-sm text-green-700 mb-1">Ingresos Totales</p>
-                <p className="text-2xl font-bold text-green-900">{formatPrice(data.ingresosTotales)}</p>
-              </div>
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-sm text-red-700 mb-1">Gastos Totales</p>
-                <p className="text-2xl font-bold text-red-900">{formatPrice(data.gastosTotales)}</p>
-              </div>
+            {/* Ganancia real de lo vendido: precio menos costo, por cantidad */}
+            <div className="mb-6">
+              <h3 className="text-sm font-semibold text-gray-700 mb-2">Ganancia de las ventas del período</h3>
               <div className={`border rounded-lg p-4 ${
-                data.gananciaNeta >= 0 ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200'
+                data.gananciaVentas >= 0 ? 'bg-primary-50 border-primary-200' : 'bg-red-50 border-red-200'
               }`}>
-                <p className="text-sm mb-1">Ganancia Neta</p>
-                <p className={`text-2xl font-bold ${
-                  data.gananciaNeta >= 0 ? 'text-blue-900' : 'text-red-900'
+                <p className={`text-3xl font-bold ${
+                  data.gananciaVentas >= 0 ? 'text-primary-900' : 'text-red-900'
                 }`}>
-                  {formatPrice(data.gananciaNeta)}
+                  {formatPrice(data.gananciaVentas)}
                 </p>
+                <p className="text-xs text-gray-500 mt-1">Precio de venta menos costo de cada producto vendido</p>
               </div>
-              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                <p className="text-sm text-purple-700 mb-1">Margen de Ganancia</p>
-                <p className="text-2xl font-bold text-purple-900">{data.margenGanancia.toFixed(2)}%</p>
+            </div>
+
+            {/* Flujo de caja del período: no es ganancia */}
+            <div className="mb-6">
+              <h3 className="text-sm font-semibold text-gray-700 mb-2">Ingresos y egresos</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <p className="text-sm text-green-700 mb-1">Ingresos</p>
+                  <p className="text-2xl font-bold text-green-900">{formatPrice(data.ingresosTotales)}</p>
+                </div>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p className="text-sm text-red-700 mb-1">Egresos</p>
+                  <p className="text-2xl font-bold text-red-900">{formatPrice(data.gastosTotales)}</p>
+                </div>
+                <div className={`border rounded-lg p-4 ${
+                  data.saldoPeriodo >= 0 ? 'bg-gray-50 border-gray-200' : 'bg-red-50 border-red-200'
+                }`}>
+                  <p className={`text-sm mb-1 ${data.saldoPeriodo >= 0 ? 'text-gray-600' : 'text-red-700'}`}>Saldo del período</p>
+                  <p className={`text-2xl font-bold ${data.saldoPeriodo >= 0 ? 'text-gray-900' : 'text-red-900'}`}>
+                    {formatPrice(data.saldoPeriodo)}
+                  </p>
+                </div>
               </div>
             </div>
 
