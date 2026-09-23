@@ -133,6 +133,7 @@ export default function ComprasPage() {
   } = useDragScrollTable([loading, compras, busqueda, estadoFiltro, proveedorFiltroId]);
 
   return (
+    <>
     <div className="space-y-6">
       <Breadcrumbs items={[{ label: "Compras" }]} />
 
@@ -321,17 +322,6 @@ export default function ComprasPage() {
         )}
       </div>
 
-      {modalNuevaAbierto && (
-        <CompraModal
-          onClose={() => setModalNuevaAbierto(false)}
-          onSuccess={() => {
-            setModalNuevaAbierto(false);
-            avisar('success', 'Compra registrada. Marcala como recibida cuando lleguen los productos.');
-            cargar();
-          }}
-        />
-      )}
-
       {compraDetalle && (
         <DetalleCompraModal compra={compraDetalle} onClose={() => setCompraDetalle(null)} />
       )}
@@ -360,5 +350,17 @@ export default function ComprasPage() {
         />
       )}
     </div>
+
+      {modalNuevaAbierto && (
+        <CompraModal
+          onClose={() => setModalNuevaAbierto(false)}
+          onSuccess={() => {
+            setModalNuevaAbierto(false);
+            avisar('success', 'Compra registrada. Marcala como recibida cuando lleguen los productos.');
+            cargar();
+          }}
+        />
+      )}
+    </>
   );
 }
