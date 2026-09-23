@@ -12,7 +12,6 @@ import {
   getVentaById
 } from '@/lib/api';
 import { Venta, VentaEstadisticas, EstadoVenta, MetodoPago, EstadoEntrega } from '@/types/venta';
-import { exportarCSV, fechaArchivo } from '@/lib/exportar';
 import {
   Search,
   Plus,
@@ -22,9 +21,6 @@ import {
   DollarSign,
   ShoppingCart,
   Calendar,
-  RefreshCw,
-  Download,
-  Users,
   Truck,
   Banknote,
   X
@@ -38,7 +34,6 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import { mensajeError } from '@/lib/errores';
 import { useAuth } from '@/hooks/useAuth';
 
-import Link from 'next/link';
 
 export default function VentasPage() {
   const router = useRouter();
@@ -182,37 +177,6 @@ export default function VentasPage() {
   const handleAbrirCobrarSaldo = (venta: Venta) => {
     setVentaACobrar(venta);
     setShowCobrarSaldoModal(true);
-  };
-
-  // Antes esto solo mostraba un alert diciendo que el archivo se habia
-  // generado, sin generar nada. Ahora arma el CSV con las ventas que estan
-  // filtradas en pantalla y el navegador lo descarga.
-  const handleExportarExcel = () => {
-    if (ventasFiltradas.length === 0) {
-      alert('No hay ventas para exportar con los filtros actuales.');
-      return;
-    }
-
-    exportarCSV<Venta>(
-      `Ventas_${fechaArchivo()}`,
-      [
-        { encabezado: 'N. Venta', valor: (v) => v.id },
-        { encabezado: 'Fecha', valor: (v) => new Date(v.fechaVenta).toLocaleString('es-BO') },
-        { encabezado: 'Cliente', valor: (v) => v.nombreCliente },
-        { encabezado: 'Telefono', valor: (v) => v.telefonoCliente ?? '' },
-        { encabezado: 'Cliente registrado', valor: (v) => (v.esClienteRegistrado ? 'Si' : 'No') },
-        { encabezado: 'Vendedor', valor: (v) => v.nombreUsuario },
-        { encabezado: 'Subtotal (Bs)', valor: (v) => Number(v.subtotal).toFixed(2) },
-        { encabezado: 'Descuento (Bs)', valor: (v) => Number(v.descuento ?? 0).toFixed(2) },
-        { encabezado: 'Total (Bs)', valor: (v) => Number(v.montoTotal).toFixed(2) },
-        { encabezado: 'Saldo pendiente (Bs)', valor: (v) => Number(v.saldoPendiente ?? 0).toFixed(2) },
-        { encabezado: 'Metodo de pago', valor: (v) => v.metodoPago ?? 'Sin pago' },
-        { encabezado: 'Estado', valor: (v) => v.estado },
-        { encabezado: 'Requiere envio', valor: (v) => (v.requiereEnvio ? 'Si' : 'No') },
-        { encabezado: 'Productos', valor: (v) => v.detalles.map((d) => `${d.cantidad}x ${d.nombreProducto}`).join(' | ') },
-      ],
-      ventasFiltradas
-    );
   };
 
   const obtenerVendedores = (): string[] => {
@@ -366,14 +330,6 @@ export default function VentasPage() {
             ))}
           </select>
 
-          <Link
-            href="/dashboard/clientes"
-            className="flex items-center justify-center gap-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors font-medium whitespace-nowrap"
-          >
-            <Users size={18} />
-            Gestionar Clientes
-          </Link>
-
           <button
             onClick={() => setShowRegistrarModal(true)}
             className="flex items-center justify-center gap-2 bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors font-medium whitespace-nowrap"
@@ -384,28 +340,12 @@ export default function VentasPage() {
         </div>
       </div>
 
-      {/* Contador y acciones */}
+      {/* Contador */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <p className="text-sm text-gray-600">
           Mostrando <span className="font-semibold">{ventasFiltradas.length}</span> de{' '}
           <span className="font-semibold">{ventas.length}</span> ventas
         </p>
-        <div className="flex gap-3">
-          <button
-            onClick={handleExportarExcel}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors shadow-md"
-          >
-            <Download size={16} />
-            Exportar a CSV
-          </button>
-          <button
-            onClick={loadVentas}
-            className="flex items-center gap-2 px-4 py-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors font-medium"
-          >
-            <RefreshCw size={16} />
-            Actualizar
-          </button>
-        </div>
       </div>
 
       {/* Error */}

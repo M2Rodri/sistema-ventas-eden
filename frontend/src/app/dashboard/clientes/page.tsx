@@ -8,7 +8,6 @@ import {
   getEstadisticasGeneralesClientes,
 } from '@/lib/api';
 import { ClienteConEstadisticas, ClienteEstadisticas } from '@/types/cliente';
-import { exportarCSV, fechaArchivo } from '@/lib/exportar';
 import {
   Search,
   Users,
@@ -17,9 +16,6 @@ import {
   Crown,
   Edit2,
   History,
-  Filter,
-  RefreshCw,
-  Download,
   X,
 } from 'lucide-react';
 import ModificarClienteModal from '@/components/ModificarClienteModal';
@@ -63,10 +59,6 @@ export default function ClientesPage() {
       setBusqueda(q);
     }
   }, []);
-  const [filtroFechaDesde, setFiltroFechaDesde] = useState('');
-  const [filtroFechaHasta, setFiltroFechaHasta] = useState('');
-  const [filtroMontoMin, setFiltroMontoMin] = useState('');
-  const [filtroMontoMax, setFiltroMontoMax] = useState('');
   const [ordenColumna, setOrdenColumna] = useState<
     'nombre' | 'numeroCompras' | 'montoTotal' | 'ultimaCompra'
   >('nombre');
@@ -79,16 +71,7 @@ export default function ClientesPage() {
 
   useEffect(() => {
     aplicarFiltros();
-  }, [
-    clientes,
-    busqueda,
-    filtroFechaDesde,
-    filtroFechaHasta,
-    filtroMontoMin,
-    filtroMontoMax,
-    ordenColumna,
-    ordenDireccion,
-  ]);
+  }, [clientes, busqueda, ordenColumna, ordenDireccion]);
 
   const loadClientes = async () => {
     setLoading(true);
@@ -124,36 +107,6 @@ export default function ClientesPage() {
           (c.telefono ?? "").includes(termino) ||
           (c.nitCi && c.nitCi.includes(termino))
       );
-    }
-
-    // Filtro por rango de fechas
-    if (filtroFechaDesde && filtroFechaHasta) {
-      const desde = new Date(filtroFechaDesde);
-      const hasta = new Date(filtroFechaHasta);
-
-      if (desde > hasta) {
-        setError('La fecha inicial no puede ser posterior a la fecha final');
-        return;
-      }
-
-      resultado = resultado.filter((c) => {
-        if (!c.ultimaFechaCompra) return false;
-        const fecha = new Date(c.ultimaFechaCompra);
-        return fecha >= desde && fecha <= hasta;
-      });
-    }
-
-    // Filtro por rango de montos
-    if (filtroMontoMin || filtroMontoMax) {
-      const min = filtroMontoMin ? parseFloat(filtroMontoMin) : 0;
-      const max = filtroMontoMax ? parseFloat(filtroMontoMax) : Infinity;
-
-      if (min > max) {
-        setError('El monto mínimo no puede ser mayor al monto máximo');
-        return;
-      }
-
-      resultado = resultado.filter((c) => c.montoTotalComprado >= min && c.montoTotalComprado <= max);
     }
 
     // Ordenar
@@ -200,14 +153,6 @@ export default function ClientesPage() {
     }
   };
 
-  const limpiarFiltros = () => {
-    setBusqueda('');
-    setFiltroFechaDesde('');
-    setFiltroFechaHasta('');
-    setFiltroMontoMin('');
-    setFiltroMontoMax('');
-  };
-
   const handleModificar = (cliente: ClienteConEstadisticas) => {
     setClienteSeleccionado(cliente);
     setShowModificarModal(true);
@@ -216,36 +161,6 @@ export default function ClientesPage() {
   const handleVerHistorial = (cliente: ClienteConEstadisticas) => {
     setClienteSeleccionado(cliente);
     setShowHistorialModal(true);
-  };
-
-  // Antes solo mostraba un alert de exito sin producir archivo. Ahora exporta
-  // de verdad los clientes que quedaron despues de aplicar los filtros.
-  const handleExportarExcel = () => {
-    if (clientesFiltrados.length === 0) {
-      alert('No hay clientes para exportar con los filtros actuales.');
-      return;
-    }
-
-    exportarCSV<ClienteConEstadisticas>(
-      `Clientes_${fechaArchivo()}`,
-      [
-        { encabezado: 'Codigo', valor: (c) => c.id },
-        { encabezado: 'Nombre completo', valor: (c) => c.nombreCompleto },
-        { encabezado: 'NIT / CI', valor: (c) => c.nitCi ?? '' },
-        { encabezado: 'Telefono', valor: (c) => c.telefono ?? '' },
-        { encabezado: 'Email', valor: (c) => c.email ?? '' },
-        { encabezado: 'Tipo', valor: (c) => c.tipoCliente },
-        { encabezado: 'Estado', valor: (c) => (c.activo ? 'Activo' : 'Inactivo') },
-        { encabezado: 'Compras', valor: (c) => c.numeroCompras },
-        { encabezado: 'Total comprado (Bs)', valor: (c) => Number(c.montoTotalComprado ?? 0).toFixed(2) },
-        {
-          encabezado: 'Ultima compra',
-          valor: (c) => (c.ultimaFechaCompra ? new Date(c.ultimaFechaCompra).toLocaleDateString('es-BO') : 'Sin compras'),
-        },
-        { encabezado: 'Fecha de registro', valor: (c) => new Date(c.fechaRegistro).toLocaleDateString('es-BO') },
-      ],
-      clientesFiltrados
-    );
   };
 
   const formatFecha = (fecha?: string) => {
@@ -323,92 +238,12 @@ export default function ClientesPage() {
         </div>
       </div>
 
-      {/* Filtros avanzados */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-        <div className="flex items-center gap-2 mb-3">
-          <Filter size={18} className="text-gray-600" />
-          <h3 className="text-sm font-semibold text-gray-900">Filtros avanzados</h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Fecha Desde</label>
-            <input
-              type="date"
-              value={filtroFechaDesde}
-              onChange={(e) => setFiltroFechaDesde(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Fecha Hasta</label>
-            <input
-              type="date"
-              value={filtroFechaHasta}
-              onChange={(e) => setFiltroFechaHasta(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Monto Mínimo (Bs.)</label>
-            <input
-              type="number"
-              value={filtroMontoMin}
-              onChange={(e) => setFiltroMontoMin(e.target.value)}
-              placeholder="0.00"
-              step="0.01"
-              min="0"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Monto Máximo (Bs.)</label>
-            <input
-              type="number"
-              value={filtroMontoMax}
-              onChange={(e) => setFiltroMontoMax(e.target.value)}
-              placeholder="10000.00"
-              step="0.01"
-              min="0"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            />
-          </div>
-        </div>
-
-        <div className="mt-4 flex items-center justify-between">
-          <p className="text-sm text-gray-600">
-            Mostrando <span className="font-semibold">{clientesFiltrados.length}</span> de{' '}
-            <span className="font-semibold">{clientes.length}</span> clientes
-          </p>
-          <div className="flex gap-3">
-            <button
-              onClick={handleExportarExcel}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors shadow-md"
-            >
-              <Download size={16} />
-              Exportar a CSV
-            </button>
-            <button
-              onClick={limpiarFiltros}
-              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <X size={16} />
-              Limpiar Filtros
-            </button>
-            <button
-              onClick={() => {
-                loadClientes();
-                loadEstadisticas();
-              }}
-              className="flex items-center gap-2 px-4 py-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors font-medium"
-            >
-              <RefreshCw size={16} />
-              Actualizar
-            </button>
-          </div>
-        </div>
+      {/* Contador */}
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <p className="text-sm text-gray-600">
+          Mostrando <span className="font-semibold">{clientesFiltrados.length}</span> de{' '}
+          <span className="font-semibold">{clientes.length}</span> clientes
+        </p>
       </div>
 
       {/* Error */}
@@ -498,11 +333,7 @@ export default function ClientesPage() {
                     <Users className="mx-auto text-gray-400 mb-3" size={48} />
                     <p className="text-gray-500 font-medium">No se encontraron clientes</p>
                     <p className="text-sm text-gray-400 mt-1">
-                      {busqueda ||
-                      filtroFechaDesde ||
-                      filtroFechaHasta ||
-                      filtroMontoMin ||
-                      filtroMontoMax
+                      {busqueda
                         ? 'Intenta ajustar los filtros de búsqueda'
                         : 'No hay clientes registrados en el sistema'}
                     </p>
