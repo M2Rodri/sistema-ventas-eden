@@ -182,9 +182,12 @@ export default function InventarioPage() {
   // Arrastrar la tabla desde el encabezado, como si fuera una barra de
   // scroll horizontal. Ver hooks/useDragScrollTable.ts. Dos instancias
   // porque hay dos tablas (historial e inventario) que nunca están
-  // montadas a la vez, así que no interfieren entre sí.
-  const inventarioDrag = useDragScrollTable([loading, filteredInventario]);
-  const historialDrag = useDragScrollTable([loading, historial]);
+  // montadas a la vez, así que no interfieren entre sí. showHistorial va en
+  // las dependencias de las dos: es lo que monta y desmonta cada tabla, así
+  // que sin esto el chequeo de desborde corre antes de que el contenedor
+  // exista en el DOM y hasOverflow se queda pegado en false para siempre.
+  const inventarioDrag = useDragScrollTable([loading, filteredInventario, showHistorial]);
+  const historialDrag = useDragScrollTable([loading, historial, showHistorial]);
 
   return (
     <div className="max-w-full">
