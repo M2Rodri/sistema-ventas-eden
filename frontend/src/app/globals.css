@@ -39,3 +39,25 @@
     display: none !important;
   }
 }
+
+/*
+ * Elevación de las tarjetas de Reportes.
+ *
+ * No se hace con una clase shadow-[...] de Tailwind: con dos sombras
+ * separadas por coma, la clase arbitraria a veces no se genera. Como clase
+ * de CSS normal siempre se compila, y evita mezclar un box-shadow por
+ * style en línea (que le ganaría en especificidad a :hover y el hover
+ * nunca se vería) con la regla de abajo.
+ *
+ * Va en la capa de AFUERA de la tarjeta, la que no tiene overflow-hidden:
+ * si la sombra estuviera en el mismo elemento que recorta su contenido,
+ * se recortaría contra su propio borde y no se vería.
+ */
+.reporte-card {
+  box-shadow: 0 2px 4px rgba(11, 59, 55, 0.12), 0 12px 28px rgba(11, 59, 55, 0.22);
+  transition: box-shadow .2s ease, transform .2s ease;
+}
+.reporte-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 8px rgba(11, 59, 55, 0.14), 0 20px 44px rgba(11, 59, 55, 0.30);
+}
