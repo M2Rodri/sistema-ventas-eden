@@ -19,8 +19,11 @@ import AvisoCargaParcial from '@/components/AvisoCargaParcial';
 import { crearRecolector } from '@/lib/cargaParcial';
 import StatCard from '@/components/StatCard';
 import { mensajeError } from '@/lib/errores';
+import { useDragScrollTable } from '@/hooks/useDragScrollTable';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function InventarioPage() {
+  const { user } = useAuth();
   const [inventario, setInventario] = useState<Inventario[]>([]);
   const [filteredInventario, setFilteredInventario] = useState<Inventario[]>([]);
   const [alertas, setAlertas] = useState<AlertaInventario[]>([]);
@@ -176,6 +179,13 @@ export default function InventarioPage() {
     0
   );
 
+  // Arrastrar la tabla desde el encabezado, como si fuera una barra de
+  // scroll horizontal. Ver hooks/useDragScrollTable.ts. Dos instancias
+  // porque hay dos tablas (historial e inventario) que nunca están
+  // montadas a la vez, así que no interfieren entre sí.
+  const inventarioDrag = useDragScrollTable([loading, filteredInventario]);
+  const historialDrag = useDragScrollTable([loading, historial]);
+
   return (
     <div className="max-w-full">
       <Breadcrumbs items={[{ label: 'Inventario' }]} />
@@ -183,7 +193,7 @@ export default function InventarioPage() {
       <AvisoCargaParcial fallos={fallosCarga} onReintentar={loadData} />
 
       {/* INDICADORES SUPERIORES - P4.1 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className={`grid grid-cols-1 gap-4 mb-6 ${user?.role === 'ADMIN' ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
         <StatCard
           titulo="Total de Productos"
           valor={totalProductos}
@@ -200,12 +210,15 @@ export default function InventarioPage() {
           loading={loading}
         />
 
-        <StatCard
-          titulo="Valor Total del Inventario"
-          valor={`${valorTotalInventario.toLocaleString('es-BO')} Bs`}
-          icon={<DollarSign size={22} />}
-          loading={loading}
-        />
+        {/* Se calcula con costoReferencial: el rol EMPLEADO no ve costos. */}
+        {user?.role === 'ADMIN' && (
+          <StatCard
+            titulo="Valor Total del Inventario"
+            valor={`${valorTotalInventario.toLocaleString('es-BO')} Bs`}
+            icon={<DollarSign size={22} />}
+            loading={loading}
+          />
+        )}
       </div>
 
       {/* Header con filtros responsive */}
@@ -372,9 +385,13 @@ export default function InventarioPage() {
               Historial de Ajustes (Últimos 50)
             </h2>
           </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+          <div className="overflow-x-auto" ref={historialDrag.scrollContainerRef}>
+            <table className="min-w-full divide-y divide-gray-200" ref={historialDrag.tableRef}>
+              <thead
+                ref={historialDrag.theadRef}
+                className={`bg-gray-50 ${historialDrag.hasOverflow ? 'cursor-grab select-none' : ''}`}
+                {...historialDrag.theadProps}
+              >
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Fecha</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Producto</th>
@@ -441,9 +458,13 @@ export default function InventarioPage() {
       {/* Tabla de Inventario */}
       {!loading && !showHistorial && (
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+          <div className="overflow-x-auto" ref={inventarioDrag.scrollContainerRef}>
+            <table className="min-w-full divide-y divide-gray-200" ref={inventarioDrag.tableRef}>
+              <thead
+                ref={inventarioDrag.theadRef}
+                className={`bg-gray-50 ${inventarioDrag.hasOverflow ? 'cursor-grab select-none' : ''}`}
+                {...inventarioDrag.theadProps}
+              >
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Código</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Producto</th>

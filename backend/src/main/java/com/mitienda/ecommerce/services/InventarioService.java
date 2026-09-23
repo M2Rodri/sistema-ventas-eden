@@ -68,6 +68,17 @@ public class InventarioService {
         this.usuarioActualService = usuarioActualService;
     }
 
+    /**
+     * GET /api/inventario y sus variantes las puede llamar EMPLEADO.
+     * costoReferencial no debe llegarle: el rol EMPLEADO existe justamente
+     * para no ver costos ni margenes.
+     */
+    private InventarioResponse ocultarCostoSiNoEsAdmin(InventarioResponse response) {
+        if (!usuarioActualService.esAdmin()) {
+            response.setCostoReferencial(null);
+        }
+        return response;
+    }
 
     /**
      * Listar todo el inventario
@@ -77,7 +88,7 @@ public class InventarioService {
     public List<InventarioResponse> getAllInventario() {
         return inventarioRepository.findAll()
                 .stream()
-                .map(InventarioResponse::new) // <-- Este constructor accede a .getProducto().getNombre(), etc.
+                .map(i -> ocultarCostoSiNoEsAdmin(new InventarioResponse(i)))
                 .collect(Collectors.toList());
     }
 
@@ -100,7 +111,7 @@ public class InventarioService {
     public InventarioResponse getInventarioById(Long id) {
         Inventario inventario = inventarioRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Inventario no encontrado con ID: " + id));
-        return new InventarioResponse(inventario); // <-- Este constructor también accede a .getProducto()
+        return ocultarCostoSiNoEsAdmin(new InventarioResponse(inventario));
     }
 
     /**
@@ -111,7 +122,7 @@ public class InventarioService {
     public InventarioResponse getInventarioByProducto(Long idProducto) {
         Inventario inventario = inventarioRepository.findByProductoId(idProducto)
                 .orElseThrow(() -> new RuntimeException("No existe inventario para el producto con ID: " + idProducto));
-        return new InventarioResponse(inventario); // <-- Este constructor también accede a .getProducto()
+        return ocultarCostoSiNoEsAdmin(new InventarioResponse(inventario));
     }
 
     /**
@@ -140,7 +151,7 @@ public class InventarioService {
         // Verificar si requiere alerta
         verificarYCrearAlerta(savedInventario);
 
-        return new InventarioResponse(savedInventario);
+        return ocultarCostoSiNoEsAdmin(new InventarioResponse(savedInventario));
     }
 
     /**
@@ -160,7 +171,7 @@ public class InventarioService {
         // Verificar si requiere alerta
         verificarYCrearAlerta(updatedInventario);
 
-        return new InventarioResponse(updatedInventario);
+        return ocultarCostoSiNoEsAdmin(new InventarioResponse(updatedInventario));
     }
 
     /**
@@ -214,7 +225,7 @@ public class InventarioService {
                         + " -> " + updatedInventario.getCantidadDisponible()
                         + (request.getMotivo() != null ? ". Motivo: " + request.getMotivo() : ""));
 
-        return new InventarioResponse(updatedInventario);
+        return ocultarCostoSiNoEsAdmin(new InventarioResponse(updatedInventario));
     }
 
     /**
@@ -301,7 +312,7 @@ public class InventarioService {
     public List<InventarioResponse> getProductosConStockBajo() {
         return inventarioRepository.findProductosConStockBajo()
                 .stream()
-                .map(InventarioResponse::new) // <-- Este constructor accede a .getProducto()
+                .map(i -> ocultarCostoSiNoEsAdmin(new InventarioResponse(i)))
                 .collect(Collectors.toList());
     }
 
@@ -313,7 +324,7 @@ public class InventarioService {
     public List<InventarioResponse> getProductosSinStock() {
         return inventarioRepository.findProductosSinStock()
                 .stream()
-                .map(InventarioResponse::new) // <-- Este constructor accede a .getProducto()
+                .map(i -> ocultarCostoSiNoEsAdmin(new InventarioResponse(i)))
                 .collect(Collectors.toList());
     }
 

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { X, Package, MapPin, Calendar, DollarSign } from 'lucide-react';
 import { Inventario, MovimientoInventario } from '@/types/inventario';
 import { getHistorialAjustes } from '@/lib/api';
+import { useAuth } from '@/hooks/useAuth';
 
 interface DetalleProductoModalProps {
   inventario: Inventario;
@@ -11,6 +12,8 @@ interface DetalleProductoModalProps {
 }
 
 export default function DetalleProductoModal({ inventario, onClose }: DetalleProductoModalProps) {
+  const { user } = useAuth();
+  const esAdmin = user?.role === 'ADMIN';
   // Antes acá había un precio fijo de 1500 Bs y cinco movimientos escritos a
   // mano (fechas de 2024, usuarios "Admin" y "Vendedor1"), iguales para
   // cualquier producto que se abriera. Ahora sale todo del backend.
@@ -105,7 +108,7 @@ export default function DetalleProductoModal({ inventario, onClose }: DetallePro
           </div>
 
           {/* Ubicación y Valor */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className={`grid gap-4 ${esAdmin ? 'grid-cols-2' : 'grid-cols-1'}`}>
             <div className="bg-gray-50 p-4 rounded-lg">
               <div className="flex items-center gap-2 mb-2">
                 <MapPin className="text-gray-600" size={20} />
@@ -115,18 +118,21 @@ export default function DetalleProductoModal({ inventario, onClose }: DetallePro
                 {inventario.ubicacion || 'No especificada'}
               </p>
             </div>
-            <div className="bg-green-50 p-4 rounded-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <DollarSign className="text-green-600" size={20} />
-                <p className="text-sm font-medium text-gray-900">Valor Total del Stock</p>
+            {/* Se calcula con el costo de referencia: el rol EMPLEADO no lo ve. */}
+            {esAdmin && (
+              <div className="bg-green-50 p-4 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <DollarSign className="text-green-600" size={20} />
+                  <p className="text-sm font-medium text-gray-900">Valor Total del Stock</p>
+                </div>
+                <p className="text-lg font-semibold text-green-600">
+                  Bs {valorTotal.toLocaleString('es-BO', { minimumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {inventario.cantidadDisponible} × Bs {costo.toLocaleString('es-BO', { minimumFractionDigits: 2 })} (costo de referencia)
+                </p>
               </div>
-              <p className="text-lg font-semibold text-green-600">
-                Bs {valorTotal.toLocaleString('es-BO', { minimumFractionDigits: 2 })}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                {inventario.cantidadDisponible} × Bs {costo.toLocaleString('es-BO', { minimumFractionDigits: 2 })} (costo de referencia)
-              </p>
-            </div>
+            )}
           </div>
 
           {/* Última Actualización */}

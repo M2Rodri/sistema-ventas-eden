@@ -37,6 +37,8 @@ public class ProductoService {
 
     private final RegistroAuditoria registroAuditoria;
 
+    private final UsuarioActualService usuarioActualService;
+
     /**
      * Inyeccion por constructor, no por campo.
      *
@@ -47,11 +49,26 @@ public class ProductoService {
     public ProductoService(ProductoRepository productoRepository,
                            CategoriaRepository categoriaRepository,
                            InventarioRepository inventarioRepository,
-                           RegistroAuditoria registroAuditoria) {
+                           RegistroAuditoria registroAuditoria,
+                           UsuarioActualService usuarioActualService) {
         this.productoRepository = productoRepository;
         this.categoriaRepository = categoriaRepository;
         this.inventarioRepository = inventarioRepository;
         this.registroAuditoria = registroAuditoria;
+        this.usuarioActualService = usuarioActualService;
+    }
+
+    /**
+     * GET /api/productos y sus variantes son de lectura publica (los usa la
+     * tienda sin login) o EMPLEADO. Ninguno de los dos debe recibir
+     * costoReferencial: el rol EMPLEADO existe justamente para no ver
+     * costos, y un visitante anonimo mucho menos.
+     */
+    private ProductoResponse ocultarCostoSiNoEsAdmin(ProductoResponse response) {
+        if (!usuarioActualService.esAdmin()) {
+            response.setCostoReferencial(null);
+        }
+        return response;
     }
 
 
@@ -62,7 +79,7 @@ public class ProductoService {
     public List<ProductoResponse> getAllProductos() {
         return productoRepository.findAll()
                 .stream()
-                .map(ProductoResponse::new)
+                .map(p -> ocultarCostoSiNoEsAdmin(new ProductoResponse(p)))
                 .collect(Collectors.toList());
     }
 
@@ -73,7 +90,7 @@ public class ProductoService {
     public List<ProductoResponse> getActiveProductos() {
         return productoRepository.findByActivoTrue()
                 .stream()
-                .map(ProductoResponse::new)
+                .map(p -> ocultarCostoSiNoEsAdmin(new ProductoResponse(p)))
                 .collect(Collectors.toList());
     }
 
@@ -84,7 +101,7 @@ public class ProductoService {
     public ProductoResponse getProductoById(Long id) {
         Producto producto = productoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + id));
-        return new ProductoResponse(producto);
+        return ocultarCostoSiNoEsAdmin(new ProductoResponse(producto));
     }
 
     /**
@@ -94,7 +111,7 @@ public class ProductoService {
     public ProductoResponse getProductoBySku(String sku) {
         Producto producto = productoRepository.findBySku(sku)
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado con SKU: " + sku));
-        return new ProductoResponse(producto);
+        return ocultarCostoSiNoEsAdmin(new ProductoResponse(producto));
     }
 
     /**
@@ -148,7 +165,7 @@ public class ProductoService {
         registroAuditoria.registrar("CREAR_PRODUCTO", "productos", savedProducto.getId(),
                 "Alta de " + savedProducto.getSku() + " - " + savedProducto.getNombre());
 
-        return new ProductoResponse(savedProducto);
+        return ocultarCostoSiNoEsAdmin(new ProductoResponse(savedProducto));
     }
 
     /**
@@ -192,7 +209,7 @@ public class ProductoService {
         registroAuditoria.registrar("ACTUALIZAR_PRODUCTO", "productos", updatedProducto.getId(),
                 "Edicion de " + updatedProducto.getSku() + " - " + updatedProducto.getNombre());
 
-        return new ProductoResponse(updatedProducto);
+        return ocultarCostoSiNoEsAdmin(new ProductoResponse(updatedProducto));
     }
 
     /**
@@ -220,7 +237,7 @@ public class ProductoService {
         registroAuditoria.registrar("ACTUALIZAR_STOCK_MINIMO", "productos", guardado.getId(),
                 "Stock minimo de " + guardado.getSku() + ": " + anterior + " -> " + stockMinimo);
 
-        return new ProductoResponse(guardado);
+        return ocultarCostoSiNoEsAdmin(new ProductoResponse(guardado));
     }
 
     /**
@@ -257,7 +274,7 @@ public class ProductoService {
                 "productos", updatedProducto.getId(),
                 updatedProducto.getSku() + " - " + updatedProducto.getNombre());
 
-        return new ProductoResponse(updatedProducto);
+        return ocultarCostoSiNoEsAdmin(new ProductoResponse(updatedProducto));
     }
 
     /**
@@ -267,18 +284,7 @@ public class ProductoService {
     public List<ProductoResponse> getProductosByCategoria(Long categoriaId) {
         return productoRepository.findByCategoriaId(categoriaId)
                 .stream()
-                .map(ProductoResponse::new)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Filtrar productos por tipo
-     */
-    @Transactional(readOnly = true)
-    public List<ProductoResponse> getProductosByTipo(TipoProducto tipo) {
-        return productoRepository.findByTipoProducto(tipo)
-                .stream()
-                .map(ProductoResponse::new)
+                .map(p -> ocultarCostoSiNoEsAdmin(new ProductoResponse(p)))
                 .collect(Collectors.toList());
     }
 
@@ -289,7 +295,7 @@ public class ProductoService {
     public List<ProductoResponse> searchProductos(String nombre) {
         return productoRepository.searchByNombre(nombre)
                 .stream()
-                .map(ProductoResponse::new)
+                .map(p -> ocultarCostoSiNoEsAdmin(new ProductoResponse(p)))
                 .collect(Collectors.toList());
     }
 

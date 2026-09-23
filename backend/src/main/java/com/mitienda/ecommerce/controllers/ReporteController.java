@@ -73,9 +73,12 @@ public class ReporteController {
 
     /**
      * GET /api/reportes/inventario-valorizado
-     * Reporte de inventario valorizado
+     * Reporte de inventario valorizado. Es costo de referencia por producto
+     * y su valor total, de punta a punta: solo ADMIN, igual que
+     * /financiero. Sobrescribe el @PreAuthorize de la clase.
      */
     @GetMapping("/inventario-valorizado")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> getReporteInventarioValorizado() {
         Map<String, Object> reporte = reporteService.getReporteInventarioValorizado();
         return ResponseEntity.ok(reporte);

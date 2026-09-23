@@ -31,6 +31,8 @@ public class DashboardService {
 
     private final DetalleVentaRepository detalleVentaRepository;
 
+    private final UsuarioActualService usuarioActualService;
+
     /**
      * Inyeccion por constructor, no por campo.
      *
@@ -43,13 +45,15 @@ public class DashboardService {
                             InventarioRepository inventarioRepository,
                             ClienteRepository clienteRepository,
                             AlertaInventarioRepository alertaInventarioRepository,
-                            DetalleVentaRepository detalleVentaRepository) {
+                            DetalleVentaRepository detalleVentaRepository,
+                            UsuarioActualService usuarioActualService) {
         this.ventaRepository = ventaRepository;
         this.productoRepository = productoRepository;
         this.inventarioRepository = inventarioRepository;
         this.clienteRepository = clienteRepository;
         this.alertaInventarioRepository = alertaInventarioRepository;
         this.detalleVentaRepository = detalleVentaRepository;
+        this.usuarioActualService = usuarioActualService;
     }
 
 
@@ -133,11 +137,17 @@ public class DashboardService {
     private DashboardResponse.InventarioStats getInventarioStats() {
         Long alertasInventario = alertaInventarioRepository.countByEstado(EstadoAlerta.PENDIENTE);
 
-        List<Inventario> inventarios = inventarioRepository.findAll();
-        BigDecimal valorTotal = inventarios.stream()
-                .map(inv -> inv.getProducto().getCostoReferencial()
-                        .multiply(BigDecimal.valueOf(inv.getCantidadDisponible())))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        // Se calcula con costoReferencial: el rol EMPLEADO no debe verlo, asi
+        // que para EMPLEADO (o sin sesion) esta tarjeta queda en null en vez
+        // de calcularse.
+        BigDecimal valorTotal = null;
+        if (usuarioActualService.esAdmin()) {
+            List<Inventario> inventarios = inventarioRepository.findAll();
+            valorTotal = inventarios.stream()
+                    .map(inv -> inv.getProducto().getCostoReferencial()
+                            .multiply(BigDecimal.valueOf(inv.getCantidadDisponible())))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+        }
 
         Integer ajustesDelMes = 0;
 

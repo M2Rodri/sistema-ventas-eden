@@ -20,6 +20,7 @@ import { getDashboardEstadisticas } from '@/lib/api';
 import { DashboardEstadisticas } from '@/types/dashboard';
 import StatCard from '@/components/StatCard';
 import { mensajeError } from '@/lib/errores';
+import { useDragScrollTable } from '@/hooks/useDragScrollTable';
 
 /**
  * Panel de inicio.
@@ -65,6 +66,16 @@ export default function DashboardPage() {
     `Bs ${Number(monto ?? 0).toLocaleString('es-BO', { minimumFractionDigits: 2 })}`;
 
   const num = (valor?: number) => Number(valor ?? 0).toLocaleString('es-BO');
+
+  // Arrastrar la tabla desde el encabezado, como si fuera una barra de
+  // scroll horizontal. Ver hooks/useDragScrollTable.ts.
+  const {
+    scrollContainerRef,
+    tableRef,
+    theadRef,
+    hasOverflow,
+    theadProps,
+  } = useDragScrollTable([loading, stats?.productosMasVendidos]);
 
   return (
     <div className="space-y-6">
@@ -136,8 +147,10 @@ export default function DashboardPage() {
               {num(stats?.productosStats?.productosBajoStock)} producto(s) por debajo del stock mínimo
             </p>
             <p className="text-sm font-normal text-gray-600">
-              {num(stats?.productosStats?.productosSinStock)} sin stock · Valor del inventario:{' '}
-              {bs(stats?.inventarioStats?.valorTotalInventario)}
+              {num(stats?.productosStats?.productosSinStock)} sin stock
+              {user?.role === 'ADMIN' && (
+                <> · Valor del inventario: {bs(stats?.inventarioStats?.valorTotalInventario)}</>
+              )}
             </p>
           </div>
         </Link>
@@ -203,9 +216,13 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+            <div className="overflow-x-auto" ref={scrollContainerRef}>
+              <table className="min-w-full divide-y divide-gray-200" ref={tableRef}>
+                <thead
+                  ref={theadRef}
+                  className={`bg-gray-50 ${hasOverflow ? 'cursor-grab select-none' : ''}`}
+                  {...theadProps}
+                >
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>

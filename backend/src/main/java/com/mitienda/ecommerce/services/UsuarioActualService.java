@@ -63,4 +63,19 @@ public class UsuarioActualService {
         }
         return usuario;
     }
+
+    /**
+     * True solo si quien hace la petición es ADMIN. False para EMPLEADO y
+     * para cualquiera sin sesión (incluida la tienda pública, que lee
+     * /api/productos sin login).
+     *
+     * Se usa para no incluir costoReferencial (ni nada calculado a partir de
+     * él, como el valor total del inventario) en respuestas que un EMPLEADO
+     * o un visitante anónimo puedan recibir. El rol EMPLEADO existe
+     * justamente para no ver costos ni márgenes.
+     */
+    public boolean esAdmin() {
+        Usuario usuario = obtener();
+        return usuario != null && "ADMIN".equals(usuario.getRoleName());
+    }
 }
