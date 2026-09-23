@@ -475,18 +475,6 @@ export const getProductosByCategoria = async (categoriaId: number): Promise<Prod
 };
 
 // Filtrar por tipo
-export const getProductosByTipo = async (tipo: string): Promise<Producto[]> => {
-  const response = await fetch(`${API_URL}/productos/tipo/${tipo}`, {
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    throw new Error('Error al filtrar productos por tipo');
-  }
-
-  return response.json();
-};
-
 // Buscar productos
 export const searchProductos = async (nombre: string): Promise<Producto[]> => {
   const response = await fetch(`${API_URL}/productos/buscar?nombre=${encodeURIComponent(nombre)}`, {

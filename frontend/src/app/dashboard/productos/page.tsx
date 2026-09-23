@@ -2,17 +2,20 @@
 
 import { BACKEND_URL } from '@/lib/api';
 import { useState, useEffect } from 'react';
-import { 
-  getAllProductos, 
-  deleteProducto, 
-  toggleProductoStatus, 
+import { useDragScrollTable } from '@/hooks/useDragScrollTable';
+import {
+  getAllProductos,
+  deleteProducto,
+  toggleProductoStatus,
   getActiveCategorias,
   getProductoById,
   addImagenProducto,
   deleteImagenProducto,
-  setImagenPrincipal
+  setImagenPrincipal,
+  getAllInventario
 } from '@/lib/api';
-import { Producto, Categoria, TipoProducto, ImagenProducto } from '@/types/producto';
+import { Producto, Categoria, ImagenProducto } from '@/types/producto';
+import { Inventario } from '@/types/inventario';
 import { Search, Package, Edit, Trash2, Power, Image as ImageIcon, FolderOpen, X } from 'lucide-react';
 import Link from 'next/link';
 import Breadcrumbs from '@/components/Breadcrumbs';
@@ -26,6 +29,10 @@ export default function ProductosPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [filteredProductos, setFilteredProductos] = useState<Producto[]>([]);
+  // Stock actual por producto, tal cual vive en Inventario. Solo se muestra
+  // acá, no se duplica el dato: la fuente sigue siendo la pantalla de
+  // Inventario, esto es nomás una lectura de esa misma información.
+  const [stockPorProducto, setStockPorProducto] = useState<Map<number, number>>(new Map());
   const [fallosCarga, setFallosCarga] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -45,7 +52,6 @@ export default function ProductosPage() {
     }
   }, []);
   const [categoriaFilter, setCategoriaFilter] = useState<string>('TODOS');
-  const [tipoFilter, setTipoFilter] = useState<string>('TODOS');
   const [statusFilter, setStatusFilter] = useState<string>('TODOS');
   
   // Modals
@@ -69,20 +75,24 @@ export default function ProductosPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      // allSettled: sin categorias el filtro queda vacio, pero la lista de
-      // productos se sigue viendo.
-      const [rProductos, rCategorias] = await Promise.allSettled([
+      // allSettled: sin categorias el filtro queda vacio, y sin inventario
+      // la columna de stock queda en blanco, pero la lista de productos se
+      // sigue viendo.
+      const [rProductos, rCategorias, rInventario] = await Promise.allSettled([
         getAllProductos(),
-        getActiveCategorias()
+        getActiveCategorias(),
+        getAllInventario()
       ]);
 
       const { tomar, fallos } = crearRecolector();
       const productosData = tomar(rProductos, 'los productos', [] as Producto[]);
       const categoriasData = tomar(rCategorias, 'las categorias', [] as Categoria[]);
+      const inventarioData = tomar(rInventario, 'el stock de inventario', [] as Inventario[]);
 
       setProductos(productosData);
       setFilteredProductos(productosData);
       setCategorias(categoriasData);
+      setStockPorProducto(new Map(inventarioData.map((i) => [i.idProducto, i.cantidadDisponible])));
       setFallosCarga(fallos);
     } catch (error: any) {
       showMessage('error', mensajeError(error));
@@ -106,10 +116,6 @@ export default function ProductosPage() {
       filtered = filtered.filter(producto => producto.idCategoria === parseInt(categoriaFilter));
     }
 
-    if (tipoFilter !== 'TODOS') {
-      filtered = filtered.filter(producto => producto.tipoProducto === tipoFilter);
-    }
-
     if (statusFilter === 'ACTIVOS') {
       filtered = filtered.filter(producto => producto.activo);
     } else if (statusFilter === 'INACTIVOS') {
@@ -117,7 +123,7 @@ export default function ProductosPage() {
     }
 
     setFilteredProductos(filtered);
-  }, [searchTerm, categoriaFilter, tipoFilter, statusFilter, productos]);
+  }, [searchTerm, categoriaFilter, statusFilter, productos]);
 
   // Los de éxito se cierran solos; los de error se quedan hasta que el
   // usuario los cierra a mano (el botón X del banner).
@@ -288,16 +294,22 @@ export default function ProductosPage() {
     }
   };
 
-  const getTipoBadge = (tipo: TipoProducto) => {
-    return 'bg-gray-100 text-gray-700 border border-gray-200';
-  };
-
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-BO', {
       style: 'currency',
       currency: 'BOB',
     }).format(price);
   };
+
+  // Arrastrar la tabla desde el encabezado, como si fuera una barra de
+  // scroll horizontal. Ver hooks/useDragScrollTable.ts.
+  const {
+    scrollContainerRef,
+    tableRef,
+    theadRef,
+    hasOverflow,
+    theadProps,
+  } = useDragScrollTable([loading, filteredProductos]);
 
   return (
     <div>
@@ -333,18 +345,6 @@ export default function ProductosPage() {
             {categorias.map((cat) => (
               <option key={cat.id} value={cat.id}>{cat.nombre}</option>
             ))}
-          </select>
-
-          <select
-            value={tipoFilter}
-            onChange={(e) => setTipoFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
-          >
-            <option value="TODOS">Todos los tipos</option>
-            <option value="CAMA">Camas</option>
-            <option value="COLCHON">Colchones</option>
-            <option value="ALMOHADA">Almohadas</option>
-            <option value="ACCESORIO">Accesorios</option>
           </select>
 
           <select
@@ -392,29 +392,33 @@ export default function ProductosPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
           </div>
         ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <div className="overflow-x-auto" ref={scrollContainerRef}>
+          <table className="min-w-full divide-y divide-gray-200" ref={tableRef}>
+            <thead
+              ref={theadRef}
+              className={`bg-gray-50 ${hasOverflow ? 'cursor-grab select-none' : ''}`}
+              {...theadProps}
+            >
               <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">N°</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Imagen</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">SKU</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Nombre</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Categoría</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Tipo</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Precio</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Stock Mín.</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Stock actual</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Estado</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Acciones</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredProductos.map((producto) => (
+              {filteredProductos.map((producto, index) => (
                 <tr key={producto.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{index + 1}</td>
                   <td className="px-4 py-4 whitespace-nowrap">
                     <div className="h-12 w-12 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
                       {producto.imagenes && producto.imagenes.length > 0 ? (
-                        <img 
-                          src={`${BACKEND_URL}${producto.imagenes[0].urlImagen}`} 
+                        <img
+                          src={`${BACKEND_URL}${producto.imagenes[0].urlImagen}`}
                           alt={producto.nombre}
                           className="h-full w-full object-cover"
                         />
@@ -423,7 +427,6 @@ export default function ProductosPage() {
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm font-mono text-gray-900">{producto.sku}</td>
                   <td className="px-4 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900 max-w-xs truncate">{producto.nombre}</div>
                     {producto.modelo && (
@@ -431,13 +434,10 @@ export default function ProductosPage() {
                     )}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{producto.nombreCategoria}</td>
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getTipoBadge(producto.tipoProducto)}`}>
-                      {producto.tipoProducto}
-                    </span>
-                  </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{formatPrice(producto.precioVenta)}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600 text-center">{producto.stockMinimo}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600 text-center">
+                    {stockPorProducto.get(producto.id) ?? '—'}
+                  </td>
                   <td className="px-4 py-4 whitespace-nowrap">
                     <button
                       onClick={() => handleToggleStatus(producto)}

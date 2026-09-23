@@ -1,7 +1,6 @@
 package com.mitienda.ecommerce.repositories;
 
 import com.mitienda.ecommerce.models.Producto;
-import com.mitienda.ecommerce.models.TipoProducto;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -59,11 +58,6 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
      * Filtrar por categoría
      */
     List<Producto> findByCategoriaId(Long categoriaId);
-
-    /**
-     * Filtrar por tipo de producto
-     */
-    List<Producto> findByTipoProducto(TipoProducto tipoProducto);
 
     /**
      * Buscar productos por nombre (búsqueda parcial)
