@@ -88,10 +88,13 @@ export default function PromocionModal({ promocion, productos, onClose, onSucces
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-900">
-            {promocion ? 'Editar Promoción' : 'Nueva Promoción'}
-          </h2>
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100 sticky top-0 z-10">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">
+              {promocion ? 'Editar Promoción' : 'Nueva Promoción'}
+            </h2>
+            <p className="text-sm text-gray-600 mt-1">Válida solo mientras esté dentro del rango de fechas y activa</p>
+          </div>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"

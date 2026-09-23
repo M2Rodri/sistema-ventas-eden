@@ -103,15 +103,22 @@ export default function ProductoModal({
   return (
     <>
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
-        <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto m-4">
-          <div className="flex justify-between items-start mb-4">
-            <h2 className="text-xl font-bold">
-              {isEditing ? `Editar Producto: ${productoParaEditar?.nombre}` : 'Crear Nuevo Producto'}
-            </h2>
+        <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto m-4">
+          <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100 sticky top-0 z-10">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">
+                {isEditing ? `Editar Producto: ${productoParaEditar?.nombre}` : 'Crear Nuevo Producto'}
+              </h2>
+              <p className="text-sm text-gray-600 mt-1">
+                {isEditing ? 'Los cambios se aplican de inmediato' : 'Completá los datos para agregarlo al catálogo'}
+              </p>
+            </div>
             <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
               <X size={24} />
             </button>
           </div>
+
+          <div className="p-6">
 
           {error && (
             <div className="mb-4 p-3 bg-red-50 text-red-800 rounded">
@@ -279,6 +286,7 @@ export default function ProductoModal({
               </button>
             </div>
           </form>
+          </div>
         </div>
       </div>
 
@@ -488,7 +496,7 @@ function GestionarImagenesModal({
     <>
     <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] p-4">
       <div className="bg-white rounded-lg shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center z-10">
+        <div className="sticky top-0 bg-gradient-to-r from-primary-50 to-primary-100 border-b px-6 py-4 flex justify-between items-center z-10">
           <div>
             <h3 className="text-2xl font-bold text-gray-900">Gestionar Imágenes y Modelos 3D</h3>
             <p className="text-sm text-gray-600 mt-1">{productoNombre}</p>

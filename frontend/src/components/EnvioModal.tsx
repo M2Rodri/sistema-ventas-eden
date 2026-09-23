@@ -80,14 +80,17 @@ export default function EnvioModal({ envio, transportadoras, onClose, onSuccess 
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-gradient-to-r from-primary-50 to-primary-100 z-10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary-100 flex items-center justify-center">
               <Truck className="text-primary-600" size={20} />
             </div>
-            <h2 className="text-xl font-bold text-gray-900">
-              {envio ? 'Editar Envío' : 'Nuevo Envío'}
-            </h2>
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">
+                {envio ? 'Editar Envío' : 'Nuevo Envío'}
+              </h2>
+              <p className="text-sm text-gray-600 mt-1">Datos del envío y la transportadora asignada</p>
+            </div>
           </div>
           <button
             onClick={onClose}

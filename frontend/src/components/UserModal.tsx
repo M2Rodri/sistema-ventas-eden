@@ -76,10 +76,13 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-900">
-            {user ? 'Editar Usuario' : 'Nuevo Usuario'}
-          </h2>
+        <div className="flex justify-between items-center p-6 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100 sticky top-0 z-10">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">
+              {user ? 'Editar Usuario' : 'Nuevo Usuario'}
+            </h2>
+            <p className="text-sm text-gray-600 mt-1">El rol define qué puede ver y hacer dentro del sistema</p>
+          </div>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"

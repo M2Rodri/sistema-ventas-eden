@@ -101,10 +101,13 @@ export default function CategoriaModal({ categoria, onClose, onSuccess }: Catego
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg w-full max-w-2xl">
         {/* Header */}
-        <div className="border-b px-6 py-4 flex justify-between items-center">
-          <h2 className="text-xl font-bold text-gray-900">
-            {categoria ? 'Editar Categoría' : 'Nueva Categoría'}
-          </h2>
+        <div className="border-b px-6 py-4 flex justify-between items-center bg-gradient-to-r from-primary-50 to-primary-100">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">
+              {categoria ? 'Editar Categoría' : 'Nueva Categoría'}
+            </h2>
+            <p className="text-sm text-gray-600 mt-1">Agrupa productos para filtrarlos en catálogo y reportes</p>
+          </div>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"

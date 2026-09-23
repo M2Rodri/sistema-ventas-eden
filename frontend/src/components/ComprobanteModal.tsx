@@ -154,8 +154,11 @@ export default function ComprobanteModal({ isOpen, onClose, idVenta }: Comproban
       <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         
         {/* Header con botones de acción */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between z-10">
-          <h2 className="text-xl font-bold text-gray-900">Comprobante de Venta</h2>
+        <div className="sticky top-0 bg-gradient-to-r from-primary-50 to-primary-100 border-b border-gray-200 p-4 flex items-center justify-between z-10">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">Comprobante de Venta</h2>
+            <p className="text-sm text-gray-600 mt-1">Vista lista para imprimir o guardar como PDF</p>
+          </div>
           <div className="flex items-center gap-2">
             <button
               onClick={handleImprimir}

@@ -5,6 +5,7 @@ import { X, Package, MapPin, Calendar, DollarSign } from 'lucide-react';
 import { Inventario, MovimientoInventario } from '@/types/inventario';
 import { getHistorialAjustes } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
+import { useDragScrollTable } from '@/hooks/useDragScrollTable';
 
 interface DetalleProductoModalProps {
   inventario: Inventario;
@@ -35,11 +36,16 @@ export default function DetalleProductoModal({ inventario, onClose }: DetallePro
   const esEntrada = (tipo: string) =>
     ['ENTRADA', 'COMPRA', 'DEVOLUCION', 'AJUSTE_INICIAL'].includes(tipo);
 
+  // Arrastrar la tabla desde el encabezado, como si fuera una barra de
+  // scroll horizontal. Ver hooks/useDragScrollTable.ts.
+  const { scrollContainerRef, tableRef, theadRef, hasOverflow, theadProps } =
+    useDragScrollTable([movimientos]);
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-primary-50">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100 sticky top-0 z-10">
           <div className="flex items-center gap-3">
             <Package className="text-primary-600" size={28} />
             <div>
@@ -150,8 +156,13 @@ export default function DetalleProductoModal({ inventario, onClose }: DetallePro
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-3">Últimos movimientos</h3>
             <div className="border border-gray-200 rounded-lg overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <div className="overflow-x-auto" ref={scrollContainerRef}>
+              <table className="min-w-full divide-y divide-gray-200" ref={tableRef}>
+                <thead
+                  ref={theadRef}
+                  className={`bg-gray-50 ${hasOverflow ? 'cursor-grab select-none' : ''}`}
+                  {...theadProps}
+                >
                   <tr>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
@@ -193,6 +204,7 @@ export default function DetalleProductoModal({ inventario, onClose }: DetallePro
                   )}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         </div>
