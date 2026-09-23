@@ -2,7 +2,6 @@ package com.mitienda.ecommerce.controllers;
 
 import com.mitienda.ecommerce.dto.ProductoRequest;
 import com.mitienda.ecommerce.dto.ProductoResponse;
-import com.mitienda.ecommerce.models.TipoProducto;
 import com.mitienda.ecommerce.services.ProductoService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -33,7 +32,7 @@ public class ProductoController {
 
 
     // ========================================
-    // ENDPOINTS PÚBLICOS (sin autenticación)
+    // LECTURA (ADMIN y EMPLEADO) — ver SecurityConfig
     // ========================================
 
     @GetMapping
@@ -78,18 +77,6 @@ public class ProductoController {
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    @GetMapping("/tipo/{tipo}")
-    public ResponseEntity<?> getProductosByTipo(@PathVariable String tipo) {
-        try {
-            TipoProducto tipoEnum = TipoProducto.valueOf(tipo.toUpperCase());
-            List<ProductoResponse> productos = productoService.getProductosByTipo(tipoEnum);
-            return ResponseEntity.ok(productos);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "Tipo de producto inválido: " + tipo));
         }
     }
 

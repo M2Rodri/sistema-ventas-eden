@@ -58,58 +58,39 @@ public class SecurityConfig {
                         // ========================================
                         .requestMatchers(
                                 "/api/auth/**",
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**",
-                                "/uploads/**",
                                 // /error debe ser público: en Spring Security 6 el filtro
                                 // de autorización también se aplica al despacho de tipo
                                 // ERROR. Sin este permitAll, cualquier 404 o 500 se
                                 // convierte en un 403 con cuerpo vacío y el error real
-                                // nunca llega al navegador.
-                                "/error"
+                                // nunca llega al navegador. No expone datos del negocio.
+                                "/error",
+                                // Archivos estáticos (imágenes de producto, modelos 3D,
+                                // comprobantes de pago). El propio panel ADMIN/EMPLEADO los
+                                // muestra con <img>/<a href> directos al backend, que no
+                                // pueden mandar el header Authorization, así que esta ruta
+                                // tiene que seguir sin login aunque la tienda haya quedado
+                                // fuera de alcance.
+                                "/uploads/**"
                         ).permitAll()
-                        
-                        // ========================================
-                        // PROMOCIONES - Endpoints públicos para tienda virtual
-                        // ========================================
-                        .requestMatchers(HttpMethod.GET, "/api/promociones/vigentes").permitAll() // Tienda virtual
-                        .requestMatchers(HttpMethod.GET, "/api/promociones/activas").permitAll() // Tienda virtual
-                        .requestMatchers(HttpMethod.GET, "/api/promociones/{id}").permitAll() // Detalle de promocion
-                        .requestMatchers("/api/promociones/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_EMPLEADO") // Gestión ADMIN/EMPLEADO
-                        
-                        // ========================================
-                        // IMÁGENES DE PRODUCTO
-                        // ========================================
-                        .requestMatchers(HttpMethod.GET, "/api/imagenes-producto/**").permitAll() // Lectura pública
-                        .requestMatchers("/api/imagenes-producto/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_EMPLEADO") // Escritura ADMIN/EMPLEADO
-                        
-                        // ========================================
-                        // CONTACTO - la tienda puede enviar consultas
-                        // ========================================
-                        // Único endpoint de escritura público del sistema: la
-                        // tienda no tiene login y este es el único canal por el
-                        // que un cliente puede comunicarse con el negocio.
-                        // Leer y gestionar los mensajes sigue siendo del personal.
-                        .requestMatchers(HttpMethod.POST, "/api/mensajes-contacto").permitAll()
-                        .requestMatchers("/api/mensajes-contacto/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_EMPLEADO")
 
                         // ========================================
-                        // DATOS DEL NEGOCIO - públicos para la tienda
+                        // PROMOCIONES, IMÁGENES DE PRODUCTO, CATEGORÍAS
                         // ========================================
-                        // Solo las claves "negocio_*" (nombre, dirección, teléfono,
-                        // horario). El resto de /api/configuracion sigue siendo ADMIN.
-                        .requestMatchers(HttpMethod.GET, "/api/configuracion/negocio").permitAll()
+                        // Antes tenían lectura pública para la tienda virtual. La tienda
+                        // quedó fuera del alcance del proyecto: nada en el panel
+                        // ADMIN/EMPLEADO ni en la app llama a estos endpoints sin sesión,
+                        // así que ahora toda la ruta requiere ADMIN o EMPLEADO.
+                        .requestMatchers("/api/promociones/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_EMPLEADO")
+                        .requestMatchers("/api/imagenes-producto/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_EMPLEADO")
+                        .requestMatchers("/api/categorias/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_EMPLEADO")
 
-                        // ========================================
-                        // CATEGORÍAS
-                        // ========================================
-                        .requestMatchers(HttpMethod.GET, "/api/categorias/**").permitAll() // Lectura pública
-                        .requestMatchers("/api/categorias/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_EMPLEADO") // Escritura ADMIN/EMPLEADO
-                        
                         // ========================================
                         // PRODUCTOS
                         // ========================================
-                        .requestMatchers(HttpMethod.GET, "/api/productos/**").permitAll() // Lectura pública
+                        // Lectura pública era para la tienda virtual (fuera de alcance);
+                        // el panel ADMIN/EMPLEADO siempre manda su token. EMPLEADO puede
+                        // ver productos pero no crearlos/editarlos.
+                        .requestMatchers(HttpMethod.GET, "/api/productos/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_EMPLEADO")
                         .requestMatchers("/api/productos/**").hasAuthority("ROLE_ADMIN") // Escritura solo ADMIN
 
                         // ========================================
@@ -122,12 +103,10 @@ public class SecurityConfig {
                         // ========================================
                         // MULTIMEDIA PRODUCTOS
                         // ========================================
-                        // La tienda publica necesita leer la multimedia para el visor 3D,
-                        // pero antes esta regla no filtraba el metodo: dejaba abiertos sin
-                        // token el POST de subida de modelos, el PUT y el DELETE. Cualquiera
-                        // que alcanzara la API podia subir archivos o borrar registros.
-                        // Mismo patron que productos: lectura publica, escritura solo ADMIN.
-                        .requestMatchers(HttpMethod.GET, "/api/multimedia-productos/**").permitAll()
+                        // Misma razón que productos: la lectura pública era para el visor
+                        // 3D de la tienda, que quedó fuera de alcance. Mismo nivel que
+                        // imágenes de producto: lectura ADMIN/EMPLEADO, escritura ADMIN.
+                        .requestMatchers(HttpMethod.GET, "/api/multimedia-productos/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_EMPLEADO")
                         .requestMatchers("/api/multimedia-productos/**").hasAuthority("ROLE_ADMIN")
 
                         // ========================================

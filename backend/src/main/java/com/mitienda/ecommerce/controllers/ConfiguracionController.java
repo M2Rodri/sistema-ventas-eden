@@ -38,15 +38,15 @@ public class ConfiguracionController {
     /**
      * GET /api/configuracion/negocio
      *
-     * Datos públicos del negocio (nombre, dirección, teléfono, horario) para
-     * que la tienda los muestre sin exponer el resto de la configuración del
-     * sistema, que sigue siendo solo para el ADMIN.
+     * Datos del negocio (nombre, dirección, teléfono, horario). Antes era
+     * público para que la tienda virtual los mostrara sin login; la tienda
+     * quedó fuera del alcance del proyecto, así que ahora hereda el
+     * @PreAuthorize de la clase (solo ADMIN) como el resto de configuración.
      *
      * Devuelve únicamente las claves que empiezan con "negocio_": así, agregar
      * un parámetro interno nuevo nunca lo publica por accidente.
      */
     @GetMapping("/negocio")
-    @PreAuthorize("permitAll()")
     public ResponseEntity<Map<String, String>> getDatosNegocio() {
         Map<String, String> datos = configuracionService.getAllConfiguraciones().stream()
                 .filter(c -> c.getClave() != null && c.getClave().startsWith("negocio_"))

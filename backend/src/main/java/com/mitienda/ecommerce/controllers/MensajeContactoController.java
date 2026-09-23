@@ -16,7 +16,8 @@ import java.util.Map;
 /**
  * Consultas enviadas desde la tienda.
  *
- * El POST es público (la tienda no tiene login); todo lo demás requiere
+ * La tienda quedó fuera del alcance del proyecto, así que ya no hay ningún
+ * cliente sin login que necesite escribir acá: todos los métodos requieren
  * ADMIN o EMPLEADO.
  */
 @RestController
@@ -40,10 +41,11 @@ public class MensajeContactoController {
 
     /**
      * POST /api/mensajes-contacto
-     * Enviar una consulta desde la tienda. Público.
+     * Registrar una consulta. Ya no hay tienda pública que la envíe, pero se
+     * deja como registro manual de ADMIN/EMPLEADO en vez de borrar el endpoint.
      */
     @PostMapping
-    @PreAuthorize("permitAll()")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLEADO')")
     public ResponseEntity<?> enviarMensaje(@Valid @RequestBody MensajeContactoRequest request,
                                            HttpServletRequest http) {
         try {
