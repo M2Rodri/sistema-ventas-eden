@@ -7,6 +7,7 @@ import { Search, FolderOpen, Edit, Trash2, Power, Package } from 'lucide-react';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import CategoriaModal from '@/components/CategoriaModal';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
+import { useDragScrollTable } from '@/hooks/useDragScrollTable';
 
 export default function CategoriasPage() {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
@@ -116,6 +117,18 @@ export default function CategoriasPage() {
     });
   };
 
+  // Arrastrar la tabla desde el encabezado, como si fuera una barra de
+  // scroll horizontal. Ver hooks/useDragScrollTable.ts. Va antes del
+  // "if (loading) return" de abajo: los hooks no pueden quedar después de
+  // un return condicional.
+  const {
+    scrollContainerRef,
+    tableRef,
+    theadRef,
+    hasOverflow,
+    theadProps,
+  } = useDragScrollTable([loading, filteredCategorias]);
+
   if (loading) {
     return (
       <div>
@@ -184,9 +197,13 @@ export default function CategoriasPage() {
 
       {/* Tabla */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <div className="overflow-x-auto" ref={scrollContainerRef}>
+          <table className="min-w-full divide-y divide-gray-200" ref={tableRef}>
+            <thead
+              ref={theadRef}
+              className={`bg-gray-50 ${hasOverflow ? 'cursor-grab select-none' : ''}`}
+              {...theadProps}
+            >
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>

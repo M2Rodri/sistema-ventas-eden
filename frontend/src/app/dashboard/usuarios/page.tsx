@@ -7,6 +7,7 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import UserModal from '@/components/UserModal';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 import { mensajeError } from '@/lib/errores';
+import { useDragScrollTable } from '@/hooks/useDragScrollTable';
 
 export default function UsuariosPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -136,6 +137,16 @@ export default function UsuariosPage() {
     });
   };
 
+  // Arrastrar la tabla desde el encabezado, como si fuera una barra de
+  // scroll horizontal. Ver hooks/useDragScrollTable.ts.
+  const {
+    scrollContainerRef,
+    tableRef,
+    theadRef,
+    hasOverflow,
+    theadProps,
+  } = useDragScrollTable([loading, filteredUsers]);
+
   return (
     <div>
       <Breadcrumbs items={[{ label: 'Usuarios' }]} />
@@ -224,9 +235,13 @@ export default function UsuariosPage() {
             </button>
           </div>
         ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <div className="overflow-x-auto" ref={scrollContainerRef}>
+          <table className="min-w-full divide-y divide-gray-200" ref={tableRef}>
+            <thead
+              ref={theadRef}
+              className={`bg-gray-50 ${hasOverflow ? 'cursor-grab select-none' : ''}`}
+              {...theadProps}
+            >
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre Completo</th>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useDragScrollTable } from '@/hooks/useDragScrollTable';
 import {
   getClientesConEstadisticas,
   getEstadisticasGeneralesClientes,
@@ -256,6 +257,16 @@ export default function ClientesPage() {
     });
   };
 
+  // Arrastrar la tabla desde el encabezado, como si fuera una barra de
+  // scroll horizontal. Ver hooks/useDragScrollTable.ts.
+  const {
+    scrollContainerRef,
+    tableRef,
+    theadRef,
+    hasOverflow,
+    theadProps,
+  } = useDragScrollTable([loading, clientesFiltrados]);
+
   return (
     <div>
       <Breadcrumbs items={[{ label: 'Clientes' }]} />
@@ -417,9 +428,13 @@ export default function ClientesPage() {
         </div>
       ) : (
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+        <div className="overflow-x-auto" ref={scrollContainerRef}>
+          <table className="w-full" ref={tableRef}>
+            <thead
+              ref={theadRef}
+              className={`bg-gray-50 border-b border-gray-200 ${hasOverflow ? 'cursor-grab select-none' : ''}`}
+              {...theadProps}
+            >
               <tr>
                 <th
                   onClick={() => handleOrdenar('nombre')}

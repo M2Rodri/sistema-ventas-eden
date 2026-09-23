@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useDragScrollTable } from '@/hooks/useDragScrollTable';
 import {
   Plus, Search, Eye, PackageCheck, XCircle, ShoppingCart, X, AlertCircle,
 } from 'lucide-react';
@@ -121,6 +122,16 @@ export default function ComprasPage() {
 
   const contar = (estado: string) => compras.filter((c) => c.estado === estado).length;
 
+  // Arrastrar la tabla desde el encabezado, como si fuera una barra de
+  // scroll horizontal. Ver hooks/useDragScrollTable.ts.
+  const {
+    scrollContainerRef,
+    tableRef,
+    theadRef,
+    hasOverflow,
+    theadProps,
+  } = useDragScrollTable([loading, compras, busqueda, estadoFiltro, proveedorFiltroId]);
+
   return (
     <div className="space-y-6">
       <Breadcrumbs items={[{ label: "Compras" }]} />
@@ -236,9 +247,13 @@ export default function ComprasPage() {
             )}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+          <div className="overflow-x-auto" ref={scrollContainerRef}>
+            <table className="min-w-full divide-y divide-gray-200" ref={tableRef}>
+              <thead
+                ref={theadRef}
+                className={`bg-gray-50 ${hasOverflow ? 'cursor-grab select-none' : ''}`}
+                {...theadProps}
+              >
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Compra</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Proveedor</th>
