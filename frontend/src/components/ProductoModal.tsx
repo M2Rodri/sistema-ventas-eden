@@ -1,38 +1,93 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { Producto, ProductoRequest, Categoria, ImagenProducto, MultimediaProducto } from '@/types/producto';
-import { createProducto, updateProducto, BACKEND_URL, getMultimediaProducto, subirModelo3D, eliminarMultimedia } from '@/lib/api';
-import { X, Image as ImageIcon, Star, Upload, Trash2, Eye } from 'lucide-react';
+import { useState } from 'react';
+import { Producto, ProductoRequest, Categoria, ImagenProducto } from '@/types/producto';
+import { createProducto, updateProducto, BACKEND_URL } from '@/lib/api';
+import { X, Upload, Trash2 } from 'lucide-react';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
+
+/** Medidas estándar de cama/colchón en Bolivia. */
+const MEDIDAS_ESTANDAR = [
+  { value: '1_PLAZA', label: '1 Plaza', ancho: 90, largo: 190 },
+  { value: '1_PLAZA_MEDIA', label: '1 Plaza y Media', ancho: 105, largo: 190 },
+  { value: '2_PLAZAS', label: '2 Plazas', ancho: 140, largo: 190 },
+  { value: 'QUEEN', label: 'Queen Size', ancho: 160, largo: 200 },
+  { value: 'KING', label: 'King Size', ancho: 180, largo: 200 },
+] as const;
+const MEDIDA_OTRA = 'OTRA';
+
+/**
+ * "Dimensiones" se guarda como un solo texto (no se agregaron columnas
+ * nuevas: nada en el sistema necesita filtrar por ancho/largo todavía).
+ * Este texto lo arma siempre este mismo componente con un formato fijo
+ * ("Etiqueta (AxLxA cm)" o "Medida especial (AxLxA cm)"), así que se puede
+ * reconocer con certeza al reabrir el formulario. Lo que no venga en ese
+ * formato es dato de antes del selector: se deja sin reconocer en vez de
+ * arriesgar a interpretarlo mal (el orden de los números en los datos
+ * viejos no era consistente).
+ */
+function parseDimensiones(texto?: string) {
+  if (!texto) return null;
+  const estandar = MEDIDAS_ESTANDAR.find((m) => texto.startsWith(`${m.label} (`));
+  const esOtra = !estandar && texto.startsWith('Medida especial (');
+  if (!estandar && !esOtra) return null;
+  const match = texto.match(/\((\d+)x(\d+)(?:x(\d+))?\s*cm\)/);
+  if (!match) return null;
+  return {
+    medida: estandar ? estandar.value : MEDIDA_OTRA,
+    ancho: match[1],
+    largo: match[2],
+    alto: match[3] ?? '',
+  };
+}
+
+function componerDimensiones(medidaSeleccionada: string, ancho: string, largo: string, alto: string): string {
+  if (!ancho || !largo) return '';
+  const estandar = MEDIDAS_ESTANDAR.find((m) => m.value === medidaSeleccionada);
+  const etiqueta = estandar ? estandar.label : 'Medida especial';
+  const medidas = `${ancho}x${largo}${alto ? 'x' + alto : ''} cm`;
+  return `${etiqueta} (${medidas})`;
+}
 
 interface ProductoModalProps {
   producto: Producto | null;
   productoParaEditar: Producto | null;
+  /** Cantidad real de Inventario. Solo para mostrar (de solo lectura acá);
+   * cargarla se hace desde Inventario o recibiendo una Compra, no desde
+   * este formulario. undefined mientras se está creando (todavía no existe). */
+  stockActual?: number;
+  /** Solo se usa la primera (o ninguna): un producto tiene a lo sumo una imagen. */
   imagenesActuales: ImagenProducto[];
-  onImagenesChange: (imagenes: ImagenProducto[]) => void;
-  onAgregarImagen: (file: File) => void;
-  onEliminarImagen: (id: number) => void;
-  onMarcarComoPrincipal: (id: number) => void;
+  onAgregarImagen: (idProducto: number, file: File) => Promise<void>;
+  onReemplazarImagen: (idImagenVieja: number, idProducto: number, file: File) => Promise<void>;
+  /** Confirmación ya resuelta acá adentro: esto borra directo. */
+  onEliminarImagen: (id: number) => Promise<void>;
   loadingImages: boolean;
   categorias: Categoria[];
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export default function ProductoModal({ 
-  producto, 
-  productoParaEditar, 
+export default function ProductoModal({
+  producto,
+  productoParaEditar,
+  stockActual,
   imagenesActuales,
-  onImagenesChange,
   onAgregarImagen,
+  onReemplazarImagen,
   onEliminarImagen,
-  onMarcarComoPrincipal,
   loadingImages,
-  categorias, 
-  onClose, 
-  onSuccess 
+  categorias,
+  onClose,
+  onSuccess
 }: ProductoModalProps) {
+
+  // El Tipo de Producto ya no se elige a mano: lo hereda de la Categoría
+  // elegida (cada categoría tiene su tipo fijo, ver CategoriaModal). En este
+  // negocio categoría y tipo eran el mismo dato pedido dos veces.
+  const idCategoriaInicial = productoParaEditar?.idCategoria || categorias[0]?.id || 0;
+  const tipoDeCategoria = (idCategoria: number) =>
+    categorias.find((c) => c.id === idCategoria)?.tipoProducto;
 
   const [formData, setFormData] = useState<ProductoRequest>({
     sku: productoParaEditar?.sku || '',
@@ -40,33 +95,75 @@ export default function ProductoModal({
     descripcion: productoParaEditar?.descripcion || '',
     marca: productoParaEditar?.marca || '',
     modelo: productoParaEditar?.modelo || '',
-    idCategoria: productoParaEditar?.idCategoria || categorias[0]?.id || 0,
+    idCategoria: idCategoriaInicial,
     calidad: productoParaEditar?.calidad || '',
     costoReferencial: productoParaEditar?.costoReferencial || 0,
     precioVenta: productoParaEditar?.precioVenta || 0,
-    peso: productoParaEditar?.peso || 0,
-    dimensiones: productoParaEditar?.dimensiones || '',
     stockMinimo: productoParaEditar?.stockMinimo || 0,
-    tipoProducto: productoParaEditar?.tipoProducto || 'CAMA',
+    tipoProducto: tipoDeCategoria(idCategoriaInicial) || productoParaEditar?.tipoProducto || 'CAMA',
     activo: productoParaEditar?.activo !== undefined ? productoParaEditar.activo : true,
-    
+
     // ✅ CAMPOS CONDICIONALES
     firmeza: productoParaEditar?.firmeza || undefined,
     materialNucleo: productoParaEditar?.materialNucleo || undefined,
   });
 
   const [error, setError] = useState<string | null>(null);
-  const [showImageModal, setShowImageModal] = useState(false);
+
+  // Dimensiones: se arma a partir de estos tres, no es un input directo.
+  // Si el producto ya tenía un texto con el formato nuevo (generado por
+  // este mismo componente), se reconstruye; si es dato de antes del
+  // selector, queda sin reconocer (dimensionesSinReconocer) y hay que
+  // volver a cargarlo a mano.
+  const dimensionesParseadas = parseDimensiones(productoParaEditar?.dimensiones);
+  const dimensionesSinReconocer =
+    productoParaEditar?.dimensiones && !dimensionesParseadas ? productoParaEditar.dimensiones : null;
+  const [medidaSeleccionada, setMedidaSeleccionada] = useState(dimensionesParseadas?.medida ?? '');
+  const [ancho, setAncho] = useState(dimensionesParseadas?.ancho ?? '');
+  const [largo, setLargo] = useState(dimensionesParseadas?.largo ?? '');
+  const [altoGrosor, setAltoGrosor] = useState(dimensionesParseadas?.alto ?? '');
+
+  // Imagen del producto: elegir/arrastrar un archivo, cambiarlo o quitarlo
+  // solo queda en memoria acá. Nada de esto pega contra el backend hasta
+  // que se aprieta "Crear Producto" / "Guardar Cambios" — igual que
+  // cualquier otro campo del formulario. Si se cierra con Cancelar o la X,
+  // no quedó nada guardado.
+  const [archivoImagenPendiente, setArchivoImagenPendiente] = useState<File | null>(null);
+  const [previewImagenPendiente, setPreviewImagenPendiente] = useState<string | null>(null);
+  const [quitarImagenAlGuardar, setQuitarImagenAlGuardar] = useState(false);
+  const [mostrarVistaGrande, setMostrarVistaGrande] = useState(false);
+  // "Cambiar imagen" no abre el explorador directo: primero vuelve a
+  // mostrar el recuadro para arrastrar/elegir, igual que cuando no hay
+  // ninguna imagen todavía.
+  const [reemplazandoImagen, setReemplazandoImagen] = useState(false);
+  // Reemplazar o quitar una imagen que ya existe se confirma antes (aunque
+  // el cambio real recién se aplique al guardar). Elegir una imagen por
+  // primera vez no hace falta confirmarlo.
+  const [confirmacionImagen, setConfirmacionImagen] = useState<'cambiar' | 'quitar' | null>(null);
+  const imagenActual = imagenesActuales[0] ?? null;
+  const urlImagenMostrada = previewImagenPendiente
+    ?? (quitarImagenAlGuardar || !imagenActual ? null : `${BACKEND_URL}${imagenActual.urlImagen}`);
+  const mostrarRecuadroVacio = !urlImagenMostrada || reemplazandoImagen;
+  // Dimensiones solo tiene sentido para Cama y Colchón: una almohada o un
+  // accesorio no se describen por su medida de la misma forma.
+  const tipoTieneDimensiones = formData.tipoProducto === 'CAMA' || formData.tipoProducto === 'COLCHON';
+  // Se bloquean Ancho/Largo cuando la medida elegida es una estándar: si
+  // hiciera falta cambiarlos habría que pasar a "Medida Especial / Otra".
+  const medidaEsEstandar = medidaSeleccionada !== '' && medidaSeleccionada !== MEDIDA_OTRA;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     const val = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
-    
-    // ✅ LIMPIAR CAMPOS CONDICIONALES al cambiar tipo
-    if (name === 'tipoProducto') {
+
+    // La categoría trae su tipo de producto pegado: cambiarla puede cambiar
+    // el tipo también, así que se limpian los campos condicionales igual
+    // que antes se hacía al cambiar el Tipo a mano.
+    if (name === 'idCategoria') {
+      const nuevoTipo = tipoDeCategoria(Number(val)) || formData.tipoProducto;
       setFormData(prev => ({
         ...prev,
-        [name]: val as any,
+        idCategoria: Number(val),
+        tipoProducto: nuevoTipo,
         firmeza: undefined,
         materialNucleo: undefined,
       }));
@@ -75,22 +172,60 @@ export default function ProductoModal({
     }
   };
 
+  const handleSeleccionarMedida = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    setMedidaSeleccionada(value);
+    const estandar = MEDIDAS_ESTANDAR.find((m) => m.value === value);
+    if (estandar) {
+      setAncho(String(estandar.ancho));
+      setLargo(String(estandar.largo));
+    } else {
+      setAncho('');
+      setLargo('');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    
+
+    if (tipoTieneDimensiones && (!ancho || !largo)) {
+      setError('Elegí la medida del producto: Ancho y Largo son obligatorios para Cama y Colchón.');
+      return;
+    }
+
     // ✅ VALIDACIÓN: Limpiar campos condicionales según tipo
     const dataToSend = { ...formData };
     if (formData.tipoProducto !== 'COLCHON') {
       delete dataToSend.firmeza;
       delete dataToSend.materialNucleo;
     }
-    
+    dataToSend.dimensiones = tipoTieneDimensiones
+      ? componerDimensiones(medidaSeleccionada, ancho, largo, altoGrosor)
+      : '';
+
     try {
       if (producto) {
         await updateProducto(producto.id, dataToSend);
+        // Recién acá se confirma el guardado: es el momento de aplicar lo
+        // que haya quedado pendiente sobre la imagen (nueva, reemplazo o
+        // quitar). Si no se tocó nada, ninguna de las tres corre.
+        if (archivoImagenPendiente) {
+          if (imagenActual) {
+            await onReemplazarImagen(imagenActual.id, producto.id, archivoImagenPendiente);
+          } else {
+            await onAgregarImagen(producto.id, archivoImagenPendiente);
+          }
+        } else if (quitarImagenAlGuardar && imagenActual) {
+          await onEliminarImagen(imagenActual.id);
+        }
       } else {
-        await createProducto(dataToSend);
+        const nuevo = await createProducto(dataToSend);
+        // Recién acá el producto tiene id: es el primer momento en que se
+        // puede subir la imagen que se eligió en el formulario.
+        if (archivoImagenPendiente) {
+          await onAgregarImagen(nuevo.id, archivoImagenPendiente);
+        }
       }
       onSuccess();
     } catch (err: any) {
@@ -99,6 +234,64 @@ export default function ProductoModal({
   };
 
   const isEditing = !!productoParaEditar;
+
+  // Valida el archivo y lo deja en memoria, sin importar si vino de
+  // elegirlo con clic o de soltarlo arrastrado: mismo camino para los dos.
+  // No pega contra el backend — eso lo resuelve handleSubmit al guardar.
+  const procesarArchivoImagen = (file: File) => {
+    if (file.size > 5 * 1024 * 1024) {
+      setError('La imagen excede el tamaño máximo permitido de 5MB');
+      return;
+    }
+    if (!['image/jpeg', 'image/jpg', 'image/png'].includes(file.type)) {
+      setError('Formato no soportado. Usá una imagen JPG o PNG');
+      return;
+    }
+    setError(null);
+    setQuitarImagenAlGuardar(false);
+    setArchivoImagenPendiente(file);
+    setPreviewImagenPendiente(URL.createObjectURL(file));
+    setReemplazandoImagen(false);
+  };
+
+  const handleSeleccionarImagen = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) procesarArchivoImagen(file);
+    e.target.value = '';
+  };
+
+  const [arrastrandoImagen, setArrastrandoImagen] = useState(false);
+
+  const handleDragOverImagen = (e: React.DragEvent<HTMLElement>) => {
+    e.preventDefault();
+    if (!loadingImages) setArrastrandoImagen(true);
+  };
+
+  const handleDragLeaveImagen = (e: React.DragEvent<HTMLElement>) => {
+    e.preventDefault();
+    setArrastrandoImagen(false);
+  };
+
+  const handleDropImagen = (e: React.DragEvent<HTMLElement>) => {
+    e.preventDefault();
+    setArrastrandoImagen(false);
+    if (loadingImages) return;
+    const file = e.dataTransfer.files?.[0];
+    if (file) procesarArchivoImagen(file);
+  };
+
+  // Si hay una imagen ya guardada de por medio, se confirma antes de
+  // tocarla (aunque el borrado real recién pasa al guardar el formulario).
+  // Si es solo una selección que todavía no se guardó, se limpia nomás.
+  const handleQuitarImagen = () => {
+    if (imagenActual) {
+      setConfirmacionImagen('quitar');
+      return;
+    }
+    if (previewImagenPendiente) URL.revokeObjectURL(previewImagenPendiente);
+    setArchivoImagenPendiente(null);
+    setPreviewImagenPendiente(null);
+  };
 
   return (
     <>
@@ -138,17 +331,6 @@ export default function ProductoModal({
                 <label className="block text-sm font-medium text-gray-700">Nombre *</label>
                 <input type="text" name="nombre" value={formData.nombre} onChange={handleChange}
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Tipo de Producto *</label>
-                <select name="tipoProducto" value={formData.tipoProducto} onChange={handleChange}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white" required>
-                  <option value="CAMA">CAMA</option>
-                  <option value="COLCHON">COLCHON</option>
-                  <option value="ALMOHADA">ALMOHADA</option>
-                  <option value="ACCESORIO">ACCESORIO</option>
-                </select>
               </div>
 
               {/* ✅ CAMPOS CONDICIONALES - COLCHON */}
@@ -207,8 +389,13 @@ export default function ProductoModal({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700">Calidad</label>
-                <input type="text" name="calidad" value={formData.calidad} onChange={handleChange}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
+                <select name="calidad" value={formData.calidad} onChange={handleChange}
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white">
+                  <option value="">Sin especificar</option>
+                  <option value="Estándar">Estándar</option>
+                  <option value="Premium">Premium</option>
+                  <option value="Alta gama">Alta gama</option>
+                </select>
               </div>
 
               <div>
@@ -223,22 +410,79 @@ export default function ProductoModal({
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Peso (kg)</label>
-                <input type="number" step="0.01" name="peso" value={formData.peso} onChange={handleChange}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
-              </div>
+              {tipoTieneDimensiones && (
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Medida *</label>
+                  <select
+                    value={medidaSeleccionada}
+                    onChange={handleSeleccionarMedida}
+                    className="block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white mb-3"
+                    required
+                  >
+                    <option value="" disabled>Seleccioná una medida</option>
+                    {MEDIDAS_ESTANDAR.map((m) => (
+                      <option key={m.value} value={m.value}>{m.label} ({m.ancho}x{m.largo} cm)</option>
+                    ))}
+                    <option value={MEDIDA_OTRA}>Medida Especial / Otra</option>
+                  </select>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Dimensiones</label>
-                <input type="text" name="dimensiones" value={formData.dimensiones} onChange={handleChange}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" placeholder="ej: 200x150x30 cm" />
-              </div>
+                  {dimensionesSinReconocer && !medidaSeleccionada && (
+                    <p className="text-xs text-amber-600 mb-3">
+                      Dato anterior sin el formato nuevo: "{dimensionesSinReconocer}". Elegí la medida y volvé a cargar Ancho/Largo.
+                    </p>
+                  )}
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Ancho (cm) *</label>
+                      <input
+                        type="number"
+                        value={ancho}
+                        onChange={(e) => setAncho(e.target.value)}
+                        disabled={medidaEsEstandar}
+                        required
+                        className="block w-full border border-gray-300 rounded-md shadow-sm p-2 disabled:bg-gray-100 disabled:text-gray-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Largo (cm) *</label>
+                      <input
+                        type="number"
+                        value={largo}
+                        onChange={(e) => setLargo(e.target.value)}
+                        disabled={medidaEsEstandar}
+                        required
+                        className="block w-full border border-gray-300 rounded-md shadow-sm p-2 disabled:bg-gray-100 disabled:text-gray-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Alto / Grosor (cm)</label>
+                      <input
+                        type="number"
+                        value={altoGrosor}
+                        onChange={(e) => setAltoGrosor(e.target.value)}
+                        className="block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {isEditing && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Stock actual</label>
+                  <p className="mt-1 px-2 py-2 text-gray-700">
+                    {stockActual ?? 0}
+                    <span className="text-xs text-gray-500 ml-2">Se administra desde Inventario, no acá.</span>
+                  </p>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700">Stock Mínimo *</label>
                 <input type="number" name="stockMinimo" value={formData.stockMinimo} onChange={handleChange}
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required />
+                <p className="text-xs text-gray-500 mt-1">Umbral que dispara la alerta de stock bajo, no la cantidad real.</p>
               </div>
 
               <div className="flex items-center">
@@ -254,26 +498,89 @@ export default function ProductoModal({
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"></textarea>
             </div>
 
-            {/* ✅ BOTÓN GESTIONAR IMÁGENES */}
-            {isEditing && (
-              <div className="mb-4">
+            {/* Imagen del producto */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Imagen del producto</label>
+
+              {!mostrarRecuadroVacio ? (
+                <div
+                  className="w-full h-48 rounded-lg border border-gray-200 bg-gray-50"
+                >
+                  <img
+                    src={urlImagenMostrada!}
+                    alt="Producto"
+                    onClick={() => setMostrarVistaGrande(true)}
+                    className="w-full h-full object-contain cursor-zoom-in"
+                  />
+                </div>
+              ) : (
+                <label
+                  onDragOver={handleDragOverImagen}
+                  onDragLeave={handleDragLeaveImagen}
+                  onDrop={handleDropImagen}
+                  className={`flex flex-col items-center justify-center gap-2 w-full h-48 rounded-lg border-2 border-dashed cursor-pointer transition-colors ${
+                    arrastrandoImagen
+                      ? 'border-primary-500 bg-primary-50'
+                      : loadingImages
+                        ? 'border-gray-200 bg-gray-50 cursor-not-allowed'
+                        : 'border-gray-300 bg-gray-50 hover:border-primary-400 hover:bg-primary-50/40'
+                  }`}
+                >
+                  <Upload size={24} className="text-gray-400" />
+                  <span className="text-sm font-medium text-gray-600">Arrastrá una imagen aquí o hacé clic para adjuntar</span>
+                  <span className="text-xs text-gray-400">JPG o PNG, hasta 5MB</span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png"
+                    className="hidden"
+                    disabled={loadingImages}
+                    onChange={handleSeleccionarImagen}
+                  />
+                </label>
+              )}
+
+              {urlImagenMostrada && !reemplazandoImagen && (
+                <div className="flex items-center gap-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => imagenActual ? setConfirmacionImagen('cambiar') : setReemplazandoImagen(true)}
+                    disabled={loadingImages}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50"
+                  >
+                    <Upload size={14} />
+                    Cambiar imagen
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleQuitarImagen}
+                    disabled={loadingImages}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg disabled:opacity-50"
+                  >
+                    <Trash2 size={14} /> Quitar
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Vista grande de la imagen */}
+            {mostrarVistaGrande && urlImagenMostrada && (
+              <div
+                className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[70] p-4"
+                onClick={() => setMostrarVistaGrande(false)}
+              >
+                <img
+                  src={urlImagenMostrada}
+                  alt="Producto"
+                  className="max-w-full max-h-full object-contain"
+                  onClick={(e) => e.stopPropagation()}
+                />
                 <button
                   type="button"
-                  onClick={() => setShowImageModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                  onClick={() => setMostrarVistaGrande(false)}
+                  className="absolute top-4 right-4 text-white hover:text-gray-300"
                 >
-                  <ImageIcon size={20} />
-                  Gestionar Imágenes ({imagenesActuales.length})
+                  <X size={28} />
                 </button>
-              </div>
-            )}
-
-            
-            {!isEditing && (
-              <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  ℹ️ <strong>Nota:</strong> Podrás gestionar imágenes y modelos 3D después de crear el producto.
-                </p>
               </div>
             )}
 
@@ -290,422 +597,31 @@ export default function ProductoModal({
         </div>
       </div>
 
-      {/* ✅ MODAL GESTIONAR IMÁGENES (P3.6) */}
-      {showImageModal && isEditing && (
-        <GestionarImagenesModal
-          productoId={productoParaEditar!.id}
-          productoNombre={productoParaEditar!.nombre}
-          imagenesActuales={imagenesActuales}
-          onAgregarImagen={onAgregarImagen}
-          onEliminarImagen={onEliminarImagen}
-          onMarcarComoPrincipal={onMarcarComoPrincipal}
-          loadingImages={loadingImages}
-          onClose={() => setShowImageModal(false)}
+      {/* Confirmar antes de tocar una imagen que ya está guardada. El
+          cambio real (subir, reemplazar o borrar) recién se aplica cuando
+          se aprieta "Guardar Cambios", no acá. */}
+      {confirmacionImagen && (
+        <DeleteConfirmModal
+          title={confirmacionImagen === 'cambiar' ? 'Cambiar imagen' : 'Quitar imagen'}
+          message={
+            confirmacionImagen === 'cambiar'
+              ? 'La imagen actual se va a reemplazar por la que elijas ahora. El cambio recién queda guardado cuando apretés "Guardar Cambios".'
+              : 'La imagen actual se va a quitar. El cambio recién queda guardado cuando apretés "Guardar Cambios".'
+          }
+          confirmLabel={confirmacionImagen === 'cambiar' ? 'Cambiar' : 'Quitar'}
+          onConfirm={() => {
+            if (confirmacionImagen === 'cambiar') {
+              setReemplazandoImagen(true);
+            } else {
+              setQuitarImagenAlGuardar(true);
+              setArchivoImagenPendiente(null);
+              setPreviewImagenPendiente(null);
+            }
+            setConfirmacionImagen(null);
+          }}
+          onCancel={() => setConfirmacionImagen(null)}
         />
       )}
     </>
   );
-}
-
-// ========== COMPONENTE GESTIONAR IMÁGENES ==========
-
-interface GestionarImagenesModalProps {
-  productoId: number;
-  productoNombre: string;
-  imagenesActuales: ImagenProducto[];
-  onAgregarImagen: (file: File) => void;
-  onEliminarImagen: (id: number) => void;
-  onMarcarComoPrincipal: (id: number) => void;
-  loadingImages: boolean;
-  onClose: () => void;
-}
-
-function GestionarImagenesModal({
-  productoId,
-  productoNombre,
-  imagenesActuales,
-  onAgregarImagen,
-  onEliminarImagen,
-  onMarcarComoPrincipal,
-  loadingImages,
-  onClose
-}: GestionarImagenesModalProps) {
-  
-  // SECCIÓN 1: IMÁGENES 2D
-  const [imagenPreview, setImagenPreview] = useState<string | null>(null);
-  const [archivoImagenPendiente, setArchivoImagenPendiente] = useState<File | null>(null);
-  const fileInputImagenRef = useRef<HTMLInputElement>(null);
-
-  // SECCIÓN 2: MODELO 3D
-  const [multimedia, setMultimedia] = useState<MultimediaProducto | null>(null);
-  const [confirmarEliminarModelo, setConfirmarEliminarModelo] = useState(false);
-  const [loadingModelo, setLoadingModelo] = useState(false);
-  const [archivoModeloPendiente, setArchivoModeloPendiente] = useState<File | null>(null);
-  const [archivoPreviewPendiente, setArchivoPreviewPendiente] = useState<File | null>(null);
-  const [habilitadoRa, setHabilitadoRa] = useState(false);
-  const [vistaPrevia3D, setVistaPrevia3D] = useState<string | null>(null);
-  const fileInputModeloRef = useRef<HTMLInputElement>(null);
-  const fileInputPreviewRef = useRef<HTMLInputElement>(null);
-  const [mensaje3D, setMensaje3D] = useState<{ type: 'success' | 'error', text: string } | null>(null);
-
-  // Cargar multimedia existente al abrir
-  useEffect(() => {
-    cargarMultimedia();
-  }, [productoId]);
-
-  const cargarMultimedia = async () => {
-    try {
-      const data = await getMultimediaProducto(productoId);
-      setMultimedia(data);
-      if (data?.habilitadoRa) {
-        setHabilitadoRa(true);
-      }
-    } catch (error) {
-      console.error('Error al cargar multimedia:', error);
-    }
-  };
-
-  // ========== SECCIÓN 1: IMÁGENES 2D ==========
-
-  const handleSeleccionarImagen = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Validación tamaño
-      if (file.size > 5 * 1024 * 1024) {
-        alert('La imagen excede el tamaño máximo permitido de 5MB');
-        return;
-      }
-      // Validación formato
-      if (!['image/jpeg', 'image/jpg', 'image/png'].includes(file.type)) {
-        alert('Formato no soportado. Por favor seleccione imágenes JPG o PNG');
-        return;
-      }
-
-      setArchivoImagenPendiente(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagenPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleConfirmarCargaImagen = () => {
-    if (archivoImagenPendiente) {
-      onAgregarImagen(archivoImagenPendiente);
-      setArchivoImagenPendiente(null);
-      setImagenPreview(null);
-      if (fileInputImagenRef.current) {
-        fileInputImagenRef.current.value = '';
-      }
-    }
-  };
-
-  const handleCancelarImagen = () => {
-    setArchivoImagenPendiente(null);
-    setImagenPreview(null);
-    if (fileInputImagenRef.current) {
-      fileInputImagenRef.current.value = '';
-    }
-  };
-
-  // ========== SECCIÓN 2: MODELO 3D ==========
-
-  const handleSeleccionarModelo = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Validación tamaño
-      if (file.size > 20 * 1024 * 1024) {
-        alert('El modelo 3D excede el tamaño máximo permitido de 20MB. Considere optimizar el modelo');
-        return;
-      }
-      // Validación formato
-      if (!file.name.toLowerCase().endsWith('.glb')) {
-        alert('El archivo GLB no es válido');
-        return;
-      }
-
-      setArchivoModeloPendiente(file);
-      // Crear URL temporal para vista previa
-      const url = URL.createObjectURL(file);
-      setVistaPrevia3D(url);
-    }
-  };
-
-  const handleSeleccionarPreview = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setArchivoPreviewPendiente(file);
-    }
-  };
-
-  const handleConfirmarModelo = async () => {
-    if (!archivoModeloPendiente) return;
-
-    setLoadingModelo(true);
-    setMensaje3D(null);
-    
-    try {
-      const multimedia = await subirModelo3D(
-        productoId,
-        archivoModeloPendiente,
-        archivoPreviewPendiente,
-        habilitadoRa
-      );
-      
-      setMultimedia(multimedia);
-      setMensaje3D({
-        type: 'success',
-        text: 'Modelo 3D cargado. El producto ahora soporta visualización 3D y Realidad Aumentada'
-      });
-      
-      // Limpiar estado
-      setArchivoModeloPendiente(null);
-      setArchivoPreviewPendiente(null);
-      setVistaPrevia3D(null);
-      if (fileInputModeloRef.current) fileInputModeloRef.current.value = '';
-      if (fileInputPreviewRef.current) fileInputPreviewRef.current.value = '';
-      
-    } catch (error: any) {
-      setMensaje3D({
-        type: 'error',
-        text: error.message || 'Error al subir modelo 3D'
-      });
-    } finally {
-      setLoadingModelo(false);
-    }
-  };
-
-  const handleEliminarModelo = async () => {
-    if (!multimedia) return;
-
-    setLoadingModelo(true);
-    try {
-      await eliminarMultimedia(multimedia.id);
-      setMultimedia(null);
-      setMensaje3D({ type: 'success', text: 'Modelo 3D eliminado correctamente' });
-    } catch (error: any) {
-      setMensaje3D({ type: 'error', text: error.message });
-    } finally {
-      setLoadingModelo(false);
-      setConfirmarEliminarModelo(false);
-    }
-  };
-
-  return (
-    <>
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] p-4">
-      <div className="bg-white rounded-lg shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-gradient-to-r from-primary-50 to-primary-100 border-b px-6 py-4 flex justify-between items-center z-10">
-          <div>
-            <h3 className="text-2xl font-bold text-gray-900">Gestionar Imágenes y Modelos 3D</h3>
-            <p className="text-sm text-gray-600 mt-1">{productoNombre}</p>
-          </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <X size={28} />
-          </button>
-        </div>
-
-        <div className="p-6 space-y-8">
-          {/* ========== SECCIÓN 1: IMÁGENES 2D ========== */}
-          <div>
-            <div className="flex justify-between items-center mb-4">
-              <h4 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                📷 Imágenes 2D
-              </h4>
-              <label className={`px-4 py-2 rounded-md cursor-pointer flex items-center gap-2 ${
-                loadingImages ? 'bg-gray-300 text-gray-500' : 'bg-blue-600 text-white hover:bg-blue-700'
-              }`}>
-                <Upload size={18} />
-                <input 
-                  ref={fileInputImagenRef}
-                  type="file" 
-                  accept="image/jpeg,image/jpg,image/png" 
-                  onChange={handleSeleccionarImagen}
-                  disabled={loadingImages} 
-                  className="hidden" 
-                />
-                Cargar Imágenes
-              </label>
-            </div>
-
-            {/* Vista Previa antes de confirmar */}
-            {imagenPreview && (
-              <div className="mb-4 p-4 border-2 border-blue-300 rounded-lg bg-blue-50">
-                <p className="text-sm font-medium text-gray-700 mb-2">Vista previa:</p>
-                <img src={imagenPreview} alt="Preview" className="w-48 h-48 object-contain mx-auto mb-3 bg-white rounded" />
-                <div className="flex gap-2 justify-center">
-                  <button
-                    onClick={handleConfirmarCargaImagen}
-                    disabled={loadingImages}
-                    className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
-                  >
-                    Confirmar Carga
-                  </button>
-                  <button
-                    onClick={handleCancelarImagen}
-                    className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {imagenesActuales.length === 0 ? (
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center text-gray-500">
-                ⚠️ Debe tener al menos 1 imagen
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                {imagenesActuales.map((img) => (
-                  <div key={img.id} className="relative group border rounded-lg overflow-hidden bg-gray-50">
-                    <img src={`${BACKEND_URL}${img.urlImagen}`} alt="Producto"
-                      className="w-full h-40 object-contain" />
-                    <div className="absolute inset-0 bg-black bg-opacity-60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                      {!img.esPrincipal && (
-                        <button onClick={() => onMarcarComoPrincipal(img.id)}
-                          className="flex items-center gap-1 px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-sm">
-                          <Star size={14} /> Principal
-                        </button>
-                      )}
-                      <button onClick={() => onEliminarImagen(img.id)}
-                        className="flex items-center gap-1 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm">
-                        <X size={14} /> Eliminar
-                      </button>
-                    </div>
-                    {img.esPrincipal && (
-                      <div className="absolute top-2 left-2 bg-yellow-500 text-white text-xs px-2 py-1 rounded font-semibold flex items-center gap-1">
-                        <Star size={12} /> Principal
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* ========== SECCIÓN 2: MODELO 3D ========== */}
-          <div className="border-t pt-6">
-            <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              🎭 Modelo 3D (GLB) - Realidad Aumentada
-            </h4>
-
-            {mensaje3D && (
-              <div className={`mb-4 p-3 rounded ${mensaje3D.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
-                {mensaje3D.text}
-              </div>
-            )}
-
-            {/* Modelo existente */}
-            {multimedia && !archivoModeloPendiente && (
-              <div className="mb-4 p-4 border-2 border-purple-300 rounded-lg bg-purple-50">
-                <div className="flex justify-between items-start mb-2">
-                  <div>
-                    <p className="font-medium text-gray-800">✅ Modelo 3D cargado</p>
-                    <p className="text-sm text-gray-600 mt-1">Archivo: {multimedia.urlModelo3d.split('/').pop()}</p>
-                    {multimedia.habilitadoRa && (
-                      <p className="text-sm text-green-600 font-medium mt-1">🚀 Realidad Aumentada: Habilitada</p>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => setConfirmarEliminarModelo(true)}
-                    disabled={loadingModelo}
-                    className="flex items-center gap-1 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm disabled:opacity-50"
-                  >
-                    <Trash2 size={14} /> Eliminar
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Cargar nuevo modelo */}
-            {!multimedia || archivoModeloPendiente ? (
-              <div className="space-y-4">
-                {/* Vista previa 3D */}
-                {vistaPrevia3D && (
-                  <div className="border-2 border-purple-300 rounded-lg p-4 bg-purple-50">
-                    <p className="text-sm font-medium text-gray-700 mb-2">🎨 Visor 3D en tiempo real:</p>
-                    <div className="bg-gray-900 rounded-lg p-8 flex items-center justify-center h-64">
-                      <p className="text-white text-center">
-                        📦 Modelo GLB cargado<br/>
-                        <span className="text-sm text-gray-400">{archivoModeloPendiente?.name}</span><br/>
-                        <span className="text-xs text-gray-500">Tamaño: {((archivoModeloPendiente?.size || 0) / 1024 / 1024).toFixed(2)} MB</span>
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Controles de carga */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-<div>
-<label className="block text-sm font-medium text-gray-700 mb-2">
-Modelo 3D (GLB) *
-</label>
-<input
-                   ref={fileInputModeloRef}
-                   type="file"
-                   accept=".glb"
-                   onChange={handleSeleccionarModelo}
-                   className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
-                 />
-<p className="text-xs text-gray-500 mt-1">Máximo 20MB</p>
-</div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Imagen Preview (opcional)
-                </label>
-                <input
-                  ref={fileInputPreviewRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleSeleccionarPreview}
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="habilitadoRa"
-                checked={habilitadoRa}
-                onChange={(e) => setHabilitadoRa(e.target.checked)}
-                className="h-4 w-4 text-purple-600 border-gray-300 rounded"
-              />
-              <label htmlFor="habilitadoRa" className="text-sm text-gray-700">
-                🚀 Habilitar Realidad Aumentada (AR)
-              </label>
-            </div>
-
-            <button
-              onClick={handleConfirmarModelo}
-              disabled={!archivoModeloPendiente || loadingModelo}
-              className="w-full px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-            >
-              {loadingModelo ? 'Subiendo modelo...' : 'Confirmar Modelo'}
-            </button>
-          </div>
-        ) : null}
-      </div>
-    </div>
-
-    <div className="sticky bottom-0 bg-gray-50 border-t px-6 py-4 flex justify-end">
-      <button onClick={onClose} className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
-        Cerrar
-      </button>
-    </div>
-  </div>
-</div>
-
-{confirmarEliminarModelo && (
-  <DeleteConfirmModal
-    title="Eliminar modelo 3D"
-    message="¿Está seguro de eliminar el modelo 3D?"
-    onConfirm={handleEliminarModelo}
-    onCancel={() => setConfirmarEliminarModelo(false)}
-  />
-)}
-</>
-);
 }

@@ -11,7 +11,6 @@ import {
   getProductoById,
   addImagenProducto,
   deleteImagenProducto,
-  setImagenPrincipal,
   getAllInventario
 } from '@/lib/api';
 import { Producto, Categoria, ImagenProducto } from '@/types/producto';
@@ -62,7 +61,6 @@ export default function ProductosPage() {
   const [imagenesDelProducto, setImagenesDelProducto] = useState<ImagenProducto[]>([]);
   const [loadingImages, setLoadingImages] = useState(false);
   const [productoToDelete, setProductoToDelete] = useState<Producto | null>(null);
-  const [idImagenAEliminar, setIdImagenAEliminar] = useState<number | null>(null);
 
   // Mensajes
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -206,89 +204,44 @@ export default function ProductosPage() {
     }
   };
 
-  // ✅ FUNCIONES DE GESTIÓN DE IMÁGENES (sin duplicados)
-  const handleAgregarImagen = async (file: File) => {
-    console.log("=== AGREGANDO IMAGEN ===");
-    console.log("1. Archivo recibido:", file);
-    console.log("2. productoToEdit:", productoToEdit);
-    
-    if (!productoToEdit) {
-      console.error("❌ No hay producto para editar");
-      return;
-    }
-    
+  // Un producto tiene a lo sumo una imagen: siempre se sube como principal.
+  const handleAgregarImagen = async (idProducto: number, file: File) => {
     setLoadingImages(true);
     try {
-      console.log("3. Llamando a addImagenProducto...");
-      const nuevaImagen = await addImagenProducto(
-        productoToEdit.id, 
-        file, 
-        imagenesDelProducto.length === 0
-      );
-      
-      console.log("4. Imagen subida exitosamente:", nuevaImagen);
-      
-      // ✅ ASEGURAR que orden esté definido
-      const imagenConOrden = {
-        ...nuevaImagen,
-        orden: nuevaImagen.orden ?? imagenesDelProducto.length
-      };
-      
-      const nuevasImagenes = [...imagenesDelProducto, imagenConOrden];
-      console.log("5. Actualizando estado con nuevas imágenes:", nuevasImagenes);
-      
-      setImagenesDelProducto(nuevasImagenes);
+      const nuevaImagen = await addImagenProducto(idProducto, file, true);
+      setImagenesDelProducto([{ ...nuevaImagen, orden: 0 }]);
       showMessage('success', 'Imagen agregada correctamente');
     } catch (error: any) {
-      console.error("❌ Error al subir imagen:", error);
       showMessage('error', mensajeError(error, 'No se pudo subir la imagen.'));
     } finally {
       setLoadingImages(false);
     }
   };
 
+  // Cambiar la imagen: se borra la anterior y se sube la nueva en un solo paso.
+  const handleReemplazarImagen = async (idImagenVieja: number, idProducto: number, file: File) => {
+    setLoadingImages(true);
+    try {
+      await deleteImagenProducto(idImagenVieja);
+      const nuevaImagen = await addImagenProducto(idProducto, file, true);
+      setImagenesDelProducto([{ ...nuevaImagen, orden: 0 }]);
+      showMessage('success', 'Imagen actualizada correctamente');
+    } catch (error: any) {
+      showMessage('error', mensajeError(error, 'No se pudo actualizar la imagen.'));
+    } finally {
+      setLoadingImages(false);
+    }
+  };
+
+  // La confirmación ya la resuelve ProductoModal; esto borra directo.
   const handleEliminarImagen = async (idImagen: number) => {
     setLoadingImages(true);
     try {
       await deleteImagenProducto(idImagen);
-      const nuevasImagenes = imagenesDelProducto.filter(img => img.id !== idImagen);
-      setImagenesDelProducto(nuevasImagenes);
+      setImagenesDelProducto([]);
       showMessage('success', 'Imagen eliminada correctamente');
     } catch (error: any) {
-      console.error("❌ Error al eliminar imagen:", error);
       showMessage('error', mensajeError(error, 'No se pudo eliminar la imagen.'));
-    } finally {
-      setLoadingImages(false);
-      setIdImagenAEliminar(null);
-    }
-  };
-
-  const handleMarcarComoPrincipal = async (idImagen: number) => {
-    console.log("=== MARCANDO COMO PRINCIPAL ===");
-    console.log("ID de imagen:", idImagen);
-    console.log("productoToEdit:", productoToEdit);
-    
-    if (!productoToEdit) {
-      console.error("❌ No hay producto para editar");
-      return;
-    }
-    
-    setLoadingImages(true);
-    try {
-      console.log("Llamando a setImagenPrincipal...");
-      await setImagenPrincipal(idImagen, productoToEdit.id);
-      
-      const nuevasImagenes = imagenesDelProducto.map(img => ({
-        ...img,
-        esPrincipal: img.id === idImagen
-      }));
-      console.log("Imágenes actualizadas:", nuevasImagenes);
-      
-      setImagenesDelProducto(nuevasImagenes);
-      showMessage('success', 'Imagen principal actualizada');
-    } catch (error: any) {
-      console.error("❌ Error al marcar como principal:", error);
-      showMessage('error', mensajeError(error, 'No se pudo marcar la imagen como principal.'));
     } finally {
       setLoadingImages(false);
     }
@@ -487,11 +440,11 @@ export default function ProductosPage() {
         <ProductoModal
           producto={selectedProducto}
           productoParaEditar={productoToEdit}
+          stockActual={productoToEdit ? stockPorProducto.get(productoToEdit.id) : undefined}
           imagenesActuales={imagenesDelProducto}
-          onImagenesChange={(nuevasImagenes: ImagenProducto[]) => setImagenesDelProducto(nuevasImagenes)}
           onAgregarImagen={handleAgregarImagen}
-          onEliminarImagen={setIdImagenAEliminar}
-          onMarcarComoPrincipal={handleMarcarComoPrincipal}
+          onReemplazarImagen={handleReemplazarImagen}
+          onEliminarImagen={handleEliminarImagen}
           loadingImages={loadingImages}
           categorias={categorias}
           onClose={() => {
@@ -518,15 +471,6 @@ export default function ProductosPage() {
             setIsDeleteModalOpen(false);
             setProductoToDelete(null);
           }}
-        />
-      )}
-
-      {idImagenAEliminar !== null && (
-        <DeleteConfirmModal
-          title="Eliminar imagen"
-          message="¿Estás seguro de que deseas eliminar esta imagen?"
-          onConfirm={() => handleEliminarImagen(idImagenAEliminar)}
-          onCancel={() => setIdImagenAEliminar(null)}
         />
       )}
     </div>
