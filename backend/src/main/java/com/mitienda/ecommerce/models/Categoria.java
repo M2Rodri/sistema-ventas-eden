@@ -35,6 +35,17 @@ public class Categoria {
     @Column(length = 500)
     private String descripcion;
 
+    /**
+     * Qué tipo de producto agrupa esta categoría. Antes se pedía el tipo de
+     * producto suelto en cada producto, duplicando la categoría (en este
+     * negocio, cada categoría es un tipo: "Camas" = CAMA, "Colchones" =
+     * COLCHON). Ahora se define acá, una sola vez por categoría, y el
+     * producto lo hereda automáticamente al elegir su categoría.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_producto", nullable = false, length = 20)
+    private TipoProducto tipoProducto;
+
     @Column(nullable = false)
     private Boolean activo = true;
 

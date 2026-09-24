@@ -81,6 +81,7 @@ public class CategoriaService {
         Categoria categoria = new Categoria();
         categoria.setNombre(request.getNombre());
         categoria.setDescripcion(request.getDescripcion());
+        categoria.setTipoProducto(request.getTipoProducto());
         categoria.setActivo(request.getActivo());
 
         Categoria savedCategoria = categoriaRepository.save(categoria);
@@ -103,6 +104,7 @@ public class CategoriaService {
 
         categoria.setNombre(request.getNombre());
         categoria.setDescripcion(request.getDescripcion());
+        categoria.setTipoProducto(request.getTipoProducto());
         categoria.setActivo(request.getActivo());
 
         Categoria updatedCategoria = categoriaRepository.save(categoria);

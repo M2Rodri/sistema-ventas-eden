@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createCategoria, updateCategoria } from '@/lib/api';
-import { Categoria } from '@/types/producto';
+import { Categoria, TipoProducto } from '@/types/producto';
 import { X } from 'lucide-react';
 
 interface CategoriaModalProps {
@@ -14,13 +14,22 @@ interface CategoriaModalProps {
 interface CategoriaFormData {
   nombre: string;
   descripcion: string;
+  tipoProducto: TipoProducto | '';
   activo: boolean;
 }
+
+const TIPOS_PRODUCTO: { value: TipoProducto; label: string }[] = [
+  { value: 'CAMA', label: 'Cama' },
+  { value: 'COLCHON', label: 'Colchón' },
+  { value: 'ALMOHADA', label: 'Almohada' },
+  { value: 'ACCESORIO', label: 'Accesorio' },
+];
 
 export default function CategoriaModal({ categoria, onClose, onSuccess }: CategoriaModalProps) {
   const [formData, setFormData] = useState<CategoriaFormData>({
     nombre: '',
     descripcion: '',
+    tipoProducto: '',
     activo: true,
   });
 
@@ -32,12 +41,13 @@ export default function CategoriaModal({ categoria, onClose, onSuccess }: Catego
       setFormData({
         nombre: categoria.nombre,
         descripcion: categoria.descripcion || '',
+        tipoProducto: categoria.tipoProducto,
         activo: categoria.activo,
       });
     }
   }, [categoria]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     
     setFormData(prev => ({
@@ -73,6 +83,10 @@ export default function CategoriaModal({ categoria, onClose, onSuccess }: Catego
       newErrors.descripcion = 'La descripción no puede exceder 500 caracteres';
     }
 
+    if (!formData.tipoProducto) {
+      newErrors.tipoProducto = 'Elegí qué tipo de producto agrupa esta categoría';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -82,12 +96,15 @@ export default function CategoriaModal({ categoria, onClose, onSuccess }: Catego
 
     if (!validate()) return;
 
+    // validate() ya garantizó que tipoProducto no está vacío.
+    const datosAEnviar = { ...formData, tipoProducto: formData.tipoProducto as TipoProducto };
+
     setLoading(true);
     try {
       if (categoria) {
-        await updateCategoria(categoria.id, formData);
+        await updateCategoria(categoria.id, datosAEnviar);
       } else {
-        await createCategoria(formData);
+        await createCategoria(datosAEnviar);
       }
       onSuccess();
     } catch (error: any) {
@@ -161,6 +178,31 @@ export default function CategoriaModal({ categoria, onClose, onSuccess }: Catego
               disabled={loading}
             />
             {errors.descripcion && <p className="text-red-500 text-xs mt-1">{errors.descripcion}</p>}
+          </div>
+
+          {/* Tipo de producto */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Tipo de producto <span className="text-red-500">*</span>
+            </label>
+            <select
+              name="tipoProducto"
+              value={formData.tipoProducto}
+              onChange={handleChange}
+              className={`w-full px-4 py-2 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+                errors.tipoProducto ? 'border-red-500' : 'border-gray-300'
+              }`}
+              disabled={loading}
+            >
+              <option value="" disabled>Seleccioná...</option>
+              {TIPOS_PRODUCTO.map((t) => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              Los productos de esta categoría van a quedar marcados con este tipo automáticamente.
+            </p>
+            {errors.tipoProducto && <p className="text-red-500 text-xs mt-1">{errors.tipoProducto}</p>}
           </div>
 
           {/* Estado activo */}

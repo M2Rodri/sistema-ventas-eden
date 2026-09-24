@@ -63,6 +63,9 @@ export interface Categoria {
   id: number;
   nombre: string;
   descripcion?: string;
+  /** Qué tipo de producto agrupa. El producto lo hereda de acá, no se
+   * vuelve a pedir en el formulario de Producto. */
+  tipoProducto: TipoProducto;
   activo: boolean;
   cantidadProductos: number;
   fechaCreacion: string;

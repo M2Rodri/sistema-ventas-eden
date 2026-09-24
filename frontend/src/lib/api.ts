@@ -94,7 +94,7 @@ export interface UserRequest {
 }
 
 // IMPORTAR TIPOS DE PRODUCTO Y CATEGORIA
-import { Producto, ProductoRequest, Categoria } from '@/types/producto';
+import { Producto, ProductoRequest, Categoria, TipoProducto } from '@/types/producto';
 
 // Helper para obtener el token
 const getAuthHeaders = () => {
@@ -261,7 +261,7 @@ export const getActiveCategorias = async (): Promise<Categoria[]> => {
 };
 
 // Crear categoría
-export const createCategoria = async (data: { nombre: string; descripcion?: string; activo: boolean }): Promise<Categoria> => {
+export const createCategoria = async (data: { nombre: string; descripcion?: string; tipoProducto: TipoProducto; activo: boolean }): Promise<Categoria> => {
   const response = await fetch(`${API_URL}/categorias`, {
     method: 'POST',
     headers: getAuthHeaders(),
@@ -277,7 +277,7 @@ export const createCategoria = async (data: { nombre: string; descripcion?: stri
 };
 
 // Actualizar categoría
-export const updateCategoria = async (id: number, data: { nombre: string; descripcion?: string; activo: boolean }): Promise<Categoria> => {
+export const updateCategoria = async (id: number, data: { nombre: string; descripcion?: string; tipoProducto: TipoProducto; activo: boolean }): Promise<Categoria> => {
   const response = await fetch(`${API_URL}/categorias/${id}`, {
     method: 'PUT',
     headers: getAuthHeaders(),
