@@ -441,6 +441,7 @@ export default function ProductosPage() {
           producto={selectedProducto}
           productoParaEditar={productoToEdit}
           stockActual={productoToEdit ? stockPorProducto.get(productoToEdit.id) : undefined}
+          productos={productos}
           imagenesActuales={imagenesDelProducto}
           onAgregarImagen={handleAgregarImagen}
           onReemplazarImagen={handleReemplazarImagen}

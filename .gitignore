@@ -7,6 +7,13 @@
 
 
 # -----------------------------------------------------------------------------
+# Notas internas de arquitectura — borradores y decisiones que no se suben,
+# para no exponer análisis interno o discusiones sin cerrar en el repo.
+# -----------------------------------------------------------------------------
+docs/notas-internas/
+
+
+# -----------------------------------------------------------------------------
 # Sistema operativo y editores
 # -----------------------------------------------------------------------------
 .DS_Store

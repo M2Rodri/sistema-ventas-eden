@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Producto, ProductoRequest, Categoria, ImagenProducto } from '@/types/producto';
+import { Producto, ProductoRequest, Categoria, ImagenProducto, TipoProducto } from '@/types/producto';
 import { createProducto, updateProducto, BACKEND_URL } from '@/lib/api';
 import { X, Upload, Trash2 } from 'lucide-react';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
@@ -15,6 +15,37 @@ const MEDIDAS_ESTANDAR = [
   { value: 'KING', label: 'King Size', ancho: 180, largo: 200 },
 ] as const;
 const MEDIDA_OTRA = 'OTRA';
+
+/** Mismo prefijo de 3 letras que ya se usaba a mano en los SKU cargados
+ * antes (ALM-001, CAM-002, COL-001...). Sale del Tipo de Producto, no del
+ * nombre de la categoría, para que funcione igual sin importar cómo se
+ * llame la categoría. */
+const PREFIJOS_SKU: Record<TipoProducto, string> = {
+  CAMA: 'CAM',
+  COLCHON: 'COL',
+  ALMOHADA: 'ALM',
+  ACCESORIO: 'ACC',
+};
+
+/**
+ * Propone el siguiente número de la serie mirando TODOS los productos que
+ * ya existen (incluidos los dados de baja: siguen en la base y su SKU
+ * sigue siendo suyo, así que no hay que repetirlo). No hay endpoint nuevo:
+ * usa la misma lista que ya está cargada en la pantalla de Productos.
+ */
+function sugerirSiguienteSku(tipo: TipoProducto, productos: Producto[]): string {
+  const prefijo = PREFIJOS_SKU[tipo];
+  const regex = new RegExp(`^${prefijo}-(\\d+)$`);
+  let maxNumero = 0;
+  for (const p of productos) {
+    const match = p.sku.match(regex);
+    if (match) {
+      const numero = parseInt(match[1], 10);
+      if (numero > maxNumero) maxNumero = numero;
+    }
+  }
+  return `${prefijo}-${String(maxNumero + 1).padStart(3, '0')}`;
+}
 
 /**
  * "Dimensiones" se guarda como un solo texto (no se agregaron columnas
@@ -64,6 +95,9 @@ interface ProductoModalProps {
   onEliminarImagen: (id: number) => Promise<void>;
   loadingImages: boolean;
   categorias: Categoria[];
+  /** Todos los productos (activos e inactivos): se usa nomás para calcular
+   * el siguiente SKU de la serie, mirando los que ya existen. */
+  productos: Producto[];
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -78,6 +112,7 @@ export default function ProductoModal({
   onEliminarImagen,
   loadingImages,
   categorias,
+  productos,
   onClose,
   onSuccess
 }: ProductoModalProps) {
@@ -88,9 +123,14 @@ export default function ProductoModal({
   const idCategoriaInicial = productoParaEditar?.idCategoria || categorias[0]?.id || 0;
   const tipoDeCategoria = (idCategoria: number) =>
     categorias.find((c) => c.id === idCategoria)?.tipoProducto;
+  const tipoInicial = tipoDeCategoria(idCategoriaInicial) || productoParaEditar?.tipoProducto || 'CAMA';
+  // El SKU se sugiere solo al crear, y solo mientras el usuario no haya
+  // escrito el suyo a mano (acá arranca en true porque al editar el campo
+  // ya trae el SKU real, no hay nada que sugerir).
+  const [skuTocado, setSkuTocado] = useState(!!productoParaEditar);
 
   const [formData, setFormData] = useState<ProductoRequest>({
-    sku: productoParaEditar?.sku || '',
+    sku: productoParaEditar?.sku || sugerirSiguienteSku(tipoInicial, productos),
     nombre: productoParaEditar?.nombre || '',
     descripcion: productoParaEditar?.descripcion || '',
     marca: productoParaEditar?.marca || '',
@@ -100,7 +140,7 @@ export default function ProductoModal({
     costoReferencial: productoParaEditar?.costoReferencial || 0,
     precioVenta: productoParaEditar?.precioVenta || 0,
     stockMinimo: productoParaEditar?.stockMinimo || 0,
-    tipoProducto: tipoDeCategoria(idCategoriaInicial) || productoParaEditar?.tipoProducto || 'CAMA',
+    tipoProducto: tipoInicial,
     activo: productoParaEditar?.activo !== undefined ? productoParaEditar.activo : true,
 
     // ✅ CAMPOS CONDICIONALES
@@ -155,15 +195,22 @@ export default function ProductoModal({
     const { name, value, type } = e.target;
     const val = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
 
+    if (name === 'sku') {
+      setSkuTocado(true);
+    }
+
     // La categoría trae su tipo de producto pegado: cambiarla puede cambiar
     // el tipo también, así que se limpian los campos condicionales igual
-    // que antes se hacía al cambiar el Tipo a mano.
+    // que antes se hacía al cambiar el Tipo a mano. También recalcula la
+    // sugerencia de SKU, pero solo si el usuario todavía no escribió el
+    // suyo a mano.
     if (name === 'idCategoria') {
       const nuevoTipo = tipoDeCategoria(Number(val)) || formData.tipoProducto;
       setFormData(prev => ({
         ...prev,
         idCategoria: Number(val),
         tipoProducto: nuevoTipo,
+        sku: skuTocado ? prev.sku : sugerirSiguienteSku(nuevoTipo, productos),
         firmeza: undefined,
         materialNucleo: undefined,
       }));
@@ -325,6 +372,9 @@ export default function ProductoModal({
                 <label className="block text-sm font-medium text-gray-700">SKU *</label>
                 <input type="text" name="sku" value={formData.sku} onChange={handleChange}
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required />
+                {!isEditing && (
+                  <p className="text-xs text-gray-500 mt-1">Sugerido según la categoría; lo podés cambiar.</p>
+                )}
               </div>
               
               <div>
