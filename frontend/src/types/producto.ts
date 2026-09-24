@@ -14,7 +14,6 @@ export interface Producto {
   /** Costo de referencia para calcular margen. Antes se llamaba precioUnitario. */
   costoReferencial: number;
   precioVenta: number;
-  peso?: number;
   dimensiones?: string;
   stockMinimo: number;
   tipoProducto: TipoProducto;
@@ -44,7 +43,6 @@ export interface ProductoRequest {
   calidad?: string;
   costoReferencial: number;
   precioVenta: number;
-  peso?: number;
   dimensiones?: string;
   stockMinimo: number;
   tipoProducto: TipoProducto;

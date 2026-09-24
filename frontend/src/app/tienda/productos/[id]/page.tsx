@@ -129,7 +129,6 @@ const DetalleProductoPage = () => {
               <p><span className="font-medium">Tipo:</span> {producto.tipoProducto}</p>
               {producto.modelo && <p><span className="font-medium">Modelo:</span> {producto.modelo}</p>}
               {producto.calidad && <p><span className="font-medium">Calidad:</span> {producto.calidad}</p>}
-              {producto.peso && <p><span className="font-medium">Peso:</span> {producto.peso} kg</p>}
               {producto.dimensiones && <p><span className="font-medium">Dimensiones:</span> {producto.dimensiones}</p>}
               {producto.marca && <p><span className="font-medium">Marca:</span> {producto.marca}</p>}
               {producto.firmeza && <p><span className="font-medium">Firmeza:</span> {producto.firmeza}</p>}

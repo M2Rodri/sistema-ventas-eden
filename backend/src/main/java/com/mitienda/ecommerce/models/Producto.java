@@ -77,9 +77,6 @@ public class Producto {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal precioVenta;
 
-    @Column(precision = 8, scale = 2)
-    private BigDecimal peso; // en kg
-
     @Column(length = 100)
     private String dimensiones; // ej: "200x180x30 cm"
 

@@ -147,7 +147,6 @@ public class ProductoService {
         producto.setCalidad(request.getCalidad());
         producto.setCostoReferencial(request.getCostoReferencial());
         producto.setPrecioVenta(request.getPrecioVenta());
-        producto.setPeso(request.getPeso());
         producto.setDimensiones(request.getDimensiones());
         producto.setStockMinimo(request.getStockMinimo());
         producto.setTipoProducto(request.getTipoProducto());
@@ -198,7 +197,6 @@ public class ProductoService {
         producto.setCalidad(request.getCalidad());
         producto.setCostoReferencial(request.getCostoReferencial());
         producto.setPrecioVenta(request.getPrecioVenta());
-        producto.setPeso(request.getPeso());
         producto.setDimensiones(request.getDimensiones());
         producto.setStockMinimo(request.getStockMinimo());
         producto.setTipoProducto(request.getTipoProducto());

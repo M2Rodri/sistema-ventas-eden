@@ -32,7 +32,6 @@ public class ProductoResponse {
     private String calidad;
     private BigDecimal costoReferencial;
     private BigDecimal precioVenta;
-    private BigDecimal peso;
     private String dimensiones;
     private Integer stockMinimo;
     private TipoProducto tipoProducto;
@@ -56,7 +55,6 @@ public class ProductoResponse {
         this.calidad = producto.getCalidad();
         this.costoReferencial = producto.getCostoReferencial();
         this.precioVenta = producto.getPrecioVenta();
-        this.peso = producto.getPeso();
         this.dimensiones = producto.getDimensiones();
         this.stockMinimo = producto.getStockMinimo();
         this.tipoProducto = producto.getTipoProducto();
@@ -67,32 +65,5 @@ public class ProductoResponse {
                 .collect(Collectors.toList());
         this.fechaCreacion = producto.getFechaCreacion();
         this.fechaActualizacion = producto.getFechaActualizacion();
-    }
-
-    // Constructor adicional que acepta la lista de imágenes como DTO
-    // Este es el constructor que resuelve el error que mencionaste.
-    public ProductoResponse(Long id, String sku, String nombre, String descripcion, String modelo,
-                           Long idCategoria, String nombreCategoria, String calidad, BigDecimal costoReferencial,
-                           BigDecimal precioVenta, BigDecimal peso, String dimensiones, Integer stockMinimo,
-                           TipoProducto tipoProducto, Boolean activo, LocalDateTime fechaCreacion,
-                           LocalDateTime fechaActualizacion, List<ImagenProductoDTO> imagenes) {
-        this.id = id;
-        this.sku = sku;
-        this.nombre = nombre;
-        this.descripcion = descripcion;
-        this.modelo = modelo;
-        this.idCategoria = idCategoria;
-        this.nombreCategoria = nombreCategoria;
-        this.calidad = calidad;
-        this.costoReferencial = costoReferencial;
-        this.precioVenta = precioVenta;
-        this.peso = peso;
-        this.dimensiones = dimensiones;
-        this.stockMinimo = stockMinimo;
-        this.tipoProducto = tipoProducto;
-        this.activo = activo;
-        this.fechaCreacion = fechaCreacion;
-        this.fechaActualizacion = fechaActualizacion;
-        this.imagenes = imagenes; // Asigna la lista de DTOs directamente
     }
 }

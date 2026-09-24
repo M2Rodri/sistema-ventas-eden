@@ -47,9 +47,6 @@ public class ProductoRequest {
     @DecimalMin(value = "0.0", inclusive = false, message = "El precio de venta debe ser mayor a 0")
     private BigDecimal precioVenta;
 
-    @DecimalMin(value = "0.0", message = "El peso no puede ser negativo")
-    private BigDecimal peso;
-
     @Size(max = 100, message = "Las dimensiones no pueden exceder 100 caracteres")
     private String dimensiones;
 
