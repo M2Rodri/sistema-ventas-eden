@@ -95,6 +95,31 @@ export default function Sidebar({ isAdmin }: SidebarProps) {
               key={item.href}
               href={item.href}
               title={isCollapsed ? item.name : ''}
+              onClick={(e) => {
+                // Clickear un módulo tiene que volver esa pantalla a su
+                // estado normal, incluso si ya estás ahí. Cada pantalla
+                // escucha su propio evento y reinicia sus filtros.
+                const eventosDeReseteo: Record<string, string> = {
+                  '/dashboard/ventas': 'ventas:reset-filtros',
+                  '/dashboard/inventario': 'inventario:reset-filtros',
+                  '/dashboard/compras': 'compras:reset-filtros',
+                };
+                const evento = eventosDeReseteo[item.href];
+                if (evento) {
+                  // Si ya estás en esa ruta, no hace falta navegar a
+                  // ningún lado — el reset es todo con estado de React.
+                  // Dejar que el Link navegue igual (a la misma URL) es lo
+                  // que generaba una carrera: a veces esa navegación de
+                  // más terminaba pisando el reset, o incluso disparaba
+                  // una recarga completa en vez de la transición suave.
+                  // pathname (sin query) es lo único que Link puede ver:
+                  // por eso alcanza con comparar contra la ruta actual.
+                  if (window.location.pathname === item.href) {
+                    e.preventDefault();
+                  }
+                  window.dispatchEvent(new Event(evento));
+                }
+              }}
               className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all group ${
                 isActive
                   ? 'bg-gradient-to-r from-primary-600 to-primary-700 text-white font-semibold shadow-lg scale-105'

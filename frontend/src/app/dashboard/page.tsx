@@ -105,19 +105,23 @@ export default function DashboardPage() {
 
       {/* Tarjetas de estadísticas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          titulo="Ventas del mes"
-          valor={bs(stats?.ventasStats?.montoVentasMes)}
-          subtitulo={`${num(stats?.ventasStats?.totalVentasMes)} ventas registradas`}
-          icon={<TrendingUp size={22} />}
-          loading={loading}
-        />
+        {user?.role === 'ADMIN' && (
+          <StatCard
+            titulo="Ventas del mes"
+            valor={bs(stats?.ventasStats?.montoVentasMes)}
+            subtitulo={`${num(stats?.ventasStats?.totalVentasMes)} ventas completadas`}
+            icon={<TrendingUp size={22} />}
+            loading={loading}
+            onClick={() => router.push('/dashboard/ventas?periodo=MES')}
+          />
+        )}
         <StatCard
           titulo="Ventas de hoy"
           valor={bs(stats?.ventasStats?.montoVentasHoy)}
           subtitulo={`${num(stats?.ventasStats?.totalVentasHoy)} hoy`}
           icon={<DollarSign size={22} />}
           loading={loading}
+          onClick={() => router.push('/dashboard/ventas?periodo=HOY')}
         />
         <StatCard
           titulo="Productos activos"
@@ -125,6 +129,7 @@ export default function DashboardPage() {
           subtitulo={`${num(stats?.productosStats?.totalProductos)} en el catálogo`}
           icon={<Package size={22} />}
           loading={loading}
+          onClick={() => router.push('/dashboard/productos?estado=ACTIVOS')}
         />
         <StatCard
           titulo="Clientes"
@@ -132,6 +137,7 @@ export default function DashboardPage() {
           subtitulo={`${num(stats?.clientesStats?.clientesNuevosMes)} nuevos este mes`}
           icon={<Users size={22} />}
           loading={loading}
+          onClick={() => router.push('/dashboard/clientes')}
         />
       </div>
 
@@ -172,7 +178,7 @@ export default function DashboardPage() {
 
           <Link
             href="/dashboard/inventario"
-            className="flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-700 px-6 py-4 rounded-xl hover:bg-gray-50 transition-colors font-medium text-sm shadow-sm"
+            className="flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-700 px-6 py-4 rounded-xl hover:bg-primary-100 hover:border-primary-300 transition-colors font-medium text-sm shadow-sm"
           >
             <Boxes size={18} />
             Ver inventario
@@ -180,7 +186,7 @@ export default function DashboardPage() {
 
           <Link
             href="/dashboard/ventas"
-            className="flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-700 px-6 py-4 rounded-xl hover:bg-gray-50 transition-colors font-medium text-sm shadow-sm"
+            className="flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-700 px-6 py-4 rounded-xl hover:bg-primary-100 hover:border-primary-300 transition-colors font-medium text-sm shadow-sm"
           >
             <DollarSign size={18} />
             Registrar venta
@@ -189,7 +195,7 @@ export default function DashboardPage() {
           {user?.role === 'ADMIN' && (
             <Link
               href="/dashboard/reportes"
-              className="flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-700 px-6 py-4 rounded-xl hover:bg-gray-50 transition-colors font-medium text-sm shadow-sm"
+              className="flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-700 px-6 py-4 rounded-xl hover:bg-primary-100 hover:border-primary-300 transition-colors font-medium text-sm shadow-sm"
             >
               <FileText size={18} />
               Ver reportes
@@ -227,7 +233,9 @@ export default function DashboardPage() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Unidades</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Monto</th>
+                    {user?.role === 'ADMIN' && (
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Monto</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -236,7 +244,9 @@ export default function DashboardPage() {
                       <td className="px-6 py-4 text-sm font-medium text-gray-900">{p.nombreProducto}</td>
                       <td className="px-6 py-4 text-sm text-gray-500 font-mono">{p.skuProducto}</td>
                       <td className="px-6 py-4 text-sm text-right text-gray-900">{num(p.cantidadVendida)}</td>
-                      <td className="px-6 py-4 text-sm text-right font-semibold text-gray-900">{bs(p.montoTotal)}</td>
+                      {user?.role === 'ADMIN' && (
+                        <td className="px-6 py-4 text-sm text-right font-semibold text-gray-900">{bs(p.montoTotal)}</td>
+                      )}
                     </tr>
                   ))}
                 </tbody>

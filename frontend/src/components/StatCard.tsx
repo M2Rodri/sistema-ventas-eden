@@ -52,11 +52,11 @@ export default function StatCard({
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <h3 className="text-sm font-medium text-slate-200 truncate">{titulo}</h3>
-          <p className="text-2xl lg:text-3xl font-bold mt-2 text-white truncate">
+          <p className="text-lg lg:text-xl font-bold mt-2 text-white truncate">
             {loading ? '—' : valor}
           </p>
           {subtitulo && (
-            <p className="text-xs lg:text-sm mt-2 text-slate-300 truncate">
+            <p className="text-xs mt-2 text-slate-300 truncate">
               {loading ? '' : subtitulo}
             </p>
           )}

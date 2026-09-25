@@ -137,7 +137,7 @@ export default function NotificacionesMenu() {
                     {alertas.map((a) => (
                       <Link
                         key={`alerta-${a.id}`}
-                        href="/dashboard/inventario"
+                        href={`/dashboard/inventario?producto=${a.idProducto}`}
                         onClick={() => setAbierto(false)}
                         className="flex gap-3 border-b border-gray-100 px-4 py-3 transition-colors hover:bg-gray-50"
                       >

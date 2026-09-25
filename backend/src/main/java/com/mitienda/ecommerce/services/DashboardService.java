@@ -89,24 +89,28 @@ public class DashboardService {
         LocalDateTime inicioMes = LocalDate.now().withDayOfMonth(1).atStartOfDay();
         LocalDateTime inicioAño = LocalDate.now().withDayOfYear(1).atStartOfDay();
 
-        List<Venta> ventasHoy = ventaRepository.findByFechaVentaBetweenOrderByFechaVentaDesc(hoy, finHoy);
+        // El conteo cuenta las mismas ventas que suma el monto (COMPLETADA):
+        // antes el conteo incluía todos los estados y el monto solo las
+        // completadas, y quedaba "3 ventas registradas" al lado de un monto
+        // que en realidad era la suma de 2 — parecía que faltaba plata.
+        List<Venta> ventasHoy = ventaRepository.findByFechaVentaBetweenOrderByFechaVentaDesc(hoy, finHoy)
+                .stream().filter(v -> v.getEstado() == EstadoVenta.COMPLETADA).toList();
         Long totalVentasHoy = (long) ventasHoy.size();
         BigDecimal montoVentasHoy = ventasHoy.stream()
-                .filter(v -> v.getEstado() == EstadoVenta.COMPLETADA)
                 .map(Venta::getMontoTotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        List<Venta> ventasMes = ventaRepository.findByFechaVentaBetweenOrderByFechaVentaDesc(inicioMes, LocalDateTime.now());
+        List<Venta> ventasMes = ventaRepository.findByFechaVentaBetweenOrderByFechaVentaDesc(inicioMes, LocalDateTime.now())
+                .stream().filter(v -> v.getEstado() == EstadoVenta.COMPLETADA).toList();
         Long totalVentasMes = (long) ventasMes.size();
         BigDecimal montoVentasMes = ventasMes.stream()
-                .filter(v -> v.getEstado() == EstadoVenta.COMPLETADA)
                 .map(Venta::getMontoTotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        List<Venta> ventasAño = ventaRepository.findByFechaVentaBetweenOrderByFechaVentaDesc(inicioAño, LocalDateTime.now());
+        List<Venta> ventasAño = ventaRepository.findByFechaVentaBetweenOrderByFechaVentaDesc(inicioAño, LocalDateTime.now())
+                .stream().filter(v -> v.getEstado() == EstadoVenta.COMPLETADA).toList();
         Long totalVentasAño = (long) ventasAño.size();
         BigDecimal montoVentasAño = ventasAño.stream()
-                .filter(v -> v.getEstado() == EstadoVenta.COMPLETADA)
                 .map(Venta::getMontoTotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
@@ -137,14 +141,17 @@ public class DashboardService {
     private DashboardResponse.InventarioStats getInventarioStats() {
         Long alertasInventario = alertaInventarioRepository.countByEstado(EstadoAlerta.PENDIENTE);
 
-        // Se calcula con costoReferencial: el rol EMPLEADO no debe verlo, asi
+        // Se calcula con precioCompra: el rol EMPLEADO no debe verlo, asi
         // que para EMPLEADO (o sin sesion) esta tarjeta queda en null en vez
         // de calcularse.
         BigDecimal valorTotal = null;
         if (usuarioActualService.esAdmin()) {
             List<Inventario> inventarios = inventarioRepository.findAll();
+            // Productos sin precio de compra cargado quedan afuera de la
+            // cuenta: no hay con qué valorizarlos todavía.
             valorTotal = inventarios.stream()
-                    .map(inv -> inv.getProducto().getCostoReferencial()
+                    .filter(inv -> inv.getProducto().getPrecioCompra() != null)
+                    .map(inv -> inv.getProducto().getPrecioCompra()
                             .multiply(BigDecimal.valueOf(inv.getCantidadDisponible())))
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
         }
