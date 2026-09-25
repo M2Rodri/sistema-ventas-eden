@@ -150,8 +150,8 @@ export default function ComprobanteModal({ isOpen, onClose, idVenta }: Comproban
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 print:static print:block print:p-0 print:bg-white">
+      <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto print:max-h-none print:overflow-visible print:static">
         
         {/* Header con botones de acción */}
         <div className="sticky top-0 bg-gradient-to-r from-primary-50 to-primary-100 border-b border-gray-200 p-4 flex items-center justify-between z-10">
@@ -237,9 +237,6 @@ export default function ComprobanteModal({ isOpen, onClose, idVenta }: Comproban
                   <p className="mb-1 text-sm"><span className="font-semibold">Nombre:</span> {venta.nombreCliente}</p>
                   {venta.telefonoCliente && (
                     <p className="mb-1 text-sm"><span className="font-semibold">Celular:</span> {venta.telefonoCliente}</p>
-                  )}
-                  {!venta.esClienteRegistrado && (
-                    <p className="text-xs text-blue-600 mt-2">(Cliente rápido)</p>
                   )}
                 </div>
                 <div className="text-right">

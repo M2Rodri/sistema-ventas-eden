@@ -126,7 +126,6 @@ export interface Venta {
   detalles: DetalleVenta[];
   pagos: Pago[];
   fechaActualizacion: string;
-  esClienteRegistrado: boolean;
 
   /** Al menos un pago QR/transferencia no tiene foto de comprobante todavía. */
   tienePagosSinRespaldo?: boolean;
@@ -140,4 +139,7 @@ export interface VentaEstadisticas {
   montoTotal: number;
   ventasDelDia: number;
   montoDelDia: number;
+  /** Domicilio/Transportadora sin entregar todavía. No acotado a la semana:
+   * una entrega atrasada sigue siendo relevante aunque sea de hace tiempo. */
+  entregasPendientes: number;
 }

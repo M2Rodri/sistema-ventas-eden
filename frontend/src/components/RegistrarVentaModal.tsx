@@ -22,6 +22,7 @@ import {
 import {
   createVentaDirecta,
   getAllProductos,
+  getAllInventario,
   getAllClientes,
   adjuntarComprobantePago,
 } from "@/lib/api";
@@ -126,8 +127,21 @@ export default function RegistrarVentaModal({
 
   const cargarProductos = async () => {
     try {
-      const data = await getAllProductos();
-      setProductos(data);
+      // El stock no vive en Producto, vive en Inventario: sin este cruce,
+      // "producto.stock" queda undefined y el tope de cantidad del carrito
+      // no aplica (cualquier cantidad pasaba el chequeo silenciosamente).
+      const [productosData, inventarioData] = await Promise.all([
+        getAllProductos(),
+        getAllInventario(),
+      ]);
+      const stockPorProducto = new Map(
+        inventarioData.map((inv) => [inv.idProducto, inv.cantidadDisponible])
+      );
+      const productosConStock = productosData.map((p: any) => ({
+        ...p,
+        stock: stockPorProducto.get(p.id) ?? 0,
+      }));
+      setProductos(productosConStock);
     } catch (err) {
       console.error("Error al cargar productos:", err);
     }
@@ -142,7 +156,11 @@ export default function RegistrarVentaModal({
   };
 
   useEffect(() => {
-    const texto = busquedaProducto.trim().toLowerCase();
+    // Sin quitar tildes, buscar "colchon" no encontraba "Colchón": nadie
+    // escribe tildes cuando busca rápido en un mostrador.
+    const normalizar = (s: string) =>
+      s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+    const texto = normalizar(busquedaProducto.trim());
     if (!texto && !tipoActivo) {
       setProductosFiltrados([]);
       return;
@@ -150,8 +168,8 @@ export default function RegistrarVentaModal({
     const filtrados = productos.filter((p) => {
       const coincideTexto =
         !texto ||
-        p.nombre.toLowerCase().includes(texto) ||
-        p.sku.toLowerCase().includes(texto);
+        normalizar(p.nombre).includes(texto) ||
+        normalizar(p.sku).includes(texto);
       const coincideTipo = !tipoActivo || p.tipoProducto === tipoActivo;
       return coincideTexto && coincideTipo;
     });
@@ -1037,9 +1055,18 @@ export default function RegistrarVentaModal({
               </label>
               <select
                 value={modalidadEntrega}
-                onChange={(e) =>
-                  setModalidadEntrega(e.target.value as ModalidadEntrega)
-                }
+                onChange={(e) => {
+                  const nuevaModalidad = e.target.value as ModalidadEntrega;
+                  setModalidadEntrega(nuevaModalidad);
+                  // Sugerencia, no un valor fijo: el negocio opera en Santa
+                  // Cruz, pero sigue siendo editable (por ejemplo, para
+                  // probar el sistema desde otra ciudad). Solo completa si
+                  // el campo todavía está vacío, para no pisar lo que ya
+                  // se haya escrito.
+                  if (nuevaModalidad === ModalidadEntrega.DOMICILIO && !ciudad.trim()) {
+                    setCiudad("Santa Cruz de la Sierra");
+                  }
+                }}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
               >
                 <option value={ModalidadEntrega.RETIRO}>

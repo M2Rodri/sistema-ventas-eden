@@ -4,6 +4,7 @@ import com.mitienda.ecommerce.dto.VentaRequest;
 import com.mitienda.ecommerce.dto.VentaResponse;
 import com.mitienda.ecommerce.models.*;
 import com.mitienda.ecommerce.repositories.*;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -73,7 +74,11 @@ public class VentaService {
 
     @Transactional(readOnly = true)
     public List<VentaResponse> getAllVentas() {
-        return ventaRepository.findAll()
+        // El resto de las consultas del repositorio ya ordenan por fecha
+        // descendente (ventas del día, últimas ventas, por cliente...);
+        // esta era la única que quedaba sin orden, por eso la lista salía
+        // mezclada sin relación con el ID ni con la fecha.
+        return ventaRepository.findAll(Sort.by(Sort.Direction.DESC, "fechaVenta"))
                 .stream()
                 .map(VentaResponse::new)
                 .collect(Collectors.toList());
@@ -125,14 +130,18 @@ public class VentaService {
             venta.setCliente(cliente);
         } else if (request.esClienteRapido()) {
             // Venta de mostrador: en lugar de guardar el nombre suelto dentro de
-            // la venta, se crea un cliente tipo INVITADO. Así hay un solo
-            // mecanismo para identificar al comprador y el dato queda disponible
-            // para el resto del sistema (comprobante, envío, historial).
+            // la venta, se crea un cliente. Así hay un solo mecanismo para
+            // identificar al comprador y el dato queda disponible para el
+            // resto del sistema (comprobante, envío, historial).
+            // Antes esto se marcaba TipoCliente.INVITADO y el sistema lo
+            // distinguía con una etiqueta "Rápido" en varias pantallas y en
+            // el comprobante; se sacó esa distinción por decisión del
+            // negocio, así que queda como cualquier otro cliente.
             Cliente invitado = new Cliente();
             invitado.setNombre(request.getNombreClienteInvitado().trim());
             invitado.setTelefono(request.getTelefonoClienteInvitado() != null
                     ? request.getTelefonoClienteInvitado().trim() : null);
-            invitado.setTipoCliente(TipoCliente.INVITADO);
+            invitado.setTipoCliente(TipoCliente.REGISTRADO);
             invitado.setActivo(true);
             venta.setCliente(clienteRepository.save(invitado));
         }
@@ -170,12 +179,22 @@ public class VentaService {
             BigDecimal precioOriginal = producto.getPrecioVenta();
             BigDecimal precioFinal;
 
-            if (item.getPrecioUnitarioConDescuento() != null &&
-                    item.getPrecioUnitarioConDescuento().compareTo(precioOriginal) < 0) {
-                precioFinal = item.getPrecioUnitarioConDescuento();
-                if (precioFinal.compareTo(producto.getCostoReferencial()) < 0) {
+            if (item.getPrecioUnitarioConDescuento() != null) {
+                // Un precio "con descuento" que en realidad es igual o mayor
+                // al de catálogo no es un descuento: antes esto se aceptaba
+                // en silencio y se terminaba cobrando el precio normal sin
+                // avisar. Ahora se rechaza, como pide CA-04.2.
+                if (item.getPrecioUnitarioConDescuento().compareTo(precioOriginal) > 0) {
                     throw new RuntimeException("No se puede vender '" + producto.getNombre() +
-                            "' por debajo del costo (Bs. " + producto.getCostoReferencial() + ")");
+                            "' por encima del precio de catálogo (máximo Bs. " + precioOriginal + ")");
+                }
+                precioFinal = item.getPrecioUnitarioConDescuento();
+                // Sin precio de compra cargado no hay con qué comparar: no
+                // se puede saber si se está vendiendo con pérdida.
+                if (producto.getPrecioCompra() != null
+                        && precioFinal.compareTo(producto.getPrecioCompra()) < 0) {
+                    throw new RuntimeException("No se puede vender '" + producto.getNombre() +
+                            "' por debajo del costo (Bs. " + producto.getPrecioCompra() + ")");
                 }
             } else {
                 precioFinal = precioOriginal;
@@ -225,8 +244,13 @@ public class VentaService {
             BigDecimal descuentoUnitario;
             BigDecimal descuentoPorcentaje;
 
-            if (item.getPrecioUnitarioConDescuento() != null &&
-                    item.getPrecioUnitarioConDescuento().compareTo(precioOriginal) < 0) {
+            if (item.getPrecioUnitarioConDescuento() != null) {
+                // Misma validación que en el cálculo del total: un precio
+                // por encima del catálogo se rechaza, no se corrige solo.
+                if (item.getPrecioUnitarioConDescuento().compareTo(precioOriginal) > 0) {
+                    throw new RuntimeException("No se puede vender '" + producto.getNombre() +
+                            "' por encima del precio de catálogo (máximo Bs. " + precioOriginal + ")");
+                }
                 precioFinal = item.getPrecioUnitarioConDescuento();
                 descuentoUnitario = precioOriginal.subtract(precioFinal);
                 descuentoPorcentaje = item.getDescuentoPorcentaje() != null ? item.getDescuentoPorcentaje()
@@ -245,9 +269,13 @@ public class VentaService {
             detalle.setPrecioUnitario(precioFinal);
             detalle.setDescuentoUnitario(descuentoUnitario);
             detalle.setDescuentoPorcentaje(descuentoPorcentaje);
-            // Costo al momento de la venta: si el costo referencial del
+            // Costo al momento de la venta: si el precio de compra del
             // producto cambia despues, la ganancia de esta venta no se mueve.
-            detalle.setCostoUnitario(producto.getCostoReferencial());
+            // costo_unitario no admite null en la base: sin precio de compra
+            // cargado, queda en 0 (el margen de esa venta no se puede saber,
+            // pero la venta no se bloquea por eso).
+            detalle.setCostoUnitario(producto.getPrecioCompra() != null
+                    ? producto.getPrecioCompra() : BigDecimal.ZERO);
             detalle.calcularSubtotal();
             detalleVentaRepository.save(detalle);
 
@@ -325,6 +353,10 @@ public class VentaService {
         }
 
         venta.setEstado(EstadoVenta.CANCELADA);
+        // Una venta cancelada no le debe nada a nadie: sin esto, una
+        // PENDIENTE_PAGO cancelada quedaba con su saldoPendiente viejo
+        // pegado en la base para siempre, como si la deuda siguiera viva.
+        venta.setSaldoPendiente(BigDecimal.ZERO);
         Venta cancelada = ventaRepository.save(venta);
 
         // Cancelar una venta devuelve mercaderia al stock y anula plata cobrada:
@@ -339,8 +371,12 @@ public class VentaService {
     /**
      * Marca la entrega de una venta como completada.
      *
-     * No se puede entregar mercadería de una venta que todavía debe plata:
-     * primero se cobra, después se entrega.
+     * Antes esto era un bloqueo duro (no se podía entregar con saldo
+     * pendiente). En la práctica del negocio sí se entrega a veces sin
+     * cobrar todo (clientes de confianza), así que ya no se impide acá —
+     * el aviso y la confirmación quedan del lado del frontend, antes de
+     * llamar a este método. Lo que sí se sostiene es el registro: si se
+     * entregó debiendo plata, queda anotado en la auditoría.
      */
     @Transactional
     public VentaResponse marcarEntregado(Long id) {
@@ -353,15 +389,17 @@ public class VentaService {
         if (venta.getEstadoEntrega() == EstadoEntrega.ENTREGADO) {
             throw new RuntimeException("Esta venta ya está marcada como entregada");
         }
-        if (venta.getSaldoPendiente().compareTo(BigDecimal.ZERO) > 0) {
-            throw new RuntimeException("No se puede entregar una venta con saldo pendiente");
-        }
+
+        boolean conSaldoPendiente = venta.getSaldoPendiente().compareTo(BigDecimal.ZERO) > 0;
 
         venta.setEstadoEntrega(EstadoEntrega.ENTREGADO);
         Venta entregada = ventaRepository.save(venta);
 
         registroAuditoria.registrar("ENTREGAR_VENTA", "ventas", entregada.getId(),
-                "Entrega marcada para la venta #" + entregada.getId());
+                "Entrega marcada para la venta #" + entregada.getId()
+                        + (conSaldoPendiente
+                            ? ", con saldo pendiente de Bs " + entregada.getSaldoPendiente()
+                            : ""));
 
         return new VentaResponse(entregada);
     }

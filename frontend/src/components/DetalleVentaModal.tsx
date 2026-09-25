@@ -145,14 +145,7 @@ export default function DetalleVentaModal({ isOpen, onClose, venta, onUpdated, o
                 <User className="text-blue-600" size={20} />
                 <h3 className="font-semibold text-gray-900">Cliente</h3>
               </div>
-              <div className="flex items-center gap-2">
-                <p className="text-gray-900 font-medium">{venta.nombreCliente}</p>
-                {!venta.esClienteRegistrado && (
-                  <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">
-                    Rápido
-                  </span>
-                )}
-              </div>
+              <p className="text-gray-900 font-medium">{venta.nombreCliente}</p>
               <p className="text-sm text-gray-600">{venta.telefonoCliente || 'Sin teléfono'}</p>
             </div>
 
@@ -281,6 +274,11 @@ export default function DetalleVentaModal({ isOpen, onClose, venta, onUpdated, o
                 <CreditCard className="text-blue-600" size={20} />
                 <h3 className="font-semibold text-gray-900">Pagos Registrados</h3>
               </div>
+              {venta.estado === 'CANCELADA' && (
+                <div className="mb-3 p-3 bg-gray-100 border border-gray-300 rounded-lg text-sm text-gray-600">
+                  Esta venta está cancelada: los pagos de abajo ya no son válidos, quedan solo como registro histórico.
+                </div>
+              )}
               {uploadError && (
                 <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
                   {uploadError}
@@ -288,7 +286,11 @@ export default function DetalleVentaModal({ isOpen, onClose, venta, onUpdated, o
               )}
               <div className="space-y-3">
                 {pagosState.map((pago, index) => (
-                  <div key={index} className="bg-green-50 border border-green-200 p-3 rounded-lg">
+                  <div key={index} className={`border p-3 rounded-lg ${
+                    venta.estado === 'CANCELADA'
+                      ? 'bg-gray-50 border-gray-200 opacity-60'
+                      : 'bg-green-50 border-green-200'
+                  }`}>
                     <div className="flex justify-between items-center">
                       <div>
                         <p className="text-sm font-medium text-gray-900 flex items-center gap-2">
@@ -307,7 +309,9 @@ export default function DetalleVentaModal({ isOpen, onClose, venta, onUpdated, o
                           {pago.nombreUsuario && ` · Registrado por ${pago.nombreUsuario}`}
                         </p>
                       </div>
-                      <span className="text-lg font-bold text-green-700">{formatPrice(pago.monto)}</span>
+                      <span className={`text-lg font-bold ${venta.estado === 'CANCELADA' ? 'text-gray-500 line-through' : 'text-green-700'}`}>
+                        {formatPrice(pago.monto)}
+                      </span>
                     </div>
 
                     <div className="mt-2 pt-2 border-t border-green-200 flex items-center gap-3">

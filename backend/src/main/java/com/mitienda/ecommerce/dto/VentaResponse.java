@@ -55,7 +55,6 @@ public class VentaResponse {
     private List<DetalleVentaDTO> detalles;
     private List<PagoDTO> pagos;
     private LocalDateTime fechaActualizacion;
-    private boolean esClienteRegistrado;
 
     /** Al menos uno de los pagos de la venta es QR/transferencia sin foto de comprobante. */
     private boolean tienePagosSinRespaldo;
@@ -67,14 +66,10 @@ public class VentaResponse {
             this.idCliente = venta.getCliente().getId();
             this.nombreCliente = venta.getCliente().getNombreCompleto();
             this.telefonoCliente = venta.getCliente().getTelefono();
-            // Un cliente INVITADO es una venta de mostrador sin datos completos.
-            this.esClienteRegistrado = venta.getCliente().getTipoCliente() != null
-                    && venta.getCliente().getTipoCliente().name().equals("REGISTRADO");
         } else {
             this.idCliente = null;
             this.nombreCliente = "Cliente no especificado";
             this.telefonoCliente = null;
-            this.esClienteRegistrado = false;
         }
 
         this.fechaVenta = venta.getFechaVenta();

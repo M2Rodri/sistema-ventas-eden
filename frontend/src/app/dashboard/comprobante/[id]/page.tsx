@@ -176,9 +176,6 @@ function ComprobanteContent() {
               {venta.telefonoCliente && (
                 <p className="mb-1"><span className="font-semibold">Celular:</span> {venta.telefonoCliente}</p>
               )}
-              {!venta.esClienteRegistrado && (
-                <p className="text-sm text-blue-600 mt-2">(Cliente rápido)</p>
-              )}
             </div>
             <div className="text-right">
               <h3 className="font-bold text-gray-700 mb-3 text-lg border-b pb-2">Datos de la Venta:</h3>

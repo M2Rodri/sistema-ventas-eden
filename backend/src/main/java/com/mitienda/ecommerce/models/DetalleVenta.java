@@ -66,8 +66,8 @@ public class DetalleVenta {
 
     /**
      * Costo del producto en el momento de la venta (copiado de
-     * producto.costoReferencial al crear el detalle). Queda fijo: si el
-     * costo referencial cambia despues, la ganancia de esta venta no se
+     * producto.precioCompra al crear el detalle). Queda fijo: si el
+     * precio de compra cambia despues, la ganancia de esta venta no se
      * recalcula sola. No se expone en DetalleVentaDTO: el rol EMPLEADO
      * puede ver ventas y no tiene que ver costos ni margenes.
      */

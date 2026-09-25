@@ -11,7 +11,7 @@ import {
   marcarVentaEntregada,
   getVentaById
 } from '@/lib/api';
-import { Venta, VentaEstadisticas, EstadoVenta, MetodoPago, EstadoEntrega } from '@/types/venta';
+import { Venta, VentaEstadisticas, EstadoVenta, MetodoPago, EstadoEntrega, ModalidadEntrega } from '@/types/venta';
 import {
   Search,
   Plus,
@@ -43,6 +43,16 @@ export default function VentasPage() {
   const [estadisticas, setEstadisticas] = useState<VentaEstadisticas | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Reemplaza los alert() nativos del navegador (mostraban "localhost dice"
+  // en vez de un mensaje con la identidad del sistema) por el mismo cartel
+  // con estilo que ya usan Usuarios y Productos.
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const showMessage = (type: 'success' | 'error', text: string) => {
+    setMessage({ type, text });
+    if (type === 'success') {
+      setTimeout(() => setMessage(null), 4000);
+    }
+  };
 
   // Estados para modales
   const [showRegistrarModal, setShowRegistrarModal] = useState(false);
@@ -59,15 +69,49 @@ export default function VentasPage() {
   const [filtroMetodoPago, setFiltroMetodoPago] = useState<MetodoPago | 'TODOS'>('TODOS');
   const [filtroPeriodo, setFiltroPeriodo] = useState<'HOY' | 'SEMANA' | 'MES' | 'TODOS'>('TODOS');
   const [filtroVendedor, setFiltroVendedor] = useState<string>('TODOS');
+  const [filtroEntrega, setFiltroEntrega] = useState<'TODOS' | 'PENDIENTE' | 'ENTREGADO'>('TODOS');
 
   useEffect(() => {
     loadVentas();
+  }, []);
+
+  // Clickear "Ventas" en el menú, aunque ya estés en esta pantalla, tiene
+  // que volver todo a su estado normal — si no, una vez que tocás una
+  // tarjeta no hay forma de volver sin tocar cada filtro a mano. El link
+  // del Sidebar dispara este evento (ver Sidebar.tsx) porque Next no
+  // re-renderiza solo por navegar a la misma ruta en la que ya estás.
+  useEffect(() => {
+    const resetearFiltros = () => {
+      setBusqueda('');
+      setFiltroEstado('TODOS');
+      setFiltroMetodoPago('TODOS');
+      setFiltroPeriodo('TODOS');
+      setFiltroVendedor('TODOS');
+      setFiltroEntrega('TODOS');
+    };
+    window.addEventListener('ventas:reset-filtros', resetearFiltros);
+    return () => window.removeEventListener('ventas:reset-filtros', resetearFiltros);
+  }, []);
+
+  // Separado de loadVentas: "user" todavía es null en el primer render (lo
+  // carga useAuth de forma asíncrona), así que este efecto espera a que
+  // tenga valor antes de decidir si corresponde pedir las estadísticas.
+  useEffect(() => {
     loadEstadisticas();
+  }, [user]);
+
+  // El "Período" que llega desde una tarjeta de Inicio (ej. "Ventas del
+  // mes") queda ya filtrado acá, sin tener que volver a elegirlo a mano.
+  useEffect(() => {
+    const periodo = new URLSearchParams(window.location.search).get('periodo');
+    if (periodo === 'HOY' || periodo === 'SEMANA' || periodo === 'MES') {
+      setFiltroPeriodo(periodo);
+    }
   }, []);
 
   useEffect(() => {
     aplicarFiltros();
-  }, [ventas, busqueda, filtroEstado, filtroMetodoPago, filtroPeriodo, filtroVendedor]);
+  }, [ventas, busqueda, filtroEstado, filtroMetodoPago, filtroPeriodo, filtroVendedor, filtroEntrega]);
 
   const loadVentas = async () => {
     setLoading(true);
@@ -83,6 +127,11 @@ export default function VentasPage() {
   };
 
   const loadEstadisticas = async () => {
+    // Solo-admin en el backend (@PreAuthorize hasRole('ADMIN')): pedirlo
+    // como EMPLEADO siempre da 403, así que ni se intenta.
+    if (user?.role !== 'ADMIN') {
+      return;
+    }
     try {
       const stats = await getVentasEstadisticas();
       setEstadisticas(stats);
@@ -94,13 +143,18 @@ export default function VentasPage() {
   const aplicarFiltros = () => {
     let resultado = [...ventas];
 
-    // Filtro por búsqueda (nombre de cliente o ID)
+    // Filtro por búsqueda (cliente, ID, celular o producto). Sin tildes:
+    // nadie escribe tildes buscando rápido, y antes "colchon" no encontraba
+    // "Colchón".
     if (busqueda.trim()) {
-      const termino = busqueda.toLowerCase();
+      const normalizar = (s: string) =>
+        s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+      const termino = normalizar(busqueda.trim());
       resultado = resultado.filter(v =>
-        v.nombreCliente.toLowerCase().includes(termino) ||
+        normalizar(v.nombreCliente).includes(termino) ||
         v.id.toString().includes(termino) ||
-        (v.telefonoCliente && v.telefonoCliente.includes(termino))
+        (v.telefonoCliente && v.telefonoCliente.includes(termino)) ||
+        v.detalles.some(d => normalizar(d.nombreProducto).includes(termino))
       );
     }
 
@@ -143,6 +197,18 @@ export default function VentasPage() {
       }
     }
 
+    // Filtro por entrega. "Pendiente" excluye Retiro: ahí no hay nada que
+    // despachar (ver CU-02), así que no cuenta como entrega pendiente.
+    if (filtroEntrega === 'PENDIENTE') {
+      resultado = resultado.filter(v =>
+        v.estado !== EstadoVenta.CANCELADA
+        && v.modalidadEntrega && v.modalidadEntrega !== ModalidadEntrega.RETIRO
+        && v.estadoEntrega === EstadoEntrega.PENDIENTE
+      );
+    } else if (filtroEntrega === 'ENTREGADO') {
+      resultado = resultado.filter(v => v.estadoEntrega === EstadoEntrega.ENTREGADO);
+    }
+
     setVentasFiltradas(resultado);
   };
 
@@ -156,8 +222,9 @@ export default function VentasPage() {
       await cancelarVenta(id);
       await loadVentas();
       await loadEstadisticas();
+      showMessage('success', 'Venta cancelada correctamente.');
     } catch (err: any) {
-      alert(mensajeError(err, 'No se pudo cancelar la venta.'));
+      showMessage('error', mensajeError(err, 'No se pudo cancelar la venta.'));
     } finally {
       setVentaACancelarId(null);
     }
@@ -167,8 +234,9 @@ export default function VentasPage() {
     try {
       await marcarVentaEntregada(id);
       await loadVentas();
+      showMessage('success', 'Venta marcada como entregada.');
     } catch (err: any) {
-      alert(mensajeError(err, 'No se pudo marcar la venta como entregada.'));
+      showMessage('error', mensajeError(err, 'No se pudo marcar la venta como entregada.'));
     } finally {
       setVentaAEntregarId(null);
     }
@@ -233,22 +301,39 @@ export default function VentasPage() {
     <div>
       <Breadcrumbs items={[{ label: 'Ventas' }]} />
 
-      {/* Estadísticas */}
-      {(loading || estadisticas) && (
+      {/* Estadísticas: dato solo-admin, ni se intenta mostrar a un EMPLEADO */}
+      {user?.role === 'ADMIN' && (loading || estadisticas) && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          {/* Cada tarjeta fija los DOS filtros (Estado y Período), nunca
+              solo el que le importa: si dejás el otro filtro con lo que
+              haya quedado de un click anterior, la tabla no coincide con lo
+              que la tarjeta dice. */}
           <StatCard
             titulo="Ventas del Día"
             valor={estadisticas?.ventasDelDia ?? 0}
             subtitulo={`Bs. ${(estadisticas?.montoDelDia ?? 0).toFixed(2)}`}
             icon={<Calendar size={22} />}
             loading={loading}
+            onClick={() => {
+              setFiltroPeriodo('HOY');
+              setFiltroEstado('TODOS');
+              setFiltroEntrega('TODOS');
+            }}
           />
+          {/* Fusiona lo que antes eran dos tarjetas (Completadas + Monto):
+              cantidad y plata de la semana en una sola, mismo patrón que
+              "Ventas del Día" (número grande + Bs. en el subtítulo). */}
           <StatCard
-            titulo="Completadas"
+            titulo="Completadas (semana)"
             valor={estadisticas?.ventasCompletadas ?? 0}
-            subtitulo="Total ventas"
+            subtitulo={`Bs. ${(estadisticas?.montoTotal ?? 0).toFixed(2)}`}
             icon={<TrendingUp size={22} />}
             loading={loading}
+            onClick={() => {
+              setFiltroEstado(EstadoVenta.COMPLETADA);
+              setFiltroPeriodo('SEMANA');
+              setFiltroEntrega('TODOS');
+            }}
           />
           <StatCard
             titulo="Pendientes"
@@ -256,13 +341,26 @@ export default function VentasPage() {
             subtitulo="Por cobrar"
             icon={<ShoppingCart size={22} />}
             loading={loading}
+            onClick={() => {
+              setFiltroEstado(EstadoVenta.PENDIENTE_PAGO);
+              setFiltroPeriodo('TODOS');
+              setFiltroEntrega('TODOS');
+            }}
           />
+          {/* RF-10: el resumen tiene que mostrar "las ventas hechas y las
+              entregas pendientes". Sin acotar a la semana: una entrega
+              atrasada de hace tiempo sigue siendo relevante. */}
           <StatCard
-            titulo="Monto Total"
-            valor={`Bs. ${(estadisticas?.montoTotal ?? 0).toFixed(2)}`}
-            subtitulo="Ingresos totales"
-            icon={<DollarSign size={22} />}
+            titulo="Entregas Pendientes"
+            valor={estadisticas?.entregasPendientes ?? 0}
+            subtitulo="A domicilio / transportadora"
+            icon={<Truck size={22} />}
             loading={loading}
+            onClick={() => {
+              setFiltroEntrega('PENDIENTE');
+              setFiltroEstado('TODOS');
+              setFiltroPeriodo('TODOS');
+            }}
           />
         </div>
       )}
@@ -281,7 +379,7 @@ export default function VentasPage() {
               type="text"
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              placeholder="Buscar por cliente, ID o celular..."
+              placeholder="Buscar por cliente, ID, celular o producto..."
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
@@ -330,6 +428,16 @@ export default function VentasPage() {
             ))}
           </select>
 
+          <select
+            value={filtroEntrega}
+            onChange={(e) => setFiltroEntrega(e.target.value as any)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+          >
+            <option value="TODOS">Toda entrega</option>
+            <option value="PENDIENTE">Entrega pendiente</option>
+            <option value="ENTREGADO">Entregado</option>
+          </select>
+
           <button
             onClick={() => setShowRegistrarModal(true)}
             className="flex items-center justify-center gap-2 bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors font-medium whitespace-nowrap"
@@ -358,12 +466,34 @@ export default function VentasPage() {
         </div>
       )}
 
+      {message && (
+        <div className={`mb-6 p-4 rounded-lg flex items-start justify-between gap-3 ${message.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
+          <span>{message.text}</span>
+          <button onClick={() => setMessage(null)} className="flex-shrink-0 opacity-70 hover:opacity-100" title="Cerrar">
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
       {/* Tabla de ventas */}
       {loading ? (
         <div className="bg-white rounded-lg shadow-md flex items-center justify-center py-16">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
         </div>
-      ) : (
+      ) : (() => {
+        // El casillero de una acción se reserva en TODA la tabla, no fila
+        // por fila: si ninguna venta visible la necesita, no ocupa espacio
+        // en ninguna; en cuanto una la necesita, vuelve a reservarse en
+        // todas para mantener la columna alineada.
+        const hayEntregaPendiente = ventasFiltradas.some(v =>
+          v.estado !== EstadoVenta.CANCELADA
+          && v.modalidadEntrega !== ModalidadEntrega.RETIRO
+          && v.estadoEntrega === EstadoEntrega.PENDIENTE
+        );
+        const haySaldoPendiente = ventasFiltradas.some(v =>
+          v.estado === EstadoVenta.PENDIENTE_PAGO && (v.saldoPendiente ?? 0) > 0
+        );
+        return (
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <div className="overflow-x-auto" ref={scrollContainerRef}>
           <table className="w-full" ref={tableRef}>
@@ -412,7 +542,7 @@ export default function VentasPage() {
                     <ShoppingCart className="mx-auto text-gray-400 mb-3" size={48} />
                     <p className="text-gray-500 font-medium">No se encontraron ventas</p>
                     <p className="text-sm text-gray-400 mt-1">
-                      {busqueda || filtroEstado !== 'TODOS' || filtroMetodoPago !== 'TODOS' || filtroPeriodo !== 'TODOS' || filtroVendedor !== 'TODOS'
+                      {busqueda || filtroEstado !== 'TODOS' || filtroMetodoPago !== 'TODOS' || filtroPeriodo !== 'TODOS' || filtroVendedor !== 'TODOS' || filtroEntrega !== 'TODOS'
                         ? 'Intenta ajustar los filtros de búsqueda'
                         : 'Registra tu primera venta para comenzar'}
                     </p>
@@ -427,13 +557,8 @@ export default function VentasPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <div>
-                          <div className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                          <div className="text-sm font-medium text-gray-900">
                             {venta.nombreCliente}
-                            {!venta.esClienteRegistrado && (
-                              <span className="px-2 py-0.5 text-xs bg-primary-50 text-primary-700 border border-primary-200 rounded-full font-medium">
-                                Rápido
-                              </span>
-                            )}
                           </div>
                           <div className="text-xs text-gray-500">
                             {venta.telefonoCliente || 'Sin teléfono'}
@@ -475,51 +600,94 @@ export default function VentasPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${
-                        venta.estadoEntrega === EstadoEntrega.ENTREGADO
-                          ? 'bg-green-100 text-green-800 border-green-200'
-                          : 'bg-gray-100 text-gray-800 border-gray-200'
-                      }`}>
-                        {venta.estadoEntrega === EstadoEntrega.ENTREGADO ? 'Entregado' : 'Pendiente'}
-                      </span>
+                      {/* Retiro en tienda no tiene nada que despachar: el
+                          cliente se lleva el producto en el momento, así
+                          que "Pendiente" no le corresponde (ver CU-02). Solo
+                          Domicilio/Transportadora manejan un estado real de
+                          entrega. */}
+                      {venta.modalidadEntrega === ModalidadEntrega.RETIRO ? (
+                        <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border bg-blue-50 text-blue-700 border-blue-200">
+                          En tienda
+                        </span>
+                      ) : (
+                        <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${
+                          venta.estadoEntrega === EstadoEntrega.ENTREGADO
+                            ? 'bg-green-100 text-green-800 border-green-200'
+                            : 'bg-gray-100 text-gray-800 border-gray-200'
+                        }`}>
+                          {venta.estadoEntrega === EstadoEntrega.ENTREGADO ? 'Entregado' : 'Pendiente'}
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => handleVerDetalle(venta)}
-                          className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-                          title="Ver detalle"
-                        >
-                          <Eye size={18} />
-                        </button>
-                        {venta.estado !== EstadoVenta.CANCELADA && venta.estadoEntrega === EstadoEntrega.PENDIENTE && (
-                          <button
-                            onClick={() => setVentaAEntregarId(venta.id)}
-                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                            title="Marcar entregado"
-                          >
-                            <Truck size={18} />
-                          </button>
-                        )}
-                        {venta.estado === EstadoVenta.PENDIENTE_PAGO && (venta.saldoPendiente ?? 0) > 0 && (
-                          <button
-                            onClick={() => handleAbrirCobrarSaldo(venta)}
-                            className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
-                            title="Cobrar saldo pendiente"
-                          >
-                            <Banknote size={18} />
-                          </button>
-                        )}
-                        {user?.role === 'ADMIN' && venta.estado === EstadoVenta.COMPLETADA && (
-                          <button
-                            onClick={() => setVentaACancelarId(venta.id)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Cancelar venta"
-                          >
-                            <XCircle size={18} />
-                          </button>
-                        )}
-                      </div>
+                      {/* 4 casilleros fijos, siempre en el mismo orden. Lo
+                          que no aplica a esta venta queda invisible (no
+                          "hidden"): sigue ocupando su lugar, así el ícono
+                          de más a la derecha cae en la misma columna
+                          vertical en todas las filas, tenga 2, 3 o 4
+                          acciones activas. Estilo inline para la visibilidad
+                          porque la utilidad "invisible" de Tailwind no está
+                          generada en este proyecto (se probó y no aplicaba). */}
+                      {(() => {
+                        const puedeEntregar = venta.estado !== EstadoVenta.CANCELADA
+                          && venta.modalidadEntrega !== ModalidadEntrega.RETIRO
+                          && venta.estadoEntrega === EstadoEntrega.PENDIENTE;
+                        const puedeCobrarSaldo = venta.estado === EstadoVenta.PENDIENTE_PAGO
+                          && (venta.saldoPendiente ?? 0) > 0;
+                        // Antes solo se ofrecía para Completada: el backend
+                        // ya permite cancelar una venta con saldo pendiente
+                        // (por ejemplo, una seña que nunca se terminó de
+                        // pagar), pero el botón nunca aparecía para ese
+                        // caso. Ahora se ofrece para cualquier venta que no
+                        // esté cancelada ya.
+                        const puedeCancelar = user?.role === 'ADMIN' && venta.estado !== EstadoVenta.CANCELADA;
+
+                        return (
+                          <div className="flex items-center justify-center gap-0">
+                            <button
+                              onClick={() => handleVerDetalle(venta)}
+                              className="p-1.5 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                              title="Ver detalle"
+                            >
+                              <Eye size={18} />
+                            </button>
+
+                            {hayEntregaPendiente && (
+                              <button
+                                onClick={() => setVentaAEntregarId(venta.id)}
+                                disabled={!puedeEntregar}
+                                style={{ visibility: puedeEntregar ? 'visible' : 'hidden' }}
+                                className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors pointer-events-auto disabled:pointer-events-none"
+                                title="Marcar entregado"
+                              >
+                                <Truck size={18} />
+                              </button>
+                            )}
+
+                            {haySaldoPendiente && (
+                              <button
+                                onClick={() => handleAbrirCobrarSaldo(venta)}
+                                disabled={!puedeCobrarSaldo}
+                                style={{ visibility: puedeCobrarSaldo ? 'visible' : 'hidden' }}
+                                className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors pointer-events-auto disabled:pointer-events-none"
+                                title="Cobrar saldo pendiente"
+                              >
+                                <Banknote size={18} />
+                              </button>
+                            )}
+
+                            <button
+                              onClick={() => setVentaACancelarId(venta.id)}
+                              disabled={!puedeCancelar}
+                              style={{ visibility: puedeCancelar ? 'visible' : 'hidden' }}
+                              className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors pointer-events-auto disabled:pointer-events-none"
+                              title="Cancelar venta"
+                            >
+                              <XCircle size={18} />
+                            </button>
+                          </div>
+                        );
+                      })()}
                     </td>
                   </tr>
                 ))
@@ -528,7 +696,8 @@ export default function VentasPage() {
           </table>
         </div>
       </div>
-      )}
+        );
+      })()}
 
       {/* Modales */}
       <RegistrarVentaModal
@@ -582,15 +751,25 @@ export default function VentasPage() {
         />
       )}
 
-      {ventaAEntregarId !== null && (
-        <DeleteConfirmModal
-          title="Marcar como entregada"
-          message="¿Confirmar que esta venta ya fue entregada?"
-          confirmLabel="Marcar entregado"
-          onConfirm={() => handleMarcarEntregado(ventaAEntregarId)}
-          onCancel={() => setVentaAEntregarId(null)}
-        />
-      )}
+      {ventaAEntregarId !== null && (() => {
+        const ventaAEntregar = ventas.find(v => v.id === ventaAEntregarId);
+        const saldo = ventaAEntregar?.saldoPendiente ?? 0;
+        // Antes esto ni se mostraba: el backend bloqueaba directo. Ahora
+        // se avisa el monto que falta cobrar, pero se deja confirmar igual
+        // (pasa en la práctica del negocio: entregas a cuenta, clientes de
+        // confianza).
+        return (
+          <DeleteConfirmModal
+            title="Marcar como entregada"
+            message={saldo > 0
+              ? `Esta venta todavía tiene un saldo pendiente de Bs. ${saldo.toFixed(2)}. ¿Confirmás que la vas a entregar igual?`
+              : '¿Confirmar que esta venta ya fue entregada?'}
+            confirmLabel="Marcar entregado"
+            onConfirm={() => handleMarcarEntregado(ventaAEntregarId)}
+            onCancel={() => setVentaAEntregarId(null)}
+          />
+        );
+      })()}
 
       {ventaACancelarId !== null && (
         <DeleteConfirmModal

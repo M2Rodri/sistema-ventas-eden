@@ -75,24 +75,14 @@ public interface VentaRepository extends JpaRepository<Venta, Long> {
     BigDecimal sumMontoTotalByFechaVentaBetween(@Param("inicio") LocalDateTime inicio, @Param("fin") LocalDateTime fin);
 
     /**
-     * Contar ventas de mostrador (cliente cargado como INVITADO).
-     * Antes se distinguían por tener nombreClienteDirecto y ningún cliente;
-     * ahora la venta de mostrador sí tiene cliente, marcado como INVITADO.
+     * Cantidad de ventas, monto total y fecha de la última compra, agrupado
+     * por cliente, en una sola consulta. Reemplaza el patrón anterior de
+     * pedir el historial completo de cada cliente por separado (N+1) solo
+     * para armar la tabla de Clientes.
      */
-    @Query("SELECT COUNT(v) FROM Venta v WHERE v.cliente.tipoCliente = com.mitienda.ecommerce.models.TipoCliente.INVITADO")
-    Long countVentasClienteRapido();
-
-    /**
-     * Contar ventas de clientes con datos completos.
-     */
-    @Query("SELECT COUNT(v) FROM Venta v WHERE v.cliente.tipoCliente = com.mitienda.ecommerce.models.TipoCliente.REGISTRADO")
-    Long countVentasClienteRegistrado();
-
-    /**
-     * Listar las ventas de mostrador.
-     */
-    @Query("SELECT v FROM Venta v WHERE v.cliente.tipoCliente = com.mitienda.ecommerce.models.TipoCliente.INVITADO ORDER BY v.fechaVenta DESC")
-    List<Venta> findVentasClienteRapido();
+    @Query("SELECT v.cliente.id, COUNT(v), COALESCE(SUM(v.montoTotal), 0), MAX(v.fechaVenta) " +
+           "FROM Venta v GROUP BY v.cliente.id")
+    List<Object[]> aggregarEstadisticasPorCliente();
 
     // Obtiene una venta por ID, cargando también su cliente en una sola consulta para evitar errores de lazy loading.
     @Query("SELECT v FROM Venta v LEFT JOIN FETCH v.cliente WHERE v.id = :id")
