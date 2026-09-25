@@ -61,6 +61,10 @@ public class SecurityConfig {
                         // ========================================
                         .requestMatchers(
                                 "/api/auth/**",
+                                // Ruta de salud para el monitoreo de despliegue (Render, etc.):
+                                // tiene que responder sin login para que la plataforma pueda
+                                // confirmar que el servicio sigue vivo.
+                                "/api/v1/salud",
                                 // /error debe ser público: en Spring Security 6 el filtro
                                 // de autorización también se aplica al despacho de tipo
                                 // ERROR. Sin este permitAll, cualquier 404 o 500 se
