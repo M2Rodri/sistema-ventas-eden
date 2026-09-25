@@ -59,6 +59,12 @@ public class Producto {
     @Column(name = "material_nucleo", length = 100)
     private String materialNucleo;
 
+    @Column(length = 50)
+    private String color;
+
+    @Column(name = "material_armazon", length = 50)
+    private String materialArmazon;
+
     @NotNull(message = "La categoría es obligatoria")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_categoria", nullable = false)
@@ -67,10 +73,13 @@ public class Producto {
     @Column(length = 50)
     private String calidad;
 
-    @NotNull(message = "El precio es obligatorio")
-    @DecimalMin(value = "0.0", inclusive = false, message = "El precio debe ser mayor a 0")
-    @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal costoReferencial;
+    // Opcional a propósito: a veces se carga el producto rápido (compra por
+    // mayor, costo todavía sin definir) y se completa después editando. Sin
+    // este dato, la validación de "no vender por debajo del costo" y el
+    // valor total del inventario simplemente lo dejan afuera del cálculo.
+    @DecimalMin(value = "0.0", inclusive = false, message = "El precio de compra debe ser mayor a 0")
+    @Column(precision = 10, scale = 2)
+    private BigDecimal precioCompra;
 
     @NotNull(message = "El precio de venta es obligatorio")
     @DecimalMin(value = "0.0", inclusive = false, message = "El precio de venta debe ser mayor a 0")
