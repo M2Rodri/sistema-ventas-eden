@@ -70,12 +70,12 @@ public class InventarioService {
 
     /**
      * GET /api/inventario y sus variantes las puede llamar EMPLEADO.
-     * costoReferencial no debe llegarle: el rol EMPLEADO existe justamente
+     * precioCompra no debe llegarle: el rol EMPLEADO existe justamente
      * para no ver costos ni margenes.
      */
     private InventarioResponse ocultarCostoSiNoEsAdmin(InventarioResponse response) {
         if (!usuarioActualService.esAdmin()) {
-            response.setCostoReferencial(null);
+            response.setPrecioCompra(null);
         }
         return response;
     }
@@ -144,7 +144,6 @@ public class InventarioService {
         Inventario inventario = new Inventario();
         inventario.setProducto(producto);
         inventario.setCantidadDisponible(request.getCantidadDisponible());
-        inventario.setUbicacion(request.getUbicacion());
 
         Inventario savedInventario = inventarioRepository.save(inventario);
 
@@ -164,7 +163,6 @@ public class InventarioService {
                 .orElseThrow(() -> new RuntimeException("Inventario no encontrado con ID: " + id));
 
         inventario.setCantidadDisponible(request.getCantidadDisponible());
-        inventario.setUbicacion(request.getUbicacion());
 
         Inventario updatedInventario = inventarioRepository.save(inventario);
 
@@ -356,22 +354,26 @@ public class InventarioService {
     public List<AlertaInventarioResponse> getAlertasPendientes() {
         return alertaInventarioRepository.findByEstadoOrderByFechaAlertaDesc(EstadoAlerta.PENDIENTE)
                 .stream()
-                .map(AlertaInventarioResponse::new) // <-- Verificar si este constructor accede a .getProducto() perezosamente
+                .map(this::aResponseConDatosEnVivo)
                 .collect(Collectors.toList());
     }
 
     /**
-     * Marcar alerta como atendida
-     * (Ya tenía @Transactional implícito en el método de escritura)
+     * La alerta guarda cantidadActual/cantidadMinima congelados desde que se
+     * creó. Con la desduplicación (ver verificarYCrearAlerta) una alerta
+     * puede seguir PENDIENTE mientras el producto sigue vendiéndose, así que
+     * esos números quedan viejos. Acá se pisan con los datos reales de
+     * inventario antes de responder, para que la campanita de notificaciones
+     * y cualquier otro consumidor de este endpoint muestren lo mismo que la
+     * tabla principal.
      */
-    @Transactional
-    public AlertaInventarioResponse marcarAlertaAtendida(Long idAlerta) {
-        AlertaInventario alerta = alertaInventarioRepository.findById(idAlerta)
-                .orElseThrow(() -> new RuntimeException("Alerta no encontrada con ID: " + idAlerta));
-
-        alerta.setEstado(EstadoAlerta.ATENDIDA);
-        AlertaInventario updatedAlerta = alertaInventarioRepository.save(alerta);
-        return new AlertaInventarioResponse(updatedAlerta);
+    private AlertaInventarioResponse aResponseConDatosEnVivo(AlertaInventario alerta) {
+        AlertaInventarioResponse response = new AlertaInventarioResponse(alerta);
+        inventarioRepository.findByProductoId(alerta.getProducto().getId()).ifPresent(inv -> {
+            response.setCantidadActual(inv.getCantidadDisponible());
+            response.setCantidadMinima(inv.getProducto().getStockMinimo());
+        });
+        return response;
     }
 
     /**
@@ -380,13 +382,56 @@ public class InventarioService {
      * No necesita @Transactional, ya que se llama desde un método que sí lo tiene (@Transactional en createInventario, updateInventario, ajustarInventario, etc.).
      */
     private void verificarYCrearAlerta(Inventario inventario) {
-        if (inventario.estaBajoStockMinimo()) {
-            AlertaInventario alerta = new AlertaInventario(
-                inventario.getProducto(),
-                inventario.getCantidadDisponible(),
-                inventario.getProducto().getStockMinimo()
-            );
-            alertaInventarioRepository.save(alerta);
+        if (!inventario.estaBajoStockMinimo()) {
+            // El stock se repuso: si había alertas pendientes de cuando
+            // estaba bajo, ya no tiene sentido que sigan ahí esperando que
+            // alguien las marque a mano.
+            resolverAlertasPendientes(inventario);
+            return;
         }
+        // Sin este chequeo, cada venta o ajuste que deja al producto igual
+        // de bajo (o más bajo todavía) generaba una alerta nueva, y se
+        // apilaban varias pendientes para el mismo producto con números de
+        // stock distintos entre sí, sin que "Productos con Stock Bajo"
+        // (que sí cuenta en vivo) coincidiera nunca con la cantidad de
+        // alertas mostradas.
+        boolean yaHayAlertaPendiente = alertaInventarioRepository
+                .existsByProductoIdAndEstado(inventario.getProducto().getId(), EstadoAlerta.PENDIENTE);
+        if (yaHayAlertaPendiente) {
+            return;
+        }
+        AlertaInventario alerta = new AlertaInventario(
+            inventario.getProducto(),
+            inventario.getCantidadDisponible(),
+            inventario.getProducto().getStockMinimo()
+        );
+        alertaInventarioRepository.save(alerta);
+    }
+
+    /**
+     * Revisar la alerta de un producto después de un cambio que no pasó por
+     * este servicio, como editar el stock mínimo desde ProductoService: ese
+     * número también decide si el producto está bajo mínimo, así que un
+     * cambio ahí puede crear o resolver una alerta igual que un movimiento
+     * de stock.
+     */
+    @Transactional
+    public void sincronizarAlerta(Long idProducto) {
+        inventarioRepository.findByProductoId(idProducto)
+                .ifPresent(this::verificarYCrearAlerta);
+    }
+
+    /**
+     * Resolver solas las alertas pendientes de un producto cuyo stock ya
+     * volvió a estar por encima del mínimo.
+     */
+    private void resolverAlertasPendientes(Inventario inventario) {
+        List<AlertaInventario> pendientes = alertaInventarioRepository
+                .findByProductoIdAndEstado(inventario.getProducto().getId(), EstadoAlerta.PENDIENTE);
+        if (pendientes.isEmpty()) {
+            return;
+        }
+        pendientes.forEach(alerta -> alerta.setEstado(EstadoAlerta.ATENDIDA));
+        alertaInventarioRepository.saveAll(pendientes);
     }
 }

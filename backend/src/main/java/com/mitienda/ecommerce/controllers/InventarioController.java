@@ -127,11 +127,17 @@ public class InventarioController {
 
     /**
      * POST /api/inventario/ajustar
-     * Ajustar inventario manualmente (entrada/salida). Siempre queda
+     * Ajustar inventario manualmente (entrada/salida) (ADMIN). Siempre queda
      * registrado en movimientos_inventario, con el usuario autenticado que
      * hizo el ajuste: no existe un camino de ajuste manual sin rastro.
+     *
+     * Es solo-ADMIN por el mismo motivo que crear/editar inventario: cambia
+     * el stock directamente, sin pasar por una venta o compra, así que no
+     * puede quedar abierto a cualquiera (separación de funciones: quien
+     * vende no debería poder "cuadrar" el stock por su cuenta).
      */
     @PostMapping("/ajustar")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> ajustarInventario(@Valid @RequestBody MovimientoInventarioRequest request) {
         try {
             InventarioResponse inventario = inventarioService.ajustarInventario(request);
@@ -210,21 +216,6 @@ public class InventarioController {
     public ResponseEntity<List<AlertaInventarioResponse>> getAlertasPendientes() {
         List<AlertaInventarioResponse> alertas = inventarioService.getAlertasPendientes();
         return ResponseEntity.ok(alertas);
-    }
-
-    /**
-     * PATCH /api/inventario/alertas/{id}/atender
-     * Marcar alerta como atendida
-     */
-    @PatchMapping("/alertas/{id}/atender")
-    public ResponseEntity<?> marcarAlertaAtendida(@PathVariable Long id) {
-        try {
-            AlertaInventarioResponse alerta = inventarioService.marcarAlertaAtendida(id);
-            return ResponseEntity.ok(alerta);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
-        }
     }
 
     /**

@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { 
-  getAllInventario, 
-  getProductosConStockBajo, 
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import {
+  getAllInventario,
+  getProductosConStockBajo,
   getAlertasPendientes,
-  marcarAlertaAtendida,
   getUltimosAjustes
 } from '@/lib/api';
 import { Inventario, AlertaInventario, MovimientoInventario } from '@/types/inventario';
@@ -15,6 +15,7 @@ import MovimientoInventarioModal from '@/components/MovimientoInventarioModal';
 import DetalleProductoModal from '@/components/DetalleProductoModal';
 import ConfigurarStockMinimoModal from '@/components/ConfigurarStockMinimoModal';
 import HistorialProductoModal from '@/components/HistorialProductoModal';
+import DesgloseValorInventarioModal from '@/components/DesgloseValorInventarioModal';
 import AvisoCargaParcial from '@/components/AvisoCargaParcial';
 import { crearRecolector } from '@/lib/cargaParcial';
 import StatCard from '@/components/StatCard';
@@ -22,8 +23,10 @@ import { mensajeError } from '@/lib/errores';
 import { useDragScrollTable } from '@/hooks/useDragScrollTable';
 import { useAuth } from '@/hooks/useAuth';
 
-export default function InventarioPage() {
+function InventarioContent() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [inventario, setInventario] = useState<Inventario[]>([]);
   const [filteredInventario, setFilteredInventario] = useState<Inventario[]>([]);
   const [alertas, setAlertas] = useState<AlertaInventario[]>([]);
@@ -40,6 +43,7 @@ export default function InventarioPage() {
   const [isDetalleModalOpen, setIsDetalleModalOpen] = useState(false);
   const [isStockMinimoModalOpen, setIsStockMinimoModalOpen] = useState(false);
   const [isHistorialModalOpen, setIsHistorialModalOpen] = useState(false);
+  const [isDesgloseValorOpen, setIsDesgloseValorOpen] = useState(false);
   const [selectedInventario, setSelectedInventario] = useState<Inventario | null>(null);
 
   // Mensajes
@@ -48,6 +52,20 @@ export default function InventarioPage() {
   // Cargar datos
   useEffect(() => {
     loadData();
+  }, []);
+
+  // Clickear "Inventario" en el menú, aunque ya estés en esta pantalla,
+  // tiene que volver todo a su estado normal (mismo mecanismo que Ventas:
+  // ver Sidebar.tsx).
+  useEffect(() => {
+    const resetearFiltros = () => {
+      setSearchTerm('');
+      setStockFilter('TODOS');
+      setCategoriaFilter('TODOS');
+      setShowHistorial(false);
+    };
+    window.addEventListener('inventario:reset-filtros', resetearFiltros);
+    return () => window.removeEventListener('inventario:reset-filtros', resetearFiltros);
   }, []);
 
   const loadData = async () => {
@@ -82,11 +100,15 @@ export default function InventarioPage() {
   useEffect(() => {
     let filtered = inventario;
 
-    // Filtro por búsqueda
+    // Filtro por búsqueda. Sin tildes: nadie escribe tildes buscando rápido,
+    // y antes "colchon" no encontraba "Colchón" (mismo criterio que Ventas).
     if (searchTerm) {
+      const normalizar = (s: string) =>
+        s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+      const termino = normalizar(searchTerm);
       filtered = filtered.filter(item =>
-        item.nombreProducto.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.skuProducto.toLowerCase().includes(searchTerm.toLowerCase())
+        normalizar(item.nombreProducto).includes(termino) ||
+        normalizar(item.skuProducto).includes(termino)
       );
     }
 
@@ -128,6 +150,21 @@ export default function InventarioPage() {
     setIsDetalleModalOpen(true);
   };
 
+  // La campanita de notificaciones linkea acá con ?producto=<id> para que la
+  // alerta de un producto lleve directo a su detalle, no solo a la pantalla
+  // en general. Se limpia el parámetro de la URL para no reabrir el modal si
+  // el usuario recarga la página.
+  useEffect(() => {
+    if (loading) return;
+    const idProducto = searchParams.get('producto');
+    if (!idProducto) return;
+    const item = inventario.find((i) => i.idProducto === Number(idProducto));
+    if (item) {
+      handleVerDetalle(item);
+    }
+    router.replace('/dashboard/inventario');
+  }, [loading, inventario, searchParams]);
+
   const handleConfigurarStockMinimo = (item: Inventario) => {
     setSelectedInventario(item);
     setIsStockMinimoModalOpen(true);
@@ -136,16 +173,6 @@ export default function InventarioPage() {
   const handleVerHistorialProducto = (item: Inventario) => {
     setSelectedInventario(item);
     setIsHistorialModalOpen(true);
-  };
-
-  const handleAtenderAlerta = async (id: number) => {
-    try {
-      await marcarAlertaAtendida(id);
-      showMessage('success', 'Alerta marcada como atendida');
-      loadData();
-    } catch (error: any) {
-      showMessage('error', mensajeError(error));
-    }
   };
 
   const getStockBadge = (item: Inventario) => {
@@ -175,7 +202,7 @@ export default function InventarioPage() {
   // promedio", así que esta pantalla y el panel de inicio mostraban dos
   // valores distintos del mismo inventario. Ahora usa el costo real.
   const valorTotalInventario = inventario.reduce(
-    (sum, item) => sum + item.cantidadDisponible * Number(item.costoReferencial ?? 0),
+    (sum, item) => sum + item.cantidadDisponible * Number(item.precioCompra ?? 0),
     0
   );
 
@@ -196,30 +223,48 @@ export default function InventarioPage() {
       <AvisoCargaParcial fallos={fallosCarga} onReintentar={loadData} />
 
       {/* INDICADORES SUPERIORES - P4.1 */}
+      {/* Cada tarjeta fija TODOS los filtros (búsqueda, categoría, stock,
+          historial), nunca solo el que le importa — mismo criterio que
+          Ventas: si dejás algún filtro con lo que quedó de un click
+          anterior, la tabla no coincide con lo que la tarjeta dice. */}
       <div className={`grid grid-cols-1 gap-4 mb-6 ${user?.role === 'ADMIN' ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
         <StatCard
           titulo="Total de Productos"
           valor={totalProductos}
           icon={<Package size={22} />}
           loading={loading}
+          onClick={() => {
+            setStockFilter('TODOS');
+            setCategoriaFilter('TODOS');
+            setSearchTerm('');
+            setShowHistorial(false);
+          }}
         />
 
         <StatCard
           titulo="Productos con Stock Bajo"
           valor={productosConAlerta}
           icon={<AlertTriangle size={22} />}
-          onClick={() => setStockFilter(stockFilter === 'STOCK_BAJO' ? 'TODOS' : 'STOCK_BAJO')}
-          className="hover:border-slate-500"
+          onClick={() => {
+            setStockFilter('STOCK_BAJO');
+            setCategoriaFilter('TODOS');
+            setSearchTerm('');
+            setShowHistorial(false);
+          }}
           loading={loading}
         />
 
-        {/* Se calcula con costoReferencial: el rol EMPLEADO no ve costos. */}
+        {/* Se calcula con precioCompra: el rol EMPLEADO no ve costos. Al
+            clickear muestra el desglose (cantidad × precio de compra de
+            cada producto), que es la fuente real de este número — no la
+            tabla general, que no muestra precios. */}
         {user?.role === 'ADMIN' && (
           <StatCard
             titulo="Valor Total del Inventario"
             valor={`${valorTotalInventario.toLocaleString('es-BO')} Bs`}
             icon={<DollarSign size={22} />}
             loading={loading}
+            onClick={() => setIsDesgloseValorOpen(true)}
           />
         )}
       </div>
@@ -350,31 +395,48 @@ export default function InventarioPage() {
             Alertas de Stock Bajo ({alertas.length})
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {alertas.map((alerta) => (
-              <div key={alerta.id} className="bg-red-50 border-2 border-red-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900">{alerta.nombreProducto}</h3>
-                    <p className="text-xs text-gray-500">{alerta.skuProducto}</p>
-                  </div>
-                  <AlertTriangle className="text-red-600 flex-shrink-0" size={20} />
-                </div>
-                <div className="flex items-center justify-between text-sm mb-3">
-                  <span className="text-gray-600">Stock actual:</span>
-                  <span className="font-bold text-red-700">{alerta.cantidadActual} unidades</span>
-                </div>
-                <div className="flex items-center justify-between text-xs text-gray-600 mb-3">
-                  <span>Stock mínimo:</span>
-                  <span>{alerta.cantidadMinima}</span>
-                </div>
-                <button
-                  onClick={() => handleAtenderAlerta(alerta.id)}
-                  className="w-full px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
+            {alertas.map((alerta) => {
+              // El backend ya devuelve cantidadActual/cantidadMinima en vivo
+              // (ver InventarioService#aResponseConDatosEnVivo), no lo que
+              // quedó guardado cuando se creó la alerta. Acá solo se busca
+              // el item completo para poder abrir su modal de detalle.
+              const actual = inventario.find((i) => i.idProducto === alerta.idProducto);
+              const sinStock = alerta.cantidadActual === 0;
+              return (
+                <div
+                  key={alerta.id}
+                  onClick={() => actual && handleVerDetalle(actual)}
+                  title="Click para ver detalles del producto"
+                  className="bg-red-50 border-2 border-red-200 rounded-lg p-4 hover:shadow-md hover:border-red-300 transition-shadow cursor-pointer"
                 >
-                  Marcar como Atendida
-                </button>
-              </div>
-            ))}
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-gray-900">{alerta.nombreProducto}</h3>
+                        {sinStock && (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-red-600 text-white text-xs font-extrabold uppercase tracking-wide rounded-full shadow-sm ring-2 ring-red-200">
+                            <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+                            Sin stock
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500">{alerta.skuProducto}</p>
+                    </div>
+                    <AlertTriangle className="text-red-600 flex-shrink-0" size={20} />
+                  </div>
+                  <div className="flex items-center justify-between text-sm mb-3">
+                    <span className="text-gray-600">Stock actual:</span>
+                    <span className="font-bold text-red-700">
+                      {alerta.cantidadActual} unidades
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-gray-600">
+                    <span>Stock mínimo:</span>
+                    <span>{alerta.cantidadMinima}</span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -474,7 +536,6 @@ export default function InventarioPage() {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Categoría</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Stock Actual</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Stock Mínimo</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Ubicación</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Estado de Alerta</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Última Actualización</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Acciones</th>
@@ -506,9 +567,6 @@ export default function InventarioPage() {
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600 text-center">
                       {item.stockMinimo}
                     </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {item.ubicacion || '-'}
-                    </td>
                     <td className="px-4 py-4 whitespace-nowrap">
                       {getStockBadge(item)}
                     </td>
@@ -517,14 +575,20 @@ export default function InventarioPage() {
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={() => handleAjustarStock(item)}
-                          className="flex items-center gap-1 px-2.5 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-xs font-medium shadow-sm"
-                          title="Ajustar Inventario"
-                        >
-                          <Edit size={14} />
-                          Ajustar
-                        </button>
+                        {/* Solo-ADMIN: el backend ya lo bloquea a EMPLEADO
+                            (POST /inventario/ajustar), así que mostrárselo
+                            solo lo hacía llenar un formulario para terminar
+                            en un error. */}
+                        {user?.role === 'ADMIN' && (
+                          <button
+                            onClick={() => handleAjustarStock(item)}
+                            className="flex items-center gap-1 px-2.5 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-xs font-medium shadow-sm"
+                            title="Ajustar Inventario"
+                          >
+                            <Edit size={14} />
+                            Ajustar
+                          </button>
+                        )}
                         <button
                           onClick={() => handleVerHistorialProducto(item)}
                           className="p-1.5 border border-gray-200 bg-white text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
@@ -596,6 +660,25 @@ export default function InventarioPage() {
           onClose={() => setIsHistorialModalOpen(false)}
         />
       )}
+
+      {isDesgloseValorOpen && (
+        <DesgloseValorInventarioModal
+          inventario={inventario}
+          onClose={() => setIsDesgloseValorOpen(false)}
+        />
+      )}
     </div>
+  );
+}
+
+export default function InventarioPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center py-16">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+      </div>
+    }>
+      <InventarioContent />
+    </Suspense>
   );
 }

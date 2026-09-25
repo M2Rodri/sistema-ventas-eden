@@ -100,7 +100,7 @@ export default function MovimientoInventarioModal({ inventario, onClose, onSucce
           {/* Tipo de ajuste */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Tipo de Ajuste <span className="text-red-500">*</span>
+              ¿Qué querés hacer? <span className="text-red-500">*</span>
             </label>
             <div className="grid grid-cols-2 gap-3">
               <button
@@ -112,7 +112,7 @@ export default function MovimientoInventarioModal({ inventario, onClose, onSucce
                     : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
                 }`}
               >
-                ➕ Entrada
+                ➕ Agregar stock
               </button>
               <button
                 type="button"
@@ -123,7 +123,7 @@ export default function MovimientoInventarioModal({ inventario, onClose, onSucce
                     : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
                 }`}
               >
-                ➖ Salida
+                ➖ Quitar stock
               </button>
             </div>
           </div>

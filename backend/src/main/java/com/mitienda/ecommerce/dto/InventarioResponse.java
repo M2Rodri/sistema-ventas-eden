@@ -28,11 +28,12 @@ public class InventarioResponse {
     private Long idCategoria;
     private String nombreCategoria;
 
-    /** Costo de referencia del producto: permite valorizar el inventario. */
-    private java.math.BigDecimal costoReferencial;
+    private String descripcion;
+
+    /** Precio de compra del producto: permite valorizar el inventario. */
+    private java.math.BigDecimal precioCompra;
     private Integer cantidadDisponible;
     private Integer stockMinimo;
-    private String ubicacion;
     private Boolean bajoStockMinimo;
     private LocalDateTime fechaActualizacion;
 
@@ -46,10 +47,10 @@ public class InventarioResponse {
                 ? inventario.getProducto().getCategoria().getId() : null;
         this.nombreCategoria = inventario.getProducto().getCategoria() != null
                 ? inventario.getProducto().getCategoria().getNombre() : null;
-        this.costoReferencial = inventario.getProducto().getCostoReferencial();
+        this.descripcion = inventario.getProducto().getDescripcion();
+        this.precioCompra = inventario.getProducto().getPrecioCompra();
         this.cantidadDisponible = inventario.getCantidadDisponible();
         this.stockMinimo = inventario.getProducto().getStockMinimo();
-        this.ubicacion = inventario.getUbicacion();
         this.bajoStockMinimo = inventario.estaBajoStockMinimo();
         this.fechaActualizacion = inventario.getFechaActualizacion();
     }

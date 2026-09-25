@@ -18,11 +18,11 @@ export interface Inventario {
   /** Categoría real del producto, provista por el backend. */
   idCategoria: number | null;
   nombreCategoria: string | null;
-  /** Costo de referencia del producto, para valorizar el inventario. */
-  costoReferencial: number | null;
+  descripcion: string | null;
+  /** Precio de compra del producto, para valorizar el inventario. */
+  precioCompra: number | null;
   cantidadDisponible: number;
   stockMinimo: number;
-  ubicacion: string | null;
   bajoStockMinimo: boolean;
   fechaActualizacion: string;
 }
@@ -30,7 +30,6 @@ export interface Inventario {
 export interface InventarioRequest {
   idProducto: number;
   cantidadDisponible: number;
-  ubicacion?: string;
 }
 
 export interface AlertaInventario {

@@ -34,18 +34,14 @@ public class Inventario {
     @Column(nullable = false)
     private Integer cantidadDisponible = 0;
 
-    @Column(length = 100)
-    private String ubicacion; // Ej: "Almacén A - Estante 3"
-
     @UpdateTimestamp
     @Column(nullable = false)
     private LocalDateTime fechaActualizacion;
 
     // Constructor personalizado
-    public Inventario(Producto producto, Integer cantidadDisponible, String ubicacion) {
+    public Inventario(Producto producto, Integer cantidadDisponible) {
         this.producto = producto;
         this.cantidadDisponible = cantidadDisponible;
-        this.ubicacion = ubicacion;
     }
 
     /**
