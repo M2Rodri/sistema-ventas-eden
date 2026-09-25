@@ -71,21 +71,6 @@ public class ProveedorController {
     }
 
     /**
-     * GET /api/proveedores/nit/{nit}
-     * Obtener proveedor por NIT
-     */
-    @GetMapping("/nit/{nit}")
-    public ResponseEntity<?> getProveedorByNit(@PathVariable String nit) {
-        try {
-            ProveedorResponse proveedor = proveedorService.getProveedorByNit(nit);
-            return ResponseEntity.ok(proveedor);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    /**
      * POST /api/proveedores
      * Crear nuevo proveedor
      */
@@ -117,21 +102,6 @@ public class ProveedorController {
     }
 
     /**
-     * DELETE /api/proveedores/{id}
-     * Eliminar proveedor (desactivar)
-     */
-    @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteProveedor(@PathVariable Long id) {
-        try {
-            proveedorService.deleteProveedor(id);
-            return ResponseEntity.ok(Map.of("message", "Proveedor desactivado correctamente"));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    /**
      * PATCH /api/proveedores/{id}/toggle-status
      * Activar/Desactivar proveedor
      */
@@ -154,15 +124,5 @@ public class ProveedorController {
     public ResponseEntity<List<ProveedorResponse>> searchProveedores(@RequestParam String nombre) {
         List<ProveedorResponse> proveedores = proveedorService.searchProveedores(nombre);
         return ResponseEntity.ok(proveedores);
-    }
-
-    /**
-     * GET /api/proveedores/estadisticas
-     * Obtener estadísticas de proveedores
-     */
-    @GetMapping("/estadisticas")
-    public ResponseEntity<?> getProveedorStatistics() {
-        Long totalActivos = proveedorService.countActiveProveedores();
-        return ResponseEntity.ok(Map.of("activos", totalActivos));
     }
 }

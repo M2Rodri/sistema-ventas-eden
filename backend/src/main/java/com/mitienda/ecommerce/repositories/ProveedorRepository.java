@@ -5,7 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Repositorio para operaciones con proveedores
@@ -13,17 +12,13 @@ import java.util.Optional;
 public interface ProveedorRepository extends JpaRepository<Proveedor, Long> {
 
     /**
-     * Buscar proveedor por NIT
-     */
-    Optional<Proveedor> findByNit(String nit);
-
-    /**
      * Verificar si existe un proveedor con ese NIT
      */
     Boolean existsByNit(String nit);
 
     /**
-     * Listar solo proveedores activos
+     * Listar solo proveedores activos. Lo usa CompraModal: un proveedor
+     * inactivo no aparece para elegir al registrar una compra nueva.
      */
     List<Proveedor> findByActivoTrue();
 
@@ -32,9 +27,4 @@ public interface ProveedorRepository extends JpaRepository<Proveedor, Long> {
      */
     @Query("SELECT p FROM Proveedor p WHERE LOWER(p.nombreEmpresa) LIKE LOWER(CONCAT('%', :nombre, '%'))")
     List<Proveedor> searchByNombre(String nombre);
-
-    /**
-     * Contar proveedores activos
-     */
-    Long countByActivo(Boolean activo);
 }

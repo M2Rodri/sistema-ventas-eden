@@ -5,11 +5,10 @@ import { useRouter } from 'next/navigation';
 import { useDragScrollTable } from '@/hooks/useDragScrollTable';
 import {
   getAllProveedores,
-  deleteProveedor,
   toggleProveedorStatus,
 } from '@/lib/api';
 import { Proveedor } from '@/types/proveedor';
-import { Search, Building2, Edit, Trash2, Power, ShoppingCart, Package, X } from 'lucide-react';
+import { Search, Building2, Edit, Power, ShoppingCart, Package, X } from 'lucide-react';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import ProveedorModal from '@/components/ProveedorModal';
 import CompraModal from '@/components/CompraModal';
@@ -42,9 +41,9 @@ export default function ProveedoresPage() {
   // Modals
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCompraModalOpen, setIsCompraModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedProveedor, setSelectedProveedor] = useState<Proveedor | null>(null);
-  const [proveedorToDelete, setProveedorToDelete] = useState<Proveedor | null>(null);
+  // Confirmación solo al desactivar (activar no tiene riesgo, no la pide).
+  const [proveedorADesactivar, setProveedorADesactivar] = useState<Proveedor | null>(null);
 
   // Mensajes
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -109,33 +108,31 @@ export default function ProveedoresPage() {
     setIsModalOpen(true);
   };
 
-  const handleDeleteClick = (proveedor: Proveedor) => {
-    setProveedorToDelete(proveedor);
-    setIsDeleteModalOpen(true);
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!proveedorToDelete) return;
-
-    try {
-      await deleteProveedor(proveedorToDelete.id);
-      showMessage('success', 'Proveedor eliminado correctamente');
-      loadData();
-      setIsDeleteModalOpen(false);
-      setProveedorToDelete(null);
-    } catch (error: any) {
-      showMessage('error', mensajeError(error));
+  // Click en el badge de Estado. Activar no tiene riesgo (un proveedor
+  // inactivo solo estaba escondido del selector de compras, nada se pierde),
+  // así que se aplica directo. Desactivar sí pide confirmar primero.
+  const handleClickEstado = (proveedor: Proveedor) => {
+    if (proveedor.activo) {
+      setProveedorADesactivar(proveedor);
+    } else {
+      aplicarToggle(proveedor);
     }
   };
 
-  const handleToggleStatus = async (proveedor: Proveedor) => {
+  const aplicarToggle = async (proveedor: Proveedor) => {
     try {
       await toggleProveedorStatus(proveedor.id);
-      showMessage('success', `Proveedor ${proveedor.activo ? 'desactivado' : 'activado'} correctamente`);
+      showMessage('success', `${proveedor.nombreEmpresa} quedó ${proveedor.activo ? 'desactivado' : 'activado'}.`);
       loadData();
     } catch (error: any) {
       showMessage('error', mensajeError(error));
     }
+  };
+
+  const handleConfirmarDesactivar = async () => {
+    if (!proveedorADesactivar) return;
+    await aplicarToggle(proveedorADesactivar);
+    setProveedorADesactivar(null);
   };
 
   const handleRegistrarCompra = (proveedor: Proveedor) => {
@@ -252,7 +249,7 @@ export default function ProveedoresPage() {
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{proveedor.email || '-'}</td>
                   <td className="px-4 py-4 whitespace-nowrap">
                     <button
-                      onClick={() => handleToggleStatus(proveedor)}
+                      onClick={() => handleClickEstado(proveedor)}
                       className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
                         proveedor.activo 
                           ? 'bg-green-100 text-green-800 hover:bg-green-200' 
@@ -285,13 +282,6 @@ export default function ProveedoresPage() {
                         title="Editar"
                       >
                         <Edit size={18} />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteClick(proveedor)}
-                        className="text-red-600 hover:text-red-800 transition-colors"
-                        title="Eliminar"
-                      >
-                        <Trash2 size={18} />
                       </button>
                     </div>
                   </td>
@@ -336,15 +326,13 @@ export default function ProveedoresPage() {
         />
       )}
 
-      {isDeleteModalOpen && proveedorToDelete && (
+      {proveedorADesactivar && (
         <DeleteConfirmModal
-          title="Eliminar Proveedor"
-          message={`¿Estás seguro de que deseas eliminar a "${proveedorToDelete.nombreEmpresa}"?`}
-          onConfirm={handleDeleteConfirm}
-          onCancel={() => {
-            setIsDeleteModalOpen(false);
-            setProveedorToDelete(null);
-          }}
+          title="Desactivar Proveedor"
+          message={`"${proveedorADesactivar.nombreEmpresa}" no va a aparecer para elegir al registrar una compra nueva. Se puede reactivar cuando quieras.`}
+          confirmLabel="Desactivar"
+          onConfirm={handleConfirmarDesactivar}
+          onCancel={() => setProveedorADesactivar(null)}
         />
       )}
 

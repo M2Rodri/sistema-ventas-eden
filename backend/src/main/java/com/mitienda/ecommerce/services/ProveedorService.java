@@ -69,15 +69,6 @@ public class ProveedorService {
     }
 
     /**
-     * Buscar proveedor por NIT
-     */
-    public ProveedorResponse getProveedorByNit(String nit) {
-        Proveedor proveedor = proveedorRepository.findByNit(nit)
-                .orElseThrow(() -> new RuntimeException("Proveedor no encontrado con NIT: " + nit));
-        return new ProveedorResponse(proveedor);
-    }
-
-    /**
      * Crear nuevo proveedor
      */
     @Transactional
@@ -136,22 +127,8 @@ public class ProveedorService {
     }
 
     /**
-     * Eliminar proveedor (desactivar)
-     */
-    @Transactional
-    public void deleteProveedor(Long id) {
-        Proveedor proveedor = proveedorRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Proveedor no encontrado con ID: " + id));
-
-        proveedor.setActivo(false);
-        proveedorRepository.save(proveedor);
-
-        registroAuditoria.registrar("ELIMINAR_PROVEEDOR", "proveedores", proveedor.getId(),
-                "Baja de " + proveedor.getNombreEmpresa());
-    }
-
-    /**
-     * Activar/Desactivar proveedor
+     * Activar/Desactivar proveedor. Es la única baja que existe: no hay un
+     * "eliminar" aparte (ver misma decisión en ClienteService).
      */
     @Transactional
     public ProveedorResponse toggleProveedorStatus(Long id) {
@@ -176,12 +153,5 @@ public class ProveedorService {
                 .stream()
                 .map(ProveedorResponse::new)
                 .collect(Collectors.toList());
-    }
-
-    /**
-     * Contar proveedores activos
-     */
-    public Long countActiveProveedores() {
-        return proveedorRepository.countByActivo(true);
     }
 }

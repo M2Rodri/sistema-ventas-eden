@@ -68,8 +68,12 @@ public class Proveedor {
     @Column(nullable = false)
     private LocalDateTime fechaActualizacion;
 
-    // Relación con compras
-    @OneToMany(mappedBy = "proveedor", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    // Relación con compras. Sin cascade: las compras las administra
+    // CompraService de forma independiente, y un proveedor nunca se borra de
+    // verdad (solo se desactiva). Con CascadeType.ALL, borrar un Proveedor
+    // por error se hubiera llevado puesto todo su historial de compras
+    // (mismo motivo que en Cliente.java).
+    @OneToMany(mappedBy = "proveedor", fetch = FetchType.LAZY)
     private List<Compra> compras = new ArrayList<>();
 
     // Constructor personalizado
