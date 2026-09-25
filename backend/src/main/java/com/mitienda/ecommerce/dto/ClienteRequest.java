@@ -41,7 +41,7 @@ public class ClienteRequest {
 
     
 
-    private TipoCliente tipoCliente = TipoCliente.INVITADO;
+    private TipoCliente tipoCliente = TipoCliente.REGISTRADO;
 
     private Boolean activo = true;
 }

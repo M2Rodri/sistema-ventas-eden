@@ -2,9 +2,8 @@ package com.mitienda.ecommerce.controllers;
 
 import com.mitienda.ecommerce.dto.ClienteRequest;
 import com.mitienda.ecommerce.dto.ClienteResponse;
-import com.mitienda.ecommerce.dto.ClienteEstadisticas;
+import com.mitienda.ecommerce.dto.ClienteConEstadisticasResponse;
 import com.mitienda.ecommerce.dto.HistorialComprasResponse;
-import com.mitienda.ecommerce.models.TipoCliente;
 import com.mitienda.ecommerce.services.ClienteService;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -53,14 +52,14 @@ public class ClienteController {
     }
 
     /**
-     * GET /api/clientes/activos
-     * Listar solo clientes activos (ADMIN/EMPLEADO)
+     * GET /api/clientes/con-estadisticas
+     * Listar todos los clientes con número de compras, monto total y última
+     * compra, para la tabla de Clientes (ADMIN/EMPLEADO).
      */
-    @GetMapping("/activos")
+    @GetMapping("/con-estadisticas")
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLEADO')")
-    public ResponseEntity<List<ClienteResponse>> getActiveClientes() {
-        List<ClienteResponse> clientes = clienteService.getActiveClientes();
-        return ResponseEntity.ok(clientes);
+    public ResponseEntity<List<ClienteConEstadisticasResponse>> getAllClientesConEstadisticas() {
+        return ResponseEntity.ok(clienteService.getAllClientesConEstadisticas());
     }
 
     /**
@@ -81,7 +80,13 @@ public class ClienteController {
 
     /**
      * POST /api/clientes
-     * Crear nuevo cliente (ADMIN/EMPLEADO o público)
+     * Crear nuevo cliente (ADMIN/EMPLEADO).
+     *
+     * Sin @PreAuthorize propio, pero no es público: la tienda virtual quedó
+     * fuera de alcance (ver SecurityConfig), así que la regla general
+     * `anyRequest().authenticated()` ya exige sesión acá. En la práctica hoy
+     * nadie llama esto directo: un cliente nuevo se crea solo al registrar
+     * su primera venta (ver VentaService).
      */
     @PostMapping
     public ResponseEntity<?> createCliente(@Valid @RequestBody ClienteRequest request) {
@@ -113,38 +118,6 @@ public class ClienteController {
     }
 
     /**
-     * DELETE /api/clientes/{id}
-     * Eliminar cliente (ADMIN)
-     */
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> deleteCliente(@PathVariable Long id) {
-        try {
-            clienteService.deleteCliente(id);
-            return ResponseEntity.ok(Map.of("message", "Cliente desactivado correctamente"));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    /**
-     * PATCH /api/clientes/{id}/toggle-status
-     * Activar/Desactivar cliente (ADMIN)
-     */
-    @PatchMapping("/{id}/toggle-status")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> toggleClienteStatus(@PathVariable Long id) {
-        try {
-            ClienteResponse cliente = clienteService.toggleClienteStatus(id);
-            return ResponseEntity.ok(cliente);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    /**
      * GET /api/clientes/buscar?q=...
      * Buscar clientes por nombre, teléfono o NIT/CI (ADMIN/EMPLEADO)
      * CU: Buscar/Consultar Cliente - Interfaz P6.1
@@ -154,35 +127,6 @@ public class ClienteController {
     public ResponseEntity<List<ClienteResponse>> searchClientes(@RequestParam String q) {
         List<ClienteResponse> clientes = clienteService.searchClientes(q);
         return ResponseEntity.ok(clientes);
-    }
-
-    /**
-     * GET /api/clientes/tipo/{tipo}
-     * Filtrar clientes por tipo (ADMIN/EMPLEADO)
-     */
-    @GetMapping("/tipo/{tipo}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLEADO')")
-    public ResponseEntity<?> getClientesByTipo(@PathVariable String tipo) {
-        try {
-            TipoCliente tipoEnum = TipoCliente.valueOf(tipo.toUpperCase());
-            List<ClienteResponse> clientes = clienteService.getClientesByTipo(tipoEnum);
-            return ResponseEntity.ok(clientes);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "Tipo de cliente inválido: " + tipo));
-        }
-    }
-
-    /**
-     * GET /api/clientes/estadisticas-generales
-     * Obtener estadísticas generales de clientes (ADMIN/EMPLEADO)
-     * Para Interfaz P6.1 - Indicadores superiores
-     */
-    @GetMapping("/estadisticas-generales")
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLEADO')")
-    public ResponseEntity<ClienteEstadisticas> getEstadisticasGenerales() {
-        ClienteEstadisticas estadisticas = clienteService.getEstadisticasGenerales();
-        return ResponseEntity.ok(estadisticas);
     }
 
     /**
@@ -220,24 +164,5 @@ public class ClienteController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("error", e.getMessage()));
         }
-    }
-
-    /**
-     * GET /api/clientes/estadisticas
-     * Obtener estadísticas de clientes (ADMIN)
-     * LEGACY - mantener por compatibilidad
-     */
-    @GetMapping("/estadisticas")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> getClienteStatistics() {
-        Long totalActivos = clienteService.countActiveClientes();
-        Long totalRegistrados = clienteService.countClientesByTipo(TipoCliente.REGISTRADO);
-        Long totalInvitados = clienteService.countClientesByTipo(TipoCliente.INVITADO);
-
-        return ResponseEntity.ok(Map.of(
-            "activos", totalActivos,
-            "registrados", totalRegistrados,
-            "invitados", totalInvitados
-        ));
     }
 }

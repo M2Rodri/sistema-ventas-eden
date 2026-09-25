@@ -31,17 +31,6 @@ export interface ClienteResponse {
 }
 
 /**
- * Estadísticas generales de clientes
- * Para Interfaz P6.1 - Indicadores superiores
- */
-export interface ClienteEstadisticas {
-  totalClientes: number;
-  clientesConComprasEsteMes: number;
-  clienteTopNombre?: string;
-  clienteTopMonto?: number;
-}
-
-/**
  * Historial de compras de un cliente
  * Para Interfaz P6.3
  *

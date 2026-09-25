@@ -3,35 +3,26 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDragScrollTable } from '@/hooks/useDragScrollTable';
-import {
-  getClientesConEstadisticas,
-  getEstadisticasGeneralesClientes,
-} from '@/lib/api';
-import { ClienteConEstadisticas, ClienteEstadisticas } from '@/types/cliente';
+import { getClientesConEstadisticas } from '@/lib/api';
+import { ClienteConEstadisticas } from '@/types/cliente';
 import {
   Search,
   Users,
-  TrendingUp,
-  ShoppingBag,
-  Crown,
+  ArrowUpDown,
   Edit2,
   History,
   X,
 } from 'lucide-react';
 import ModificarClienteModal from '@/components/ModificarClienteModal';
 import HistorialComprasModal from '@/components/HistorialComprasModal';
-import StatCard from '@/components/StatCard';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { mensajeError } from '@/lib/errores';
-import { useAuth } from '@/contexts/AuthContext';
 
 export default function ClientesPage() {
   const router = useRouter();
-  const { user } = useAuth();
 
   const [clientes, setClientes] = useState<ClienteConEstadisticas[]>([]);
   const [clientesFiltrados, setClientesFiltrados] = useState<ClienteConEstadisticas[]>([]);
-  const [estadisticas, setEstadisticas] = useState<ClienteEstadisticas | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,6 +50,12 @@ export default function ClientesPage() {
       setBusqueda(q);
     }
   }, []);
+
+  // El orden ahora es un filtro más (select + dirección), no clickear el
+  // encabezado de la tabla: nada en el encabezado avisaba que se podía
+  // clickear, y de las 8 columnas solo 4 respondían, así que quedaba
+  // inconsistente. Con esto queda igual de claro que los demás filtros de
+  // arriba (búsqueda, categoría, etc. en otros módulos).
   const [ordenColumna, setOrdenColumna] = useState<
     'nombre' | 'numeroCompras' | 'montoTotal' | 'ultimaCompra'
   >('nombre');
@@ -66,7 +63,6 @@ export default function ClientesPage() {
 
   useEffect(() => {
     loadClientes();
-    loadEstadisticas();
   }, []);
 
   useEffect(() => {
@@ -83,15 +79,6 @@ export default function ClientesPage() {
       setError(mensajeError(err, 'No se pudieron cargar los clientes.'));
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadEstadisticas = async () => {
-    try {
-      const stats = await getEstadisticasGeneralesClientes();
-      setEstadisticas(stats);
-    } catch (err) {
-      console.error('Error al cargar estadísticas:', err);
     }
   };
 
@@ -144,15 +131,6 @@ export default function ClientesPage() {
     setError(null);
   };
 
-  const handleOrdenar = (columna: typeof ordenColumna) => {
-    if (ordenColumna === columna) {
-      setOrdenDireccion(ordenDireccion === 'asc' ? 'desc' : 'asc');
-    } else {
-      setOrdenColumna(columna);
-      setOrdenDireccion('asc');
-    }
-  };
-
   const handleModificar = (cliente: ClienteConEstadisticas) => {
     setClienteSeleccionado(cliente);
     setShowModificarModal(true);
@@ -186,37 +164,6 @@ export default function ClientesPage() {
     <div>
       <Breadcrumbs items={[{ label: 'Clientes' }]} />
 
-      {/* Estadísticas - Indicadores superiores (P6.1) */}
-      {(loading || estadisticas) && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <StatCard
-            titulo="Total de Clientes"
-            valor={estadisticas?.totalClientes ?? 0}
-            subtitulo="Registrados en el sistema"
-            icon={<Users size={22} />}
-            loading={loading}
-          />
-          <StatCard
-            titulo="Compras Este Mes"
-            valor={estadisticas?.clientesConComprasEsteMes ?? 0}
-            subtitulo="Clientes activos"
-            icon={<ShoppingBag size={22} />}
-            loading={loading}
-          />
-          <StatCard
-            titulo="Cliente Top"
-            valor={estadisticas?.clienteTopNombre || 'Sin datos'}
-            subtitulo={
-              estadisticas?.clienteTopMonto
-                ? `Bs. ${estadisticas.clienteTopMonto.toFixed(2)}`
-                : undefined
-            }
-            icon={<Crown size={22} />}
-            loading={loading}
-          />
-        </div>
-      )}
-
       {/* Header con búsqueda */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
         <div className="flex-shrink-0">
@@ -226,15 +173,38 @@ export default function ClientesPage() {
           </p>
         </div>
 
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-          <input
-            type="text"
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Buscar por nombre, teléfono o NIT/CI..."
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-          />
+        {/* Filtros: búsqueda + orden */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+            <input
+              type="text"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="Buscar por nombre, teléfono o NIT/CI..."
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+
+          <select
+            value={ordenColumna}
+            onChange={(e) => setOrdenColumna(e.target.value as typeof ordenColumna)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+          >
+            <option value="nombre">Ordenar por Nombre</option>
+            <option value="numeroCompras">Ordenar por # Compras</option>
+            <option value="montoTotal">Ordenar por Monto Total</option>
+            <option value="ultimaCompra">Ordenar por Última Compra</option>
+          </select>
+
+          <button
+            onClick={() => setOrdenDireccion(ordenDireccion === 'asc' ? 'desc' : 'asc')}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 hover:bg-gray-50 transition-colors"
+            title={ordenDireccion === 'asc' ? 'Ascendente' : 'Descendente'}
+          >
+            <ArrowUpDown size={18} className={ordenDireccion === 'desc' ? 'rotate-180' : ''} />
+            {ordenDireccion === 'asc' ? 'Ascendente' : 'Descendente'}
+          </button>
         </div>
       </div>
 
@@ -271,16 +241,8 @@ export default function ClientesPage() {
               {...theadProps}
             >
               <tr>
-                <th
-                  onClick={() => handleOrdenar('nombre')}
-                  className="px-6 py-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                >
-                  <div className="flex items-center gap-2">
-                    Nombre Completo
-                    {ordenColumna === 'nombre' && (
-                      <TrendingUp size={14} className={ordenDireccion === 'desc' ? 'rotate-180' : ''} />
-                    )}
-                  </div>
+                <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                  Nombre Completo
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                   Teléfono
@@ -288,38 +250,14 @@ export default function ClientesPage() {
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                   NIT / CI
                 </th>
-                <th
-                  onClick={() => handleOrdenar('numeroCompras')}
-                  className="px-6 py-4 text-center text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                >
-                  <div className="flex items-center justify-center gap-2">
-                    # Compras
-                    {ordenColumna === 'numeroCompras' && (
-                      <TrendingUp size={14} className={ordenDireccion === 'desc' ? 'rotate-180' : ''} />
-                    )}
-                  </div>
+                <th className="px-6 py-4 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
+                  # Compras
                 </th>
-                <th
-                  onClick={() => handleOrdenar('montoTotal')}
-                  className="px-6 py-4 text-right text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                >
-                  <div className="flex items-center justify-end gap-2">
-                    Monto Total (Bs.)
-                    {ordenColumna === 'montoTotal' && (
-                      <TrendingUp size={14} className={ordenDireccion === 'desc' ? 'rotate-180' : ''} />
-                    )}
-                  </div>
+                <th className="px-6 py-4 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">
+                  Monto Total (Bs.)
                 </th>
-                <th
-                  onClick={() => handleOrdenar('ultimaCompra')}
-                  className="px-6 py-4 text-center text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                >
-                  <div className="flex items-center justify-center gap-2">
-                    Última Compra
-                    {ordenColumna === 'ultimaCompra' && (
-                      <TrendingUp size={14} className={ordenDireccion === 'desc' ? 'rotate-180' : ''} />
-                    )}
-                  </div>
+                <th className="px-6 py-4 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
+                  Última Compra
                 </th>
                 <th className="px-6 py-4 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
                   Acciones
@@ -405,7 +343,6 @@ export default function ClientesPage() {
             }}
             onSuccess={() => {
               loadClientes();
-              loadEstadisticas();
             }}
             cliente={clienteSeleccionado}
           />

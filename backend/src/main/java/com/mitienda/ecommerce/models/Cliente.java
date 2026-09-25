@@ -61,12 +61,14 @@ public class Cliente {
     private String email;
 
     /**
-     * INVITADO: venta de mostrador sin datos del comprador.
-     * REGISTRADO: cliente con datos completos cargados.
+     * El sistema ya no distingue INVITADO de REGISTRADO (decisión del
+     * negocio: no tenía sentido mostrarle esa diferencia a nadie). El campo
+     * se deja porque sigue siendo parte del modelo de datos, pero todo
+     * cliente nuevo queda REGISTRADO por igual.
      */
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo_cliente", length = 20)
-    private TipoCliente tipoCliente = TipoCliente.INVITADO;
+    private TipoCliente tipoCliente = TipoCliente.REGISTRADO;
 
     @Column(nullable = false)
     private Boolean activo = true;
@@ -79,8 +81,12 @@ public class Cliente {
     @Column(nullable = false)
     private LocalDateTime fechaActualizacion;
 
-    // Relación con ventas
-    @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    // Relación con ventas. Sin cascade: las ventas las administra VentaService
+    // de forma independiente, y un cliente nunca se borra de verdad (solo se
+    // desactiva, ver activo). Con CascadeType.ALL, si alguna vez alguien
+    // borrara un Cliente por error, Hibernate se hubiera llevado puesto todo
+    // su historial de ventas con él.
+    @OneToMany(mappedBy = "cliente", fetch = FetchType.LAZY)
     private List<Venta> ventas = new ArrayList<>();
 
     public Cliente(String nombre, String apellido, String telefono, String email) {

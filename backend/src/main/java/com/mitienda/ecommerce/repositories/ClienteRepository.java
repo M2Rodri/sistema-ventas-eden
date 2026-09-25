@@ -1,7 +1,6 @@
 package com.mitienda.ecommerce.repositories;
 
 import com.mitienda.ecommerce.models.Cliente;
-import com.mitienda.ecommerce.models.TipoCliente;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -34,28 +33,13 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long> {
     Boolean existsByEmail(String email);
 
     /**
-     * Listar solo clientes activos
-     */
-    List<Cliente> findByActivoTrue();
-
-    /**
-     * Filtrar clientes por tipo
-     */
-    List<Cliente> findByTipoCliente(TipoCliente tipo);
-
-    /**
      * Buscar clientes por nombre (búsqueda parcial)
      */
     @Query("SELECT c FROM Cliente c WHERE LOWER(c.nombre) LIKE LOWER(CONCAT('%', :nombre, '%')) OR LOWER(c.apellido) LIKE LOWER(CONCAT('%', :nombre, '%'))")
     List<Cliente> searchByNombre(String nombre);
 
     /**
-     * Contar clientes activos
+     * Contar clientes activos. Usado por DashboardService para el panel de Inicio.
      */
     Long countByActivo(Boolean activo);
-
-    /**
-     * Contar clientes por tipo
-     */
-    Long countByTipoCliente(TipoCliente tipo);
 }

@@ -2,11 +2,10 @@ package com.mitienda.ecommerce.services;
 
 import com.mitienda.ecommerce.dto.ClienteRequest;
 import com.mitienda.ecommerce.dto.ClienteResponse;
-import com.mitienda.ecommerce.dto.ClienteEstadisticas;
+import com.mitienda.ecommerce.dto.ClienteConEstadisticasResponse;
 import com.mitienda.ecommerce.dto.HistorialComprasResponse;
 import com.mitienda.ecommerce.dto.VentaResponse;
 import com.mitienda.ecommerce.models.Cliente;
-import com.mitienda.ecommerce.models.TipoCliente;
 import com.mitienda.ecommerce.models.Venta;
 import com.mitienda.ecommerce.models.DetalleVenta;
 import com.mitienda.ecommerce.repositories.ClienteRepository;
@@ -17,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.time.YearMonth;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -69,13 +67,24 @@ public class ClienteService {
     }
 
     /**
-     * Listar solo clientes activos
+     * Listar todos los clientes con sus estadísticas de compra (número de
+     * compras, monto total, última compra), para la tabla de Clientes.
+     * Una sola consulta agregada en vez de pedir el historial de cada
+     * cliente por separado.
      */
     @Transactional(readOnly = true)
-    public List<ClienteResponse> getActiveClientes() {
-        return clienteRepository.findByActivoTrue()
-                .stream()
-                .map(ClienteResponse::new)
+    public List<ClienteConEstadisticasResponse> getAllClientesConEstadisticas() {
+        Map<Long, Object[]> statsPorCliente = ventaRepository.aggregarEstadisticasPorCliente().stream()
+                .collect(Collectors.toMap(fila -> (Long) fila[0], fila -> fila));
+
+        return clienteRepository.findAll().stream()
+                .map(cliente -> {
+                    Object[] stats = statsPorCliente.get(cliente.getId());
+                    Long numeroCompras = stats != null ? (Long) stats[1] : 0L;
+                    BigDecimal montoTotal = stats != null ? (BigDecimal) stats[2] : BigDecimal.ZERO;
+                    LocalDateTime ultimaCompra = stats != null ? (LocalDateTime) stats[3] : null;
+                    return new ClienteConEstadisticasResponse(cliente, numeroCompras, montoTotal, ultimaCompra);
+                })
                 .collect(Collectors.toList());
     }
 
@@ -176,39 +185,6 @@ public class ClienteService {
     }
 
     /**
-     * Eliminar cliente (desactivar)
-     */
-    @Transactional
-    public void deleteCliente(Long id) {
-        Cliente cliente = clienteRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Cliente no encontrado con ID: " + id));
-
-        cliente.setActivo(false);
-        clienteRepository.save(cliente);
-
-        registroAuditoria.registrar("ELIMINAR_CLIENTE", "clientes", cliente.getId(),
-                "Baja de " + cliente.getNombreCompleto());
-    }
-
-    /**
-     * Activar/Desactivar cliente
-     */
-    @Transactional
-    public ClienteResponse toggleClienteStatus(Long id) {
-        Cliente cliente = clienteRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Cliente no encontrado con ID: " + id));
-
-        cliente.setActivo(!cliente.getActivo());
-        Cliente updatedCliente = clienteRepository.save(cliente);
-
-        registroAuditoria.registrar(
-                Boolean.TRUE.equals(updatedCliente.getActivo()) ? "ACTIVAR_CLIENTE" : "DESACTIVAR_CLIENTE",
-                "clientes", updatedCliente.getId(), updatedCliente.getNombreCompleto());
-
-        return new ClienteResponse(updatedCliente);
-    }
-
-    /**
      * Buscar clientes por nombre, teléfono o NIT/CI
      * CU: Buscar/Consultar Cliente
      */
@@ -234,84 +210,6 @@ public class ClienteService {
         return resultados.stream()
                 .map(ClienteResponse::new)
                 .collect(Collectors.toList());
-    }
-
-    /**
-     * Filtrar clientes por tipo
-     */
-    @Transactional(readOnly = true)
-    public List<ClienteResponse> getClientesByTipo(TipoCliente tipo) {
-        return clienteRepository.findByTipoCliente(tipo)
-                .stream()
-                .map(ClienteResponse::new)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Contar clientes activos
-     */
-    @Transactional(readOnly = true)
-    public Long countActiveClientes() {
-        return clienteRepository.countByActivo(true);
-    }
-
-    /**
-     * Contar clientes por tipo
-     */
-    @Transactional(readOnly = true)
-    public Long countClientesByTipo(TipoCliente tipo) {
-        return clienteRepository.countByTipoCliente(tipo);
-    }
-
-    /**
-     * Obtener estadísticas generales de clientes
-     * Para Interfaz P6.1 - Indicadores superiores
-     */
-    @Transactional(readOnly = true)
-    public ClienteEstadisticas getEstadisticasGenerales() {
-        // Total de clientes registrados
-        Long totalClientes = clienteRepository.count();
-
-        // Clientes con compras este mes
-        YearMonth mesActual = YearMonth.now();
-        LocalDateTime inicioMes = mesActual.atDay(1).atStartOfDay();
-        LocalDateTime finMes = mesActual.atEndOfMonth().atTime(23, 59, 59);
-        
-        Long clientesConComprasEsteMes = clienteRepository.findAll().stream()
-                .filter(cliente -> {
-                    List<Venta> ventas = ventaRepository.findByClienteIdOrderByFechaVentaDesc(cliente.getId());
-                    return ventas.stream().anyMatch(v -> 
-                        v.getFechaVenta().isAfter(inicioMes) && v.getFechaVenta().isBefore(finMes)
-                    );
-                })
-                .count();
-
-        // Cliente con mayor monto de compras
-        Cliente clienteTop = null;
-        BigDecimal montoMaximo = BigDecimal.ZERO;
-
-        for (Cliente cliente : clienteRepository.findAll()) {
-            List<Venta> ventas = ventaRepository.findByClienteIdOrderByFechaVentaDesc(cliente.getId());
-            BigDecimal montoTotal = ventas.stream()
-                    .map(Venta::getMontoTotal)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-            if (montoTotal.compareTo(montoMaximo) > 0) {
-                montoMaximo = montoTotal;
-                clienteTop = cliente;
-            }
-        }
-
-        ClienteEstadisticas estadisticas = new ClienteEstadisticas();
-        estadisticas.setTotalClientes(totalClientes);
-        estadisticas.setClientesConComprasEsteMes(clientesConComprasEsteMes);
-        
-        if (clienteTop != null) {
-            estadisticas.setClienteTopNombre(clienteTop.getNombreCompleto());
-            estadisticas.setClienteTopMonto(montoMaximo);
-        }
-
-        return estadisticas;
     }
 
     /**
