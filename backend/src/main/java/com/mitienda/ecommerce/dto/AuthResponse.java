@@ -18,7 +18,7 @@ public class AuthResponse {
     private Long id;
     private String nombre;
     private String apellido;
-    private String email;
+    private String usuario;
 
     /**
      * Nombre del rol como texto plano ("ADMIN", "EMPLEADO").
@@ -29,12 +29,12 @@ public class AuthResponse {
      */
     private String role;
 
-    public AuthResponse(String token, Long id, String nombre, String apellido, String email, String role) {
+    public AuthResponse(String token, Long id, String nombre, String apellido, String usuario, String role) {
         this.token = token;
         this.id = id;
         this.nombre = nombre;
         this.apellido = apellido;
-        this.email = email;
+        this.usuario = usuario;
         this.role = role;
     }
 }

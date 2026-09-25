@@ -9,7 +9,7 @@ import { mensajeError } from "@/lib/errores";
 export default function LoginPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({
-    email: "",
+    usuario: "",
     password: "",
   });
   const [error, setError] = useState("");
@@ -110,21 +110,21 @@ export default function LoginPage() {
           <div className="space-y-4">
             <div>
               <label
-                htmlFor="email"
+                htmlFor="usuario"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                Email
+                Usuario
               </label>
               <input
-                id="email"
-                name="email"
-                type="email"
+                id="usuario"
+                name="usuario"
+                type="text"
                 required
                 className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm"
-                placeholder="tu@email.com"
-                value={formData.email}
+                placeholder="Tu usuario"
+                value={formData.usuario}
                 onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
+                  setFormData({ ...formData, usuario: e.target.value })
                 }
               />
             </div>
@@ -169,14 +169,18 @@ export default function LoginPage() {
             */}
             {mounted && showRecoverModal && (
               <p className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-lg p-3">
-                Para restablecer tu contraseña, pedíselo al administrador del
-                sistema: puede hacerlo desde la pantalla de Usuarios.
+                Contactá a la persona encargada del sistema para recuperar tu acceso.
               </p>
             )}
             {mounted && !showRecoverModal && (
               <button
                 type="button"
-                onClick={() => setShowRecoverModal(true)}
+                onClick={() => {
+                  setShowRecoverModal(true);
+                  // Vuelve solo al estado normal: no hace falta que el
+                  // usuario cierre el aviso a mano.
+                  setTimeout(() => setShowRecoverModal(false), 7000);
+                }}
                 className="font-medium text-primary-600 hover:text-primary-500 text-sm"
               >
                 ¿Olvidaste tu contraseña?

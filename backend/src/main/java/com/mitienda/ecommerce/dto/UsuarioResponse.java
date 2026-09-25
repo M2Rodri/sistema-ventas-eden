@@ -18,7 +18,7 @@ public class UsuarioResponse {
     private String nombre;
     private String apellido;
     private String nombreCompleto;
-    private String email;
+    private String usuario;
     private String telefono;
     private String direccion;
     /** Nombre del rol como texto ("ADMIN", "EMPLEADO"). Ver la nota en AuthResponse. */
@@ -33,7 +33,7 @@ public class UsuarioResponse {
         this.nombre = user.getNombre();
         this.apellido = user.getApellido();
         this.nombreCompleto = user.getNombreCompleto();
-        this.email = user.getEmail();
+        this.usuario = user.getUsuario();
         this.telefono = user.getTelefono();
         this.direccion = user.getDireccion();
         this.role = user.getRoleName();

@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
  * usuario como parámetro puesto por el cliente (idUsuario en el body o la
  * query), lo que permitía firmar cualquiera de esas operaciones con el id de
  * otra persona. El único origen posible ahora es el token: JwtAuthFilter deja
- * el email autenticado en el SecurityContext, y acá se resuelve contra la
+ * el usuario autenticado en el SecurityContext, y acá se resuelve contra la
  * tabla usuarios.
  *
  * Extraído de RegistroAuditoria, que tenía este mismo mecanismo pero privado
@@ -36,25 +36,25 @@ public class UsuarioActualService {
             return null;
         }
 
-        String email = null;
+        String usuario = null;
         Object principal = auth.getPrincipal();
         if (principal instanceof UserDetails detalles) {
-            email = detalles.getUsername();
+            usuario = detalles.getUsername();
         } else if (principal instanceof String texto && !"anonymousUser".equals(texto)) {
-            email = texto;
+            usuario = texto;
         }
 
-        if (email == null) {
+        if (usuario == null) {
             return null;
         }
-        return usuarioRepository.findByEmail(email).orElse(null);
+        return usuarioRepository.findByUsuario(usuario).orElse(null);
     }
 
     /**
      * Igual que {@link #obtener()}, pero para operaciones que exigen un
      * usuario conocido (venta, compra, ajuste de inventario). Los endpoints
      * que las exponen ya exigen autenticación, así que esto solo dispara si
-     * el token es válido pero el email ya no corresponde a ningún usuario.
+     * el token es válido pero el usuario ya no corresponde a ningún registro.
      */
     public Usuario obtenerRequerido() {
         Usuario usuario = obtener();
@@ -69,7 +69,7 @@ public class UsuarioActualService {
      * para cualquiera sin sesión (incluida la tienda pública, que lee
      * /api/productos sin login).
      *
-     * Se usa para no incluir costoReferencial (ni nada calculado a partir de
+     * Se usa para no incluir precioCompra (ni nada calculado a partir de
      * él, como el valor total del inventario) en respuestas que un EMPLEADO
      * o un visitante anónimo puedan recibir. El rol EMPLEADO existe
      * justamente para no ver costos ni márgenes.

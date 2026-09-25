@@ -29,8 +29,8 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(secret.getBytes());
     }
 
-    // Extraer email del token
-    public String extractEmail(String token) {
+    // Extraer usuario del token
+    public String extractUsuario(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
@@ -65,16 +65,16 @@ public class JwtUtil {
     }
 
     // Generar token para un usuario (SOBRECARGA - CON ROL)
-    public String generateToken(String email, String role) {
+    public String generateToken(String usuario, String role) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", role);
-        return createToken(claims, email);
+        return createToken(claims, usuario);
     }
 
     // Generar token para un usuario (SIN ROL - MANTENER COMPATIBILIDAD)
-    public String generateToken(String email) {
+    public String generateToken(String usuario) {
         Map<String, Object> claims = new HashMap<>();
-        return createToken(claims, email);
+        return createToken(claims, usuario);
     }
 
     // Crear el token JWT
@@ -90,7 +90,7 @@ public class JwtUtil {
 
     // Validar token
     public Boolean validateToken(String token, UserDetails userDetails) {
-        final String email = extractEmail(token);
-        return (email.equals(userDetails.getUsername()) && !isTokenExpired(token));
+        final String usuario = extractUsuario(token);
+        return (usuario.equals(userDetails.getUsername()) && !isTokenExpired(token));
     }
 }

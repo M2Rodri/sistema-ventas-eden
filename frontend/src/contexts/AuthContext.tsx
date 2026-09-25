@@ -8,7 +8,7 @@ export interface User {
   id: number;
   username: string;
   nombreCompleto: string;
-  email: string;
+  usuario: string;
   role: UserRole;
   activo: boolean;
 }

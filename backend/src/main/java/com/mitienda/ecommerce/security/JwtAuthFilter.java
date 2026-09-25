@@ -41,22 +41,22 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         final String authorizationHeader = request.getHeader("Authorization");
 
-        String email = null;
+        String usuario = null;
         String jwt = null;
 
         // Extraer el token del header Authorization
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             jwt = authorizationHeader.substring(7);
             try {
-                email = jwtUtil.extractEmail(jwt);
+                usuario = jwtUtil.extractUsuario(jwt);
             } catch (Exception e) {
-                logger.error("Error al extraer email del token: " + e.getMessage());
+                logger.error("Error al extraer usuario del token: " + e.getMessage());
             }
         }
 
         // Validar el token y establecer la autenticación
-        if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+        if (usuario != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            UserDetails userDetails = userDetailsService.loadUserByUsername(usuario);
 
             if (jwtUtil.validateToken(jwt, userDetails)) {
                 // Extraer el rol del token (viene como "ADMIN", "CLIENTE", "EMPLEADO")
@@ -65,7 +65,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 // Agregar el prefijo ROLE_ para Spring Security
                 String authority = "ROLE_" + roleFromToken;
                 
-                // Aca habia un bloque de println que imprimia email, rol y ruta en
+                // Aca habia un bloque de println que imprimia usuario, rol y ruta en
                 // CADA peticion autenticada. Se quito: dejaba un rastro de quien
                 // uso el sistema y para que en la consola del servidor, que no es
                 // el lugar para eso. Lo que hay que auditar se guarda en la tabla

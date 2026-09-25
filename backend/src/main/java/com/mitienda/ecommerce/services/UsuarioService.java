@@ -64,6 +64,31 @@ public class UsuarioService {
     }
 
     /**
+     * Evita que una edición, baja o cambio de estado deje al sistema sin
+     * ningún administrador activo. Sin esto, un admin puede desactivarse a
+     * sí mismo (o cambiarse el rol) y quedar afuera sin que nadie, ni él
+     * mismo, pueda revertirlo desde la interfaz: la pantalla de Usuarios ya
+     * no aparece para un EMPLEADO, y el login rechaza cuentas inactivas.
+     */
+    private void validarQuedeUnAdminActivo(Usuario usuario, boolean seguiraSiendoAdminActivo) {
+        if (seguiraSiendoAdminActivo) {
+            return;
+        }
+        boolean eraAdminActivo = "ADMIN".equalsIgnoreCase(usuario.getRoleName())
+                && Boolean.TRUE.equals(usuario.getActivo());
+        if (!eraAdminActivo) {
+            return;
+        }
+        boolean quedaOtroAdminActivo = usuarioRepository.findAll().stream()
+                .anyMatch(u -> !u.getId().equals(usuario.getId())
+                        && "ADMIN".equalsIgnoreCase(u.getRoleName())
+                        && Boolean.TRUE.equals(u.getActivo()));
+        if (!quedaOtroAdminActivo) {
+            throw new RuntimeException("Es el único administrador activo. No se puede desactivar.");
+        }
+    }
+
+    /**
      * Listar todos los usuarios
      */
     public List<UsuarioResponse> getAllUsers() {
@@ -87,9 +112,14 @@ public class UsuarioService {
      */
     @Transactional
     public UsuarioResponse createUser(UsuarioRequest request) {
-        // Validar que el email no exista
-        if (usuarioRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("El email ya está registrado: " + request.getEmail());
+        // Se guarda siempre en minúsculas: la comparación en la base es
+        // sensible a mayúsculas/minúsculas y esto evita duplicados como
+        // "Juan" y "juan".
+        String usuarioNormalizado = request.getUsuario().trim().toLowerCase();
+
+        // Validar que el usuario no exista
+        if (usuarioRepository.existsByUsuario(usuarioNormalizado)) {
+            throw new RuntimeException("El usuario ya está registrado: " + usuarioNormalizado);
         }
 
         // Validar que la contraseña no esté vacía al crear
@@ -101,7 +131,7 @@ public class UsuarioService {
         Usuario user = new Usuario();
         user.setNombre(request.getNombre());
         user.setApellido(request.getApellido());
-        user.setEmail(request.getEmail());
+        user.setUsuario(usuarioNormalizado);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setTelefono(request.getTelefono());
         user.setDireccion(request.getDireccion());
@@ -113,7 +143,7 @@ public class UsuarioService {
         // Nunca se registra la contrasena ni su hash, solo quien creo la cuenta
         // y con que rol.
         registroAuditoria.registrar("CREAR_USUARIO", "usuarios", savedUser.getId(),
-                "Alta de " + savedUser.getEmail() + " con rol " + savedUser.getRoleName());
+                "Alta de " + savedUser.getUsuario() + " con rol " + savedUser.getRoleName());
 
         return new UsuarioResponse(savedUser);
     }
@@ -126,19 +156,26 @@ public class UsuarioService {
         Usuario user = usuarioRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + id));
 
-        // Validar email único (si cambió)
-        if (!user.getEmail().equals(request.getEmail()) && 
-            usuarioRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("El email ya está registrado: " + request.getEmail());
+        String usuarioNormalizado = request.getUsuario().trim().toLowerCase();
+
+        // Validar usuario único (si cambió)
+        if (!user.getUsuario().equals(usuarioNormalizado) &&
+            usuarioRepository.existsByUsuario(usuarioNormalizado)) {
+            throw new RuntimeException("El usuario ya está registrado: " + usuarioNormalizado);
         }
+
+        Role nuevoRol = resolverRol(request.getRole());
+        boolean seguiraSiendoAdminActivo = "ADMIN".equalsIgnoreCase(nuevoRol.getNombre())
+                && Boolean.TRUE.equals(request.getActivo());
+        validarQuedeUnAdminActivo(user, seguiraSiendoAdminActivo);
 
         // Actualizar campos
         user.setNombre(request.getNombre());
         user.setApellido(request.getApellido());
-        user.setEmail(request.getEmail());
+        user.setUsuario(usuarioNormalizado);
         user.setTelefono(request.getTelefono());
         user.setDireccion(request.getDireccion());
-        user.setRol(resolverRol(request.getRole()));
+        user.setRol(nuevoRol);
         user.setActivo(request.getActivo());
 
         // Solo actualizar password si se proporcionó uno nuevo
@@ -152,7 +189,7 @@ public class UsuarioService {
         Usuario updatedUser = usuarioRepository.save(user);
 
         registroAuditoria.registrar("ACTUALIZAR_USUARIO", "usuarios", updatedUser.getId(),
-                "Edicion de " + updatedUser.getEmail() + ", rol " + updatedUser.getRoleName()
+                "Edicion de " + updatedUser.getUsuario() + ", rol " + updatedUser.getRoleName()
                         + (cambioPassword ? ", con cambio de contrasena" : ""));
 
         return new UsuarioResponse(updatedUser);
@@ -167,11 +204,12 @@ public class UsuarioService {
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + id));
 
         // Desactivar en lugar de eliminar
+        validarQuedeUnAdminActivo(user, false);
         user.setActivo(false);
         usuarioRepository.save(user);
 
         registroAuditoria.registrar("ELIMINAR_USUARIO", "usuarios", user.getId(),
-                "Baja de " + user.getEmail());
+                "Baja de " + user.getUsuario());
     }
 
     /**
@@ -182,12 +220,14 @@ public class UsuarioService {
         Usuario user = usuarioRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + id));
 
-        user.setActivo(!user.getActivo());
+        boolean nuevoActivo = !user.getActivo();
+        validarQuedeUnAdminActivo(user, nuevoActivo);
+        user.setActivo(nuevoActivo);
         Usuario updatedUser = usuarioRepository.save(user);
 
         registroAuditoria.registrar(
                 Boolean.TRUE.equals(updatedUser.getActivo()) ? "ACTIVAR_USUARIO" : "DESACTIVAR_USUARIO",
-                "usuarios", updatedUser.getId(), updatedUser.getEmail());
+                "usuarios", updatedUser.getId(), updatedUser.getUsuario());
 
         return new UsuarioResponse(updatedUser);
     }

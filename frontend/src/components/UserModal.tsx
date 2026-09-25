@@ -14,11 +14,11 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
   const [formData, setFormData] = useState<UserRequest>({
     nombre: '',
     apellido: '',
-    email: '',
+    usuario: '',
     password: '',
     telefono: '',
     direccion: '',
-    role: 'CLIENTE',
+    role: 'EMPLEADO',
     activo: true,
   });
   const [loading, setLoading] = useState(false);
@@ -29,7 +29,7 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
       setFormData({
         nombre: user.nombre,
         apellido: user.apellido,
-        email: user.email,
+        usuario: user.usuario,
         password: '', // No mostrar password al editar
         telefono: user.telefono || '',
         direccion: user.direccion || '',
@@ -131,18 +131,22 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
             </div>
           </div>
 
-          {/* Email */}
+          {/* Usuario */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email <span className="text-red-500">*</span>
+              Usuario <span className="text-red-500">*</span>
             </label>
             <input
-              type="email"
+              type="text"
               required
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              minLength={3}
+              maxLength={30}
+              pattern="[a-zA-Z0-9._]+"
+              title="Solo letras, números, puntos y guiones bajos"
+              value={formData.usuario}
+              onChange={(e) => setFormData({ ...formData, usuario: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-              placeholder="usuario@ejemplo.com"
+              placeholder="jperez"
             />
           </div>
 
@@ -191,7 +195,6 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
               >
                 <option value="ADMIN">Admin</option>
                 <option value="EMPLEADO">Empleado</option>
-                <option value="CLIENTE">Cliente</option>
               </select>
             </div>
           </div>

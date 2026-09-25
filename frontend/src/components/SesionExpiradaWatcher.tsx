@@ -34,7 +34,11 @@ export default function SesionExpiradaWatcher() {
           : String(args[0]);
 
       const esLlamadaAlBackend = url.startsWith(BACKEND_URL);
-      const sesionRechazada = respuesta.status === 401 || respuesta.status === 403;
+      // Solo 401 (token inválido o vencido) es sesión expirada. Un 403 es un
+      // usuario autenticado sin permiso para ESE endpoint puntual (por
+      // ejemplo, un EMPLEADO pidiendo un dato solo-admin) y no debe cerrar
+      // la sesión: cada pantalla se encarga de no mostrar lo que no le toca.
+      const sesionRechazada = respuesta.status === 401;
       // El login rechazado no es una sesión vencida: lo maneja su propia pantalla.
       const esLogin = url.includes('/api/auth/login');
 

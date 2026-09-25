@@ -1,8 +1,8 @@
 package com.mitienda.ecommerce.dto;
 
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -24,9 +24,10 @@ public class UsuarioRequest {
     @Size(min = 2, max = 50, message = "El apellido debe tener entre 2 y 50 caracteres")
     private String apellido;
 
-    @NotBlank(message = "El email es obligatorio")
-    @Email(message = "El email debe ser válido")
-    private String email;
+    @NotBlank(message = "El usuario es obligatorio")
+    @Size(min = 3, max = 30, message = "El usuario debe tener entre 3 y 30 caracteres")
+    @Pattern(regexp = "^[a-zA-Z0-9._]+$", message = "El usuario solo puede tener letras, números, puntos y guiones bajos")
+    private String usuario;
 
     // Password es opcional al editar, obligatorio al crear
     @Size(min = 6, message = "La contraseña debe tener al menos 6 caracteres")

@@ -65,17 +65,22 @@ public class AuthService {
         // El intento fallido tambien se audita: saber que alguien probo entrar
         // con una contrasena equivocada, y desde que IP, es justamente el tipo
         // de cosa para la que sirve una tabla de auditoria.
+        // Normalizado a minúsculas: la comparación en la base distingue
+        // mayúsculas de minúsculas, y el celular autocapitaliza seguido.
+        String usuarioNormalizado = request.getUsuario() == null
+                ? null : request.getUsuario().trim().toLowerCase();
+
         try {
             authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+                    new UsernamePasswordAuthenticationToken(usuarioNormalizado, request.getPassword())
             );
         } catch (RuntimeException e) {
             registroAuditoria.registrarPara(null, "LOGIN_FALLIDO", "usuarios", null,
-                    "Intento fallido con el correo " + request.getEmail());
+                    "Intento fallido con el usuario " + request.getUsuario());
             throw e;
         }
 
-        Usuario user = usuarioRepository.findByEmail(request.getEmail())
+        Usuario user = usuarioRepository.findByUsuario(usuarioNormalizado)
                 .orElseThrow(() -> new org.springframework.security.core.userdetails
                         .UsernameNotFoundException("Usuario no encontrado"));
 
@@ -88,7 +93,7 @@ public class AuthService {
         // El rol viaja en el token como texto ("ADMIN", "EMPLEADO"), igual que
         // antes de normalizarlo en tabla. El contrato del token no cambia.
         String nombreRol = user.getRoleName();
-        String token = jwtUtil.generateToken(user.getEmail(), nombreRol);
+        String token = jwtUtil.generateToken(user.getUsuario(), nombreRol);
 
         // registrarPara y no registrar: en este punto la autenticacion todavia
         // no quedo guardada en el SecurityContext, asi que el usuario hay que
@@ -101,7 +106,7 @@ public class AuthService {
                 user.getId(),
                 user.getNombre(),
                 user.getApellido(),
-                user.getEmail(),
+                user.getUsuario(),
                 nombreRol
         );
     }

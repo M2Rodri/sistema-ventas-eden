@@ -34,12 +34,16 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
 
     @Override
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        Usuario user = usuarioRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado con email: " + email));
+    public UserDetails loadUserByUsername(String usuario) throws UsernameNotFoundException {
+        // Normalizado a minúsculas: la comparación en la base distingue
+        // mayúsculas de minúsculas, y el celular autocapitaliza seguido.
+        // Sin esto, "Juan" y "juan" serían usuarios distintos para el login.
+        String normalizado = usuario == null ? null : usuario.trim().toLowerCase();
+        Usuario user = usuarioRepository.findByUsuario(normalizado)
+                .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + usuario));
 
         return new org.springframework.security.core.userdetails.User(
-                user.getEmail(),
+                user.getUsuario(),
                 user.getPassword(),
                 user.getActivo(),
                 true,

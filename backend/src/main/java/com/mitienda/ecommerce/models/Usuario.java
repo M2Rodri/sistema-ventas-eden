@@ -1,8 +1,8 @@
 package com.mitienda.ecommerce.models;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -37,10 +37,17 @@ public class Usuario {
     @Column(nullable = false, length = 50)
     private String apellido;
 
-    @NotBlank(message = "El email es obligatorio")
-    @Email(message = "El email debe ser válido")
-    @Column(nullable = false, unique = true, length = 100)
-    private String email;
+    /**
+     * Nombre de usuario para iniciar sesión. No es un correo: el sistema no
+     * manda ni recibe nada ahí, es solo la llave para entrar. Se guarda
+     * siempre en minúsculas (ver UsuarioService) porque la comparación en
+     * la base es sensible a mayúsculas y minúsculas.
+     */
+    @NotBlank(message = "El usuario es obligatorio")
+    @Size(min = 3, max = 30, message = "El usuario debe tener entre 3 y 30 caracteres")
+    @Pattern(regexp = "^[a-zA-Z0-9._]+$", message = "El usuario solo puede tener letras, números, puntos y guiones bajos")
+    @Column(nullable = false, unique = true, length = 30)
+    private String usuario;
 
     @NotBlank(message = "La contraseña es obligatoria")
     @Size(min = 6, message = "La contraseña debe tener al menos 6 caracteres")
@@ -74,10 +81,10 @@ public class Usuario {
     private LocalDateTime fechaActualizacion;
 
     // Constructor personalizado para alta de personal
-    public Usuario(String nombre, String apellido, String email, String password, Role rol) {
+    public Usuario(String nombre, String apellido, String usuario, String password, Role rol) {
         this.nombre = nombre;
         this.apellido = apellido;
-        this.email = email;
+        this.usuario = usuario;
         this.password = password;
         this.rol = rol;
         this.activo = true;
