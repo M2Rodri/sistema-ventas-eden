@@ -33,6 +33,9 @@ public class VentaRequest {
     @Size(max = 20, message = "El teléfono no puede exceder 20 caracteres")
     private String telefonoClienteInvitado;
 
+    @Size(max = 20, message = "El CI no puede exceder 20 caracteres")
+    private String ciClienteInvitado;
+
     @NotNull(message = "El método de pago es obligatorio")
     private MetodoPago metodoPago;
 

@@ -146,7 +146,12 @@ export default function DetalleVentaModal({ isOpen, onClose, venta, onUpdated, o
                 <h3 className="font-semibold text-gray-900">Cliente</h3>
               </div>
               <p className="text-gray-900 font-medium">{venta.nombreCliente}</p>
-              <p className="text-sm text-gray-600">{venta.telefonoCliente || 'Sin teléfono'}</p>
+              <p className="text-sm text-gray-600">
+                {venta.ciCliente && <>CI: {venta.ciCliente}</>}
+                {venta.ciCliente && venta.telefonoCliente && ' · '}
+                {venta.telefonoCliente && <>Cel: {venta.telefonoCliente}</>}
+                {!venta.ciCliente && !venta.telefonoCliente && '—'}
+              </p>
             </div>
 
             {/* Vendedor */}

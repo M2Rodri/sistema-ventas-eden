@@ -49,6 +49,7 @@ export interface VentaRequest {
   // MODO 2: Venta de mostrador
   nombreClienteInvitado?: string;
   telefonoClienteInvitado?: string;
+  ciClienteInvitado?: string;
 
   // Datos comunes
   metodoPago: MetodoPago;
@@ -96,6 +97,7 @@ export interface Venta {
   idCliente?: number;
   nombreCliente: string;
   telefonoCliente?: string;
+  ciCliente?: string;
   fechaVenta: string;
 
   // Importes: los cuatro que guarda la tabla, no solo el total

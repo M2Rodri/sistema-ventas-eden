@@ -22,6 +22,7 @@ public class VentaResponse {
     private Long idCliente;
     private String nombreCliente;
     private String telefonoCliente;
+    private String ciCliente;
     private LocalDateTime fechaVenta;
 
     // Importes: los cuatro que guarda la tabla, no solo el total
@@ -66,10 +67,12 @@ public class VentaResponse {
             this.idCliente = venta.getCliente().getId();
             this.nombreCliente = venta.getCliente().getNombreCompleto();
             this.telefonoCliente = venta.getCliente().getTelefono();
+            this.ciCliente = venta.getCliente().getNitCi();
         } else {
             this.idCliente = null;
             this.nombreCliente = "Cliente no especificado";
             this.telefonoCliente = null;
+            this.ciCliente = null;
         }
 
         this.fechaVenta = venta.getFechaVenta();

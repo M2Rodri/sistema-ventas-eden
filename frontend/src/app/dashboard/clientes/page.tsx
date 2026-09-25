@@ -181,7 +181,7 @@ export default function ClientesPage() {
               type="text"
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              placeholder="Buscar por nombre, teléfono o NIT/CI..."
+              placeholder="Buscar por nombre, teléfono o CI..."
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
@@ -248,7 +248,7 @@ export default function ClientesPage() {
                   Teléfono
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                  NIT / CI
+                  CI
                 </th>
                 <th className="px-6 py-4 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
                   # Compras

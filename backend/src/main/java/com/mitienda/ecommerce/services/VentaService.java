@@ -141,6 +141,8 @@ public class VentaService {
             invitado.setNombre(request.getNombreClienteInvitado().trim());
             invitado.setTelefono(request.getTelefonoClienteInvitado() != null
                     ? request.getTelefonoClienteInvitado().trim() : null);
+            invitado.setNitCi(request.getCiClienteInvitado() != null
+                    ? request.getCiClienteInvitado().trim() : null);
             invitado.setTipoCliente(TipoCliente.REGISTRADO);
             invitado.setActivo(true);
             venta.setCliente(clienteRepository.save(invitado));

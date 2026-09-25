@@ -561,7 +561,10 @@ export default function VentasPage() {
                             {venta.nombreCliente}
                           </div>
                           <div className="text-xs text-gray-500">
-                            {venta.telefonoCliente || 'Sin teléfono'}
+                            {venta.ciCliente && <span>CI: {venta.ciCliente}</span>}
+                            {venta.ciCliente && venta.telefonoCliente && <span> · </span>}
+                            {venta.telefonoCliente && <span>Cel: {venta.telefonoCliente}</span>}
+                            {!venta.ciCliente && !venta.telefonoCliente && <span>—</span>}
                           </div>
                         </div>
                       </div>

@@ -248,11 +248,11 @@ export default function ModificarClienteModal({
               <p className="text-xs text-gray-500 mt-1">* Campo obligatorio</p>
             </div>
 
-            {/* NIT o CI */}
+            {/* CI */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                 <CreditCard size={16} />
-                NIT o CI (opcional)
+                CI
               </label>
               <input
                 type="text"
