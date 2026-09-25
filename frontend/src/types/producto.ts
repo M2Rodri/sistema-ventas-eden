@@ -11,8 +11,10 @@ export interface Producto {
   idCategoria: number;
   nombreCategoria: string;
   calidad?: string;
-  /** Costo de referencia para calcular margen. Antes se llamaba precioUnitario. */
-  costoReferencial: number;
+  /** Opcional: a veces se carga el producto sin costo definido todavía. */
+  precioCompra?: number;
+  /** Si es true, precioCompra ya lo actualiza una compra confirmada y no se edita a mano. */
+  tieneComprasConfirmadas: boolean;
   precioVenta: number;
   dimensiones?: string;
   stockMinimo: number;
@@ -27,6 +29,8 @@ export interface Producto {
    */
   firmeza?: string;
   materialNucleo?: string;
+  color?: string;
+  materialArmazon?: string;
 
   imagenes: ImagenProducto[];
   fechaCreacion: string;
@@ -41,7 +45,7 @@ export interface ProductoRequest {
   modelo?: string;
   idCategoria: number;
   calidad?: string;
-  costoReferencial: number;
+  precioCompra?: number;
   precioVenta: number;
   dimensiones?: string;
   stockMinimo: number;
@@ -50,6 +54,8 @@ export interface ProductoRequest {
 
   firmeza?: string;
   materialNucleo?: string;
+  color?: string;
+  materialArmazon?: string;
 }
 
 export interface ImagenProducto {

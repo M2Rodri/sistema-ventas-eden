@@ -23,8 +23,10 @@ import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 import AvisoCargaParcial from '@/components/AvisoCargaParcial';
 import { crearRecolector } from '@/lib/cargaParcial';
 import { mensajeError } from '@/lib/errores';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function ProductosPage() {
+  const { user } = useAuth();
   const [productos, setProductos] = useState<Producto[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [filteredProductos, setFilteredProductos] = useState<Producto[]>([]);
@@ -45,10 +47,11 @@ export default function ProductosPage() {
   // falla. Aca el valor solo hace falta despues de montar, asi que alcanza con
   // mirar la URL dentro del efecto.
   useEffect(() => {
-    const q = new URLSearchParams(window.location.search).get('q');
-    if (q) {
-      setSearchTerm(q);
-    }
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get('q');
+    if (q) setSearchTerm(q);
+    const estado = params.get('estado');
+    if (estado === 'ACTIVOS' || estado === 'INACTIVOS') setStatusFilter(estado);
   }, []);
   const [categoriaFilter, setCategoriaFilter] = useState<string>('TODOS');
   const [statusFilter, setStatusFilter] = useState<string>('TODOS');
@@ -392,29 +395,45 @@ export default function ProductosPage() {
                     {stockPorProducto.get(producto.id) ?? '—'}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap">
-                    <button
-                      onClick={() => handleToggleStatus(producto)}
-                      className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
-                        producto.activo ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-red-100 text-red-800 hover:bg-red-200'
-                      }`}
-                    >
-                      <Power size={14} />
-                      {producto.activo ? 'Activo' : 'Inactivo'}
-                    </button>
+                    {user?.role === 'ADMIN' ? (
+                      <button
+                        onClick={() => handleToggleStatus(producto)}
+                        className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                          producto.activo ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-red-100 text-red-800 hover:bg-red-200'
+                        }`}
+                      >
+                        <Power size={14} />
+                        {producto.activo ? 'Activo' : 'Inactivo'}
+                      </button>
+                    ) : (
+                      <span
+                        className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold w-fit ${
+                          producto.activo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}
+                      >
+                        <Power size={14} />
+                        {producto.activo ? 'Activo' : 'Inactivo'}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
+                    {/* Editar/Eliminar son solo-admin en el backend: para
+                        EMPLEADO quedan visibles pero deshabilitados, en vez
+                        de ocultos o de dejar que fallen al guardar. */}
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => handleEditProducto(producto)}
-                        className="text-primary-600 hover:text-primary-800 transition-colors"
-                        title="Editar"
+                        disabled={user?.role !== 'ADMIN'}
+                        className="text-primary-600 hover:text-primary-800 transition-colors disabled:text-gray-300 disabled:hover:text-gray-300 disabled:cursor-not-allowed"
+                        title={user?.role === 'ADMIN' ? 'Editar' : 'Solo el administrador puede editar'}
                       >
                         <Edit size={18} />
                       </button>
                       <button
                         onClick={() => handleDeleteClick(producto)}
-                        className="text-red-600 hover:text-red-800 transition-colors"
-                        title="Eliminar"
+                        disabled={user?.role !== 'ADMIN'}
+                        className="text-red-600 hover:text-red-800 transition-colors disabled:text-gray-300 disabled:hover:text-gray-300 disabled:cursor-not-allowed"
+                        title={user?.role === 'ADMIN' ? 'Eliminar' : 'Solo el administrador puede eliminar'}
                       >
                         <Trash2 size={18} />
                       </button>

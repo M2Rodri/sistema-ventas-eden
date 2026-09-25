@@ -4,10 +4,12 @@ package com.mitienda.ecommerce.services;
 import com.mitienda.ecommerce.dto.ProductoRequest;
 import com.mitienda.ecommerce.dto.ProductoResponse;
 import com.mitienda.ecommerce.models.Categoria;
+import com.mitienda.ecommerce.models.EstadoCompra;
 import com.mitienda.ecommerce.models.Inventario;
 import com.mitienda.ecommerce.models.Producto;
 import com.mitienda.ecommerce.models.TipoProducto;
 import com.mitienda.ecommerce.repositories.CategoriaRepository;
+import com.mitienda.ecommerce.repositories.DetalleCompraRepository;
 import com.mitienda.ecommerce.repositories.InventarioRepository;
 import com.mitienda.ecommerce.repositories.ProductoRepository;
 import org.springframework.stereotype.Service;
@@ -39,6 +41,10 @@ public class ProductoService {
 
     private final UsuarioActualService usuarioActualService;
 
+    private final InventarioService inventarioService;
+
+    private final DetalleCompraRepository detalleCompraRepository;
+
     /**
      * Inyeccion por constructor, no por campo.
      *
@@ -50,23 +56,34 @@ public class ProductoService {
                            CategoriaRepository categoriaRepository,
                            InventarioRepository inventarioRepository,
                            RegistroAuditoria registroAuditoria,
-                           UsuarioActualService usuarioActualService) {
+                           UsuarioActualService usuarioActualService,
+                           InventarioService inventarioService,
+                           DetalleCompraRepository detalleCompraRepository) {
         this.productoRepository = productoRepository;
         this.categoriaRepository = categoriaRepository;
         this.inventarioRepository = inventarioRepository;
         this.registroAuditoria = registroAuditoria;
         this.usuarioActualService = usuarioActualService;
+        this.inventarioService = inventarioService;
+        this.detalleCompraRepository = detalleCompraRepository;
     }
 
     /**
      * GET /api/productos y sus variantes son de lectura publica (los usa la
      * tienda sin login) o EMPLEADO. Ninguno de los dos debe recibir
-     * costoReferencial: el rol EMPLEADO existe justamente para no ver
+     * precioCompra: el rol EMPLEADO existe justamente para no ver
      * costos, y un visitante anonimo mucho menos.
+     *
+     * De paso marca si el producto ya tuvo alguna compra confirmada: antes
+     * de eso, precioCompra es solo una estimación cargada a mano en
+     * Productos y se puede seguir corrigiendo; después, pasa a ser propiedad
+     * de Compras y el frontend lo bloquea para editar.
      */
     private ProductoResponse ocultarCostoSiNoEsAdmin(ProductoResponse response) {
+        response.setTieneComprasConfirmadas(
+                detalleCompraRepository.existsByProducto_IdAndCompra_Estado(response.getId(), EstadoCompra.CONFIRMADA));
         if (!usuarioActualService.esAdmin()) {
-            response.setCostoReferencial(null);
+            response.setPrecioCompra(null);
         }
         return response;
     }
@@ -143,13 +160,19 @@ public class ProductoService {
         producto.setMarca(request.getMarca());
         producto.setFirmeza(request.getFirmeza());
         producto.setMaterialNucleo(request.getMaterialNucleo());
+        producto.setColor(request.getColor());
+        producto.setMaterialArmazon(request.getMaterialArmazon());
         producto.setCategoria(categoria);
         producto.setCalidad(request.getCalidad());
-        producto.setCostoReferencial(request.getCostoReferencial());
+        producto.setPrecioCompra(request.getPrecioCompra());
         producto.setPrecioVenta(request.getPrecioVenta());
         producto.setDimensiones(request.getDimensiones());
         producto.setStockMinimo(request.getStockMinimo());
-        producto.setTipoProducto(request.getTipoProducto());
+        // La categoría define el tipo, no el cliente: así ninguna llamada
+        // directa a la API puede dejar un producto con categoría y tipo
+        // desincronizados (por ejemplo invisible en los filtros por tipo
+        // de Compras aunque esté en la categoría correcta).
+        producto.setTipoProducto(categoria.getTipoProducto());
         producto.setActivo(request.getActivo());
 
         Producto savedProducto = productoRepository.save(producto);
@@ -158,7 +181,6 @@ public class ProductoService {
         Inventario inventario = new Inventario();
         inventario.setProducto(savedProducto);
         inventario.setCantidadDisponible(0); // Stock inicial en 0
-        inventario.setUbicacion("Sin asignar"); // Ubicación por defecto
         inventarioRepository.save(inventario);
 
         registroAuditoria.registrar("CREAR_PRODUCTO", "productos", savedProducto.getId(),
@@ -193,13 +215,25 @@ public class ProductoService {
         producto.setMarca(request.getMarca());
         producto.setFirmeza(request.getFirmeza());
         producto.setMaterialNucleo(request.getMaterialNucleo());
+        producto.setColor(request.getColor());
+        producto.setMaterialArmazon(request.getMaterialArmazon());
         producto.setCategoria(categoria);
         producto.setCalidad(request.getCalidad());
-        producto.setCostoReferencial(request.getCostoReferencial());
+        // Una vez que el producto tuvo una compra confirmada, precioCompra
+        // pasa a ser propiedad de Compras (se actualiza solo al confirmar).
+        // El frontend ya bloquea el campo, pero sin este chequeo cualquiera
+        // que le pegue directo a la API podía pisarlo igual.
+        boolean yaConfirmoCompra = detalleCompraRepository
+                .existsByProducto_IdAndCompra_Estado(producto.getId(), EstadoCompra.CONFIRMADA);
+        if (!yaConfirmoCompra) {
+            producto.setPrecioCompra(request.getPrecioCompra());
+        }
         producto.setPrecioVenta(request.getPrecioVenta());
         producto.setDimensiones(request.getDimensiones());
         producto.setStockMinimo(request.getStockMinimo());
-        producto.setTipoProducto(request.getTipoProducto());
+        // Mismo criterio que al crear: la categoría define el tipo, nunca
+        // lo que mande el cliente.
+        producto.setTipoProducto(categoria.getTipoProducto());
         producto.setActivo(request.getActivo());
 
         Producto updatedProducto = productoRepository.save(producto);
@@ -231,6 +265,12 @@ public class ProductoService {
         Integer anterior = producto.getStockMinimo();
         producto.setStockMinimo(stockMinimo);
         Producto guardado = productoRepository.save(producto);
+
+        // Este número también decide si el producto está bajo mínimo: subirlo
+        // puede dejar una alerta pendiente por crear, bajarlo puede dejar una
+        // ya sin motivo. Sin esto, la alerta quedaba desincronizada hasta el
+        // próximo movimiento de stock del producto.
+        inventarioService.sincronizarAlerta(guardado.getId());
 
         registroAuditoria.registrar("ACTUALIZAR_STOCK_MINIMO", "productos", guardado.getId(),
                 "Stock minimo de " + guardado.getSku() + ": " + anterior + " -> " + stockMinimo);

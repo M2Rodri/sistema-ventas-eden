@@ -47,6 +47,19 @@ function sugerirSiguienteSku(tipo: TipoProducto, productos: Producto[]): string 
   return `${prefijo}-${String(maxNumero + 1).padStart(3, '0')}`;
 }
 
+/** Fecha + hora tal cual las guarda la base (fecha_creacion/fecha_actualizacion
+ * son timestamp, no date: incluyen hora aunque no se mostraran hasta ahora). */
+function formatearFechaHora(fechaIso: string): string {
+  return new Date(fechaIso).toLocaleString('es-BO', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+}
+
 /**
  * "Dimensiones" se guarda como un solo texto (no se agregaron columnas
  * nuevas: nada en el sistema necesita filtrar por ancho/largo todavía).
@@ -137,7 +150,7 @@ export default function ProductoModal({
     modelo: productoParaEditar?.modelo || '',
     idCategoria: idCategoriaInicial,
     calidad: productoParaEditar?.calidad || '',
-    costoReferencial: productoParaEditar?.costoReferencial || 0,
+    precioCompra: productoParaEditar?.precioCompra,
     precioVenta: productoParaEditar?.precioVenta || 0,
     stockMinimo: productoParaEditar?.stockMinimo || 0,
     tipoProducto: tipoInicial,
@@ -146,9 +159,21 @@ export default function ProductoModal({
     // ✅ CAMPOS CONDICIONALES
     firmeza: productoParaEditar?.firmeza || undefined,
     materialNucleo: productoParaEditar?.materialNucleo || undefined,
+    materialArmazon: productoParaEditar?.materialArmazon || undefined,
+
+    // Color no es condicional: aplica a cualquier tipo de producto.
+    color: productoParaEditar?.color || '',
   });
 
   const [error, setError] = useState<string | null>(null);
+
+  // Marca/Modelo/Calidad/Descripción son secundarios: plegado por defecto
+  // para un producto nuevo, pero si ya traían algo cargado (al editar) no
+  // conviene esconderlo sin que se note.
+  const [mostrarMasDetalles, setMostrarMasDetalles] = useState(
+    !!(productoParaEditar?.marca || productoParaEditar?.modelo ||
+       productoParaEditar?.calidad || productoParaEditar?.descripcion)
+  );
 
   // Dimensiones: se arma a partir de estos tres, no es un input directo.
   // Si el producto ya tenía un texto con el formato nuevo (generado por
@@ -191,6 +216,24 @@ export default function ProductoModal({
   // hiciera falta cambiarlos habría que pasar a "Medida Especial / Otra".
   const medidaEsEstandar = medidaSeleccionada !== '' && medidaSeleccionada !== MEDIDA_OTRA;
 
+  // Ejemplos de los placeholders según el tipo elegido: no tiene sentido
+  // sugerir "Colchones del Oriente" como ejemplo de Marca cuando la
+  // categoría es Cama.
+  const EJEMPLOS_MARCA: Record<string, string> = {
+    CAMA: 'Ej: Muebles del Oriente',
+    COLCHON: 'Ej: Colchones del Oriente',
+    ALMOHADA: 'Ej: Textiles del Hogar',
+    ACCESORIO: 'Ej: Hogar y Confort',
+  };
+  const EJEMPLOS_COLOR: Record<string, string> = {
+    CAMA: 'Ej: Nogal, Blanco, Wengue',
+    COLCHON: 'Ej: Blanco, Beige, Gris',
+    ALMOHADA: 'Ej: Blanco, Beige',
+    ACCESORIO: 'Ej: Blanco, Negro',
+  };
+  const placeholderMarca = EJEMPLOS_MARCA[formData.tipoProducto] ?? 'Ej: Muebles del Oriente';
+  const placeholderColor = EJEMPLOS_COLOR[formData.tipoProducto] ?? 'Ej: Blanco, Negro';
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     const val = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
@@ -204,7 +247,11 @@ export default function ProductoModal({
     // que antes se hacía al cambiar el Tipo a mano. También recalcula la
     // sugerencia de SKU, pero solo si el usuario todavía no escribió el
     // suyo a mano.
-    if (name === 'idCategoria') {
+    if (name === 'precioCompra') {
+      // Opcional: un campo vacío tiene que quedar en undefined, no en 0 ni
+      // en un string vacío, para que el backend lo reciba como "sin dato".
+      setFormData(prev => ({ ...prev, precioCompra: value === '' ? undefined : Number(value) }));
+    } else if (name === 'idCategoria') {
       const nuevoTipo = tipoDeCategoria(Number(val)) || formData.tipoProducto;
       setFormData(prev => ({
         ...prev,
@@ -213,6 +260,7 @@ export default function ProductoModal({
         sku: skuTocado ? prev.sku : sugerirSiguienteSku(nuevoTipo, productos),
         firmeza: undefined,
         materialNucleo: undefined,
+        materialArmazon: undefined,
       }));
     } else {
       setFormData(prev => ({ ...prev, [name]: val }));
@@ -246,6 +294,9 @@ export default function ProductoModal({
     if (formData.tipoProducto !== 'COLCHON') {
       delete dataToSend.firmeza;
       delete dataToSend.materialNucleo;
+    }
+    if (formData.tipoProducto !== 'CAMA') {
+      delete dataToSend.materialArmazon;
     }
     dataToSend.dimensiones = tipoTieneDimensiones
       ? componerDimensiones(medidaSeleccionada, ancho, largo, altoGrosor)
@@ -380,7 +431,16 @@ export default function ProductoModal({
               <div>
                 <label className="block text-sm font-medium text-gray-700">Nombre *</label>
                 <input type="text" name="nombre" value={formData.nombre} onChange={handleChange}
+                  list="nombres-productos-existentes"
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required />
+                {/* Sugiere nombres ya usados para evitar duplicados casi
+                    iguales ("Cama Nido" vs "Cama nido"), pero no obliga:
+                    el campo sigue aceptando cualquier texto libre. */}
+                <datalist id="nombres-productos-existentes">
+                  {Array.from(new Set(productos.map(p => p.nombre))).map(nombre => (
+                    <option key={nombre} value={nombre} />
+                  ))}
+                </datalist>
               </div>
 
               {/* ✅ CAMPOS CONDICIONALES - COLCHON */}
@@ -413,9 +473,21 @@ export default function ProductoModal({
               )}
 
               {/* ✅ CAMPOS CONDICIONALES - CAMA */}
+              {formData.tipoProducto === 'CAMA' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Material del Armazón</label>
+                  <select name="materialArmazon" value={formData.materialArmazon || ''} onChange={handleChange}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white">
+                    <option value="">Seleccionar...</option>
+                    <option value="Madera">Madera</option>
+                    <option value="Fierro">Fierro</option>
+                    <option value="Combinado">Combinado (madera y metal)</option>
+                  </select>
+                </div>
+              )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Categoría *</label>
+                <label className="block text-sm font-medium text-gray-900">Categoría *</label>
                 <select name="idCategoria" value={formData.idCategoria} onChange={handleChange}
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white" required>
                   {categorias.map(cat => (
@@ -425,33 +497,33 @@ export default function ProductoModal({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Marca</label>
-                <input type="text" name="marca" value={formData.marca} onChange={handleChange}
+                <label className="block text-sm font-medium text-gray-700">Color</label>
+                <input type="text" name="color" value={formData.color || ''} onChange={handleChange}
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                  placeholder="Ej: Colchones del Oriente" />
+                  placeholder={placeholderColor} />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Modelo</label>
-                <input type="text" name="modelo" value={formData.modelo} onChange={handleChange}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Calidad</label>
-                <select name="calidad" value={formData.calidad} onChange={handleChange}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white">
-                  <option value="">Sin especificar</option>
-                  <option value="Estándar">Estándar</option>
-                  <option value="Premium">Premium</option>
-                  <option value="Alta gama">Alta gama</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Costo referencial *</label>
-                <input type="number" step="0.01" name="costoReferencial" value={formData.costoReferencial} onChange={handleChange}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required />
+                <label className="block text-sm font-medium text-gray-700">Precio de Compra</label>
+                {productoParaEditar?.tieneComprasConfirmadas ? (
+                  <p className="mt-1 px-2 py-2 text-gray-700">
+                    {formData.precioCompra != null
+                      ? `Bs ${Number(formData.precioCompra).toLocaleString('es-BO', { minimumFractionDigits: 2 })}`
+                      : '—'}
+                    <span className="text-xs text-gray-500 ml-2">Ya tiene compras confirmadas: se administra desde Compras, no aquí.</span>
+                  </p>
+                ) : (
+                  <>
+                    <input type="number" step="0.01" name="precioCompra" value={formData.precioCompra ?? ''} onChange={handleChange}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                      placeholder="Opcional: si ya sabés cuánto te costó" />
+                    <p className="text-xs text-gray-500 mt-1">
+                      {isEditing
+                        ? 'Todavía sin compras confirmadas: se puede corregir. En cuanto tenga una, este campo se bloquea.'
+                        : 'Opcional: si ya sabés cuánto te costó. Después lo actualizan las compras confirmadas.'}
+                    </p>
+                  </>
+                )}
               </div>
 
               <div>
@@ -523,7 +595,7 @@ export default function ProductoModal({
                   <label className="block text-sm font-medium text-gray-700">Stock actual</label>
                   <p className="mt-1 px-2 py-2 text-gray-700">
                     {stockActual ?? 0}
-                    <span className="text-xs text-gray-500 ml-2">Se administra desde Inventario, no acá.</span>
+                    <span className="text-xs text-gray-500 ml-2">Se administra desde Inventario, no aquí.</span>
                   </p>
                 </div>
               )}
@@ -542,10 +614,56 @@ export default function ProductoModal({
               </div>
             </div>
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700">Descripción</label>
-              <textarea name="descripcion" value={formData.descripcion} onChange={handleChange} rows={3}
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"></textarea>
+            {/* Más detalles: Marca, Modelo, Calidad y Descripción son
+                secundarios (ninguno es obligatorio para guardar). Plegado
+                por defecto para no abrumar al cargar un producto nuevo;
+                si el producto ya tenía algo cargado ahí, arranca abierto
+                para no esconder datos que ya existían. */}
+            <div className="mb-4 border border-gray-200 rounded-md bg-slate-50">
+              <button
+                type="button"
+                onClick={() => setMostrarMasDetalles(v => !v)}
+                className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-gray-700 hover:bg-slate-100 rounded-md"
+              >
+                Más detalles (opcional)
+                <span className="text-gray-400">{mostrarMasDetalles ? '▲' : '▼'}</span>
+              </button>
+
+              {mostrarMasDetalles && (
+                <div className="px-3 pb-3 pt-1 border-t border-gray-200">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Marca</label>
+                      <input type="text" name="marca" value={formData.marca} onChange={handleChange}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                        placeholder={placeholderMarca} />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Modelo</label>
+                      <input type="text" name="modelo" value={formData.modelo} onChange={handleChange}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Calidad</label>
+                      <select name="calidad" value={formData.calidad} onChange={handleChange}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white">
+                        <option value="">Sin especificar</option>
+                        <option value="Estándar">Estándar</option>
+                        <option value="Premium">Premium</option>
+                        <option value="Alta gama">Alta gama</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Descripción</label>
+                    <textarea name="descripcion" value={formData.descripcion} onChange={handleChange} rows={3}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"></textarea>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Imagen del producto */}
@@ -632,6 +750,16 @@ export default function ProductoModal({
                   <X size={28} />
                 </button>
               </div>
+            )}
+
+            {/* Metadato de la fila, no un dato de negocio: solo lectura,
+                nunca se envía al guardar. Va al final, no en la cabecera,
+                para no competir con el título de la acción. */}
+            {isEditing && productoParaEditar && (
+              <p className="text-xs text-gray-500 mt-4 text-right">
+                Creado el {formatearFechaHora(productoParaEditar.fechaCreacion)}
+                {' · '}Última edición {formatearFechaHora(productoParaEditar.fechaActualizacion)}
+              </p>
             )}
 
             <div className="flex justify-end space-x-2 mt-6">

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Package, MapPin, Calendar, DollarSign } from 'lucide-react';
+import { X, Package, Calendar, DollarSign } from 'lucide-react';
 import { Inventario, MovimientoInventario } from '@/types/inventario';
 import { getHistorialAjustes } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
@@ -30,7 +30,7 @@ export default function DetalleProductoModal({ inventario, onClose }: DetallePro
     return () => { activo = false; };
   }, [inventario.idProducto]);
 
-  const costo = Number(inventario.costoReferencial ?? 0);
+  const costo = Number(inventario.precioCompra ?? 0);
   const valorTotal = inventario.cantidadDisponible * costo;
 
   const esEntrada = (tipo: string) =>
@@ -78,14 +78,14 @@ export default function DetalleProductoModal({ inventario, onClose }: DetallePro
               <div className="bg-gray-50 p-4 rounded-lg">
                 <p className="text-xs text-gray-500 mb-1">Categoría</p>
                 <p className="font-medium text-gray-900">
-                  {inventario.nombreProducto.toLowerCase().includes('cama') ? 'Camas' : 
-                   inventario.nombreProducto.toLowerCase().includes('colchon') ? 'Colchones' : 
-                   inventario.nombreProducto.toLowerCase().includes('almohada') ? 'Almohadas' : 'Otro'}
+                  {inventario.nombreCategoria || 'Sin categoría'}
                 </p>
               </div>
               <div className="bg-gray-50 p-4 rounded-lg">
                 <p className="text-xs text-gray-500 mb-1">Descripción</p>
-                <p className="font-medium text-gray-900">Producto de alta calidad</p>
+                <p className="font-medium text-gray-900">
+                  {inventario.descripcion || 'Sin descripción'}
+                </p>
               </div>
             </div>
           </div>
@@ -107,39 +107,34 @@ export default function DetalleProductoModal({ inventario, onClose }: DetallePro
               }`}>
                 <p className="text-xs text-gray-600 mb-1">Estado de Alerta</p>
                 <p className={`text-lg font-bold ${inventario.bajoStockMinimo ? 'text-red-600' : 'text-blue-600'}`}>
-                  {inventario.bajoStockMinimo ? 'ACTIVA' : 'INACTIVA'}
+                  {inventario.cantidadDisponible === 0 ? 'SIN STOCK' : inventario.bajoStockMinimo ? 'ACTIVA' : 'INACTIVA'}
                 </p>
               </div>
             </div>
-          </div>
-
-          {/* Ubicación y Valor */}
-          <div className={`grid gap-4 ${esAdmin ? 'grid-cols-2' : 'grid-cols-1'}`}>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <MapPin className="text-gray-600" size={20} />
-                <p className="text-sm font-medium text-gray-900">Ubicación Física</p>
-              </div>
-              <p className="text-lg font-semibold text-gray-700">
-                {inventario.ubicacion || 'No especificada'}
+            {inventario.bajoStockMinimo && (
+              <p className="mt-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                {inventario.cantidadDisponible === 0
+                  ? 'Ya no te queda nada de esto. Agregá stock para que vuelva a aparecer.'
+                  : 'Ya casi no te quedan. Agregá más para que se quite el aviso.'}
               </p>
-            </div>
-            {/* Se calcula con el costo de referencia: el rol EMPLEADO no lo ve. */}
-            {esAdmin && (
-              <div className="bg-green-50 p-4 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <DollarSign className="text-green-600" size={20} />
-                  <p className="text-sm font-medium text-gray-900">Valor Total del Stock</p>
-                </div>
-                <p className="text-lg font-semibold text-green-600">
-                  Bs {valorTotal.toLocaleString('es-BO', { minimumFractionDigits: 2 })}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {inventario.cantidadDisponible} × Bs {costo.toLocaleString('es-BO', { minimumFractionDigits: 2 })} (costo de referencia)
-                </p>
-              </div>
             )}
           </div>
+
+          {/* Valor: se calcula con el precio de compra, el rol EMPLEADO no lo ve. */}
+          {esAdmin && (
+            <div className="bg-green-50 p-4 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <DollarSign className="text-green-600" size={20} />
+                <p className="text-sm font-medium text-gray-900">Valor Total del Stock</p>
+              </div>
+              <p className="text-lg font-semibold text-green-600">
+                Bs {valorTotal.toLocaleString('es-BO', { minimumFractionDigits: 2 })}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                {inventario.cantidadDisponible} × Bs {costo.toLocaleString('es-BO', { minimumFractionDigits: 2 })} (precio de compra)
+              </p>
+            </div>
+          )}
 
           {/* Última Actualización */}
           <div className="bg-blue-50 p-4 rounded-lg">

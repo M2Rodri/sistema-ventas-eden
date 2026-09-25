@@ -33,15 +33,21 @@ public class ProductoRequest {
     private String firmeza;
     private String materialNucleo;
 
+    @Size(max = 50, message = "El color no puede exceder 50 caracteres")
+    private String color;
+
+    @Size(max = 50, message = "El material del armazón no puede exceder 50 caracteres")
+    private String materialArmazon;
+
     @NotNull(message = "La categoría es obligatoria")
     private Long idCategoria;
 
     @Size(max = 50, message = "La calidad no puede exceder 50 caracteres")
     private String calidad;
 
-    @NotNull(message = "El precio unitario es obligatorio")
-    @DecimalMin(value = "0.0", inclusive = false, message = "El precio unitario debe ser mayor a 0")
-    private BigDecimal costoReferencial;
+    // Opcional: ver la nota en el modelo Producto.
+    @DecimalMin(value = "0.0", inclusive = false, message = "El precio de compra debe ser mayor a 0")
+    private BigDecimal precioCompra;
 
     @NotNull(message = "El precio de venta es obligatorio")
     @DecimalMin(value = "0.0", inclusive = false, message = "El precio de venta debe ser mayor a 0")

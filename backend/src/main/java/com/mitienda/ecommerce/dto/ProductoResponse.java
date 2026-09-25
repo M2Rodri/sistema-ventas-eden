@@ -27,10 +27,16 @@ public class ProductoResponse {
     private String marca;
     private String firmeza;
     private String materialNucleo;
+    private String color;
+    private String materialArmazon;
     private Long idCategoria;
     private String nombreCategoria;
     private String calidad;
-    private BigDecimal costoReferencial;
+    private BigDecimal precioCompra;
+    // Si es true, precioCompra ya lo gobierna una compra confirmada y no se
+    // puede editar a mano en Productos. Si es false, sigue siendo una
+    // estimación inicial y se puede corregir.
+    private Boolean tieneComprasConfirmadas;
     private BigDecimal precioVenta;
     private String dimensiones;
     private Integer stockMinimo;
@@ -50,10 +56,13 @@ public class ProductoResponse {
         this.marca = producto.getMarca();
         this.firmeza = producto.getFirmeza();
         this.materialNucleo = producto.getMaterialNucleo();
+        this.color = producto.getColor();
+        this.materialArmazon = producto.getMaterialArmazon();
         this.idCategoria = producto.getCategoria().getId();
         this.nombreCategoria = producto.getCategoria().getNombre();
         this.calidad = producto.getCalidad();
-        this.costoReferencial = producto.getCostoReferencial();
+        this.precioCompra = producto.getPrecioCompra();
+        this.tieneComprasConfirmadas = false; // lo completa ProductoService, que sí sabe consultar Compras
         this.precioVenta = producto.getPrecioVenta();
         this.dimensiones = producto.getDimensiones();
         this.stockMinimo = producto.getStockMinimo();
