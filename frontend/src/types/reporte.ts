@@ -10,7 +10,8 @@ export type TipoReporte =
   | 'INVENTARIO_STOCK_BAJO'
   | 'PROVEEDORES'
   | 'TRANSPORTADORAS'
-  | 'FINANCIERO';
+  | 'FINANCIERO'
+  | 'CUENTAS_POR_COBRAR';
 
 export type FormatoExportacion = 'PDF' | 'EXCEL' | 'CSV';
 
@@ -89,7 +90,6 @@ export interface InventarioReporte {
   cantidadDisponible: number;
   precioUnitario: number;
   valorTotal: number;
-  ubicacion: string | null;
 }
 
 export interface ReporteInventarioValorizado {
@@ -171,6 +171,25 @@ export interface ReporteTransportadoras {
   transportadorasActivas: number;
   totalEnvios: number;
   transportadoras: TransportadoraReporte[];
+}
+
+// ============================================
+// REPORTE DE CUENTAS POR COBRAR
+// ============================================
+export interface VentaPendienteReporte {
+  idVenta: number;
+  fechaVenta: string;
+  nombreCliente: string;
+  telefonoCliente: string | null;
+  montoTotal: number;
+  saldoPendiente: number;
+  diasTranscurridos: number;
+}
+
+export interface ReporteCuentasPorCobrar {
+  cantidadVentasPendientes: number;
+  totalPorCobrar: number;
+  ventas: VentaPendienteReporte[];
 }
 
 // ============================================

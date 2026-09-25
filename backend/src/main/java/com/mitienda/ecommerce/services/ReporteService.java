@@ -1,6 +1,7 @@
 package com.mitienda.ecommerce.services;
 
 import com.mitienda.ecommerce.dto.ReporteClientesResponse;
+import com.mitienda.ecommerce.dto.ReporteCuentasPorCobrarResponse;
 import com.mitienda.ecommerce.dto.ReporteFinancieroResponse;
 import com.mitienda.ecommerce.dto.ReporteProductosResponse;
 import com.mitienda.ecommerce.dto.ReporteVentasResponse;
@@ -92,7 +93,12 @@ public class ReporteService {
      * Reporte de ventas por período
      */
     public ReporteVentasResponse getReporteVentas(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
-        List<Venta> ventas = ventaRepository.findByFechaVentaBetweenOrderByFechaVentaDesc(fechaInicio, fechaFin);
+        // Una venta CANCELADA devuelve el stock al inventario, como si nunca
+        // hubiera pasado: no cuenta como venta real en ningún reporte.
+        List<Venta> ventas = ventaRepository.findByFechaVentaBetweenOrderByFechaVentaDesc(fechaInicio, fechaFin)
+                .stream()
+                .filter(v -> v.getEstado() != EstadoVenta.CANCELADA)
+                .collect(Collectors.toList());
 
         Long totalVentas = (long) ventas.size();
         BigDecimal montoTotalVentas = ventas.stream()
@@ -125,7 +131,12 @@ public class ReporteService {
      * Reporte de productos más vendidos
      */
     public ReporteProductosResponse getReporteProductosMasVendidos(Integer limite) {
-        List<DetalleVenta> detalles = detalleVentaRepository.findAll();
+        // Mismo criterio que el resto de reportes: una venta CANCELADA
+        // devolvió el stock, no se vendió de verdad.
+        List<DetalleVenta> detalles = detalleVentaRepository.findAll()
+                .stream()
+                .filter(d -> d.getVenta().getEstado() != EstadoVenta.CANCELADA)
+                .collect(Collectors.toList());
 
         // Agrupar por producto
         Map<Producto, Long> productosCantidad = detalles.stream()
@@ -170,9 +181,12 @@ public class ReporteService {
     public ReporteClientesResponse getReporteClientesFrecuentes(Integer limite) {
         List<Venta> ventas = ventaRepository.findAll();
 
-        // Filtrar ventas con cliente != null antes de agrupar
+        // Filtrar ventas con cliente != null antes de agrupar, y las
+        // CANCELADA: devolvieron el stock, no cuentan como compra real del
+        // cliente.
         List<Venta> ventasConCliente = ventas.stream()
                 .filter(venta -> venta.getCliente() != null)
+                .filter(venta -> venta.getEstado() != EstadoVenta.CANCELADA)
                 .collect(Collectors.toList());
 
         // Agrupar por cliente (solo ventas con cliente registrado)
@@ -220,22 +234,27 @@ public class ReporteService {
     public Map<String, Object> getReporteInventarioValorizado() {
         List<Map<String, Object>> inventarios = inventarioRepository.findAll().stream()
                 .map(inv -> {
-                    Map<String, Object> item = Map.of(
-                            "idProducto", inv.getProducto().getId(),
-                            "nombreProducto", inv.getProducto().getNombre(),
-                            "skuProducto", inv.getProducto().getSku(),
-                            "cantidadDisponible", inv.getCantidadDisponible(),
-                            "precioUnitario", inv.getProducto().getCostoReferencial(),
-                            "valorTotal", inv.getProducto().getCostoReferencial()
-                                    .multiply(BigDecimal.valueOf(inv.getCantidadDisponible())),
-                            "ubicacion", inv.getUbicacion()
-                    );
+                    // Map.of no admite valores null, y un producto sin precio
+                    // de compra cargado sí puede darse: por eso un mapa
+                    // mutable en vez de Map.of, y el cálculo solo si hay dato.
+                    BigDecimal precioCompra = inv.getProducto().getPrecioCompra();
+                    BigDecimal valorItem = precioCompra != null
+                            ? precioCompra.multiply(BigDecimal.valueOf(inv.getCantidadDisponible()))
+                            : null;
+                    Map<String, Object> item = new java.util.HashMap<>();
+                    item.put("idProducto", inv.getProducto().getId());
+                    item.put("nombreProducto", inv.getProducto().getNombre());
+                    item.put("skuProducto", inv.getProducto().getSku());
+                    item.put("cantidadDisponible", inv.getCantidadDisponible());
+                    item.put("precioUnitario", precioCompra);
+                    item.put("valorTotal", valorItem);
                     return item;
                 })
                 .collect(Collectors.toList());
 
         BigDecimal valorTotalInventario = inventarioRepository.findAll().stream()
-                .map(inv -> inv.getProducto().getCostoReferencial()
+                .filter(inv -> inv.getProducto().getPrecioCompra() != null)
+                .map(inv -> inv.getProducto().getPrecioCompra()
                         .multiply(BigDecimal.valueOf(inv.getCantidadDisponible())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
@@ -250,7 +269,11 @@ public class ReporteService {
      * Reporte de ventas por categoría
      */
     public List<Map<String, Object>> getReporteVentasPorCategoria(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
-        List<Venta> ventas = ventaRepository.findByFechaVentaBetweenOrderByFechaVentaDesc(fechaInicio, fechaFin);
+        // Mismo criterio: una venta CANCELADA devolvió el stock, no cuenta.
+        List<Venta> ventas = ventaRepository.findByFechaVentaBetweenOrderByFechaVentaDesc(fechaInicio, fechaFin)
+                .stream()
+                .filter(v -> v.getEstado() != EstadoVenta.CANCELADA)
+                .collect(Collectors.toList());
 
         Map<String, Long> ventasPorCategoria = new java.util.HashMap<>();
         Map<String, BigDecimal> montosPorCategoria = new java.util.HashMap<>();
@@ -288,7 +311,10 @@ public class ReporteService {
     public List<Map<String, Object>> getReporteVentasPorMetodoPago(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
         List<Venta> ventas = ventaRepository.findByFechaVentaBetweenOrderByFechaVentaDesc(fechaInicio, fechaFin);
 
+        // Cancelar una venta no toca el registro del pago (sigue COMPLETADO):
+        // sin este filtro, la plata de una venta anulada seguia sumando acá.
         List<Pago> pagos = ventas.stream()
+                .filter(v -> v.getEstado() != EstadoVenta.CANCELADA)
                 .flatMap(v -> v.getPagos().stream())
                 .filter(p -> p.getMetodoPago() != null && p.getEstado() == EstadoPago.COMPLETADO)
                 .collect(Collectors.toList());
@@ -318,6 +344,41 @@ public class ReporteService {
     }
 
     /**
+     * Reporte de cuentas por cobrar: ventas con saldo pendiente.
+     *
+     * No es un reporte por periodo -- es una foto del momento (a quien le
+     * falta cobrar hoy), asi que no recibe rango de fechas. Solo cuentan
+     * las ventas PENDIENTE_PAGO: una CANCELADA no genero una deuda real
+     * (se anulo entera) y una COMPLETADA ya no tiene saldo pendiente.
+     */
+    public ReporteCuentasPorCobrarResponse getReporteCuentasPorCobrar() {
+        List<Venta> ventasPendientes = ventaRepository.findAll().stream()
+                .filter(v -> v.getEstado() == EstadoVenta.PENDIENTE_PAGO)
+                .collect(Collectors.toList());
+
+        LocalDateTime ahora = LocalDateTime.now();
+        List<ReporteCuentasPorCobrarResponse.VentaPendienteDTO> detalle = ventasPendientes.stream()
+                .map(v -> new ReporteCuentasPorCobrarResponse.VentaPendienteDTO(
+                        v.getId(),
+                        v.getFechaVenta(),
+                        v.getNombreClienteCompleto(),
+                        v.getTelefonoClienteCompleto(),
+                        v.getMontoTotal(),
+                        v.getSaldoPendiente(),
+                        java.time.temporal.ChronoUnit.DAYS.between(v.getFechaVenta(), ahora)
+                ))
+                .sorted((a, b) -> Long.compare(b.getDiasTranscurridos(), a.getDiasTranscurridos()))
+                .collect(Collectors.toList());
+
+        BigDecimal totalPorCobrar = ventasPendientes.stream()
+                .map(Venta::getSaldoPendiente)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return new ReporteCuentasPorCobrarResponse(
+                (long) ventasPendientes.size(), totalPorCobrar, detalle);
+    }
+
+    /**
      * Reporte financiero del periodo.
      *
      * Separa dos cosas que antes se mezclaban en un solo numero
@@ -344,7 +405,7 @@ public class ReporteService {
 
         List<Compra> compras = compraRepository.findByFechaCompraBetweenOrderByFechaCompraDesc(fechaInicio, fechaFin)
                 .stream()
-                .filter(c -> c.getEstado() == EstadoCompra.RECIBIDA)
+                .filter(c -> c.getEstado() == EstadoCompra.CONFIRMADA)
                 .collect(Collectors.toList());
 
         BigDecimal gananciaVentas = ventas.stream()

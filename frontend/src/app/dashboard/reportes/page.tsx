@@ -1,17 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import { 
-  TrendingUp, 
-  Package, 
-  Users, 
-  DollarSign, 
-  PieChart, 
+import {
+  TrendingUp,
+  Package,
+  Users,
+  DollarSign,
+  PieChart,
   CreditCard,
   AlertTriangle,
   Building2,
   Truck,
-  BarChart3
+  BarChart3,
+  Wallet
 } from 'lucide-react';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import ReporteCard from '@/components/ReporteCard';
@@ -104,6 +105,16 @@ export default function ReportesPage() {
       categorias: ['Inventario', 'Alertas']
     },
     {
+      id: 'CUENTAS_POR_COBRAR',
+      titulo: 'Cuentas por Cobrar',
+      descripcion: 'Ventas con saldo pendiente, ordenadas por antigüedad',
+      icono: 'Wallet',
+      color: 'from-primary-500 to-primary-600',
+      requiereFechas: false,
+      requiereLimite: false,
+      categorias: ['Ventas', 'Cobranza']
+    },
+    {
       id: 'PROVEEDORES',
       titulo: 'Reporte de Proveedores',
       descripcion: 'Análisis de compras y proveedores activos',
@@ -144,7 +155,8 @@ export default function ReportesPage() {
       AlertTriangle,
       Building2,
       Truck,
-      BarChart3
+      BarChart3,
+      Wallet
     };
     return icons[iconName] || Package;
   };

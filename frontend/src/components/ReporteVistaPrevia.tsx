@@ -13,6 +13,7 @@ import {
   getReporteProveedores,
   getReporteTransportadoras,
   getReporteFinanciero,
+  getReporteCuentasPorCobrar,
 } from '@/lib/api';
 import { mensajeError } from '@/lib/errores';
 import {
@@ -119,6 +120,9 @@ export default function ReporteVistaPrevia({
           break;
         case 'FINANCIERO':
           resultado = await getReporteFinanciero(inicio, fin);
+          break;
+        case 'CUENTAS_POR_COBRAR':
+          resultado = await getReporteCuentasPorCobrar();
           break;
         default:
           throw new Error('Tipo de reporte no soportado');
@@ -363,7 +367,6 @@ export default function ReporteVistaPrevia({
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cantidad</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Precio Unit.</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Valor Total</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ubicación</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -374,7 +377,6 @@ export default function ReporteVistaPrevia({
                         <td className="px-4 py-3 text-sm">{item.cantidadDisponible}</td>
                         <td className="px-4 py-3 text-sm">{formatPrice(item.precioUnitario)}</td>
                         <td className="px-4 py-3 text-sm font-semibold text-primary-600">{formatPrice(item.valorTotal)}</td>
-                        <td className="px-4 py-3 text-sm">{item.ubicacion || '-'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -638,6 +640,61 @@ export default function ReporteVistaPrevia({
           )
         )}
 
+        {/* REPORTE DE CUENTAS POR COBRAR */}
+        {tipoReporte === 'CUENTAS_POR_COBRAR' && data && (
+          data.ventas.length === 0 ? (
+            <SinDatosReporte mensaje="No hay ventas con saldo pendiente de cobro." />
+          ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                <p className="text-sm text-orange-700 mb-1">Ventas con Saldo Pendiente</p>
+                <p className="text-2xl font-bold text-orange-900">{data.cantidadVentasPendientes}</p>
+              </div>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-sm text-red-700 mb-1">Total por Cobrar</p>
+                <p className="text-2xl font-bold text-red-900">{formatPrice(data.totalPorCobrar)}</p>
+              </div>
+            </div>
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Venta</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Monto Total</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Saldo Pendiente</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Días</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {data.ventas.map((venta: any) => (
+                    <tr key={venta.idVenta}>
+                      <td className="px-4 py-3 text-sm font-medium">#{venta.idVenta}</td>
+                      <td className="px-4 py-3 text-sm">{formatDate(venta.fechaVenta)}</td>
+                      <td className="px-4 py-3 text-sm">
+                        <div>{venta.nombreCliente}</div>
+                        {venta.telefonoCliente && (
+                          <div className="text-xs text-gray-500">{venta.telefonoCliente}</div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-sm">{formatPrice(venta.montoTotal)}</td>
+                      <td className="px-4 py-3 text-sm font-semibold text-red-600">{formatPrice(venta.saldoPendiente)}</td>
+                      <td className={`px-4 py-3 text-sm font-semibold ${
+                        venta.diasTranscurridos > 30 ? 'text-red-600' : 'text-gray-700'
+                      }`}>
+                        {venta.diasTranscurridos}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+          )
+        )}
+
         {/* REPORTE FINANCIERO */}
         {tipoReporte === 'FINANCIERO' && data && (
           data.detalleIngresos.length === 0 && data.detalleGastos.length === 0 ? (
@@ -729,7 +786,8 @@ export default function ReporteVistaPrevia({
           'INVENTARIO_STOCK_BAJO',
           'PROVEEDORES',
           'TRANSPORTADORAS',
-          'FINANCIERO'
+          'FINANCIERO',
+          'CUENTAS_POR_COBRAR'
         ].includes(tipoReporte) && (
           <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
             <TrendingUp size={48} className="mx-auto text-gray-400 mb-4" />

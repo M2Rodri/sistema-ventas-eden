@@ -1,6 +1,7 @@
 package com.mitienda.ecommerce.controllers;
 
 import com.mitienda.ecommerce.dto.ReporteClientesResponse;
+import com.mitienda.ecommerce.dto.ReporteCuentasPorCobrarResponse;
 import com.mitienda.ecommerce.dto.ReporteFinancieroResponse;
 import com.mitienda.ecommerce.dto.ReporteProductosResponse;
 import com.mitienda.ecommerce.dto.ReporteVentasResponse;
@@ -105,6 +106,16 @@ public class ReporteController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime inicio,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fin) {
         List<Map<String, Object>> reporte = reporteService.getReporteVentasPorMetodoPago(inicio, fin);
+        return ResponseEntity.ok(reporte);
+    }
+
+    /**
+     * GET /api/reportes/cuentas-por-cobrar
+     * Ventas con saldo pendiente de cobro, ordenadas por antigüedad
+     */
+    @GetMapping("/cuentas-por-cobrar")
+    public ResponseEntity<ReporteCuentasPorCobrarResponse> getReporteCuentasPorCobrar() {
+        ReporteCuentasPorCobrarResponse reporte = reporteService.getReporteCuentasPorCobrar();
         return ResponseEntity.ok(reporte);
     }
 

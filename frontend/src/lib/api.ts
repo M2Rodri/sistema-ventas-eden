@@ -7,14 +7,14 @@ const API_URL = `${BACKEND_URL}/api`;
 export interface RegisterData {
   nombre: string;
   apellido: string;
-  email: string;
+  usuario: string;
   password: string;
   telefono?: string;
   direccion?: string;
 }
 
 export interface LoginData {
-  email: string;
+  usuario: string;
   password: string;
 }
 
@@ -24,7 +24,7 @@ export interface AuthResponse {
   id: number;
   nombre: string;
   apellido: string;
-  email: string;
+  usuario: string;
   role: string;
 }
 
@@ -73,7 +73,7 @@ export interface User {
   nombre: string;
   apellido: string;
   nombreCompleto: string;
-  email: string;
+  usuario: string;
   telefono?: string;
   direccion?: string;
   role: 'ADMIN' | 'EMPLEADO' | 'CLIENTE';
@@ -85,7 +85,7 @@ export interface User {
 export interface UserRequest {
   nombre: string;
   apellido: string;
-  email: string;
+  usuario: string;
   password?: string;
   telefono?: string;
   direccion?: string;
@@ -185,7 +185,8 @@ export const deleteUser = async (id: number): Promise<void> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al eliminar usuario');
+    const error = await response.json();
+    throw new Error(error.error || 'Error al eliminar usuario');
   }
 };
 
@@ -197,7 +198,8 @@ export const toggleUserStatus = async (id: number): Promise<User> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al cambiar estado del usuario');
+    const error = await response.json();
+    throw new Error(error.error || 'Error al cambiar estado del usuario');
   }
 
   return response.json();
@@ -665,20 +667,6 @@ export const getAlertasPendientes = async (): Promise<AlertaInventario[]> => {
   return response.json();
 };
 
-// Marcar alerta como atendida
-export const marcarAlertaAtendida = async (id: number): Promise<AlertaInventario> => {
-  const response = await fetch(`${API_URL}/inventario/alertas/${id}/atender`, {
-    method: 'PATCH',
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    throw new Error('Error al marcar alerta como atendida');
-  }
-
-  return response.json();
-};
-
 // Obtener estadísticas de inventario
 export const getInventarioStatistics = async () => {
   const response = await fetch(`${API_URL}/inventario/estadisticas`, {
@@ -928,18 +916,36 @@ export const getVentasEstadisticas = async (): Promise<VentaEstadisticas> => {
   const ventasDelDia = await getVentasDelDia();
   const montoDelDia = ventasDelDia.reduce((sum, v) => sum + v.montoTotal, 0);
 
-  // Obtener todas las ventas para calcular monto total
+  // Completadas y Monto Total son de los últimos 7 días, no de toda la
+  // vida del sistema: la pantalla es un "resumen del período" (RF-10), y un
+  // acumulado que solo crece deja de servir para ver cómo viene el negocio
+  // día a día. Pendientes sí se deja sin acotar: una deuda vieja sigue
+  // siendo plata por cobrar, no debería desaparecer de la vista por tener
+  // más de una semana.
   const todasVentas = await getAllVentas();
-  const montoTotal = todasVentas
-    .filter(v => v.estado === 'COMPLETADA')
-    .reduce((sum, v) => sum + v.montoTotal, 0);
+  const inicioSemana = new Date();
+  inicioSemana.setDate(inicioSemana.getDate() - 7);
+  const completadasSemana = todasVentas.filter(v =>
+    v.estado === 'COMPLETADA' && new Date(v.fechaVenta) >= inicioSemana
+  );
+  const montoTotal = completadasSemana.reduce((sum, v) => sum + v.montoTotal, 0);
+
+  // RF-10 pide mostrar "las ventas hechas y las entregas pendientes" en el
+  // mismo resumen. Retiro en tienda no cuenta: ahí no hay nada que
+  // despachar (ver CU-02).
+  const entregasPendientes = todasVentas.filter(v =>
+    v.estado !== 'CANCELADA'
+    && v.modalidadEntrega && v.modalidadEntrega !== 'RETIRO'
+    && v.estadoEntrega === 'PENDIENTE'
+  ).length;
 
   return {
     totalVentas: todasVentas.length,
-    ventasCompletadas: data.completadas || 0,
+    ventasCompletadas: completadasSemana.length,
     ventasPendientes: data.pendientes || 0,
     ventasCanceladas: data.canceladas || 0,
     montoTotal: montoTotal,
+    entregasPendientes: entregasPendientes,
     ventasDelDia: ventasDelDia.length,
     montoDelDia: montoDelDia
   };
@@ -952,7 +958,6 @@ export const getVentasEstadisticas = async (): Promise<VentaEstadisticas> => {
 import {
   ClienteRequest,
   ClienteResponse,
-  ClienteEstadisticas,
   HistorialComprasResponse,
   ClienteConEstadisticas
 } from '@/types/cliente';
@@ -972,21 +977,6 @@ export const getAllClientes = async (): Promise<ClienteResponse[]> => {
 
   if (!response.ok) {
     throw new Error('Error al obtener clientes');
-  }
-
-  return response.json();
-};
-
-/**
- * Listar solo clientes activos
- */
-export const getActiveClientes = async (): Promise<ClienteResponse[]> => {
-  const response = await fetch(`${API_URL}/clientes/activos`, {
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    throw new Error('Error al obtener clientes activos');
   }
 
   return response.json();
@@ -1048,38 +1038,6 @@ export const updateCliente = async (
 };
 
 /**
- * Eliminar cliente (desactivar)
- */
-export const deleteCliente = async (id: number): Promise<void> => {
-  const response = await fetch(`${API_URL}/clientes/${id}`, {
-    method: 'DELETE',
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al eliminar cliente');
-  }
-};
-
-/**
- * Activar/Desactivar cliente
- */
-export const toggleClienteStatus = async (id: number): Promise<ClienteResponse> => {
-  const response = await fetch(`${API_URL}/clientes/${id}/toggle-status`, {
-    method: 'PATCH',
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al cambiar estado del cliente');
-  }
-
-  return response.json();
-};
-
-/**
  * Buscar clientes por nombre, teléfono o NIT/CI
  * CU: Buscar/Consultar Cliente - Interfaz P6.1
  */
@@ -1093,37 +1051,6 @@ export const searchClientes = async (query: string): Promise<ClienteResponse[]> 
 
   if (!response.ok) {
     throw new Error('Error al buscar clientes');
-  }
-
-  return response.json();
-};
-
-/**
- * Filtrar clientes por tipo
- */
-export const getClientesByTipo = async (tipo: string): Promise<ClienteResponse[]> => {
-  const response = await fetch(`${API_URL}/clientes/tipo/${tipo}`, {
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    throw new Error('Error al filtrar clientes por tipo');
-  }
-
-  return response.json();
-};
-
-/**
- * Obtener estadísticas generales de clientes
- * Para Interfaz P6.1 - Indicadores superiores
- */
-export const getEstadisticasGeneralesClientes = async (): Promise<ClienteEstadisticas> => {
-  const response = await fetch(`${API_URL}/clientes/estadisticas-generales`, {
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    throw new Error('Error al obtener estadísticas de clientes');
   }
 
   return response.json();
@@ -1171,39 +1098,23 @@ export const getHistorialComprasFiltrado = async (
 };
 
 /**
- * FUNCIÓN AUXILIAR: Obtener clientes con estadísticas de compra
- * Combina datos de clientes con sus ventas para la tabla P6.1
+ * Clientes con sus estadísticas de compra (número de compras, monto total,
+ * última compra), para la tabla de Clientes.
+ *
+ * Antes esto pedía la lista de clientes y después, por cada uno, su
+ * historial completo (N+1 llamadas HTTP solo para dibujar la tabla). Ahora
+ * el backend arma todo en una sola consulta agregada.
  */
 export const getClientesConEstadisticas = async (): Promise<ClienteConEstadisticas[]> => {
-  const clientes = await getAllClientes();
-  
-  // Para cada cliente, obtener sus estadísticas
-  // Promise.all es seguro aca: el map de abajo tiene su propio try/catch y
-  // devuelve el cliente con estadisticas en cero si falla su historial, asi
-  // que ninguna de estas promesas llega a rechazar.
-  const clientesConStats = await Promise.all(
-    clientes.map(async (cliente) => {
-      try {
-        const historial = await getHistorialCompras(cliente.id);
-        return {
-          ...cliente,
-          numeroCompras: historial.estadisticas.totalCompras,
-          montoTotalComprado: historial.estadisticas.montoTotal,
-          ultimaFechaCompra: historial.estadisticas.ultimaCompra,
-        };
-      } catch (error) {
-        // Si falla, retornar con estadísticas en cero
-        return {
-          ...cliente,
-          numeroCompras: 0,
-          montoTotalComprado: 0,
-          ultimaFechaCompra: undefined,
-        };
-      }
-    })
-  );
+  const response = await fetch(`${API_URL}/clientes/con-estadisticas`, {
+    headers: getAuthHeaders(),
+  });
 
-  return clientesConStats;
+  if (!response.ok) {
+    throw new Error('Error al obtener clientes con estadísticas');
+  }
+
+  return response.json();
 };
 
 
@@ -1212,12 +1123,11 @@ export const getClientesConEstadisticas = async (): Promise<ClienteConEstadistic
 // PROVEEDORES 
 // ============================================
 
-import { 
-  Proveedor, 
+import {
+  Proveedor,
   ProveedorRequest,
   Compra,
   CompraRequest,
-  CompraEstadisticas
 } from '@/types/proveedor';
 
 // Listar todos los proveedores
@@ -1259,19 +1169,6 @@ export const getProveedorById = async (id: number): Promise<Proveedor> => {
   return response.json();
 };
 
-// Obtener proveedor por NIT
-export const getProveedorByNit = async (nit: string): Promise<Proveedor> => {
-  const response = await fetch(`${API_URL}/proveedores/nit/${nit}`, {
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    throw new Error('Error al obtener proveedor por NIT');
-  }
-
-  return response.json();
-};
-
 // Crear proveedor
 export const createProveedor = async (data: ProveedorRequest): Promise<Proveedor> => {
   const response = await fetch(`${API_URL}/proveedores`, {
@@ -1304,19 +1201,8 @@ export const updateProveedor = async (id: number, data: ProveedorRequest): Promi
   return response.json();
 };
 
-// Eliminar proveedor (desactivar)
-export const deleteProveedor = async (id: number): Promise<void> => {
-  const response = await fetch(`${API_URL}/proveedores/${id}`, {
-    method: 'DELETE',
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    throw new Error('Error al eliminar proveedor');
-  }
-};
-
-// Activar/Desactivar proveedor
+// Activar/Desactivar proveedor. Es la única baja que existe (no hay un
+// "eliminar" aparte, ver ProveedorService).
 export const toggleProveedorStatus = async (id: number): Promise<Proveedor> => {
   const response = await fetch(`${API_URL}/proveedores/${id}/toggle-status`, {
     method: 'PATCH',
@@ -1343,21 +1229,8 @@ export const searchProveedores = async (nombre: string): Promise<Proveedor[]> =>
   return response.json();
 };
 
-// Obtener estadísticas de proveedores
-export const getProveedorStatistics = async () => {
-  const response = await fetch(`${API_URL}/proveedores/estadisticas`, {
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    throw new Error('Error al obtener estadísticas de proveedores');
-  }
-
-  return response.json();
-};
-
 // ============================================
-// COMPRAS 
+// COMPRAS
 // ============================================
 
 // Listar todas las compras
@@ -1402,6 +1275,22 @@ export const createCompra = async (data: CompraRequest): Promise<Compra> => {
   return response.json();
 };
 
+// Editar compra (solo mientras está pendiente)
+export const updateCompra = async (id: number, data: CompraRequest): Promise<Compra> => {
+  const response = await fetch(`${API_URL}/compras/${id}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Error al editar compra');
+  }
+
+  return response.json();
+};
+
 // Recibir compra
 export const recibirCompra = async (id: number): Promise<Compra> => {
   const response = await fetch(`${API_URL}/compras/${id}/recibir`, {
@@ -1427,91 +1316,6 @@ export const cancelarCompra = async (id: number): Promise<Compra> => {
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || 'Error al cancelar compra');
-  }
-
-  return response.json();
-};
-
-// Obtener compras por proveedor
-export const getComprasByProveedor = async (proveedorId: number): Promise<Compra[]> => {
-  const response = await fetch(`${API_URL}/compras/proveedor/${proveedorId}`, {
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    throw new Error('Error al obtener compras del proveedor');
-  }
-
-  return response.json();
-};
-
-// Obtener compras por estado
-export const getComprasByEstado = async (estado: string): Promise<Compra[]> => {
-  const response = await fetch(`${API_URL}/compras/estado/${estado}`, {
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    throw new Error('Error al filtrar compras por estado');
-  }
-
-  return response.json();
-};
-
-// Obtener últimas compras
-export const getUltimasCompras = async (): Promise<Compra[]> => {
-  const response = await fetch(`${API_URL}/compras/ultimas`, {
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    throw new Error('Error al obtener últimas compras');
-  }
-
-  return response.json();
-};
-
-// Obtener compras por fechas
-export const getComprasByFechas = async (inicio: string, fin: string): Promise<Compra[]> => {
-  const response = await fetch(
-    `${API_URL}/compras/fechas?inicio=${encodeURIComponent(inicio)}&fin=${encodeURIComponent(fin)}`,
-    {
-      headers: getAuthHeaders(),
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error('Error al filtrar compras por fecha');
-  }
-
-  return response.json();
-};
-
-// Obtener total de compras por fechas
-export const getTotalComprasByFechas = async (inicio: string, fin: string): Promise<number> => {
-  const response = await fetch(
-    `${API_URL}/compras/total-fechas?inicio=${encodeURIComponent(inicio)}&fin=${encodeURIComponent(fin)}`,
-    {
-      headers: getAuthHeaders(),
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error('Error al obtener total de compras');
-  }
-
-  const data = await response.json();
-  return data.total;
-};
-
-// Obtener estadísticas de compras
-export const getComprasEstadisticas = async (): Promise<CompraEstadisticas> => {
-  const response = await fetch(`${API_URL}/compras/estadisticas`, {
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    throw new Error('Error al obtener estadísticas de compras');
   }
 
   return response.json();
@@ -1963,7 +1767,7 @@ export const getTotalPagosMes = async (): Promise<number> => {
 // REPORTES 
 // ============================================
 
-import { 
+import {
   ReporteVentas,
   ReporteProductos,
   ReporteClientes,
@@ -1973,7 +1777,8 @@ import {
   ReporteInventarioStockBajo,
   ReporteProveedores,
   ReporteTransportadoras,
-  ReporteFinanciero
+  ReporteFinanciero,
+  ReporteCuentasPorCobrar
 } from '@/types/reporte';
 
 // Reporte de Ventas
@@ -2102,7 +1907,10 @@ export const getReporteProveedores = async (): Promise<ReporteProveedores> => {
   ]);
 
   const proveedoresReporte = proveedores.map(proveedor => {
-    const comprasProveedor = compras.filter(c => c.idProveedor === proveedor.id);
+    // Solo compras CONFIRMADA cuentan como compra real: una CANCELADA nunca
+    // pasó, y una POR_CONFIRMAR todavía puede editarse o no concretarse.
+    // Contarlas infla el total de plata gastada con un proveedor.
+    const comprasProveedor = compras.filter(c => c.idProveedor === proveedor.id && c.estado === 'CONFIRMADA');
     const montoTotal = comprasProveedor.reduce((sum, c) => sum + c.montoTotal, 0);
     const ultimaCompra = comprasProveedor.length > 0 
       ? comprasProveedor.sort((a, b) => new Date(b.fechaCompra).getTime() - new Date(a.fechaCompra).getTime())[0].fechaCompra
@@ -2167,6 +1975,24 @@ export const getReporteTransportadoras = async (): Promise<ReporteTransportadora
     totalEnvios: envios.length,
     transportadoras: transportadorasReporte.sort((a, b) => b.cantidadEnvios - a.cantidadEnvios)
   };
+};
+
+// Reporte de Cuentas por Cobrar (ventas con saldo pendiente).
+// No es un reporte por período: es una foto del momento, así que no lleva
+// fechas. El cálculo vive en el backend.
+export const getReporteCuentasPorCobrar = async (): Promise<ReporteCuentasPorCobrar> => {
+  const response = await fetch(
+    `${API_URL}/reportes/cuentas-por-cobrar`,
+    {
+      headers: getAuthHeaders(),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error('Error al obtener reporte de cuentas por cobrar');
+  }
+
+  return response.json();
 };
 
 // Reporte Financiero.
