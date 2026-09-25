@@ -1,11 +1,8 @@
 package com.mitienda.ecommerce.repositories;
 
 import com.mitienda.ecommerce.models.Compra;
-import com.mitienda.ecommerce.models.EstadoCompra;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -15,33 +12,21 @@ import java.util.List;
 public interface CompraRepository extends JpaRepository<Compra, Long> {
 
     /**
-     * Listar compras por proveedor
+     * Para el aviso amable de factura repetida: la base ya lo bloquea
+     * (uq_compras_proveedor_factura), esto es para avisar antes de intentar
+     * guardar, en vez de que el usuario vea el error técnico de la base.
      */
-    List<Compra> findByProveedorIdOrderByFechaCompraDesc(Long proveedorId);
+    boolean existsByProveedorIdAndNumeroFactura(Long proveedorId, String numeroFactura);
 
     /**
-     * Filtrar compras por estado
+     * Mismo aviso, pero al editar: hay que ignorar la propia compra que se
+     * está editando (si no cambió el número, no es un choque con otra).
      */
-    List<Compra> findByEstadoOrderByFechaCompraDesc(EstadoCompra estado);
+    boolean existsByProveedorIdAndNumeroFacturaAndIdNot(Long proveedorId, String numeroFactura, Long id);
 
     /**
-     * Compras entre fechas
+     * Compras entre fechas. Lo usa ReporteService para el reporte financiero
+     * (ingresos por ventas contra gastos en compras).
      */
     List<Compra> findByFechaCompraBetweenOrderByFechaCompraDesc(LocalDateTime inicio, LocalDateTime fin);
-
-    /**
-     * Contar compras por estado
-     */
-    Long countByEstado(EstadoCompra estado);
-
-    /**
-     * Últimas compras (límite)
-     */
-    List<Compra> findTop10ByOrderByFechaCompraDesc();
-
-    /**
-     * Total de compras en un rango de fechas
-     */
-    @Query("SELECT SUM(c.montoTotal) FROM Compra c WHERE c.fechaCompra BETWEEN :inicio AND :fin AND c.estado = 'RECIBIDA'")
-    BigDecimal sumMontoTotalByFechaCompraBetween(LocalDateTime inicio, LocalDateTime fin);
 }

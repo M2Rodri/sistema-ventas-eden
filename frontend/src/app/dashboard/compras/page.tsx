@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useDragScrollTable } from '@/hooks/useDragScrollTable';
 import {
-  Plus, Search, Eye, PackageCheck, XCircle, ShoppingCart, X, AlertCircle,
+  Plus, Search, Eye, Edit, PackageCheck, XCircle, ShoppingCart, X, AlertCircle,
 } from 'lucide-react';
 import {
   getAllCompras, recibirCompra, cancelarCompra,
@@ -14,6 +14,7 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import CompraModal from '@/components/CompraModal';
 import DetalleCompraModal from '@/components/DetalleCompraModal';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
+import StatCard from '@/components/StatCard';
 import { mensajeError } from '@/lib/errores';
 
 /**
@@ -26,10 +27,31 @@ import { mensajeError } from '@/lib/errores';
  * Vive dentro de Inventario porque ese es el recorrido real: se ve que falta
  * stock, se registra la compra, llega, y el stock sube.
  */
-export default function ComprasPage() {
-  const router = useRouter();
+function ComprasContent() {
   const searchParams = useSearchParams();
-  const proveedorFiltroId = searchParams.get('proveedor');
+  const proveedorParam = searchParams.get('proveedor');
+  // Qué proveedor se sacó del filtro por última vez, guardado en
+  // sessionStorage (no en useState): el click en "Compras" del Sidebar a
+  // veces se resuelve con una navegación real del lado de Next (afuera de
+  // mi control) que puede llegar a remontar este componente antes de que
+  // termine de aplicarse el reset. Un useState se pierde en ese remount;
+  // sessionStorage no, sobrevive tanto a eso como a un F5.
+  const CLAVE_SUPRIMIDO = 'compras:proveedor-suprimido';
+  const [proveedorSuprimido, setProveedorSuprimido] = useState(
+    () => typeof window !== 'undefined' && sessionStorage.getItem(CLAVE_SUPRIMIDO) === proveedorParam
+  );
+  useEffect(() => {
+    // Se reactiva solo si aparece un proveedor nuevo de verdad (entraste
+    // de nuevo desde Proveedores), nunca solo porque cambió el render.
+    if (proveedorParam && sessionStorage.getItem(CLAVE_SUPRIMIDO) !== proveedorParam) {
+      setProveedorSuprimido(false);
+    }
+  }, [proveedorParam]);
+  const proveedorFiltroId = proveedorSuprimido ? null : proveedorParam;
+  const suprimirFiltroProveedor = () => {
+    sessionStorage.setItem(CLAVE_SUPRIMIDO, proveedorParam ?? '');
+    setProveedorSuprimido(true);
+  };
 
   const [compras, setCompras] = useState<Compra[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,6 +62,7 @@ export default function ComprasPage() {
 
   const [modalNuevaAbierto, setModalNuevaAbierto] = useState(false);
   const [compraDetalle, setCompraDetalle] = useState<Compra | null>(null);
+  const [compraAEditar, setCompraAEditar] = useState<Compra | null>(null);
   const [compraARecibir, setCompraARecibir] = useState<Compra | null>(null);
   const [compraACancelar, setCompraACancelar] = useState<Compra | null>(null);
 
@@ -57,6 +80,19 @@ export default function ComprasPage() {
 
   useEffect(() => { cargar(); }, []);
 
+  // Clickear "Compras" en el menú, aunque ya estés en esta pantalla, tiene
+  // que volver todo a su estado normal (mismo mecanismo que Ventas e
+  // Inventario: ver Sidebar.tsx).
+  useEffect(() => {
+    const resetearFiltros = () => {
+      setBusqueda('');
+      setEstadoFiltro('TODOS');
+      suprimirFiltroProveedor();
+    };
+    window.addEventListener('compras:reset-filtros', resetearFiltros);
+    return () => window.removeEventListener('compras:reset-filtros', resetearFiltros);
+  }, []);
+
   // Los de éxito se cierran solos; los de error se quedan hasta que el
   // usuario los cierra a mano (el botón X del banner).
   const avisar = (tipo: 'success' | 'error', texto: string) => {
@@ -73,17 +109,26 @@ export default function ComprasPage() {
 
   const badge = (estado: EstadoCompra | string) => {
     const estilos: Record<string, string> = {
-      PENDIENTE: 'bg-amber-100 text-amber-800',
-      RECIBIDA: 'bg-green-100 text-green-800',
+      POR_CONFIRMAR: 'bg-amber-100 text-amber-800',
+      CONFIRMADA: 'bg-green-100 text-green-800',
       CANCELADA: 'bg-red-100 text-red-800',
     };
     return estilos[estado] ?? 'bg-gray-100 text-gray-800';
   };
 
+  const etiquetaEstado = (estado: EstadoCompra | string) => {
+    const etiquetas: Record<string, string> = {
+      POR_CONFIRMAR: 'Por confirmar',
+      CONFIRMADA: 'Confirmada',
+      CANCELADA: 'Cancelada',
+    };
+    return etiquetas[estado] ?? String(estado);
+  };
+
   const handleRecibir = async (compra: Compra) => {
     try {
       await recibirCompra(compra.id);
-      avisar('success', `Compra #${compra.id} recibida. El stock fue actualizado.`);
+      avisar('success', `Compra #${compra.id} confirmada. El stock fue actualizado.`);
       cargar();
     } catch (error: any) {
       avisar('error', mensajeError(error));
@@ -141,7 +186,7 @@ export default function ComprasPage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Compras a proveedores</h1>
           <p className="text-gray-600 mt-1">
-            Registrá los productos que ingresan. Al marcarlos como recibidos, el stock se actualiza solo.
+            Registrá compras ya realizadas. Confirmalas para actualizar el stock.
           </p>
         </div>
 
@@ -165,20 +210,32 @@ export default function ComprasPage() {
         </div>
       )}
 
-      {/* Resumen por estado */}
+      {/* Resumen por estado. Cada tarjeta fija TODOS los filtros (búsqueda,
+          estado, proveedor de la URL), no solo el que le importa — mismo
+          criterio que Ventas e Inventario. */}
       <div className="grid grid-cols-2 gap-4">
-        {[
-          { estado: 'PENDIENTE', etiqueta: 'Pendientes', icono: ShoppingCart },
-          { estado: 'RECIBIDA', etiqueta: 'Recibidas', icono: PackageCheck },
-        ].map(({ estado, etiqueta, icono: Icono }) => (
-          <div key={estado} className="bg-white p-5 rounded-xl border border-gray-200">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-500">{etiqueta}</p>
-              <Icono size={18} className="text-gray-400" />
-            </div>
-            <p className="text-2xl font-bold text-gray-900 mt-1">{contar(estado)}</p>
-          </div>
-        ))}
+        <StatCard
+          titulo="Por confirmar"
+          valor={contar('POR_CONFIRMAR')}
+          icon={<ShoppingCart size={22} />}
+          loading={loading}
+          onClick={() => {
+            setBusqueda('');
+            setEstadoFiltro('POR_CONFIRMAR');
+            suprimirFiltroProveedor();
+          }}
+        />
+        <StatCard
+          titulo="Confirmadas"
+          valor={contar('CONFIRMADA')}
+          icon={<PackageCheck size={22} />}
+          loading={loading}
+          onClick={() => {
+            setBusqueda('');
+            setEstadoFiltro('CONFIRMADA');
+            suprimirFiltroProveedor();
+          }}
+        />
       </div>
 
       {/* Filtros */}
@@ -199,15 +256,15 @@ export default function ComprasPage() {
           className="px-4 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
         >
           <option value="TODOS">Todos los estados</option>
-          <option value="PENDIENTE">Pendientes</option>
-          <option value="RECIBIDA">Recibidas</option>
+          <option value="POR_CONFIRMAR">Por confirmar</option>
+          <option value="CONFIRMADA">Confirmadas</option>
           <option value="CANCELADA">Canceladas</option>
         </select>
         {proveedorFiltroId && (
           <span className="inline-flex items-center gap-2 px-3 py-2 bg-primary-50 text-primary-700 rounded-lg text-sm font-medium">
             Proveedor: {nombreProveedorFiltrado ?? `#${proveedorFiltroId}`}
             <button
-              onClick={() => router.push('/dashboard/compras')}
+              onClick={suprimirFiltroProveedor}
               className="hover:text-primary-900"
               title="Quitar filtro de proveedor"
             >
@@ -280,11 +337,11 @@ export default function ComprasPage() {
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${badge(compra.estado)}`}>
-                        {String(compra.estado).replace('_', ' ')}
+                        {etiquetaEstado(compra.estado)}
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center justify-center gap-2">
+                      <div className="flex items-center justify-center gap-0.5">
                         <button
                           onClick={() => setCompraDetalle(compra)}
                           className="text-gray-600 hover:text-gray-900 p-1.5"
@@ -293,17 +350,27 @@ export default function ComprasPage() {
                           <Eye size={18} />
                         </button>
 
-                        {compra.estado !== 'RECIBIDA' && compra.estado !== 'CANCELADA' && (
+                        {compra.estado === 'POR_CONFIRMAR' && (
+                          <button
+                            onClick={() => setCompraAEditar(compra)}
+                            className="text-blue-600 hover:text-blue-800 p-1.5"
+                            title="Editar compra"
+                          >
+                            <Edit size={18} />
+                          </button>
+                        )}
+
+                        {compra.estado !== 'CONFIRMADA' && compra.estado !== 'CANCELADA' && (
                           <button
                             onClick={() => setCompraARecibir(compra)}
                             className="text-green-600 hover:text-green-800 p-1.5"
-                            title="Recibir productos y sumar al stock"
+                            title="Confirmar compra y sumar al stock"
                           >
                             <PackageCheck size={18} />
                           </button>
                         )}
 
-                        {compra.estado === 'PENDIENTE' && (
+                        {compra.estado === 'POR_CONFIRMAR' && (
                           <button
                             onClick={() => setCompraACancelar(compra)}
                             className="text-red-600 hover:text-red-800 p-1.5"
@@ -328,13 +395,13 @@ export default function ComprasPage() {
 
       {compraARecibir && (
         <DeleteConfirmModal
-          title="Recibir productos"
+          title="Confirmar compra"
           message={
-            `¿Confirmás que llegaron los productos de la compra #${compraARecibir.id}?\n\n` +
+            `¿Confirmás los datos de la compra #${compraARecibir.id}?\n\n` +
             `Las cantidades se van a sumar al inventario y queda registrado el movimiento. ` +
             `Esta acción no se deshace.`
           }
-          confirmLabel="Recibir productos"
+          confirmLabel="Confirmar compra"
           onConfirm={() => handleRecibir(compraARecibir)}
           onCancel={() => setCompraARecibir(null)}
         />
@@ -356,11 +423,35 @@ export default function ComprasPage() {
           onClose={() => setModalNuevaAbierto(false)}
           onSuccess={() => {
             setModalNuevaAbierto(false);
-            avisar('success', 'Compra registrada. Marcala como recibida cuando lleguen los productos.');
+            avisar('success', 'Compra registrada. Confirmala para actualizar el stock.');
+            cargar();
+          }}
+        />
+      )}
+
+      {compraAEditar && (
+        <CompraModal
+          compra={compraAEditar}
+          onClose={() => setCompraAEditar(null)}
+          onSuccess={() => {
+            setCompraAEditar(null);
+            avisar('success', `Compra #${compraAEditar.id} actualizada.`);
             cargar();
           }}
         />
       )}
     </>
+  );
+}
+
+export default function ComprasPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center py-16">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+      </div>
+    }>
+      <ComprasContent />
+    </Suspense>
   );
 }

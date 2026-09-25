@@ -1,6 +1,6 @@
 // types/proveedor.ts
 
-export type EstadoCompra = 'PENDIENTE' | 'RECIBIDA' | 'CANCELADA';
+export type EstadoCompra = 'POR_CONFIRMAR' | 'CONFIRMADA' | 'CANCELADA';
 
 export interface Proveedor {
   id: number;
@@ -67,10 +67,4 @@ export interface CompraRequest {
   numeroFactura?: string;
   notas?: string;
   items: ItemCompraRequest[];
-}
-
-export interface CompraEstadisticas {
-  pendientes: number;
-  recibidas: number;
-  canceladas: number;
 }

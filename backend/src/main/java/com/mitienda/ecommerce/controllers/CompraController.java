@@ -5,14 +5,11 @@ import com.mitienda.ecommerce.dto.CompraResponse;
 import com.mitienda.ecommerce.models.EstadoCompra;
 import com.mitienda.ecommerce.services.CompraService;
 import jakarta.validation.Valid;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -80,6 +77,21 @@ public class CompraController {
     }
 
     /**
+     * PUT /api/compras/{id}
+     * Editar una compra pendiente (proveedor, factura, notas y productos)
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateCompra(@PathVariable Long id, @Valid @RequestBody CompraRequest request) {
+        try {
+            CompraResponse updatedCompra = compraService.updateCompra(id, request);
+            return ResponseEntity.ok(updatedCompra);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
      * PATCH /api/compras/{id}/estado
      * Cambiar estado de la compra
      */
@@ -125,80 +137,4 @@ public class CompraController {
         }
     }
 
-    /**
-     * GET /api/compras/proveedor/{proveedorId}
-     * Listar compras de un proveedor
-     */
-    @GetMapping("/proveedor/{proveedorId}")
-    public ResponseEntity<List<CompraResponse>> getComprasByProveedor(@PathVariable Long proveedorId) {
-        List<CompraResponse> compras = compraService.getComprasByProveedor(proveedorId);
-        return ResponseEntity.ok(compras);
-    }
-
-    /**
-     * GET /api/compras/estado/{estado}
-     * Filtrar compras por estado
-     */
-    @GetMapping("/estado/{estado}")
-    public ResponseEntity<?> getComprasByEstado(@PathVariable String estado) {
-        try {
-            EstadoCompra estadoEnum = EstadoCompra.valueOf(estado.toUpperCase());
-            List<CompraResponse> compras = compraService.getComprasByEstado(estadoEnum);
-            return ResponseEntity.ok(compras);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "Estado de compra inválido: " + estado));
-        }
-    }
-
-    /**
-     * GET /api/compras/ultimas
-     * Últimas 10 compras
-     */
-    @GetMapping("/ultimas")
-    public ResponseEntity<List<CompraResponse>> getUltimasCompras() {
-        List<CompraResponse> compras = compraService.getUltimasCompras();
-        return ResponseEntity.ok(compras);
-    }
-
-    /**
-     * GET /api/compras/fechas?inicio=...&fin=...
-     * Compras entre fechas
-     */
-    @GetMapping("/fechas")
-    public ResponseEntity<List<CompraResponse>> getComprasByFechas(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime inicio,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fin) {
-        List<CompraResponse> compras = compraService.getComprasByFechas(inicio, fin);
-        return ResponseEntity.ok(compras);
-    }
-
-    /**
-     * GET /api/compras/total-fechas?inicio=...&fin=...
-     * Total de compras en un rango de fechas
-     */
-    @GetMapping("/total-fechas")
-    public ResponseEntity<?> getTotalComprasByFechas(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime inicio,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fin) {
-        BigDecimal total = compraService.getTotalComprasByFechas(inicio, fin);
-        return ResponseEntity.ok(Map.of("total", total));
-    }
-
-    /**
-     * GET /api/compras/estadisticas
-     * Obtener estadísticas de compras
-     */
-    @GetMapping("/estadisticas")
-    public ResponseEntity<?> getCompraStatistics() {
-        Long totalPendientes = compraService.countComprasByEstado(EstadoCompra.PENDIENTE);
-        Long totalRecibidas = compraService.countComprasByEstado(EstadoCompra.RECIBIDA);
-        Long totalCanceladas = compraService.countComprasByEstado(EstadoCompra.CANCELADA);
-
-        return ResponseEntity.ok(Map.of(
-            "pendientes", totalPendientes,
-            "recibidas", totalRecibidas,
-            "canceladas", totalCanceladas
-        ));
-    }
 }
