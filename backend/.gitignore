@@ -6,6 +6,11 @@ uploads/
 target/
 application-dev.properties
 
+# Excepcion: estas dos SI se versionan (sin ningun secreto real, solo
+# ${VARIABLE}), porque el despliegue las necesita para arrancar.
+!application.properties
+!application-prod.properties
+
 # Carpeta de salida que algun IDE (el .classpath sugiere Eclipse/VS Code)
 # arma apuntando aca, con una copia completa del proyecto adentro —
 # .env incluido. Nunca debe versionarse.

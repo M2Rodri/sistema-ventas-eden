@@ -93,10 +93,16 @@ xcuserdata/
 .env.*
 !.env.example
 
-# Configuración del backend: lleva la contraseña de la base y el secreto JWT.
-# Se versionan solo las plantillas *.properties.example.
+# Configuración del backend: protege contra subir un secreto real por error
+# si alguien llega a escribirlo hardcodeado en vez de ${VARIABLE}.
+# application.properties y application-prod.properties SÍ se versionan (sin
+# ningún valor real, solo ${DB_PASSWORD} etc.) porque el despliegue los
+# necesita para arrancar -- se agregaron con -f a propósito. Cualquier otra
+# variante (application-dev.properties, copias locales) sigue ignorada.
 application.properties
 application-*.properties
+!application.properties
+!application-prod.properties
 
 # Configuración local de Flutter con URL y claves (usada en el proyecto del
 # módulo 3 con Supabase).
