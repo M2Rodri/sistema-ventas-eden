@@ -632,10 +632,17 @@ export default function VentasPage() {
                           porque la utilidad "invisible" de Tailwind no está
                           generada en este proyecto (se probó y no aplicaba). */}
                       {(() => {
+                        // CU-02 / RF-07: el ícono se ofrece para cualquier venta
+                        // a domicilio/transportadora todavía pendiente de
+                        // entrega, tenga saldo o no -- el bloqueo real por
+                        // saldo pendiente lo hace el modal de confirmación
+                        // (y el backend). Antes el saldo también decidía si
+                        // el ícono se pintaba, así que el aviso de "falta
+                        // cobrar" nunca llegaba a verse: no había forma de
+                        // hacer clic en un ícono que no existía.
                         const puedeEntregar = venta.estado !== EstadoVenta.CANCELADA
                           && venta.modalidadEntrega !== ModalidadEntrega.RETIRO
-                          && venta.estadoEntrega === EstadoEntrega.PENDIENTE
-                          && (venta.saldoPendiente ?? 0) <= 0;
+                          && venta.estadoEntrega === EstadoEntrega.PENDIENTE;
                         const puedeCobrarSaldo = venta.estado === EstadoVenta.PENDIENTE_PAGO
                           && (venta.saldoPendiente ?? 0) > 0;
                         // Antes solo se ofrecía para Completada: el backend
@@ -758,10 +765,9 @@ export default function VentasPage() {
       {ventaAEntregarId !== null && (() => {
         const ventaAEntregar = ventas.find(v => v.id === ventaAEntregarId);
         const saldo = ventaAEntregar?.saldoPendiente ?? 0;
-        // RF-07: no se despacha lo que no está cobrado. El botón que abre
-        // este modal ya queda oculto si hay saldo pendiente (puedeEntregar),
-        // pero el mensaje también contempla el caso por las dudas -- nunca
-        // ofrece "entregar igual" con saldo.
+        // RF-07: no se despacha lo que no está cobrado. El ícono se ofrece
+        // igual con saldo pendiente (CU-02, A1) para que este modal avise
+        // cuánto falta cobrar -- nunca ofrece "entregar igual" con saldo.
         return (
           <DeleteConfirmModal
             title="Marcar como entregada"
