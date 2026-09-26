@@ -373,12 +373,11 @@ public class VentaService {
     /**
      * Marca la entrega de una venta como completada.
      *
-     * Antes esto era un bloqueo duro (no se podía entregar con saldo
-     * pendiente). En la práctica del negocio sí se entrega a veces sin
-     * cobrar todo (clientes de confianza), así que ya no se impide acá —
-     * el aviso y la confirmación quedan del lado del frontend, antes de
-     * llamar a este método. Lo que sí se sostiene es el registro: si se
-     * entregó debiendo plata, queda anotado en la auditoría.
+     * RF-07: no se despacha lo que no está cobrado. La entrevista al
+     * propietario sostiene esta regla (solo despacha con el pago
+     * confirmado), así que una venta con saldo pendiente no se puede
+     * marcar como entregada -- CA-07.1. Recién con el saldo en cero
+     * se acepta la entrega -- CA-07.2.
      */
     @Transactional
     public VentaResponse marcarEntregado(Long id) {
@@ -391,17 +390,16 @@ public class VentaService {
         if (venta.getEstadoEntrega() == EstadoEntrega.ENTREGADO) {
             throw new RuntimeException("Esta venta ya está marcada como entregada");
         }
-
-        boolean conSaldoPendiente = venta.getSaldoPendiente().compareTo(BigDecimal.ZERO) > 0;
+        if (venta.getSaldoPendiente().compareTo(BigDecimal.ZERO) > 0) {
+            throw new RuntimeException(
+                    "No se puede entregar: falta cobrar Bs " + venta.getSaldoPendiente());
+        }
 
         venta.setEstadoEntrega(EstadoEntrega.ENTREGADO);
         Venta entregada = ventaRepository.save(venta);
 
         registroAuditoria.registrar("ENTREGAR_VENTA", "ventas", entregada.getId(),
-                "Entrega marcada para la venta #" + entregada.getId()
-                        + (conSaldoPendiente
-                            ? ", con saldo pendiente de Bs " + entregada.getSaldoPendiente()
-                            : ""));
+                "Entrega marcada para la venta #" + entregada.getId());
 
         return new VentaResponse(entregada);
     }

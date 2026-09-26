@@ -634,7 +634,8 @@ export default function VentasPage() {
                       {(() => {
                         const puedeEntregar = venta.estado !== EstadoVenta.CANCELADA
                           && venta.modalidadEntrega !== ModalidadEntrega.RETIRO
-                          && venta.estadoEntrega === EstadoEntrega.PENDIENTE;
+                          && venta.estadoEntrega === EstadoEntrega.PENDIENTE
+                          && (venta.saldoPendiente ?? 0) <= 0;
                         const puedeCobrarSaldo = venta.estado === EstadoVenta.PENDIENTE_PAGO
                           && (venta.saldoPendiente ?? 0) > 0;
                         // Antes solo se ofrecía para Completada: el backend
@@ -757,15 +758,15 @@ export default function VentasPage() {
       {ventaAEntregarId !== null && (() => {
         const ventaAEntregar = ventas.find(v => v.id === ventaAEntregarId);
         const saldo = ventaAEntregar?.saldoPendiente ?? 0;
-        // Antes esto ni se mostraba: el backend bloqueaba directo. Ahora
-        // se avisa el monto que falta cobrar, pero se deja confirmar igual
-        // (pasa en la práctica del negocio: entregas a cuenta, clientes de
-        // confianza).
+        // RF-07: no se despacha lo que no está cobrado. El botón que abre
+        // este modal ya queda oculto si hay saldo pendiente (puedeEntregar),
+        // pero el mensaje también contempla el caso por las dudas -- nunca
+        // ofrece "entregar igual" con saldo.
         return (
           <DeleteConfirmModal
             title="Marcar como entregada"
             message={saldo > 0
-              ? `Esta venta todavía tiene un saldo pendiente de Bs. ${saldo.toFixed(2)}. ¿Confirmás que la vas a entregar igual?`
+              ? `No se puede entregar: todavía falta cobrar Bs. ${saldo.toFixed(2)}.`
               : '¿Confirmar que esta venta ya fue entregada?'}
             confirmLabel="Marcar entregado"
             onConfirm={() => handleMarcarEntregado(ventaAEntregarId)}
