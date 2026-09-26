@@ -6,6 +6,20 @@ camas, colchones y accesorios de descanso en Santa Cruz de la Sierra, Bolivia.
 Proyecto final del Diplomado en Desarrollo Web y Aplicaciones Móviles,
 Universidad Autónoma Juan Misael Saracho (Tarija).
 
+## Despliegue en producción
+
+| Parte | URL |
+|---|---|
+| Frontend | https://sistema-ventas-eden.vercel.app |
+| API | https://sistema-ventas-eden.onrender.com |
+| Ruta de salud | https://sistema-ventas-eden.onrender.com/api/v1/salud |
+
+Backend en Render (Docker, ver `backend/Dockerfile`), base de datos en Supabase
+(perfil `prod`), frontend en Vercel. El backend está en el plan gratuito de
+Render: si nadie lo usó en los últimos 15 minutos, el servicio se apaga solo y
+la primera petición después de eso tarda alrededor de un minuto en volver a
+levantarlo.
+
 ## Qué incluye
 
 | Parte | Carpeta | Tecnología | Para qué |
