@@ -18,8 +18,15 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import ReporteCard from '@/components/ReporteCard';
 import ReporteParametrosModal from '@/components/ReporteParametrosModal';
 import { TipoReporte, ConfiguracionReporte } from '@/types/reporte';
+import { useAuth } from '@/hooks/useAuth';
+
+// El backend exige rol ADMIN aparte para estos dos -- el resto de reportes
+// los puede usar EMPLEADO igual (nunca ve costos, así que no hace falta
+// tapárselos).
+const REPORTES_SOLO_ADMIN: TipoReporte[] = ['FINANCIERO', 'INVENTARIO_VALORIZADO'];
 
 export default function ReportesPage() {
+  const { isAdmin } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [tipoReporteSeleccionado, setTipoReporteSeleccionado] = useState<TipoReporte | null>(null);
 
@@ -173,7 +180,9 @@ export default function ReportesPage() {
 
       {/* Grid de Reportes */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 items-stretch">
-        {configuracionesReportes.map((config) => (
+        {configuracionesReportes
+          .filter((config) => isAdmin() || !REPORTES_SOLO_ADMIN.includes(config.id))
+          .map((config) => (
           <ReporteCard
             key={config.id}
             config={config}
