@@ -9,7 +9,7 @@ class Sesion {
   final Usuario usuario;
 
   /// POST /api/auth/login devuelve todo en un solo objeto plano
-  /// (token, tipo, id, nombre, apellido, email, role), no anidado.
+  /// (token, tipo, id, nombre, apellido, usuario, role), no anidado.
   factory Sesion.fromLoginResponse(Map<String, dynamic> json) {
     return Sesion(
       token: json['token'] as String,

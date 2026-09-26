@@ -24,7 +24,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  final _usuarioController = TextEditingController();
   final _passwordController = TextEditingController();
   final _authRepository = AuthRepository();
 
@@ -34,7 +34,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _usuarioController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -49,7 +49,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final sesion = await _authRepository.iniciarSesion(
-        email: _emailController.text.trim(),
+        usuario: _usuarioController.text.trim(),
         password: _passwordController.text,
       );
       if (!mounted) return;
@@ -100,26 +100,23 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             const SizedBox(height: 4),
                             const Text(
-                              'Ingresá con tu correo y contraseña',
+                              'Ingresá con tu usuario y contraseña',
                               style: TextStyle(color: AppColors.textoSecundario),
                             ),
                             const SizedBox(height: 24),
                             TextFormField(
-                              controller: _emailController,
+                              controller: _usuarioController,
                               enabled: !_cargando,
-                              keyboardType: TextInputType.emailAddress,
+                              keyboardType: TextInputType.text,
                               textInputAction: TextInputAction.next,
-                              autofillHints: const <String>[AutofillHints.email],
+                              autofillHints: const <String>[AutofillHints.username],
                               decoration: const InputDecoration(
-                                labelText: 'Correo electrónico',
-                                prefixIcon: Icon(Icons.mail_outline),
+                                labelText: 'Usuario',
+                                prefixIcon: Icon(Icons.person_outline),
                               ),
                               validator: (valor) {
                                 final texto = valor?.trim() ?? '';
-                                if (texto.isEmpty) return 'Ingresá tu correo';
-                                if (!texto.contains('@') || !texto.contains('.')) {
-                                  return 'Correo inválido';
-                                }
+                                if (texto.isEmpty) return 'Ingresá tu usuario';
                                 return null;
                               },
                             ),

@@ -1,0 +1,68 @@
+﻿RECOMENDACIONES E1 · PERFIL DE PROYECTO — Tutoría T2
+Diplomante: Rodrigo Mamani Mamani · Grupo 2
+Proyecto: Sistema web y móvil de ventas e inventario — Mueblería Edén
+Docente: M.Sc. Ing. Isaac Lange Aguilar · 21 de septiembre de 2026
+======================================================================
+
+VALORACIÓN GENERAL
+----------------------------------------------------------------------
+Uno de los mejores perfiles del curso. El recorte de T1 está bien
+aplicado y bien justificado (promociones, envíos, transportadoras y
+configuración fuera). El envío por WhatsApp se resolvió con la foto del
+comprobante, que es mucho más simple. Hay 12 RF con 50 % Must, criterios
+de error en todos, un contrato de API completo y una regla de negocio
+clara que le da sentido al sistema: no entregar lo que no está cobrado.
+Las observaciones son de ajuste.
+
+1. LO URGENTE
+----------------------------------------------------------------------
+  - Tabla 1: el ENLACE AL REPOSITORIO está vacío (y el del tablero
+    también, aunque aparece en 2.2). Sin repositorio accesible se pierde
+    el criterio completo (10 puntos). Completarlo hoy.
+  - La hoja de verificación está toda con ✓, pero el repositorio no está
+    enlazado. Borrar esa hoja del documento.
+
+2. RIESGO TÉCNICO: DÓNDE SE GUARDAN LAS FOTOS
+----------------------------------------------------------------------
+La arquitectura guarda imágenes de productos y comprobantes en el
+"sistema de archivos del servidor", y el backend va a Railway. En
+Railway (y en Render) el disco del contenedor se borra en cada
+redespliegue: los comprobantes se perderían.
+  - Recomendación: usar Supabase Storage, que ya tienes porque la base
+    está en Supabase. Actualizar la arquitectura y la tabla del stack.
+  - Verificar las condiciones actuales del plan de Railway (créditos de
+    prueba o plan pago) y que Spring Boot entre en la memoria disponible.
+    Tener Render como alternativa.
+  - Supabase gratuito pausa el proyecto tras días sin uso: abrirlo antes
+    de la defensa.
+
+3. CAPÍTULO 1
+----------------------------------------------------------------------
+  - La Tabla 3 describe bien los tres puntos críticos, pero sin números.
+    Pedirle al propietario por WhatsApp: cuántos productos distintos
+    maneja, cuánto tarda en contar el stock, cuántas ventas quedaron con
+    saldo en el último mes, alguna vez vendió algo que ya no tenía.
+    Ya tienes el volumen de ventas (2-3 por día, 7-10 por semana): úsalo
+    en la tabla.
+  - Bibliografía: faltan las URL y la fecha de consulta de las cuatro
+    fuentes (Loyverse, Alegra, Odoo, Unifranz).
+
+4. DISEÑO
+----------------------------------------------------------------------
+  - Diccionario de datos: solo está Venta (muy bien hecha). Agregar al
+    menos Producto, Compra y Pago.
+  - Aclarar la entidad Inventario: ¿el stock vive en Producto o en
+    Inventario? Que no haya dos lugares con el mismo dato.
+  - El rol Empleado no tiene usuarios hoy. Está bien mantenerlo, pero
+    debe haber al menos una prueba que demuestre que NO ve costos ni
+    márgenes (es su única razón de ser).
+  - Errata: "Pantalla de Incio".
+
+5. PARA EL E2 (sábado 26, 23:59)
+----------------------------------------------------------------------
+  - RF-01, RF-04 y RF-06 en URL pública (Vercel + Railway/Render +
+    Supabase): login, registrar una venta que descuenta stock, marcar
+    entrega.
+  - Laptop con fallas de batería: tener el entorno también en otra
+    máquina desde ya.
+  - Mostrar su repositorio 5 minutos al grupo al cierre de la tutoría.

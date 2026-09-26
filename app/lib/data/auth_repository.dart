@@ -14,11 +14,11 @@ class AuthRepository {
   final TokenStorage _storage;
 
   Future<Sesion> iniciarSesion({
-    required String email,
+    required String usuario,
     required String password,
   }) async {
     final json = await _apiClient.post('/api/auth/login', <String, dynamic>{
-      'email': email,
+      'usuario': usuario,
       'password': password,
     });
     final sesion = Sesion.fromLoginResponse(json);

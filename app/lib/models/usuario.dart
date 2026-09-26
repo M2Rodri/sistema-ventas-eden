@@ -1,18 +1,18 @@
 /// Usuario autenticado. Mismos campos que devuelve el backend en
-/// POST /api/auth/login (AuthResponse): id, nombre, apellido, email, role.
+/// POST /api/auth/login (AuthResponse): id, nombre, apellido, usuario, role.
 class Usuario {
   const Usuario({
     required this.id,
     required this.nombre,
     required this.apellido,
-    required this.email,
+    required this.usuario,
     required this.role,
   });
 
   final int id;
   final String nombre;
   final String apellido;
-  final String email;
+  final String usuario;
   final String role;
 
   String get nombreCompleto => '$nombre $apellido';
@@ -22,7 +22,7 @@ class Usuario {
       id: (json['id'] as num).toInt(),
       nombre: json['nombre'] as String? ?? '',
       apellido: json['apellido'] as String? ?? '',
-      email: json['email'] as String? ?? '',
+      usuario: json['usuario'] as String? ?? '',
       role: json['role'] as String? ?? '',
     );
   }
@@ -31,7 +31,7 @@ class Usuario {
         'id': id,
         'nombre': nombre,
         'apellido': apellido,
-        'email': email,
+        'usuario': usuario,
         'role': role,
       };
 }
