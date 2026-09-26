@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   TrendingUp,
   Package,
@@ -20,15 +21,19 @@ import ReporteParametrosModal from '@/components/ReporteParametrosModal';
 import { TipoReporte, ConfiguracionReporte } from '@/types/reporte';
 import { useAuth } from '@/hooks/useAuth';
 
-// El backend exige rol ADMIN aparte para estos dos -- el resto de reportes
-// los puede usar EMPLEADO igual (nunca ve costos, así que no hace falta
-// tapárselos).
-const REPORTES_SOLO_ADMIN: TipoReporte[] = ['FINANCIERO', 'INVENTARIO_VALORIZADO'];
-
 export default function ReportesPage() {
-  const { isAdmin } = useAuth();
+  const router = useRouter();
+  const { user, loading, isAdmin } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [tipoReporteSeleccionado, setTipoReporteSeleccionado] = useState<TipoReporte | null>(null);
+
+  // Reportes es solo para ADMIN. El menú ya no le muestra el enlace al
+  // EMPLEADO, pero esto cierra el acceso directo por URL.
+  useEffect(() => {
+    if (!loading && user && !isAdmin()) {
+      router.replace('/dashboard');
+    }
+  }, [loading, user, isAdmin, router]);
 
   const configuracionesReportes: ConfiguracionReporte[] = [
     {
@@ -168,6 +173,10 @@ export default function ReportesPage() {
     return icons[iconName] || Package;
   };
 
+  if (loading || !user || !isAdmin()) {
+    return null;
+  }
+
   return (
     <div className="max-w-full">
       <Breadcrumbs items={[{ label: 'Reportes' }]} />
@@ -180,9 +189,7 @@ export default function ReportesPage() {
 
       {/* Grid de Reportes */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 items-stretch">
-        {configuracionesReportes
-          .filter((config) => isAdmin() || !REPORTES_SOLO_ADMIN.includes(config.id))
-          .map((config) => (
+        {configuracionesReportes.map((config) => (
           <ReporteCard
             key={config.id}
             config={config}

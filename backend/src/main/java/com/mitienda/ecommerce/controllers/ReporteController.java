@@ -21,7 +21,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/reportes")
 @CrossOrigin(origins = "http://localhost:3000")
-@PreAuthorize("hasAnyRole('ADMIN', 'EMPLEADO')")
+@PreAuthorize("hasRole('ADMIN')")
 public class ReporteController {
 
     private final ReporteService reporteService;
@@ -74,12 +74,9 @@ public class ReporteController {
 
     /**
      * GET /api/reportes/inventario-valorizado
-     * Reporte de inventario valorizado. Es costo de referencia por producto
-     * y su valor total, de punta a punta: solo ADMIN, igual que
-     * /financiero. Sobrescribe el @PreAuthorize de la clase.
+     * Reporte de inventario valorizado.
      */
     @GetMapping("/inventario-valorizado")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> getReporteInventarioValorizado() {
         Map<String, Object> reporte = reporteService.getReporteInventarioValorizado();
         return ResponseEntity.ok(reporte);
@@ -122,12 +119,9 @@ public class ReporteController {
     /**
      * GET /api/reportes/financiero?inicio=...&fin=...
      * Reporte financiero: ganancia real de lo vendido, e ingresos/egresos
-     * del periodo. Solo ADMIN: el costo por producto que arma la ganancia
-     * no debe llegarle a un EMPLEADO. Sobrescribe el @PreAuthorize de la
-     * clase (que permite ADMIN y EMPLEADO) con uno mas estricto.
+     * del periodo.
      */
     @GetMapping("/financiero")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ReporteFinancieroResponse> getReporteFinanciero(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime inicio,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fin) {

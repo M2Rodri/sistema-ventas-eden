@@ -42,10 +42,7 @@ const menuItems: MenuItem[] = [
   // tener dos caminos para lo mismo, pero el código y las tablas siguen ahí.
   // { name: 'Envíos', icon: <Truck size={20} />, href: '/dashboard/envios' },
   // { name: 'Pagos', icon: <CreditCard size={20} />, href: '/dashboard/pagos' },
-  // El backend deja entrar a EMPLEADO a la mayoría de los reportes (nunca a
-  // Financiero ni a Inventario Valorizado, que exigen ADMIN aparte) -- no es
-  // admin-only del todo, esas dos tarjetas se ocultan en la propia pantalla.
-  { name: 'Reportes', icon: <BarChart3 size={20} />, href: '/dashboard/reportes' },
+  { name: 'Reportes', icon: <BarChart3 size={20} />, href: '/dashboard/reportes', adminOnly: true },
   // Promociones y Configuración se sacan del menú a pedido, sin tocar las
   // pantallas ni las rutas: siguen existiendo, solo dejan de estar a un clic.
   // { name: 'Promociones', icon: <Tag size={20} />, href: '/dashboard/promociones' },
