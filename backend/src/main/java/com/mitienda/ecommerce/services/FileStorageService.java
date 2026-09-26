@@ -14,6 +14,15 @@ import java.util.UUID;
 /**
  * Servicio genérico para almacenamiento de archivos
  * Reutilizable para imágenes, modelos 3D, PDFs, etc.
+ *
+ * TODO (después del E2, antes del E3): migrar a Supabase Storage.
+ * Hoy los archivos se guardan en el disco del contenedor. En Render (y en
+ * cualquier plataforma similar sin disco persistente en el plan gratis) ese
+ * disco se recrea vacío tanto al redesplegar como cada vez que el servicio
+ * se duerme por inactividad y vuelve a levantarse -- lo que se suba se
+ * pierde. La base ya vive en Supabase, que también ofrece Storage: mover
+ * saveFile/deleteFile/fileExists/getFileSize a su API evita este problema
+ * sin depender de un disco propio.
  */
 @Service
 public class FileStorageService {

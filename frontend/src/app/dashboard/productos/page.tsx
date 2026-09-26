@@ -35,6 +35,11 @@ export default function ProductosPage() {
   // Inventario, esto es nomás una lectura de esa misma información.
   const [stockPorProducto, setStockPorProducto] = useState<Map<number, number>>(new Map());
   const [fallosCarga, setFallosCarga] = useState<string[]>([]);
+  // IDs de producto cuya foto no cargó (por ejemplo, se perdió del disco del
+  // backend en un redeploy/reinicio de Render). Sin esto se ve un ícono de
+  // imagen rota; con esto se muestra el mismo placeholder que un producto
+  // sin foto todavía.
+  const [imagenesConError, setImagenesConError] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -372,11 +377,14 @@ export default function ProductosPage() {
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{index + 1}</td>
                   <td className="px-4 py-4 whitespace-nowrap">
                     <div className="h-12 w-12 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
-                      {producto.imagenes && producto.imagenes.length > 0 ? (
+                      {producto.imagenes && producto.imagenes.length > 0 && !imagenesConError.has(producto.id) ? (
                         <img
                           src={`${BACKEND_URL}${producto.imagenes[0].urlImagen}`}
                           alt={producto.nombre}
                           className="h-full w-full object-cover"
+                          onError={() =>
+                            setImagenesConError((prev) => new Set(prev).add(producto.id))
+                          }
                         />
                       ) : (
                         <ImageIcon size={24} className="text-gray-400" />
