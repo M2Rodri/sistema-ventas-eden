@@ -646,12 +646,15 @@ class _Formulario extends StatelessWidget {
                 }).toList(),
               ),
               const SizedBox(height: 14),
-              SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
-                value: ventaACredito,
-                onChanged: onCambiarVentaACredito,
-                activeThumbColor: AppColors.verdeOscuro,
-                title: const Text('Vender a crédito (dejar saldo pendiente)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+              Material(
+                color: Colors.transparent,
+                child: SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  value: ventaACredito,
+                  onChanged: onCambiarVentaACredito,
+                  activeThumbColor: AppColors.verdeOscuro,
+                  title: const Text('Vender a crédito (dejar saldo pendiente)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                ),
               ),
               if (ventaACredito) ...<Widget>[
                 TextField(
