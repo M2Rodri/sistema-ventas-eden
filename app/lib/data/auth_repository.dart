@@ -1,5 +1,6 @@
 import '../models/sesion.dart';
 import 'api_client.dart';
+import 'biometria_service.dart';
 import 'jwt_utils.dart';
 import 'token_storage.dart';
 
@@ -35,11 +36,17 @@ class AuthRepository {
 
     if (tokenExpirado(sesion.token)) {
       await _storage.borrarSesion();
+      await BiometriaService().desactivar();
       return null;
     }
 
     return sesion;
   }
 
-  Future<void> cerrarSesion() => _storage.borrarSesion();
+  /// Sin sesión no hay nada que proteger: se borra también el candado de
+  /// huella, y quien inicie sesión después lo activa de nuevo si lo quiere.
+  Future<void> cerrarSesion() async {
+    await _storage.borrarSesion();
+    await BiometriaService().desactivar();
+  }
 }

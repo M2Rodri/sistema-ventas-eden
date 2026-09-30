@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 
 import 'data/auth_repository.dart';
+import 'screens/bloqueo/bloqueo_biometrico.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/login/login_screen.dart';
 import 'theme/app_colors.dart';
 import 'theme/app_theme.dart';
+
+/// Llave del navegador: el candado de huella la necesita para llevar al login
+/// desde fuera de cualquier pantalla.
+final navigatorKey = GlobalKey<NavigatorState>();
 
 void main() {
   runApp(const MuebleriaEdenApp());
@@ -19,6 +24,11 @@ class MuebleriaEdenApp extends StatelessWidget {
       title: 'Mueblería Edén',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.tema,
+      navigatorKey: navigatorKey,
+      builder: (context, child) => BloqueoBiometrico(
+        navigatorKey: navigatorKey,
+        child: child ?? const SizedBox.shrink(),
+      ),
       home: const _Arranque(),
     );
   }

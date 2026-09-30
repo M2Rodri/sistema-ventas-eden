@@ -307,7 +307,18 @@ class _NuevaVentaScreenState extends State<NuevaVentaScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Nueva venta')),
+      appBar: AppBar(
+        title: const Text('Nueva venta'),
+        // Se muestra como formulario flotante: se cierra con la X.
+        automaticallyImplyLeading: false,
+        actions: <Widget>[
+          IconButton(
+            tooltip: 'Cerrar',
+            icon: const Icon(Icons.close_rounded),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      ),
       body: switch (_estado) {
         _EstadoCarga.cargando => const Center(child: CircularProgressIndicator(color: AppColors.verdeOscuro)),
         _EstadoCarga.error => _CentroError(mensaje: _errorCarga, onReintentar: _cargarDatos),

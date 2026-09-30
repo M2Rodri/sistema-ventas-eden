@@ -48,6 +48,8 @@ dependencies:
   # Foto del comprobante de pago en Nueva venta: cámara (el papel del banco
   # se fotografía ahí mismo) o galería (el comprobante llegó por WhatsApp).
   image_picker: ^1.1.2
+  package_info_plus: ^9.0.1
+  local_auth: ^3.0.2
 
 dev_dependencies:
   flutter_test:

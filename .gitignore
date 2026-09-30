@@ -125,3 +125,7 @@ key.properties
 *.pem
 *.key
 *.mobileprovision
+
+# Resumen de continuidad entre sesiones de Claude Code -- tiene credenciales
+# reales de producción a propósito, nunca se sube.
+RESUMEN.md

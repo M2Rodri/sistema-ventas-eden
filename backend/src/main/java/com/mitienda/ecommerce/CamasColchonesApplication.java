@@ -1,5 +1,7 @@
 package com.mitienda.ecommerce;
 
+import java.util.TimeZone;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -10,6 +12,11 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class CamasColchonesApplication {
 
     public static void main(String[] args) {
+        // Render corre en UTC: sin esto "hoy" cambiaba a las 20:00 de Bolivia
+        // y las fechas (@CreationTimestamp, LocalDate.now()) quedaban 4 h
+        // adelantadas. Se fija acá para que valga igual en local y en prod.
+        TimeZone.setDefault(TimeZone.getTimeZone("America/La_Paz"));
+
         SpringApplication.run(CamasColchonesApplication.class, args);
         
         //System.out.println(new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder().encode("REDACTADO"));

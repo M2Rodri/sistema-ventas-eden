@@ -1,6 +1,7 @@
 package com.mitienda.ecommerce.services;
 
 import com.mitienda.ecommerce.dto.DashboardResponse;
+import com.mitienda.ecommerce.dto.VentasSemanalResponse;
 import com.mitienda.ecommerce.models.*;
 import com.mitienda.ecommerce.repositories.*;
 import org.springframework.data.domain.PageRequest;
@@ -271,6 +272,49 @@ public class DashboardService {
     public List<DashboardResponse.ProductoMasVendidoDTO> getMasVendidosHoy(int limite) {
         LocalDateTime inicioDelDia = LocalDate.now().atStartOfDay();
         return getMasVendidosEntre(inicioDelDia, inicioDelDia.plusDays(1), limite);
+    }
+
+    /**
+     * Ventas completadas de la semana calendario (lunes a domingo) que contiene
+     * a la fecha dada; sin fecha, la semana en curso. El lunes a las 00:00
+     * arranca en cero y el domingo a las 23:59 cierra: no es una ventana móvil.
+     */
+    @Transactional(readOnly = true)
+    public VentasSemanalResponse getVentasSemanal(LocalDate fecha) {
+        LocalDate referencia = fecha != null ? fecha : LocalDate.now();
+        LocalDate lunes = referencia.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
+        LocalDate domingo = lunes.plusDays(6);
+
+        List<Venta> ventasSemana = ventaRepository
+                .findByFechaVentaBetweenOrderByFechaVentaDesc(lunes.atStartOfDay(), domingo.plusDays(1).atStartOfDay())
+                .stream().filter(v -> v.getEstado() == EstadoVenta.COMPLETADA).toList();
+
+        List<DashboardResponse.VentaPorDiaDTO> porDia = new ArrayList<>();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        for (int i = 0; i < 7; i++) {
+            LocalDate dia = lunes.plusDays(i);
+            List<Venta> ventasDia = ventasSemana.stream()
+                    .filter(v -> v.getFechaVenta().toLocalDate().equals(dia))
+                    .toList();
+            porDia.add(new DashboardResponse.VentaPorDiaDTO(
+                    dia.format(formatter),
+                    (long) ventasDia.size(),
+                    ventasDia.stream().map(Venta::getMontoTotal).reduce(BigDecimal.ZERO, BigDecimal::add)
+            ));
+        }
+
+        BigDecimal montoTotal = ventasSemana.stream().map(Venta::getMontoTotal).reduce(BigDecimal.ZERO, BigDecimal::add);
+        LocalDate hoy = LocalDate.now();
+
+        return new VentasSemanalResponse(
+                lunes.format(formatter),
+                domingo.format(formatter),
+                lunes.get(java.time.temporal.IsoFields.WEEK_OF_WEEK_BASED_YEAR),
+                !hoy.isBefore(lunes) && !hoy.isAfter(domingo),
+                (long) ventasSemana.size(),
+                montoTotal,
+                porDia
+        );
     }
 
     private List<DashboardResponse.VentaPorDiaDTO> getVentasUltimosDias(int dias) {

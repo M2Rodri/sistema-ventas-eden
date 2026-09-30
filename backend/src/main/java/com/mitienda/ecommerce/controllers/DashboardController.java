@@ -1,10 +1,14 @@
 package com.mitienda.ecommerce.controllers;
 
 import com.mitienda.ecommerce.dto.DashboardResponse;
+import com.mitienda.ecommerce.dto.VentasSemanalResponse;
 import com.mitienda.ecommerce.services.DashboardService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 
 /**
  * Controlador REST para el dashboard con estadísticas
@@ -37,5 +41,16 @@ public class DashboardController {
     public ResponseEntity<DashboardResponse> getDashboardStats() {
         DashboardResponse dashboard = dashboardService.getDashboardStats();
         return ResponseEntity.ok(dashboard);
+    }
+
+    /**
+     * GET /api/dashboard/ventas-semanal?fecha=2026-09-28
+     * Ventas de la semana calendario (lunes a domingo) que contiene a la fecha;
+     * sin parámetro, la semana en curso.
+     */
+    @GetMapping("/ventas-semanal")
+    public ResponseEntity<VentasSemanalResponse> getVentasSemanal(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha) {
+        return ResponseEntity.ok(dashboardService.getVentasSemanal(fecha));
     }
 }
