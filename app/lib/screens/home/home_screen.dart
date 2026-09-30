@@ -12,6 +12,7 @@ import '../../theme/app_colors.dart';
 import '../alertas_stock/alertas_stock_screen.dart';
 import '../catalogo/catalogo_screen.dart';
 import '../login/login_screen.dart';
+import '../ventas/estado_entrega_ui.dart';
 import '../ventas/nueva_venta_screen.dart';
 import '../ventas/venta_detalle_screen.dart';
 import '../ventas/ventas_screen.dart';
@@ -34,6 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final _ventasRepository = VentasRepository();
   final _formatoMoneda = NumberFormat.currency(locale: 'es_BO', symbol: 'Bs. ', decimalDigits: 2);
   final _formatoFecha = DateFormat('dd/MM/yyyy HH:mm');
+  bool get _esAdmin => widget.sesion.usuario.role == 'ADMIN';
 
   _EstadoResumen _estado = _EstadoResumen.cargando;
   DashboardResumen? _resumen;
@@ -110,13 +112,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _abrirVentas() {
     Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => VentasScreen(token: widget.sesion.token)),
+      MaterialPageRoute<void>(builder: (_) => VentasScreen(token: widget.sesion.token, esAdmin: _esAdmin)),
     );
   }
 
   Future<void> _abrirNuevaVenta() async {
     final registrada = await Navigator.of(context).push<bool>(
-      MaterialPageRoute<bool>(builder: (_) => NuevaVentaScreen(token: widget.sesion.token)),
+      MaterialPageRoute<bool>(builder: (_) => NuevaVentaScreen(token: widget.sesion.token, esAdmin: _esAdmin)),
     );
     if (registrada == true && mounted) _cargarResumen();
   }
@@ -229,7 +231,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 onTap: () {
                                   Navigator.of(modalCtx).pop();
                                   Navigator.of(this.context).push(
-                                    MaterialPageRoute<void>(builder: (_) => VentaDetalleScreen(idVenta: v.id, token: widget.sesion.token)),
+                                    MaterialPageRoute<void>(builder: (_) => VentaDetalleScreen(idVenta: v.id, token: widget.sesion.token, esAdmin: _esAdmin)),
                                   ).then((_) {
                                     if (mounted) _cargarResumen();
                                   });
@@ -269,8 +271,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                                   ),
                                                 Container(
                                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                  decoration: BoxDecoration(color: const Color(0xFFF3E8FF), borderRadius: BorderRadius.circular(6)),
-                                                  child: Text(v.estadoEntrega == EstadoEntrega.entregado ? 'Entregado' : 'Por entregar', style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF7E22CE))),
+                                                  decoration: BoxDecoration(color: colorEstadoEntrega(v.estadoEntrega).withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
+                                                  child: Text(v.estadoEntrega.etiqueta, style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: colorEstadoEntrega(v.estadoEntrega))),
                                                 ),
                                               ],
                                             ),
@@ -627,7 +629,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           onTap: () {
                             Navigator.of(modalCtx).pop();
                             Navigator.of(this.context).push(
-                              MaterialPageRoute<void>(builder: (_) => VentaDetalleScreen(idVenta: v.id, token: widget.sesion.token)),
+                              MaterialPageRoute<void>(builder: (_) => VentaDetalleScreen(idVenta: v.id, token: widget.sesion.token, esAdmin: _esAdmin)),
                             ).then((_) {
                               if (mounted) _cargarResumen();
                             });
@@ -738,7 +740,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
                           const Text('Ventas por Entregar', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.textoPrincipal)),
-                          Text('${_resumen?.ventasPorEntregar ?? 0} pedidos pendientes de despacho', style: const TextStyle(fontSize: 12, color: AppColors.textoSecundario)),
+                          Text('${_resumen?.ventasPorEntregar ?? 0} pedidos por entregar', style: const TextStyle(fontSize: 12, color: AppColors.textoSecundario)),
                         ],
                       ),
                     ),
@@ -762,7 +764,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       );
                     }
                     final lista = snapshot.data ?? <Venta>[];
-                    final porEntregar = lista.where((v) => v.estadoEntrega == EstadoEntrega.pendiente && v.modalidadEntrega != ModalidadEntrega.retiro).toList();
+                    final porEntregar = lista.where((v) => v.porEntregar).toList();
 
                     if (porEntregar.isEmpty) {
                       return const Center(
@@ -792,7 +794,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           onTap: () {
                             Navigator.of(modalCtx).pop();
                             Navigator.of(this.context).push(
-                              MaterialPageRoute<void>(builder: (_) => VentaDetalleScreen(idVenta: v.id, token: widget.sesion.token)),
+                              MaterialPageRoute<void>(builder: (_) => VentaDetalleScreen(idVenta: v.id, token: widget.sesion.token, esAdmin: _esAdmin)),
                             ).then((_) {
                               if (mounted) _cargarResumen();
                             });

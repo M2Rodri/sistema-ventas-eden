@@ -32,6 +32,7 @@ import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 import StatCard from '@/components/StatCard';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { mensajeError } from '@/lib/errores';
+import { claseBadgeEstadoEntrega, esPorEntregar, etiquetaEstadoEntrega, faltaCompletarEnvio } from '@/lib/entrega';
 import { useAuth } from '@/hooks/useAuth';
 
 
@@ -69,7 +70,7 @@ export default function VentasPage() {
   const [filtroMetodoPago, setFiltroMetodoPago] = useState<MetodoPago | 'TODOS'>('TODOS');
   const [filtroPeriodo, setFiltroPeriodo] = useState<'HOY' | 'SEMANA' | 'MES' | 'TODOS'>('TODOS');
   const [filtroVendedor, setFiltroVendedor] = useState<string>('TODOS');
-  const [filtroEntrega, setFiltroEntrega] = useState<'TODOS' | 'PENDIENTE' | 'ENTREGADO'>('TODOS');
+  const [filtroEntrega, setFiltroEntrega] = useState<'TODOS' | 'POR_ENTREGAR' | 'PENDIENTE' | 'DESPACHADO' | 'ENTREGADO'>('TODOS');
 
   useEffect(() => {
     loadVentas();
@@ -197,14 +198,15 @@ export default function VentasPage() {
       }
     }
 
-    // Filtro por entrega. "Pendiente" excluye Retiro: ahí no hay nada que
-    // despachar (ver CU-02), así que no cuenta como entrega pendiente.
-    if (filtroEntrega === 'PENDIENTE') {
-      resultado = resultado.filter(v =>
-        v.estado !== EstadoVenta.CANCELADA
-        && v.modalidadEntrega && v.modalidadEntrega !== ModalidadEntrega.RETIRO
-        && v.estadoEntrega === EstadoEntrega.PENDIENTE
-      );
+    // Filtro por entrega. "Por entregar" es la definición única del sistema
+    // (estado distinto de ENTREGADO y venta no cancelada); los otros tres
+    // filtran por un estado puntual.
+    if (filtroEntrega === 'POR_ENTREGAR') {
+      resultado = resultado.filter(esPorEntregar);
+    } else if (filtroEntrega === 'PENDIENTE') {
+      resultado = resultado.filter(v => v.estadoEntrega === EstadoEntrega.PENDIENTE);
+    } else if (filtroEntrega === 'DESPACHADO') {
+      resultado = resultado.filter(v => v.estadoEntrega === EstadoEntrega.DESPACHADO);
     } else if (filtroEntrega === 'ENTREGADO') {
       resultado = resultado.filter(v => v.estadoEntrega === EstadoEntrega.ENTREGADO);
     }
@@ -351,13 +353,13 @@ export default function VentasPage() {
               entregas pendientes". Sin acotar a la semana: una entrega
               atrasada de hace tiempo sigue siendo relevante. */}
           <StatCard
-            titulo="Entregas Pendientes"
+            titulo="Por Entregar"
             valor={estadisticas?.entregasPendientes ?? 0}
-            subtitulo="A domicilio / transportadora"
+            subtitulo="Pendientes y despachadas"
             icon={<Truck size={22} />}
             loading={loading}
             onClick={() => {
-              setFiltroEntrega('PENDIENTE');
+              setFiltroEntrega('POR_ENTREGAR');
               setFiltroEstado('TODOS');
               setFiltroPeriodo('TODOS');
             }}
@@ -434,7 +436,9 @@ export default function VentasPage() {
             className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
           >
             <option value="TODOS">Toda entrega</option>
-            <option value="PENDIENTE">Entrega pendiente</option>
+            <option value="POR_ENTREGAR">Por entregar</option>
+            <option value="PENDIENTE">Pendiente</option>
+            <option value="DESPACHADO">Despachado</option>
             <option value="ENTREGADO">Entregado</option>
           </select>
 
@@ -485,11 +489,7 @@ export default function VentasPage() {
         // por fila: si ninguna venta visible la necesita, no ocupa espacio
         // en ninguna; en cuanto una la necesita, vuelve a reservarse en
         // todas para mantener la columna alineada.
-        const hayEntregaPendiente = ventasFiltradas.some(v =>
-          v.estado !== EstadoVenta.CANCELADA
-          && v.modalidadEntrega !== ModalidadEntrega.RETIRO
-          && v.estadoEntrega === EstadoEntrega.PENDIENTE
-        );
+        const hayEntregaPendiente = ventasFiltradas.some(esPorEntregar);
         const haySaldoPendiente = ventasFiltradas.some(v =>
           v.estado === EstadoVenta.PENDIENTE_PAGO && (v.saldoPendiente ?? 0) > 0
         );
@@ -603,23 +603,27 @@ export default function VentasPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
-                      {/* Retiro en tienda no tiene nada que despachar: el
-                          cliente se lleva el producto en el momento, así
-                          que "Pendiente" no le corresponde (ver CU-02). Solo
-                          Domicilio/Transportadora manejan un estado real de
-                          entrega. */}
+                      {/* Retiro en tienda nace entregado: el cliente se lleva el
+                          producto en el momento, así que muestra "En tienda".
+                          Domicilio y Transportadora muestran su estado real:
+                          Pendiente, Despachado o Entregado. "Falta completar"
+                          avisa, sin bloquear nada, que a una venta por
+                          transportadora le falta la transportadora o la guía. */}
                       {venta.modalidadEntrega === ModalidadEntrega.RETIRO ? (
                         <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border bg-blue-50 text-blue-700 border-blue-200">
                           En tienda
                         </span>
                       ) : (
-                        <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${
-                          venta.estadoEntrega === EstadoEntrega.ENTREGADO
-                            ? 'bg-green-100 text-green-800 border-green-200'
-                            : 'bg-gray-100 text-gray-800 border-gray-200'
-                        }`}>
-                          {venta.estadoEntrega === EstadoEntrega.ENTREGADO ? 'Entregado' : 'Pendiente'}
-                        </span>
+                        <div className="flex flex-col items-center gap-1">
+                          <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${claseBadgeEstadoEntrega(venta.estadoEntrega)}`}>
+                            {etiquetaEstadoEntrega(venta.estadoEntrega)}
+                          </span>
+                          {faltaCompletarEnvio(venta) && (
+                            <span className="px-2 py-0.5 inline-flex text-[11px] leading-4 font-semibold rounded-full border bg-orange-50 text-orange-700 border-orange-200">
+                              Falta completar
+                            </span>
+                          )}
+                        </div>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
@@ -632,17 +636,12 @@ export default function VentasPage() {
                           porque la utilidad "invisible" de Tailwind no está
                           generada en este proyecto (se probó y no aplicaba). */}
                       {(() => {
-                        // CU-02 / RF-07: el ícono se ofrece para cualquier venta
-                        // a domicilio/transportadora todavía pendiente de
-                        // entrega, tenga saldo o no -- el bloqueo real por
-                        // saldo pendiente lo hace el modal de confirmación
-                        // (y el backend). Antes el saldo también decidía si
-                        // el ícono se pintaba, así que el aviso de "falta
-                        // cobrar" nunca llegaba a verse: no había forma de
-                        // hacer clic en un ícono que no existía.
-                        const puedeEntregar = venta.estado !== EstadoVenta.CANCELADA
-                          && venta.modalidadEntrega !== ModalidadEntrega.RETIRO
-                          && venta.estadoEntrega === EstadoEntrega.PENDIENTE;
+                        // El ícono de entregar se ofrece en toda venta por entregar
+                        // (pendiente o despachada, no cancelada). El saldo
+                        // pendiente no la bloquea: el modal de confirmación solo
+                        // lo avisa. Despachar, deshacer y editar los datos de
+                        // entrega están en el detalle de la venta.
+                        const puedeEntregar = esPorEntregar(venta);
                         const puedeCobrarSaldo = venta.estado === EstadoVenta.PENDIENTE_PAGO
                           && (venta.saldoPendiente ?? 0) > 0;
                         // Antes solo se ofrecía para Completada: el backend
@@ -729,6 +728,12 @@ export default function VentasPage() {
             setVentaSeleccionada(null);
           }}
           venta={ventaSeleccionada}
+          userRole={user?.role === 'ADMIN' ? 'ADMIN' : 'EMPLEADO'}
+          onVentaActualizada={(actualizada) => {
+            setVentaSeleccionada(actualizada);
+            loadVentas();
+            loadEstadisticas();
+          }}
           onUpdated={loadVentas}
           onCobrarSaldo={() => {
             setVentaACobrar(ventaSeleccionada);
@@ -765,14 +770,13 @@ export default function VentasPage() {
       {ventaAEntregarId !== null && (() => {
         const ventaAEntregar = ventas.find(v => v.id === ventaAEntregarId);
         const saldo = ventaAEntregar?.saldoPendiente ?? 0;
-        // RF-07: no se despacha lo que no está cobrado. El ícono se ofrece
-        // igual con saldo pendiente (CU-02, A1) para que este modal avise
-        // cuánto falta cobrar -- nunca ofrece "entregar igual" con saldo.
+        // El saldo pendiente no bloquea la entrega: solo se avisa cuánto falta
+        // cobrar y la decisión queda en quien confirma.
         return (
           <DeleteConfirmModal
             title="Marcar como entregada"
             message={saldo > 0
-              ? `No se puede entregar: todavía falta cobrar Bs. ${saldo.toFixed(2)}.`
+              ? `Esta venta todavía tiene un saldo pendiente de Bs. ${saldo.toFixed(2)}.\n¿Marcarla como entregada de todos modos?`
               : '¿Confirmar que esta venta ya fue entregada?'}
             confirmLabel="Marcar entregado"
             onConfirm={() => handleMarcarEntregado(ventaAEntregarId)}

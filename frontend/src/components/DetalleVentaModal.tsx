@@ -1,10 +1,19 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, User, Calendar, CreditCard, Package, AlertCircle, FileText, Upload, Image as ImageIcon, Banknote } from 'lucide-react';
-import { Venta, Pago } from '@/types/venta';
-import { adjuntarComprobantePago, BACKEND_URL } from '@/lib/api';
+import { X, User, Calendar, CreditCard, Package, AlertCircle, FileText, Upload, Image as ImageIcon, Banknote, Truck } from 'lucide-react';
+import { Venta, Pago, EstadoEntrega, EstadoVenta, ModalidadEntrega } from '@/types/venta';
+import { adjuntarComprobantePago, despacharVenta, marcarVentaEntregada, BACKEND_URL } from '@/lib/api';
+import {
+  claseBadgeEstadoEntrega,
+  etiquetaEstadoEntrega,
+  etiquetaModalidad,
+  faltaCompletarEnvio,
+} from '@/lib/entrega';
 import ComprobanteModal from '@/components/ComprobanteModal';
+import DeleteConfirmModal from '@/components/DeleteConfirmModal';
+import DeshacerEntregaModal from '@/components/DeshacerEntregaModal';
+import EditarEntregaModal from '@/components/EditarEntregaModal';
 
 interface DetalleVentaModalProps {
   isOpen: boolean;
@@ -12,10 +21,27 @@ interface DetalleVentaModalProps {
   venta: Venta;
   onUpdated?: () => void;
   onCobrarSaldo?: () => void;
+  /** Despachar, deshacer y editar la entrega son solo de ADMIN. */
+  userRole?: 'ADMIN' | 'EMPLEADO';
+  /** Se llama con la venta ya actualizada después de una acción de entrega. */
+  onVentaActualizada?: (venta: Venta) => void;
 }
 
-export default function DetalleVentaModal({ isOpen, onClose, venta, onUpdated, onCobrarSaldo }: DetalleVentaModalProps) {
+export default function DetalleVentaModal({
+  isOpen,
+  onClose,
+  venta,
+  onUpdated,
+  onCobrarSaldo,
+  userRole = 'EMPLEADO',
+  onVentaActualizada,
+}: DetalleVentaModalProps) {
   const [showComprobanteModal, setShowComprobanteModal] = useState(false);
+  const [confirmarEntrega, setConfirmarEntrega] = useState(false);
+  const [showDeshacerModal, setShowDeshacerModal] = useState(false);
+  const [showEditarEntregaModal, setShowEditarEntregaModal] = useState(false);
+  const [entregaError, setEntregaError] = useState<string | null>(null);
+  const [entregaProcesando, setEntregaProcesando] = useState(false);
   const [pagosState, setPagosState] = useState<Pago[]>(venta.pagos);
   const [subiendoId, setSubiendoId] = useState<number | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -45,6 +71,21 @@ export default function DetalleVentaModal({ isOpen, onClose, venta, onUpdated, o
       setUploadError(err.message || 'Error al subir el comprobante');
     } finally {
       setSubiendoId(null);
+    }
+  };
+
+  // Despachar y entregar devuelven la venta actualizada: se la pasa al padre
+  // para que la tabla y este detalle muestren el estado nuevo.
+  const ejecutarAccionEntrega = async (accion: () => Promise<Venta>) => {
+    setEntregaError(null);
+    setEntregaProcesando(true);
+    try {
+      const actualizada = await accion();
+      onVentaActualizada?.(actualizada);
+    } catch (err: any) {
+      setEntregaError(err.message || 'No se pudo actualizar la entrega');
+    } finally {
+      setEntregaProcesando(false);
     }
   };
 
@@ -204,6 +245,117 @@ export default function DetalleVentaModal({ isOpen, onClose, venta, onUpdated, o
               )}
             </div>
           </div>
+
+          {/* Entrega */}
+          {(() => {
+            const cancelada = venta.estado === EstadoVenta.CANCELADA;
+            const esAdmin = userRole === 'ADMIN';
+            const esRetiro = venta.modalidadEntrega === ModalidadEntrega.RETIRO;
+            const esTransportadora = venta.modalidadEntrega === ModalidadEntrega.TRANSPORTADORA;
+            const estado = venta.estadoEntrega;
+            const puedeDespachar = esAdmin && esTransportadora && estado === EstadoEntrega.PENDIENTE && !cancelada;
+            const puedeEntregar = estado !== EstadoEntrega.ENTREGADO && !cancelada;
+            const puedeDeshacer = esAdmin && !esRetiro && estado !== EstadoEntrega.PENDIENTE && !cancelada;
+            const puedeEditar = esAdmin && !esRetiro && !cancelada;
+            const dato = (valor?: string) => valor?.trim() || null;
+
+            return (
+              <div className="px-6 pb-6">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <Truck className="text-blue-600" size={20} />
+                      <h3 className="font-semibold text-gray-900">Entrega</h3>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {faltaCompletarEnvio(venta) && (
+                        <span className="px-3 py-1 text-xs font-semibold rounded-full border bg-orange-50 text-orange-700 border-orange-200">
+                          Falta completar
+                        </span>
+                      )}
+                      <span className={`px-3 py-1 text-xs font-semibold rounded-full border ${claseBadgeEstadoEntrega(estado)}`}>
+                        {etiquetaEstadoEntrega(estado)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <p className="text-sm font-medium text-gray-900 mt-3">{etiquetaModalidad(venta.modalidadEntrega)}</p>
+
+                  {!esRetiro && (
+                    <dl className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                      <div>
+                        <dt className="text-gray-500">Dirección</dt>
+                        <dd className="text-gray-900">{dato(venta.direccionDestino) ?? '—'}</dd>
+                      </div>
+                      {esTransportadora && (
+                        <>
+                          <div>
+                            <dt className="text-gray-500">Ciudad</dt>
+                            <dd className="text-gray-900">{dato(venta.ciudad) ?? '—'}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-gray-500">Transportadora</dt>
+                            <dd className="text-gray-900">{dato(venta.transportadora) ?? 'Sin completar'}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-gray-500">Guía de remisión</dt>
+                            <dd className="text-gray-900">{dato(venta.guiaRemision) ?? 'Sin completar'}</dd>
+                          </div>
+                        </>
+                      )}
+                    </dl>
+                  )}
+
+                  {entregaError && (
+                    <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+                      {entregaError}
+                    </div>
+                  )}
+
+                  {(puedeDespachar || puedeEntregar || puedeDeshacer || puedeEditar) && (
+                    <div className="flex flex-wrap gap-2 mt-4">
+                      {puedeDespachar && (
+                        <button
+                          onClick={() => ejecutarAccionEntrega(() => despacharVenta(venta.id))}
+                          disabled={entregaProcesando}
+                          className="px-4 py-2 text-sm font-medium bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-60"
+                        >
+                          Marcar despachado
+                        </button>
+                      )}
+                      {puedeEntregar && (
+                        <button
+                          onClick={() => setConfirmarEntrega(true)}
+                          disabled={entregaProcesando}
+                          className="px-4 py-2 text-sm font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-60"
+                        >
+                          Marcar entregada
+                        </button>
+                      )}
+                      {puedeEditar && (
+                        <button
+                          onClick={() => setShowEditarEntregaModal(true)}
+                          disabled={entregaProcesando}
+                          className="px-4 py-2 text-sm font-medium border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-60"
+                        >
+                          Editar datos de entrega
+                        </button>
+                      )}
+                      {puedeDeshacer && (
+                        <button
+                          onClick={() => setShowDeshacerModal(true)}
+                          disabled={entregaProcesando}
+                          className="px-4 py-2 text-sm font-medium border border-amber-300 text-amber-700 rounded-lg hover:bg-amber-50 transition-colors disabled:opacity-60"
+                        >
+                          Deshacer entrega
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Aviso: pagos sin respaldo */}
           {tienePagosSinRespaldo && (
@@ -399,6 +551,40 @@ export default function DetalleVentaModal({ isOpen, onClose, venta, onUpdated, o
           isOpen={showComprobanteModal}
           onClose={() => setShowComprobanteModal(false)}
           idVenta={venta.id}
+        />
+      )}
+
+      {/* Confirmar la entrega. El saldo pendiente no la bloquea: solo se avisa. */}
+      {confirmarEntrega && (
+        <DeleteConfirmModal
+          title="Marcar como entregada"
+          message={
+            (venta.saldoPendiente ?? 0) > 0
+              ? `Esta venta todavía tiene un saldo pendiente de ${formatPrice(venta.saldoPendiente ?? 0)}.\n¿Marcarla como entregada de todos modos?`
+              : '¿Confirmar que esta venta ya fue entregada?'
+          }
+          confirmLabel="Marcar entregada"
+          onConfirm={() => {
+            setConfirmarEntrega(false);
+            ejecutarAccionEntrega(() => marcarVentaEntregada(venta.id));
+          }}
+          onCancel={() => setConfirmarEntrega(false)}
+        />
+      )}
+
+      {showDeshacerModal && (
+        <DeshacerEntregaModal
+          venta={venta}
+          onClose={() => setShowDeshacerModal(false)}
+          onHecho={(actualizada) => onVentaActualizada?.(actualizada)}
+        />
+      )}
+
+      {showEditarEntregaModal && (
+        <EditarEntregaModal
+          venta={venta}
+          onClose={() => setShowEditarEntregaModal(false)}
+          onGuardado={(actualizada) => onVentaActualizada?.(actualizada)}
         />
       )}
     </>

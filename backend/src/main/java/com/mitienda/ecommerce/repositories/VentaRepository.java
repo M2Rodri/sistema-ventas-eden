@@ -117,10 +117,11 @@ public interface VentaRepository extends JpaRepository<Venta, Long> {
     BigDecimal sumSaldoPendientePorCobrar();
 
     /**
-     * Ventas por entregar: entrega pendiente y con envío involucrado (RETIRO
-     * se resuelve en el momento, no cuenta como pendiente de entrega).
+     * Ventas por entregar: una sola definición para el backend, la web y la app.
+     * Estado de entrega distinto de ENTREGADO (o sea PENDIENTE o DESPACHADO) y
+     * venta no cancelada. RETIRO no aparece porque nace ENTREGADO.
      */
-    @Query("SELECT COUNT(v) FROM Venta v WHERE v.estadoEntrega = com.mitienda.ecommerce.models.EstadoEntrega.PENDIENTE " +
-           "AND v.modalidadEntrega <> com.mitienda.ecommerce.models.ModalidadEntrega.RETIRO")
+    @Query("SELECT COUNT(v) FROM Venta v WHERE v.estadoEntrega <> com.mitienda.ecommerce.models.EstadoEntrega.ENTREGADO " +
+           "AND v.estado <> com.mitienda.ecommerce.models.EstadoVenta.CANCELADA")
     Long countVentasPorEntregar();
 }

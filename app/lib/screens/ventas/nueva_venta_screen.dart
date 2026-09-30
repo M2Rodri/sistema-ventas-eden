@@ -20,9 +20,12 @@ enum _EstadoCarga { cargando, listo, error }
 /// numeradas, los chips y el selector de catálogo en bottom sheet están
 /// tomados de record_form_screen.dart (Módulo 3).
 class NuevaVentaScreen extends StatefulWidget {
-  const NuevaVentaScreen({super.key, required this.token});
+  const NuevaVentaScreen({super.key, required this.token, this.esAdmin = false});
 
   final String token;
+
+  /// Solo el ADMIN puede registrar una venta ya despachada.
+  final bool esAdmin;
 
   @override
   State<NuevaVentaScreen> createState() => _NuevaVentaScreenState();
@@ -55,6 +58,7 @@ class _NuevaVentaScreenState extends State<NuevaVentaScreen> {
 
   // Entrega
   ModalidadEntrega _modalidad = ModalidadEntrega.retiro;
+  EstadoEntrega _estadoEntrega = EstadoEntrega.pendiente;
   final _direccionCtrl = TextEditingController();
   final _ciudadCtrl = TextEditingController();
   final _transportadoraCtrl = TextEditingController();
@@ -68,19 +72,13 @@ class _NuevaVentaScreenState extends State<NuevaVentaScreen> {
   String? _errorCliente;
   String? _errorProductos;
   String? _errorSaldo;
-  String? _errorDireccion;
   String? _errorCiudad;
-  String? _errorTransportadora;
-  String? _errorGuia;
 
   final _scrollController = ScrollController();
   final _keyCliente = GlobalKey();
   final _keyProductos = GlobalKey();
   final _keySaldo = GlobalKey();
-  final _keyDireccion = GlobalKey();
   final _keyCiudad = GlobalKey();
-  final _keyTransportadora = GlobalKey();
-  final _keyGuia = GlobalKey();
 
   @override
   void initState() {
@@ -223,17 +221,11 @@ class _NuevaVentaScreenState extends State<NuevaVentaScreen> {
     }
     if (_errorSaldo != null) marcar(_keySaldo);
 
-    final requiereDireccion = _modalidad != ModalidadEntrega.retiro;
-    _errorDireccion = requiereDireccion && _direccionCtrl.text.trim().isEmpty ? 'La dirección es obligatoria para esta modalidad de entrega' : null;
-    if (_errorDireccion != null) marcar(_keyDireccion);
-    _errorCiudad = requiereDireccion && _ciudadCtrl.text.trim().isEmpty ? 'La ciudad es obligatoria para esta modalidad de entrega' : null;
+    // Solo el envío por transportadora exige un dato: la ciudad. La dirección,
+    // la transportadora y la guía se pueden completar después.
+    final requiereCiudad = _modalidad == ModalidadEntrega.transportadora;
+    _errorCiudad = requiereCiudad && _ciudadCtrl.text.trim().isEmpty ? 'La ciudad es obligatoria para el envío por transportadora' : null;
     if (_errorCiudad != null) marcar(_keyCiudad);
-
-    final requiereTransportadora = _modalidad == ModalidadEntrega.transportadora;
-    _errorTransportadora = requiereTransportadora && _transportadoraCtrl.text.trim().isEmpty ? 'La transportadora es obligatoria para esta modalidad de entrega' : null;
-    if (_errorTransportadora != null) marcar(_keyTransportadora);
-    _errorGuia = requiereTransportadora && _guiaCtrl.text.trim().isEmpty ? 'La guía de remisión es obligatoria para esta modalidad de entrega' : null;
-    if (_errorGuia != null) marcar(_keyGuia);
 
     return primero;
   }
@@ -273,8 +265,9 @@ class _NuevaVentaScreenState extends State<NuevaVentaScreen> {
         items: _carrito,
         montoPagado: _montoPagado,
         modalidadEntrega: _modalidad,
+        estadoEntrega: _modalidad != ModalidadEntrega.retiro ? _estadoEntrega : null,
         direccionDestino: _modalidad != ModalidadEntrega.retiro ? _direccionCtrl.text.trim() : null,
-        ciudad: _modalidad != ModalidadEntrega.retiro ? _ciudadCtrl.text.trim() : null,
+        ciudad: _modalidad == ModalidadEntrega.transportadora ? _ciudadCtrl.text.trim() : null,
         transportadora: _modalidad == ModalidadEntrega.transportadora ? _transportadoraCtrl.text.trim() : null,
         guiaRemision: _modalidad == ModalidadEntrega.transportadora ? _guiaCtrl.text.trim() : null,
       );
@@ -360,19 +353,24 @@ class _NuevaVentaScreenState extends State<NuevaVentaScreen> {
             onElegirComprobante: _elegirComprobante,
             onQuitarComprobante: () => setState(() => _comprobante = null),
             modalidad: _modalidad,
-            onCambiarModalidad: (m) => setState(() => _modalidad = m),
+            onCambiarModalidad: (m) => setState(() {
+              _modalidad = m;
+              // "Despachado" solo existe en transportadora: al cambiar de
+              // modalidad vuelve a Pendiente para no mandar un estado que no
+              // le corresponde.
+              if (m != ModalidadEntrega.transportadora && _estadoEntrega == EstadoEntrega.despachado) {
+                _estadoEntrega = EstadoEntrega.pendiente;
+              }
+            }),
+            estadoEntrega: _estadoEntrega,
+            onCambiarEstadoEntrega: (e) => setState(() => _estadoEntrega = e),
+            esAdmin: widget.esAdmin,
             direccionCtrl: _direccionCtrl,
             ciudadCtrl: _ciudadCtrl,
             transportadoraCtrl: _transportadoraCtrl,
             guiaCtrl: _guiaCtrl,
-            errorDireccion: _errorDireccion,
-            keyDireccion: _keyDireccion,
             errorCiudad: _errorCiudad,
             keyCiudad: _keyCiudad,
-            errorTransportadora: _errorTransportadora,
-            keyTransportadora: _keyTransportadora,
-            errorGuia: _errorGuia,
-            keyGuia: _keyGuia,
             errorEnvio: _errorEnvio,
             enviando: _enviando,
             onRegistrar: _registrarVenta,
@@ -441,18 +439,15 @@ class _Formulario extends StatelessWidget {
     required this.onQuitarComprobante,
     required this.modalidad,
     required this.onCambiarModalidad,
+    required this.estadoEntrega,
+    required this.onCambiarEstadoEntrega,
+    required this.esAdmin,
     required this.direccionCtrl,
     required this.ciudadCtrl,
     required this.transportadoraCtrl,
     required this.guiaCtrl,
-    required this.errorDireccion,
-    required this.keyDireccion,
     required this.errorCiudad,
     required this.keyCiudad,
-    required this.errorTransportadora,
-    required this.keyTransportadora,
-    required this.errorGuia,
-    required this.keyGuia,
     required this.errorEnvio,
     required this.enviando,
     required this.onRegistrar,
@@ -493,18 +488,17 @@ class _Formulario extends StatelessWidget {
 
   final ModalidadEntrega modalidad;
   final ValueChanged<ModalidadEntrega> onCambiarModalidad;
+  final EstadoEntrega estadoEntrega;
+  final ValueChanged<EstadoEntrega> onCambiarEstadoEntrega;
+
+  /// Solo el ADMIN puede registrar una venta ya despachada.
+  final bool esAdmin;
   final TextEditingController direccionCtrl;
   final TextEditingController ciudadCtrl;
   final TextEditingController transportadoraCtrl;
   final TextEditingController guiaCtrl;
-  final String? errorDireccion;
-  final GlobalKey keyDireccion;
   final String? errorCiudad;
   final GlobalKey keyCiudad;
-  final String? errorTransportadora;
-  final GlobalKey keyTransportadora;
-  final String? errorGuia;
-  final GlobalKey keyGuia;
 
   final String? errorEnvio;
   final bool enviando;
@@ -750,32 +744,81 @@ class _Formulario extends StatelessWidget {
                   );
                 }).toList(),
               ),
-              if (modalidad != ModalidadEntrega.retiro) ...<Widget>[
-                const SizedBox(height: 12),
-                TextField(
-                  key: keyDireccion,
-                  controller: direccionCtrl,
-                  decoration: InputDecoration(labelText: 'Dirección *', errorText: errorDireccion),
+              // En tienda: sin campos, la venta queda entregada.
+              if (modalidad == ModalidadEntrega.retiro) ...<Widget>[
+                const SizedBox(height: 10),
+                const Text(
+                  'La venta queda entregada al registrarla.',
+                  style: TextStyle(fontSize: 12, color: AppColors.textoSecundario),
                 ),
-                const SizedBox(height: 12),
+              ],
+              // Estado de la entrega. Despachado: solo ADMIN y solo transportadora.
+              if (modalidad != ModalidadEntrega.retiro) ...<Widget>[
+                const SizedBox(height: 14),
+                const Text(
+                  'Estado de la entrega',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textoSecundario),
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: <EstadoEntrega>[
+                    EstadoEntrega.pendiente,
+                    if (esAdmin && modalidad == ModalidadEntrega.transportadora) EstadoEntrega.despachado,
+                    EstadoEntrega.entregado,
+                  ].map((estado) {
+                    final sel = estadoEntrega == estado;
+                    return SizedBox(
+                      height: 48,
+                      child: ChoiceChip(
+                        label: Text(estado.etiqueta),
+                        selected: sel,
+                        selectedColor: AppColors.verdeOscuro,
+                        labelStyle: TextStyle(color: sel ? Colors.white : AppColors.textoPrincipal, fontWeight: FontWeight.w600),
+                        onSelected: (_) => onCambiarEstadoEntrega(estado),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+              // Domicilio: solo la dirección, opcional. No se pide ciudad.
+              if (modalidad == ModalidadEntrega.domicilio) ...<Widget>[
+                const SizedBox(height: 14),
+                TextField(
+                  controller: direccionCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Dirección',
+                    helperText: 'Te sirve para coordinar la entrega',
+                  ),
+                ),
+              ],
+              // Transportadora: la ciudad es obligatoria; lo demás se puede
+              // completar después desde el detalle de la venta.
+              if (modalidad == ModalidadEntrega.transportadora) ...<Widget>[
+                const SizedBox(height: 14),
                 TextField(
                   key: keyCiudad,
                   controller: ciudadCtrl,
                   decoration: InputDecoration(labelText: 'Ciudad *', errorText: errorCiudad),
                 ),
-              ],
-              if (modalidad == ModalidadEntrega.transportadora) ...<Widget>[
                 const SizedBox(height: 12),
                 TextField(
-                  key: keyTransportadora,
-                  controller: transportadoraCtrl,
-                  decoration: InputDecoration(labelText: 'Transportadora *', errorText: errorTransportadora),
+                  controller: direccionCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Dirección',
+                    helperText: 'Te sirve para coordinar la entrega',
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
-                  key: keyGuia,
+                  controller: transportadoraCtrl,
+                  decoration: const InputDecoration(labelText: 'Transportadora'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
                   controller: guiaCtrl,
-                  decoration: InputDecoration(labelText: 'Guía de remisión *', errorText: errorGuia),
+                  decoration: const InputDecoration(labelText: 'Guía de remisión'),
                 ),
               ],
             ],

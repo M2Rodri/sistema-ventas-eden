@@ -159,12 +159,14 @@ export default function DetalleCompraModal({ compra, onClose }: DetalleCompraMod
           {/* Encabezado del negocio, solo visible al imprimir/exportar —
               en pantalla ya está el header de arriba con los botones. */}
           <div className="hidden print:block px-6 pt-6 border-b-2 border-gray-300 pb-6 mb-2 text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">MI TIENDA</h1>
-            <p className="text-gray-600 text-sm">NIT: 123456789</p>
-            <p className="text-gray-600 text-sm">Dirección: Calle Principal #123, Tarija - Bolivia</p>
-            <p className="text-gray-600 text-sm">Teléfono: +591 12345678</p>
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">Mueblería Edén</h1>
+            <p className="text-gray-600 text-sm font-medium">Santa Cruz de la Sierra, Bolivia</p>
+            <p className="text-gray-400 text-sm italic">NIT: por completar</p>
+            <p className="text-gray-400 text-sm italic">Dirección: por completar</p>
+            <p className="text-gray-400 text-sm italic">Teléfono: por completar</p>
             <h2 className="text-xl font-bold text-blue-600 uppercase mt-4">Registro de Compra</h2>
             <p className="text-base font-semibold text-gray-700 mt-1">Compra #{compra.id}</p>
+            <p className="text-xs text-gray-500 mt-1">Comprobante interno, sin valor fiscal</p>
           </div>
 
           {/* Información General */}

@@ -52,6 +52,33 @@ class VentasRepository {
     return Venta.desdeApi(json);
   }
 
+  /// Solo ADMIN, y solo en ventas por transportadora.
+  Future<Venta> despachar(int idVenta, String token) async {
+    final json = await _apiClient.patch('/api/ventas/$idVenta/despachar', token: token);
+    return Venta.desdeApi(json);
+  }
+
+  /// Solo ADMIN. Un valor vacío borra el dato. La transportadora y la guía
+  /// solo se guardan en ventas por transportadora.
+  Future<Venta> actualizarDatosEntrega(
+    int idVenta, {
+    String? direccionDestino,
+    String? transportadora,
+    String? guiaRemision,
+    required String token,
+  }) async {
+    final json = await _apiClient.patchConCuerpo(
+      '/api/ventas/$idVenta/datos-entrega',
+      <String, dynamic>{
+        'direccionDestino': direccionDestino ?? '',
+        'transportadora': transportadora ?? '',
+        'guiaRemision': guiaRemision ?? '',
+      },
+      token: token,
+    );
+    return Venta.desdeApi(json);
+  }
+
   Future<Venta> crearVenta(NuevaVentaRequest request, String token) async {
     final json = await _apiClient.post('/api/ventas', request.toJson(), token: token);
     return Venta.desdeApi(json);

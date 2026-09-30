@@ -44,7 +44,8 @@ public class DashboardResponse {
     private List<VentaPorDiaDTO> ventasUltimosDias;
 
     /**
-     * Ventas con entrega pendiente y modalidad distinta de RETIRO.
+     * Ventas por entregar: estado de entrega distinto de ENTREGADO y venta no
+     * cancelada (misma definición que la web y la app).
      */
     private Long ventasPorEntregar;
 

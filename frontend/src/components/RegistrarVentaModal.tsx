@@ -18,6 +18,7 @@ import {
   MetodoPago,
   ItemVentaRequest,
   ModalidadEntrega,
+  EstadoEntrega,
 } from "@/types/venta";
 import {
   createVentaDirecta,
@@ -81,6 +82,13 @@ export default function RegistrarVentaModal({
   // Entrega
   const [modalidadEntrega, setModalidadEntrega] = useState<ModalidadEntrega>(
     ModalidadEntrega.RETIRO,
+  );
+  // Estado con el que se registra la entrega. En tienda siempre nace
+  // entregada; en domicilio y transportadora se puede registrar ya entregada
+  // (a veces se carga cuando todo terminó). Despachada: solo ADMIN y solo
+  // transportadora.
+  const [estadoEntrega, setEstadoEntrega] = useState<EstadoEntrega>(
+    EstadoEntrega.PENDIENTE,
   );
   const [direccionDestino, setDireccionDestino] = useState("");
   const [ciudad, setCiudad] = useState("");
@@ -376,17 +384,11 @@ export default function RegistrarVentaModal({
       return;
     }
 
-    if (modalidadEntrega !== ModalidadEntrega.RETIRO) {
-      if (!direccionDestino.trim() || !ciudad.trim()) {
-        setError("La dirección y la ciudad son obligatorias para esta modalidad de entrega");
-        return;
-      }
-    }
-    if (modalidadEntrega === ModalidadEntrega.TRANSPORTADORA) {
-      if (!transportadora.trim() || !guiaRemision.trim()) {
-        setError("La transportadora y la guía de remisión son obligatorias para esta modalidad de entrega");
-        return;
-      }
+    // Solo el envío por transportadora exige un dato: la ciudad. La dirección,
+    // la transportadora y la guía se pueden completar después.
+    if (modalidadEntrega === ModalidadEntrega.TRANSPORTADORA && !ciudad.trim()) {
+      setError("La ciudad es obligatoria para el envío por transportadora");
+      return;
     }
 
     setLoading(true);
@@ -416,21 +418,26 @@ export default function RegistrarVentaModal({
         items,
         montoPagado,
         modalidadEntrega,
+        // En tienda el backend lo deja entregado por su cuenta.
+        estadoEntrega:
+          modalidadEntrega !== ModalidadEntrega.RETIRO
+            ? estadoEntrega
+            : undefined,
         direccionDestino:
           modalidadEntrega !== ModalidadEntrega.RETIRO
-            ? direccionDestino.trim()
+            ? direccionDestino.trim() || undefined
             : undefined,
         ciudad:
-          modalidadEntrega !== ModalidadEntrega.RETIRO
+          modalidadEntrega === ModalidadEntrega.TRANSPORTADORA
             ? ciudad.trim()
             : undefined,
         transportadora:
           modalidadEntrega === ModalidadEntrega.TRANSPORTADORA
-            ? transportadora.trim()
+            ? transportadora.trim() || undefined
             : undefined,
         guiaRemision:
           modalidadEntrega === ModalidadEntrega.TRANSPORTADORA
-            ? guiaRemision.trim()
+            ? guiaRemision.trim() || undefined
             : undefined,
       };
 
@@ -476,6 +483,7 @@ export default function RegistrarVentaModal({
     setComprobanteFile(null);
     setSaldoPendienteHabilitado(false);
     setModalidadEntrega(ModalidadEntrega.RETIRO);
+    setEstadoEntrega(EstadoEntrega.PENDIENTE);
     setDireccionDestino("");
     setCiudad("");
     setTransportadora("");
@@ -1076,13 +1084,14 @@ export default function RegistrarVentaModal({
                 onChange={(e) => {
                   const nuevaModalidad = e.target.value as ModalidadEntrega;
                   setModalidadEntrega(nuevaModalidad);
-                  // Sugerencia, no un valor fijo: el negocio opera en Santa
-                  // Cruz, pero sigue siendo editable (por ejemplo, para
-                  // probar el sistema desde otra ciudad). Solo completa si
-                  // el campo todavía está vacío, para no pisar lo que ya
-                  // se haya escrito.
-                  if (nuevaModalidad === ModalidadEntrega.DOMICILIO && !ciudad.trim()) {
-                    setCiudad("Santa Cruz de la Sierra");
+                  // "Despachado" solo existe en transportadora: si se cambia
+                  // de modalidad, vuelve a Pendiente para no mandar un
+                  // estado que no le corresponde.
+                  if (
+                    nuevaModalidad !== ModalidadEntrega.TRANSPORTADORA &&
+                    estadoEntrega === EstadoEntrega.DESPACHADO
+                  ) {
+                    setEstadoEntrega(EstadoEntrega.PENDIENTE);
                   }
                 }}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
@@ -1099,66 +1108,118 @@ export default function RegistrarVentaModal({
               </select>
             </div>
 
+            {/* En tienda: sin campos, la venta queda entregada. */}
+            {modalidadEntrega === ModalidadEntrega.RETIRO && (
+              <p className="mt-2 text-xs text-gray-500">
+                La venta queda entregada al registrarla.
+              </p>
+            )}
+
+            {/* Estado de la entrega: en domicilio y transportadora. */}
             {modalidadEntrega !== ModalidadEntrega.RETIRO && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Dirección <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={direccionDestino}
-                    onChange={(e) => setDireccionDestino(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="Dirección de entrega"
-                    maxLength={300}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Ciudad <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={ciudad}
-                    onChange={(e) => setCiudad(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="Ej: Santa Cruz de la Sierra"
-                    maxLength={50}
-                  />
-                </div>
+              <div className="mt-3">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Estado de la entrega
+                </label>
+                <select
+                  value={estadoEntrega}
+                  onChange={(e) => setEstadoEntrega(e.target.value as EstadoEntrega)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                >
+                  <option value={EstadoEntrega.PENDIENTE}>Pendiente</option>
+                  {userRole === "ADMIN" &&
+                    modalidadEntrega === ModalidadEntrega.TRANSPORTADORA && (
+                      <option value={EstadoEntrega.DESPACHADO}>Despachado</option>
+                    )}
+                  <option value={EstadoEntrega.ENTREGADO}>Entregado</option>
+                </select>
               </div>
             )}
 
-            {modalidadEntrega === ModalidadEntrega.TRANSPORTADORA && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Transportadora <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={transportadora}
-                    onChange={(e) => setTransportadora(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="Nombre de la transportadora"
-                    maxLength={100}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Guía de remisión <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={guiaRemision}
-                    onChange={(e) => setGuiaRemision(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="Número de guía"
-                    maxLength={100}
-                  />
-                </div>
+            {/* Domicilio: solo la dirección, opcional. No se pide ciudad. */}
+            {modalidadEntrega === ModalidadEntrega.DOMICILIO && (
+              <div className="mt-3">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Dirección
+                </label>
+                <input
+                  type="text"
+                  value={direccionDestino}
+                  onChange={(e) => setDireccionDestino(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder="Dirección de entrega"
+                  maxLength={300}
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Te sirve para coordinar la entrega
+                </p>
               </div>
+            )}
+
+            {/* Transportadora: la ciudad es obligatoria; lo demás se puede
+                completar después desde el detalle de la venta. */}
+            {modalidadEntrega === ModalidadEntrega.TRANSPORTADORA && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Ciudad <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={ciudad}
+                      onChange={(e) => setCiudad(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="Ciudad de destino"
+                      maxLength={50}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Dirección
+                    </label>
+                    <input
+                      type="text"
+                      value={direccionDestino}
+                      onChange={(e) => setDireccionDestino(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="Dirección de entrega"
+                      maxLength={300}
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Te sirve para coordinar la entrega
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Transportadora
+                    </label>
+                    <input
+                      type="text"
+                      value={transportadora}
+                      onChange={(e) => setTransportadora(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="Nombre de la transportadora"
+                      maxLength={100}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Guía de remisión
+                    </label>
+                    <input
+                      type="text"
+                      value={guiaRemision}
+                      onChange={(e) => setGuiaRemision(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="Número de guía"
+                      maxLength={100}
+                    />
+                  </div>
+                </div>
+              </>
             )}
           </div>
 

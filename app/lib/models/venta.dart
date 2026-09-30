@@ -15,10 +15,48 @@ EstadoVenta estadoVentaDesdeApi(String valor) {
   }
 }
 
-enum EstadoEntrega { pendiente, entregado }
+/// Recorrido según la modalidad:
+///   RETIRO:         nace ENTREGADO.
+///   DOMICILIO:      PENDIENTE -> ENTREGADO.
+///   TRANSPORTADORA: PENDIENTE -> DESPACHADO -> ENTREGADO (también se puede
+///                   pasar de PENDIENTE a ENTREGADO directamente).
+enum EstadoEntrega { pendiente, despachado, entregado }
 
 EstadoEntrega estadoEntregaDesdeApi(String valor) {
-  return valor == 'ENTREGADO' ? EstadoEntrega.entregado : EstadoEntrega.pendiente;
+  switch (valor) {
+    case 'ENTREGADO':
+      return EstadoEntrega.entregado;
+    case 'DESPACHADO':
+      return EstadoEntrega.despachado;
+    default:
+      return EstadoEntrega.pendiente;
+  }
+}
+
+extension EstadoEntregaApi on EstadoEntrega {
+  /// Valor que espera el backend (EstadoEntrega en Java).
+  String get valorApi {
+    switch (this) {
+      case EstadoEntrega.pendiente:
+        return 'PENDIENTE';
+      case EstadoEntrega.despachado:
+        return 'DESPACHADO';
+      case EstadoEntrega.entregado:
+        return 'ENTREGADO';
+    }
+  }
+
+  /// Texto que ve el usuario.
+  String get etiqueta {
+    switch (this) {
+      case EstadoEntrega.pendiente:
+        return 'Pendiente';
+      case EstadoEntrega.despachado:
+        return 'Despachado';
+      case EstadoEntrega.entregado:
+        return 'Entregado';
+    }
+  }
 }
 
 enum ModalidadEntrega { retiro, domicilio, transportadora }
@@ -184,6 +222,7 @@ class NuevaVentaRequest {
     required this.items,
     required this.montoPagado,
     required this.modalidadEntrega,
+    this.estadoEntrega,
     this.direccionDestino,
     this.ciudad,
     this.transportadora,
@@ -197,6 +236,10 @@ class NuevaVentaRequest {
   final List<ItemCarrito> items;
   final double montoPagado;
   final ModalidadEntrega modalidadEntrega;
+
+  /// Estado con el que se registra. En tienda el backend lo deja ENTREGADO por
+  /// su cuenta; despachado es solo para ADMIN y solo en transportadora.
+  final EstadoEntrega? estadoEntrega;
   final String? direccionDestino;
   final String? ciudad;
   final String? transportadora;
@@ -219,13 +262,18 @@ class NuevaVentaRequest {
           .toList(),
       'montoPagado': montoPagado,
       'modalidadEntrega': _modalidadValorApi(modalidadEntrega),
-      if (modalidadEntrega != ModalidadEntrega.retiro) 'direccionDestino': direccionDestino,
-      if (modalidadEntrega != ModalidadEntrega.retiro) 'ciudad': ciudad,
-      if (modalidadEntrega == ModalidadEntrega.transportadora) 'transportadora': transportadora,
-      if (modalidadEntrega == ModalidadEntrega.transportadora) 'guiaRemision': guiaRemision,
+      if (modalidadEntrega != ModalidadEntrega.retiro && estadoEntrega != null) 'estadoEntrega': estadoEntrega!.valorApi,
+      // Dirección: opcional en domicilio y transportadora. Ciudad: solo la
+      // pide la transportadora. Transportadora y guía: opcionales.
+      if (modalidadEntrega != ModalidadEntrega.retiro && _hayTexto(direccionDestino)) 'direccionDestino': direccionDestino,
+      if (modalidadEntrega == ModalidadEntrega.transportadora) 'ciudad': ciudad,
+      if (modalidadEntrega == ModalidadEntrega.transportadora && _hayTexto(transportadora)) 'transportadora': transportadora,
+      if (modalidadEntrega == ModalidadEntrega.transportadora && _hayTexto(guiaRemision)) 'guiaRemision': guiaRemision,
     };
   }
 }
+
+bool _hayTexto(String? texto) => texto != null && texto.trim().isNotEmpty;
 
 String _modalidadValorApi(ModalidadEntrega modalidad) {
   switch (modalidad) {
@@ -274,6 +322,17 @@ class Venta {
   final List<Pago> pagos;
 
   bool get tieneSaldoPendiente => saldoPendiente > 0;
+
+  /// "Por entregar": estado de entrega distinto de ENTREGADO y venta no
+  /// cancelada. Es la misma definición que usan el backend y la web.
+  bool get porEntregar => estado != EstadoVenta.cancelada && estadoEntrega != EstadoEntrega.entregado;
+
+  /// Una venta por transportadora sin la transportadora o sin la guía. No
+  /// bloquea nada: solo se muestra la etiqueta "Falta completar".
+  bool get faltaCompletarEnvio =>
+      estado != EstadoVenta.cancelada &&
+      modalidadEntrega == ModalidadEntrega.transportadora &&
+      (!_hayTexto(transportadora) || !_hayTexto(guiaRemision));
 
   factory Venta.desdeApi(Map<String, dynamic> json) {
     final detallesJson = json['detalles'] as List<dynamic>? ?? const <dynamic>[];

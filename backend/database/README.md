@@ -27,6 +27,10 @@ después.
 | 13 | Quita `registros_demo` (ejercicio de otra materia) |
 | 14 | Restaura los datos del negocio |
 | 15 | Renombra las claves `empresa_*` a `negocio_*` |
+| 24 | Estado de entrega `DESPACHADO`; el retiro en tienda nace `ENTREGADO` |
+
+Los scripts 16 al 23 existen en esta carpeta pero todavía no están en esta
+tabla.
 
 Del 01 al 10 se aplicaron sobre la base local. Del 11 al 15 nacieron al migrar
 a Supabase, y el 15 además hay que correrlo sobre la base local para dejar las

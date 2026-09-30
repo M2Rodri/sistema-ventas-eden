@@ -5,18 +5,22 @@ import '../../data/api_exception.dart';
 import '../../data/ventas_repository.dart';
 import '../../models/venta.dart';
 import '../../theme/app_colors.dart';
+import 'estado_entrega_ui.dart';
 import 'venta_detalle_screen.dart';
 
 enum _EstadoVentas { cargando, conDatos, vacio, error }
 
-enum _Filtro { todas, porCobrar, porEntregar }
+enum _Filtro { todas, porCobrar, porEntregar, despachado }
 
-/// Ventas y entregas: lista con filtros, mismo patrón que Catálogo y
-/// Alertas de stock (repositorio propio, mismos cuatro estados).
+/// Ventas y entregas: lista con filtros, mismo patrón que Catálogo
+/// (repositorio propio, mismos cuatro estados).
 class VentasScreen extends StatefulWidget {
-  const VentasScreen({super.key, required this.token});
+  const VentasScreen({super.key, required this.token, this.esAdmin = false});
 
   final String token;
+
+  /// Se pasa al detalle: despachar y editar la entrega son solo del ADMIN.
+  final bool esAdmin;
 
   @override
   State<VentasScreen> createState() => _VentasScreenState();
@@ -73,14 +77,17 @@ class _VentasScreenState extends State<VentasScreen> {
       case _Filtro.porCobrar:
         return _ventas.where((v) => v.tieneSaldoPendiente).toList();
       case _Filtro.porEntregar:
-        return _ventas.where((v) => v.estadoEntrega == EstadoEntrega.pendiente).toList();
+        // Definición única: estado distinto de ENTREGADO y venta no cancelada.
+        return _ventas.where((v) => v.porEntregar).toList();
+      case _Filtro.despachado:
+        return _ventas.where((v) => v.estadoEntrega == EstadoEntrega.despachado).toList();
     }
   }
 
   Future<void> _abrirDetalle(Venta venta) async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => VentaDetalleScreen(idVenta: venta.id, token: widget.token),
+        builder: (_) => VentaDetalleScreen(idVenta: venta.id, token: widget.token, esAdmin: widget.esAdmin),
       ),
     );
     // Al volver del detalle puede haber cambiado el saldo o la entrega
@@ -145,14 +152,20 @@ class _SelectorFiltro extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        Expanded(child: _ChipFiltro(texto: 'Todas', seleccionado: filtro == _Filtro.todas, onTap: () => onCambiar(_Filtro.todas))),
-        const SizedBox(width: 8),
-        Expanded(child: _ChipFiltro(texto: 'Por cobrar', seleccionado: filtro == _Filtro.porCobrar, onTap: () => onCambiar(_Filtro.porCobrar))),
-        const SizedBox(width: 8),
-        Expanded(child: _ChipFiltro(texto: 'Por entregar', seleccionado: filtro == _Filtro.porEntregar, onTap: () => onCambiar(_Filtro.porEntregar))),
-      ],
+    // Cuatro filtros no entran en una fila del celular: se desplazan de costado.
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: <Widget>[
+          _ChipFiltro(texto: 'Todas', seleccionado: filtro == _Filtro.todas, onTap: () => onCambiar(_Filtro.todas)),
+          const SizedBox(width: 8),
+          _ChipFiltro(texto: 'Por cobrar', seleccionado: filtro == _Filtro.porCobrar, onTap: () => onCambiar(_Filtro.porCobrar)),
+          const SizedBox(width: 8),
+          _ChipFiltro(texto: 'Por entregar', seleccionado: filtro == _Filtro.porEntregar, onTap: () => onCambiar(_Filtro.porEntregar)),
+          const SizedBox(width: 8),
+          _ChipFiltro(texto: 'Despachado', seleccionado: filtro == _Filtro.despachado, onTap: () => onCambiar(_Filtro.despachado)),
+        ],
+      ),
     );
   }
 }
@@ -171,18 +184,23 @@ class _ChipFiltro extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       child: Container(
         height: 48,
-        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 18),
         decoration: BoxDecoration(
           color: seleccionado ? AppColors.verdeOscuro : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: seleccionado ? AppColors.verdeOscuro : Colors.grey.shade300),
         ),
-        child: Text(
-          texto,
-          style: TextStyle(
-            fontSize: 12.5,
-            fontWeight: FontWeight.w700,
-            color: seleccionado ? Colors.white : AppColors.textoSecundario,
+        // widthFactor: 1 para que el chip mida lo que mide su texto: la fila
+        // de filtros se desplaza horizontalmente y no le da un ancho fijo.
+        child: Center(
+          widthFactor: 1,
+          child: Text(
+            texto,
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w700,
+              color: seleccionado ? Colors.white : AppColors.textoSecundario,
+            ),
           ),
         ),
       ),
@@ -311,10 +329,8 @@ class _TarjetaVenta extends StatelessWidget {
                   _Badge(texto: 'Saldo: ${formatoMoneda.format(venta.saldoPendiente)}', color: const Color(0xFFD97706))
                 else
                   const _Badge(texto: 'Pagada', color: AppColors.verdeOscuro),
-                _Badge(
-                  texto: venta.estadoEntrega == EstadoEntrega.entregado ? 'Entregado' : 'Por entregar',
-                  color: venta.estadoEntrega == EstadoEntrega.entregado ? AppColors.verdeSuave : const Color(0xFF7C3AED),
-                ),
+                _Badge(texto: venta.estadoEntrega.etiqueta, color: colorEstadoEntrega(venta.estadoEntrega)),
+                if (venta.faltaCompletarEnvio) const _Badge(texto: 'Falta completar', color: Color(0xFFEA580C)),
               ],
             ),
           ],

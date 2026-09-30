@@ -42,6 +42,19 @@ class ApiClient {
     return _decodificar(respuesta);
   }
 
+  /// PATCH con body, para las acciones que llevan datos (por ejemplo,
+  /// completar la dirección, la transportadora y la guía de una venta).
+  Future<Map<String, dynamic>> patchConCuerpo(
+    String path,
+    Map<String, dynamic> body, {
+    required String token,
+  }) async {
+    final respuesta = await _enviar(
+      () => http.patch(_uri(path), headers: _headers(token), body: jsonEncode(body)),
+    );
+    return _decodificar(respuesta);
+  }
+
   /// Sube un único archivo como multipart/form-data, en el campo "file" (el
   /// mismo nombre que espera POST /api/pagos/{id}/comprobante).
   Future<Map<String, dynamic>> postArchivo(

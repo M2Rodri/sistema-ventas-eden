@@ -5,16 +5,21 @@ import '../../data/api_exception.dart';
 import '../../data/ventas_repository.dart';
 import '../../models/venta.dart';
 import '../../theme/app_colors.dart';
+import 'estado_entrega_ui.dart';
 
 enum _EstadoDetalle { cargando, conDatos, error }
 
-/// Detalle de una venta: productos, pagos, entrega, y las dos acciones que
-/// pide la pantalla (registrar pago, marcar entregado).
+/// Detalle de una venta: productos, pagos, entrega y sus acciones: registrar
+/// pago y marcar entregado (ADMIN y EMPLEADO); despachar y editar los datos de
+/// entrega (solo ADMIN).
 class VentaDetalleScreen extends StatefulWidget {
-  const VentaDetalleScreen({super.key, required this.idVenta, required this.token});
+  const VentaDetalleScreen({super.key, required this.idVenta, required this.token, this.esAdmin = false});
 
   final int idVenta;
   final String token;
+
+  /// Despachar y editar los datos de entrega son solo del ADMIN.
+  final bool esAdmin;
 
   @override
   State<VentaDetalleScreen> createState() => _VentaDetalleScreenState();
@@ -97,25 +102,78 @@ class _VentaDetalleScreenState extends State<VentaDetalleScreen> {
     }
   }
 
-  Future<void> _marcarEntregado() async {
+  /// Corre una acción de entrega que devuelve la venta actualizada, avisa el
+  /// resultado y recarga el detalle.
+  Future<void> _ejecutarAccionEntrega(
+    Future<void> Function() accion, {
+    required String mensajeOk,
+    required String mensajeError,
+  }) async {
     setState(() => _accionEnCurso = true);
     try {
-      await _ventasRepository.marcarEntregado(widget.idVenta, widget.token);
+      await accion();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Venta marcada como entregada')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(mensajeOk)));
       await _cargarVenta();
     } on ApiException catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.mensaje)));
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se pudo marcar la entrega.')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(mensajeError)));
     } finally {
       if (mounted) setState(() => _accionEnCurso = false);
+    }
+  }
+
+  /// Entregar funciona igual con o sin saldo pendiente, sin avisos.
+  Future<void> _marcarEntregado() {
+    return _ejecutarAccionEntrega(
+      () => _ventasRepository.marcarEntregado(widget.idVenta, widget.token),
+      mensajeOk: 'Venta marcada como entregada',
+      mensajeError: 'No se pudo marcar la entrega.',
+    );
+  }
+
+  Future<void> _despachar() {
+    return _ejecutarAccionEntrega(
+      () => _ventasRepository.despachar(widget.idVenta, widget.token),
+      mensajeOk: 'Venta marcada como despachada',
+      mensajeError: 'No se pudo marcar el despacho.',
+    );
+  }
+
+  /// Completar la dirección, la transportadora y la guía (solo ADMIN): el
+  /// dueño despacha estando en la transportadora y ahí recibe la guía.
+  Future<void> _editarEntrega() async {
+    final venta = _venta;
+    if (venta == null) return;
+
+    final guardado = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _FormularioEntregaSheet(
+        venta: venta,
+        onGuardar: (direccion, transportadora, guia) async {
+          await _ventasRepository.actualizarDatosEntrega(
+            venta.id,
+            direccionDestino: direccion,
+            transportadora: transportadora,
+            guiaRemision: guia,
+            token: widget.token,
+          );
+        },
+      ),
+    );
+
+    if (guardado == true) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Datos de entrega guardados')),
+        );
+      }
+      _cargarVenta();
     }
   }
 
@@ -131,8 +189,11 @@ class _VentaDetalleScreenState extends State<VentaDetalleScreen> {
             formatoMoneda: _formatoMoneda,
             formatoFecha: _formatoFecha,
             accionEnCurso: _accionEnCurso,
+            esAdmin: widget.esAdmin,
             onRegistrarPago: _abrirFormularioPago,
             onMarcarEntregado: _marcarEntregado,
+            onDespachar: _despachar,
+            onEditarEntrega: _editarEntrega,
           ),
       },
     );
@@ -175,21 +236,27 @@ class _Contenido extends StatelessWidget {
     required this.formatoMoneda,
     required this.formatoFecha,
     required this.accionEnCurso,
+    required this.esAdmin,
     required this.onRegistrarPago,
     required this.onMarcarEntregado,
+    required this.onDespachar,
+    required this.onEditarEntrega,
   });
 
   final Venta venta;
   final NumberFormat formatoMoneda;
   final DateFormat formatoFecha;
   final bool accionEnCurso;
+  final bool esAdmin;
   final VoidCallback onRegistrarPago;
   final VoidCallback onMarcarEntregado;
+  final VoidCallback onDespachar;
+  final VoidCallback onEditarEntrega;
 
   String get _modalidadTexto {
     switch (venta.modalidadEntrega) {
       case ModalidadEntrega.retiro:
-        return 'Retiro en el local';
+        return 'En tienda';
       case ModalidadEntrega.domicilio:
         return 'Envío a domicilio';
       case ModalidadEntrega.transportadora:
@@ -267,17 +334,29 @@ class _Contenido extends StatelessWidget {
               Text(_modalidadTexto, style: const TextStyle(fontWeight: FontWeight.w600)),
               if (venta.modalidadEntrega != ModalidadEntrega.retiro) ...<Widget>[
                 const SizedBox(height: 4),
-                if (venta.direccionDestino != null) Text(venta.direccionDestino!, style: const TextStyle(color: AppColors.textoSecundario)),
-                if (venta.ciudad != null) Text(venta.ciudad!, style: const TextStyle(color: AppColors.textoSecundario)),
-                if (venta.transportadora != null && venta.transportadora!.isNotEmpty)
-                  Text('Transportadora: ${venta.transportadora}', style: const TextStyle(color: AppColors.textoSecundario)),
-                if (venta.guiaRemision != null && venta.guiaRemision!.isNotEmpty)
-                  Text('Guía: ${venta.guiaRemision}', style: const TextStyle(color: AppColors.textoSecundario)),
+                if (venta.direccionDestino != null && venta.direccionDestino!.isNotEmpty)
+                  Text(venta.direccionDestino!, style: const TextStyle(color: AppColors.textoSecundario)),
+                if (venta.ciudad != null && venta.ciudad!.isNotEmpty)
+                  Text(venta.ciudad!, style: const TextStyle(color: AppColors.textoSecundario)),
+                if (venta.modalidadEntrega == ModalidadEntrega.transportadora) ...<Widget>[
+                  Text(
+                    'Transportadora: ${(venta.transportadora != null && venta.transportadora!.isNotEmpty) ? venta.transportadora : 'Sin completar'}',
+                    style: const TextStyle(color: AppColors.textoSecundario),
+                  ),
+                  Text(
+                    'Guía: ${(venta.guiaRemision != null && venta.guiaRemision!.isNotEmpty) ? venta.guiaRemision : 'Sin completar'}',
+                    style: const TextStyle(color: AppColors.textoSecundario),
+                  ),
+                ],
               ],
               const SizedBox(height: 8),
-              _Badge(
-                texto: yaEntregado ? 'Entregado' : 'Pendiente de entrega',
-                color: yaEntregado ? AppColors.verdeSuave : const Color(0xFF7C3AED),
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: <Widget>[
+                  _Badge(texto: venta.estadoEntrega.etiqueta, color: colorEstadoEntrega(venta.estadoEntrega)),
+                  if (venta.faltaCompletarEnvio) const _Badge(texto: 'Falta completar', color: Color(0xFFEA580C)),
+                ],
               ),
             ],
           ),
@@ -347,15 +426,41 @@ class _Contenido extends StatelessWidget {
               icon: const Icon(Icons.add_card_outlined),
               label: const Text('Registrar pago'),
             ),
-          if (venta.tieneSaldoPendiente && !yaEntregado) const SizedBox(height: 10),
-          if (!yaEntregado)
+          // Despachar: solo ADMIN y solo en ventas por transportadora.
+          if (esAdmin &&
+              venta.modalidadEntrega == ModalidadEntrega.transportadora &&
+              venta.estadoEntrega == EstadoEntrega.pendiente) ...<Widget>[
+            if (venta.tieneSaldoPendiente) const SizedBox(height: 10),
             OutlinedButton.icon(
-              onPressed: accionEnCurso || venta.tieneSaldoPendiente ? null : onMarcarEntregado,
+              onPressed: accionEnCurso ? null : onDespachar,
+              icon: const Icon(Icons.local_shipping_outlined),
+              label: const Text('Marcar como despachada'),
+            ),
+          ],
+          // Entregar: ADMIN y EMPLEADO. El saldo pendiente no la bloquea.
+          if (!yaEntregado) ...<Widget>[
+            if (venta.tieneSaldoPendiente ||
+                (esAdmin &&
+                    venta.modalidadEntrega == ModalidadEntrega.transportadora &&
+                    venta.estadoEntrega == EstadoEntrega.pendiente))
+              const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: accionEnCurso ? null : onMarcarEntregado,
               icon: accionEnCurso
                   ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                   : const Icon(Icons.check_circle_outline),
-              label: Text(venta.tieneSaldoPendiente ? 'No se puede entregar con saldo pendiente' : 'Marcar como entregada'),
+              label: const Text('Marcar como entregada'),
             ),
+          ],
+          // Editar datos de entrega: solo ADMIN, en domicilio y transportadora.
+          if (esAdmin && venta.modalidadEntrega != ModalidadEntrega.retiro) ...<Widget>[
+            const SizedBox(height: 10),
+            TextButton.icon(
+              onPressed: accionEnCurso ? null : onEditarEntrega,
+              icon: const Icon(Icons.edit_outlined),
+              label: const Text('Editar datos de entrega'),
+            ),
+          ],
         ],
       ],
     );
@@ -550,6 +655,140 @@ class _FormularioPagoSheetState extends State<_FormularioPagoSheet> {
                 child: _enviando
                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.white))
                     : const Text('Confirmar pago'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Completar o corregir la dirección, la transportadora y la guía de una
+/// venta (solo ADMIN), en bottom sheet, con el mismo lenguaje visual que el de
+/// registrar pago. Un campo vacío borra el dato.
+class _FormularioEntregaSheet extends StatefulWidget {
+  const _FormularioEntregaSheet({required this.venta, required this.onGuardar});
+
+  final Venta venta;
+  final Future<void> Function(String direccion, String transportadora, String guia) onGuardar;
+
+  @override
+  State<_FormularioEntregaSheet> createState() => _FormularioEntregaSheetState();
+}
+
+class _FormularioEntregaSheetState extends State<_FormularioEntregaSheet> {
+  late final TextEditingController _direccionCtrl;
+  late final TextEditingController _transportadoraCtrl;
+  late final TextEditingController _guiaCtrl;
+  bool _guardando = false;
+  String? _error;
+
+  bool get _esTransportadora => widget.venta.modalidadEntrega == ModalidadEntrega.transportadora;
+
+  @override
+  void initState() {
+    super.initState();
+    _direccionCtrl = TextEditingController(text: widget.venta.direccionDestino ?? '');
+    _transportadoraCtrl = TextEditingController(text: widget.venta.transportadora ?? '');
+    _guiaCtrl = TextEditingController(text: widget.venta.guiaRemision ?? '');
+  }
+
+  @override
+  void dispose() {
+    _direccionCtrl.dispose();
+    _transportadoraCtrl.dispose();
+    _guiaCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _guardar() async {
+    setState(() {
+      _guardando = true;
+      _error = null;
+    });
+    try {
+      await widget.onGuardar(
+        _direccionCtrl.text.trim(),
+        _transportadoraCtrl.text.trim(),
+        _guiaCtrl.text.trim(),
+      );
+      if (mounted) Navigator.of(context).pop(true);
+    } on ApiException catch (error) {
+      setState(() {
+        _error = error.mensaje;
+        _guardando = false;
+      });
+    } catch (_) {
+      setState(() {
+        _error = 'No se pudieron guardar los datos de entrega.';
+        _guardando = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: SafeArea(
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text('Datos de entrega', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              Text(
+                'Venta #${widget.venta.id}',
+                style: const TextStyle(color: AppColors.textoSecundario, fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _direccionCtrl,
+                enabled: !_guardando,
+                decoration: const InputDecoration(
+                  labelText: 'Dirección',
+                  helperText: 'Te sirve para coordinar la entrega',
+                ),
+              ),
+              if (_esTransportadora) ...<Widget>[
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _transportadoraCtrl,
+                  enabled: !_guardando,
+                  decoration: const InputDecoration(labelText: 'Transportadora'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _guiaCtrl,
+                  enabled: !_guardando,
+                  decoration: const InputDecoration(labelText: 'Guía de remisión'),
+                ),
+              ],
+              if (_error != null) ...<Widget>[
+                const SizedBox(height: 10),
+                Text(_error!, style: const TextStyle(color: AppColors.error, fontSize: 12.5)),
+              ],
+              const SizedBox(height: 18),
+              FilledButton(
+                onPressed: _guardando ? null : _guardar,
+                child: _guardando
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.white))
+                    : const Text('Guardar'),
               ),
             ],
           ),

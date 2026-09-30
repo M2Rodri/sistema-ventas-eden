@@ -18,8 +18,14 @@ export enum ModalidadEntrega {
   TRANSPORTADORA = 'TRANSPORTADORA'
 }
 
+// Recorrido según la modalidad:
+//   RETIRO:         nace ENTREGADO.
+//   DOMICILIO:      PENDIENTE -> ENTREGADO.
+//   TRANSPORTADORA: PENDIENTE -> DESPACHADO -> ENTREGADO (también se puede
+//                   pasar de PENDIENTE a ENTREGADO directamente).
 export enum EstadoEntrega {
   PENDIENTE = 'PENDIENTE',
+  DESPACHADO = 'DESPACHADO',
   ENTREGADO = 'ENTREGADO'
 }
 
@@ -61,10 +67,21 @@ export interface VentaRequest {
 
   // Entrega. Si no viene, el backend asume RETIRO.
   modalidadEntrega?: ModalidadEntrega;
-  direccionDestino?: string; // obligatorio para DOMICILIO y TRANSPORTADORA
-  ciudad?: string; // obligatorio para DOMICILIO y TRANSPORTADORA
-  transportadora?: string; // obligatorio para TRANSPORTADORA
-  guiaRemision?: string; // obligatorio para TRANSPORTADORA
+  // Estado con el que se registra. Si no viene queda PENDIENTE (RETIRO siempre
+  // queda ENTREGADO). ENTREGADO: DOMICILIO o TRANSPORTADORA, cualquier rol.
+  // DESPACHADO: solo TRANSPORTADORA y solo ADMIN.
+  estadoEntrega?: EstadoEntrega;
+  direccionDestino?: string; // opcional en DOMICILIO y TRANSPORTADORA
+  ciudad?: string; // obligatoria solo en TRANSPORTADORA
+  transportadora?: string; // opcional, solo TRANSPORTADORA
+  guiaRemision?: string; // opcional, solo TRANSPORTADORA
+}
+
+/** Datos de entrega que el ADMIN puede completar o corregir después. */
+export interface DatosEntrega {
+  direccionDestino?: string;
+  transportadora?: string;
+  guiaRemision?: string;
 }
 
 export interface DetalleVenta {

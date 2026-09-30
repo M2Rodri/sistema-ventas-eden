@@ -1,5 +1,6 @@
 package com.mitienda.ecommerce.services;
 
+import com.mitienda.ecommerce.dto.DatosEntregaRequest;
 import com.mitienda.ecommerce.dto.VentaRequest;
 import com.mitienda.ecommerce.dto.VentaResponse;
 import com.mitienda.ecommerce.models.*;
@@ -105,22 +106,16 @@ public class VentaService {
         ModalidadEntrega modalidadEntrega = request.getModalidadEntrega() != null
                 ? request.getModalidadEntrega() : ModalidadEntrega.RETIRO;
 
-        if (modalidadEntrega != ModalidadEntrega.RETIRO) {
-            if (request.getDireccionDestino() == null || request.getDireccionDestino().trim().isEmpty()) {
-                throw new RuntimeException("La dirección de destino es obligatoria para esta modalidad de entrega");
-            }
-            if (request.getCiudad() == null || request.getCiudad().trim().isEmpty()) {
-                throw new RuntimeException("La ciudad es obligatoria para esta modalidad de entrega");
-            }
+        // Datos de entrega según la modalidad:
+        //   RETIRO:         ninguno.
+        //   DOMICILIO:      dirección opcional (sirve para coordinar); no se pide ciudad.
+        //   TRANSPORTADORA: ciudad obligatoria; dirección, transportadora y
+        //                   guía opcionales (se completan después si hace falta).
+        if (modalidadEntrega == ModalidadEntrega.TRANSPORTADORA && esVacio(request.getCiudad())) {
+            throw new RuntimeException("La ciudad es obligatoria para el envío por transportadora");
         }
-        if (modalidadEntrega == ModalidadEntrega.TRANSPORTADORA) {
-            if (request.getTransportadora() == null || request.getTransportadora().trim().isEmpty()) {
-                throw new RuntimeException("La transportadora es obligatoria para esta modalidad de entrega");
-            }
-            if (request.getGuiaRemision() == null || request.getGuiaRemision().trim().isEmpty()) {
-                throw new RuntimeException("La guía de remisión es obligatoria para esta modalidad de entrega");
-            }
-        }
+
+        EstadoEntrega estadoEntrega = resolverEstadoInicial(modalidadEntrega, request.getEstadoEntrega());
 
         Venta venta = new Venta();
 
@@ -153,14 +148,14 @@ public class VentaService {
         venta.setUsuario(usuario);
 
         venta.setModalidadEntrega(modalidadEntrega);
-        venta.setEstadoEntrega(EstadoEntrega.PENDIENTE);
+        venta.setEstadoEntrega(estadoEntrega);
         if (modalidadEntrega != ModalidadEntrega.RETIRO) {
-            venta.setDireccionDestino(request.getDireccionDestino().trim());
-            venta.setCiudad(request.getCiudad().trim());
+            venta.setDireccionDestino(textoOpcional(request.getDireccionDestino()));
         }
         if (modalidadEntrega == ModalidadEntrega.TRANSPORTADORA) {
-            venta.setTransportadora(request.getTransportadora().trim());
-            venta.setGuiaRemision(request.getGuiaRemision().trim());
+            venta.setCiudad(request.getCiudad().trim());
+            venta.setTransportadora(textoOpcional(request.getTransportadora()));
+            venta.setGuiaRemision(textoOpcional(request.getGuiaRemision()));
         }
 
         // PASO 1: CALCULAR TOTAL
@@ -371,28 +366,23 @@ public class VentaService {
     }
 
     /**
-     * Marca la entrega de una venta como completada.
+     * Marca la entrega de una venta como completada. La pueden hacer ADMIN y
+     * EMPLEADO, en cualquier venta no cancelada y sin importar desde qué
+     * estado (PENDIENTE o DESPACHADO).
      *
-     * RF-07: no se despacha lo que no está cobrado. La entrevista al
-     * propietario sostiene esta regla (solo despacha con el pago
-     * confirmado), así que una venta con saldo pendiente no se puede
-     * marcar como entregada -- CA-07.1. Recién con el saldo en cero
-     * se acepta la entrega -- CA-07.2.
+     * El saldo pendiente NO bloquea la entrega: el sistema registra lo que
+     * pasa en el negocio, y la decisión de entregar con saldo es del dueño.
+     * (Antes, RF-07 lo impedía; se quitó por decisión del negocio.)
      */
     @Transactional
     public VentaResponse marcarEntregado(Long id) {
-        Venta venta = ventaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Venta no encontrada con ID: " + id));
+        Venta venta = buscarVenta(id);
 
         if (venta.getEstado() == EstadoVenta.CANCELADA) {
             throw new RuntimeException("No se puede entregar una venta cancelada");
         }
         if (venta.getEstadoEntrega() == EstadoEntrega.ENTREGADO) {
             throw new RuntimeException("Esta venta ya está marcada como entregada");
-        }
-        if (venta.getSaldoPendiente().compareTo(BigDecimal.ZERO) > 0) {
-            throw new RuntimeException(
-                    "No se puede entregar: falta cobrar Bs " + venta.getSaldoPendiente());
         }
 
         venta.setEstadoEntrega(EstadoEntrega.ENTREGADO);
@@ -402,6 +392,162 @@ public class VentaService {
                 "Entrega marcada para la venta #" + entregada.getId());
 
         return new VentaResponse(entregada);
+    }
+
+    /**
+     * Marca una venta por transportadora como despachada (PENDIENTE ->
+     * DESPACHADO). Solo ADMIN: lo exige el controlador.
+     */
+    @Transactional
+    public VentaResponse despachar(Long id) {
+        Venta venta = buscarVenta(id);
+
+        if (venta.getEstado() == EstadoVenta.CANCELADA) {
+            throw new RuntimeException("No se puede despachar una venta cancelada");
+        }
+        if (venta.getModalidadEntrega() != ModalidadEntrega.TRANSPORTADORA) {
+            throw new RuntimeException("Solo las ventas por transportadora se pueden despachar");
+        }
+        if (venta.getEstadoEntrega() == EstadoEntrega.DESPACHADO) {
+            throw new RuntimeException("Esta venta ya está despachada");
+        }
+        if (venta.getEstadoEntrega() == EstadoEntrega.ENTREGADO) {
+            throw new RuntimeException("Esta venta ya fue entregada");
+        }
+
+        venta.setEstadoEntrega(EstadoEntrega.DESPACHADO);
+        Venta despachada = ventaRepository.save(venta);
+
+        registroAuditoria.registrar("DESPACHAR_VENTA", "ventas", despachada.getId(),
+                "Venta #" + despachada.getId() + " despachada por transportadora");
+
+        return new VentaResponse(despachada);
+    }
+
+    /**
+     * Retrocede la entrega de una venta un paso. Solo ADMIN: lo exige el
+     * controlador. Queda registrado en la auditoría.
+     *
+     *   TRANSPORTADORA, DESPACHADO -> PENDIENTE.
+     *   TRANSPORTADORA, ENTREGADO  -> PENDIENTE o DESPACHADO, a elección: pudo
+     *                                 entregarse sin pasar por el despacho.
+     *                                 Si no se elige, vuelve a DESPACHADO.
+     *   DOMICILIO,      ENTREGADO  -> PENDIENTE.
+     *   RETIRO: no se ofrece, siempre es ENTREGADO.
+     *
+     * @param destino a qué estado volver; solo se tiene en cuenta en una venta
+     *                por TRANSPORTADORA que está ENTREGADA.
+     */
+    @Transactional
+    public VentaResponse deshacerEntrega(Long id, EstadoEntrega destino) {
+        Venta venta = buscarVenta(id);
+
+        if (venta.getEstado() == EstadoVenta.CANCELADA) {
+            throw new RuntimeException("No se puede deshacer la entrega de una venta cancelada");
+        }
+        if (venta.getModalidadEntrega() == ModalidadEntrega.RETIRO) {
+            throw new RuntimeException("En una venta en tienda no se puede deshacer la entrega");
+        }
+
+        EstadoEntrega actual = venta.getEstadoEntrega();
+        EstadoEntrega nuevo;
+        if (actual == EstadoEntrega.PENDIENTE) {
+            throw new RuntimeException("No hay nada que deshacer: la venta está pendiente de entrega");
+        } else if (actual == EstadoEntrega.DESPACHADO) {
+            nuevo = EstadoEntrega.PENDIENTE;
+        } else if (venta.getModalidadEntrega() == ModalidadEntrega.TRANSPORTADORA) {
+            // ENTREGADO por transportadora: a elección del ADMIN.
+            if (destino == null || destino == EstadoEntrega.DESPACHADO) {
+                nuevo = EstadoEntrega.DESPACHADO;
+            } else if (destino == EstadoEntrega.PENDIENTE) {
+                nuevo = EstadoEntrega.PENDIENTE;
+            } else {
+                throw new RuntimeException("Al deshacer solo se puede volver a PENDIENTE o DESPACHADO");
+            }
+        } else {
+            // ENTREGADO a domicilio
+            nuevo = EstadoEntrega.PENDIENTE;
+        }
+
+        venta.setEstadoEntrega(nuevo);
+        Venta actualizada = ventaRepository.save(venta);
+
+        registroAuditoria.registrar("DESHACER_ENTREGA", "ventas", actualizada.getId(),
+                "Entrega deshecha en la venta #" + actualizada.getId() + ": de " + actual + " a " + nuevo);
+
+        return new VentaResponse(actualizada);
+    }
+
+    /**
+     * Completa o corrige los datos de entrega de una venta ya registrada:
+     * dirección (DOMICILIO o TRANSPORTADORA) y transportadora y guía (solo
+     * TRANSPORTADORA). Solo ADMIN: lo exige el controlador.
+     *
+     * Un valor vacío borra el dato. No toca la ciudad ni el estado.
+     */
+    @Transactional
+    public VentaResponse actualizarDatosEntrega(Long id, DatosEntregaRequest datos) {
+        Venta venta = buscarVenta(id);
+
+        if (venta.getEstado() == EstadoVenta.CANCELADA) {
+            throw new RuntimeException("No se pueden editar los datos de entrega de una venta cancelada");
+        }
+        if (venta.getModalidadEntrega() == ModalidadEntrega.RETIRO) {
+            throw new RuntimeException("Una venta en tienda no tiene datos de entrega");
+        }
+
+        venta.setDireccionDestino(textoOpcional(datos.getDireccionDestino()));
+        if (venta.getModalidadEntrega() == ModalidadEntrega.TRANSPORTADORA) {
+            venta.setTransportadora(textoOpcional(datos.getTransportadora()));
+            venta.setGuiaRemision(textoOpcional(datos.getGuiaRemision()));
+        }
+        Venta actualizada = ventaRepository.save(venta);
+
+        registroAuditoria.registrar("EDITAR_ENTREGA", "ventas", actualizada.getId(),
+                "Datos de entrega editados en la venta #" + actualizada.getId());
+
+        return new VentaResponse(actualizada);
+    }
+
+    private Venta buscarVenta(Long id) {
+        return ventaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Venta no encontrada con ID: " + id));
+    }
+
+    private boolean esVacio(String texto) {
+        return texto == null || texto.trim().isEmpty();
+    }
+
+    /** Texto sin espacios sobrantes, o null si viene vacío. */
+    private String textoOpcional(String texto) {
+        return esVacio(texto) ? null : texto.trim();
+    }
+
+    /**
+     * Estado de entrega con el que nace una venta.
+     *
+     *   RETIRO:         siempre ENTREGADO (el cliente se lleva el producto en el momento).
+     *   sin indicar:    PENDIENTE.
+     *   PENDIENTE:      cualquier modalidad.
+     *   ENTREGADO:      DOMICILIO o TRANSPORTADORA, ADMIN y EMPLEADO.
+     *   DESPACHADO:     solo TRANSPORTADORA y solo ADMIN.
+     */
+    private EstadoEntrega resolverEstadoInicial(ModalidadEntrega modalidad, EstadoEntrega pedido) {
+        if (modalidad == ModalidadEntrega.RETIRO) {
+            return EstadoEntrega.ENTREGADO;
+        }
+        if (pedido == null || pedido == EstadoEntrega.PENDIENTE) {
+            return EstadoEntrega.PENDIENTE;
+        }
+        if (pedido == EstadoEntrega.DESPACHADO) {
+            if (modalidad != ModalidadEntrega.TRANSPORTADORA) {
+                throw new RuntimeException("Solo una venta por transportadora puede registrarse como despachada");
+            }
+            if (!usuarioActualService.esAdmin()) {
+                throw new RuntimeException("Solo un administrador puede registrar una venta ya despachada");
+            }
+        }
+        return pedido;
     }
 
     @Transactional(readOnly = true)

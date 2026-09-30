@@ -218,15 +218,16 @@ export default function ComprobanteModal({ isOpen, onClose, idVenta }: Comproban
               {/* Encabezado de la empresa */}
               <div className="border-b-2 border-gray-300 pb-6 mb-6">
                 <div className="text-center">
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2">MI TIENDA</h1>
-                  <p className="text-gray-600 font-medium">NIT: 123456789</p>
-                  <p className="text-gray-600">Dirección: Calle Principal #123, Tarija - Bolivia</p>
-                  <p className="text-gray-600">Teléfono: +591 12345678</p>
-                  <p className="text-gray-600">Email: contacto@mitienda.com</p>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">Mueblería Edén</h1>
+                  <p className="text-gray-600 font-medium">Santa Cruz de la Sierra, Bolivia</p>
+                  <p className="text-gray-400 italic">NIT: por completar</p>
+                  <p className="text-gray-400 italic">Dirección: por completar</p>
+                  <p className="text-gray-400 italic">Teléfono: por completar</p>
                 </div>
                 <div className="mt-4 text-center">
                   <h2 className="text-2xl font-bold text-blue-600 uppercase">Comprobante de Venta</h2>
                   <p className="text-lg font-semibold text-gray-700 mt-2">{comprobante.numeroComprobante}</p>
+                  <p className="text-xs text-gray-500 mt-1">Comprobante interno, sin valor fiscal</p>
                 </div>
               </div>
 

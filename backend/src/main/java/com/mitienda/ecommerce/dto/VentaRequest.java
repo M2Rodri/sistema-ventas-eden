@@ -1,5 +1,6 @@
 package com.mitienda.ecommerce.dto;
 
+import com.mitienda.ecommerce.models.EstadoEntrega;
 import com.mitienda.ecommerce.models.MetodoPago;
 import com.mitienda.ecommerce.models.ModalidadEntrega;
 import jakarta.validation.constraints.Min;
@@ -59,14 +60,28 @@ public class VentaRequest {
      */
     private ModalidadEntrega modalidadEntrega;
 
-    // Obligatorio para DOMICILIO y TRANSPORTADORA
+    /**
+     * Estado de entrega con el que se registra la venta. Opcional: si no
+     * viene, queda PENDIENTE (en RETIRO siempre queda ENTREGADO).
+     *
+     * Reglas (las valida VentaService):
+     *   PENDIENTE:  cualquier modalidad.
+     *   ENTREGADO:  DOMICILIO o TRANSPORTADORA, para ADMIN y EMPLEADO (a
+     *               veces la venta se registra cuando todo ya terminó).
+     *   DESPACHADO: solo TRANSPORTADORA y solo para ADMIN.
+     */
+    private EstadoEntrega estadoEntrega;
+
+    // DOMICILIO: opcional, sirve para coordinar la entrega.
+    // TRANSPORTADORA: opcional.
     @Size(max = 300, message = "La dirección no puede exceder 300 caracteres")
     private String direccionDestino;
 
+    // Obligatoria solo para TRANSPORTADORA. En DOMICILIO no se pide.
     @Size(max = 50, message = "La ciudad no puede exceder 50 caracteres")
     private String ciudad;
 
-    // Obligatorios solo para TRANSPORTADORA
+    // Opcionales, solo para TRANSPORTADORA (se pueden completar después)
     @Size(max = 100, message = "El nombre de la transportadora no puede exceder 100 caracteres")
     private String transportadora;
 

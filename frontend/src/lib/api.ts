@@ -1,5 +1,6 @@
 // Servicio de API para conectar con el backend Spring Boot
 import { ImagenProducto } from '@/types/imagenProducto';
+import { esPorEntregar } from '@/lib/entrega';
 export const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL ?? 'https://backend-sistema-ventas-production-d0a4.up.railway.app';
 const API_URL = `${BACKEND_URL}/api`;
@@ -689,6 +690,8 @@ import {
   Venta,
   VentaRequest,
   VentaEstadisticas,
+  DatosEntrega,
+  EstadoEntrega,
   Pago as PagoDeVenta
 } from '@/types/venta';
 
@@ -762,8 +765,8 @@ export const cancelarVenta = async (id: number): Promise<Venta> => {
 };
 
 /**
- * Marcar la entrega de una venta como completada.
- * Rechaza si la venta tiene saldo pendiente.
+ * Marcar la entrega de una venta como completada (ADMIN y EMPLEADO). El saldo
+ * pendiente no bloquea la entrega.
  */
 export const marcarVentaEntregada = async (id: number): Promise<Venta> => {
   const response = await fetch(`${API_URL}/ventas/${id}/entregar`, {
@@ -774,6 +777,67 @@ export const marcarVentaEntregada = async (id: number): Promise<Venta> => {
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || 'Error al marcar la venta como entregada');
+  }
+
+  return response.json();
+};
+
+/**
+ * Marcar una venta por transportadora como despachada (solo ADMIN).
+ */
+export const despacharVenta = async (id: number): Promise<Venta> => {
+  const response = await fetch(`${API_URL}/ventas/${id}/despachar`, {
+    method: 'PATCH',
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Error al despachar la venta');
+  }
+
+  return response.json();
+};
+
+/**
+ * Retroceder la entrega un paso (solo ADMIN). `volverA` solo importa en una
+ * venta por transportadora ya entregada: PENDIENTE o DESPACHADO.
+ */
+export const deshacerEntregaVenta = async (
+  id: number,
+  volverA?: EstadoEntrega
+): Promise<Venta> => {
+  const response = await fetch(`${API_URL}/ventas/${id}/deshacer-entrega`, {
+    method: 'PATCH',
+    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify(volverA ? { estadoEntrega: volverA } : {}),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Error al deshacer la entrega');
+  }
+
+  return response.json();
+};
+
+/**
+ * Completar o corregir la dirección, la transportadora y la guía de una venta
+ * (solo ADMIN). Un valor vacío borra el dato.
+ */
+export const actualizarDatosEntrega = async (
+  id: number,
+  datos: DatosEntrega
+): Promise<Venta> => {
+  const response = await fetch(`${API_URL}/ventas/${id}/datos-entrega`, {
+    method: 'PATCH',
+    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify(datos),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Error al guardar los datos de entrega');
   }
 
   return response.json();
@@ -931,13 +995,10 @@ export const getVentasEstadisticas = async (): Promise<VentaEstadisticas> => {
   const montoTotal = completadasSemana.reduce((sum, v) => sum + v.montoTotal, 0);
 
   // RF-10 pide mostrar "las ventas hechas y las entregas pendientes" en el
-  // mismo resumen. Retiro en tienda no cuenta: ahí no hay nada que
-  // despachar (ver CU-02).
-  const entregasPendientes = todasVentas.filter(v =>
-    v.estado !== 'CANCELADA'
-    && v.modalidadEntrega && v.modalidadEntrega !== 'RETIRO'
-    && v.estadoEntrega === 'PENDIENTE'
-  ).length;
+  // mismo resumen. "Por entregar" tiene una sola definición en backend, web y
+  // app: estado de entrega distinto de ENTREGADO y venta no cancelada.
+  // Retiro en tienda no aparece porque nace ENTREGADO.
+  const entregasPendientes = todasVentas.filter(esPorEntregar).length;
 
   return {
     totalVentas: todasVentas.length,
