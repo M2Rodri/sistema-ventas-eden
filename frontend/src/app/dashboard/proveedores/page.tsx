@@ -57,7 +57,8 @@ export default function ProveedoresPage() {
       setLoading(true);
       const proveedoresData = await getAllProveedores();
 
-      setProveedores(proveedoresData);
+      // Orden por ID, de menor a mayor.
+      setProveedores([...proveedoresData].sort((a, b) => Number(a.id) - Number(b.id)));
       setFilteredProveedores(proveedoresData);
     } catch (error: any) {
       showMessage('error', mensajeError(error, 'No se pudieron cargar los proveedores.'));

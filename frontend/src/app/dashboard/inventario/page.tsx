@@ -84,10 +84,12 @@ function InventarioContent() {
       const alertasData = tomar(rAlertas, 'las alertas de stock', [] as AlertaInventario[]);
       const historialData = tomar(rHistorial, 'los últimos ajustes', [] as MovimientoInventario[]);
 
-      setInventario(inventarioData);
-      setFilteredInventario(inventarioData);
+      // Lo más nuevo arriba: por ID, de mayor a menor.
+      const inventarioOrdenado = [...inventarioData].sort((a, b) => Number(b.id) - Number(a.id));
+      setInventario(inventarioOrdenado);
+      setFilteredInventario(inventarioOrdenado);
       setAlertas(alertasData);
-      setHistorial(historialData);
+      setHistorial([...historialData].sort((a, b) => Number(b.id) - Number(a.id)));
       setFallosCarga(fallos);
     } catch (error: any) {
       showMessage('error', mensajeError(error, 'No se pudo cargar el inventario.'));
@@ -458,6 +460,7 @@ function InventarioContent() {
                 {...historialDrag.theadProps}
               >
                 <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">ID</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Fecha</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Producto</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Tipo</th>
@@ -471,6 +474,7 @@ function InventarioContent() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {historial.map((ajuste) => (
                   <tr key={ajuste.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{ajuste.id}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
                       {formatDate(ajuste.fecha)}
                     </td>
@@ -531,6 +535,7 @@ function InventarioContent() {
                 {...inventarioDrag.theadProps}
               >
                 <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">ID</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Código</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Producto</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Categoría</th>
@@ -544,6 +549,7 @@ function InventarioContent() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredInventario.map((item) => (
                   <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{item.id}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm font-mono text-gray-900">
                       {item.skuProducto}
                     </td>

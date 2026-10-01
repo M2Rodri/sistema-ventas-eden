@@ -44,19 +44,19 @@ export default function EditarEntregaModal({ venta, onClose, onGuardado }: Edita
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-3">
       <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full">
         <div className="flex items-center justify-between p-5 border-b border-gray-200">
           <div>
-            <h3 className="text-lg font-bold text-gray-900">Datos de entrega</h3>
+            <h3 className="text-base font-bold text-gray-900">Datos de entrega</h3>
             <p className="text-sm text-gray-600">Venta #{venta.id}</p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
-            <X size={22} />
+            <X size={20} />
           </button>
         </div>
 
-        <div className="p-5 space-y-4">
+        <div className="p-5 space-y-3">
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">{error}</div>
           )}
@@ -67,7 +67,7 @@ export default function EditarEntregaModal({ venta, onClose, onGuardado }: Edita
               type="text"
               value={direccion}
               onChange={(e) => setDireccion(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3.5 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               placeholder="Dirección de entrega"
               maxLength={300}
             />
@@ -82,7 +82,7 @@ export default function EditarEntregaModal({ venta, onClose, onGuardado }: Edita
                   type="text"
                   value={transportadora}
                   onChange={(e) => setTransportadora(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3.5 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="Nombre de la transportadora"
                   maxLength={100}
                 />
@@ -93,7 +93,7 @@ export default function EditarEntregaModal({ venta, onClose, onGuardado }: Edita
                   type="text"
                   value={guia}
                   onChange={(e) => setGuia(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3.5 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="Número de guía"
                   maxLength={100}
                 />
@@ -106,14 +106,14 @@ export default function EditarEntregaModal({ venta, onClose, onGuardado }: Edita
           <button
             onClick={onClose}
             disabled={guardando}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+            className="px-3.5 py-1.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
           >
             Cancelar
           </button>
           <button
             onClick={handleGuardar}
             disabled={guardando}
-            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-60"
+            className="px-3.5 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-60"
           >
             {guardando ? 'Guardando...' : 'Guardar'}
           </button>

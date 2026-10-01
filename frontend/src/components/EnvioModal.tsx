@@ -77,16 +77,16 @@ export default function EnvioModal({ envio, transportadoras, onClose, onSuccess 
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3">
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-gradient-to-r from-primary-50 to-primary-100 z-10">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-200 sticky top-0 bg-gradient-to-r from-primary-50 to-primary-100 z-10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary-100 flex items-center justify-center">
-              <Truck className="text-primary-600" size={20} />
+              <Truck className="text-primary-600" size={18} />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">
+              <h2 className="text-base font-bold text-gray-900">
                 {envio ? 'Editar Envío' : 'Nuevo Envío'}
               </h2>
               <p className="text-sm text-gray-600 mt-1">Datos del envío y la transportadora asignada</p>
@@ -96,20 +96,20 @@ export default function EnvioModal({ envio, transportadoras, onClose, onSuccess 
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
           >
-            <X size={24} />
+            <X size={20} />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-5 space-y-3">
           {error && (
-            <div className="bg-red-50 text-red-800 p-4 rounded-lg text-sm">
+            <div className="bg-red-50 text-red-800 p-3 rounded-lg text-sm">
               {error}
             </div>
           )}
 
           {/* Datos de Origen */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 ID Venta (opcional)
@@ -119,7 +119,7 @@ export default function EnvioModal({ envio, transportadoras, onClose, onSuccess 
                 name="idVenta"
                 value={formData.idVenta || ''}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-3.5 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
           </div>
@@ -135,13 +135,13 @@ export default function EnvioModal({ envio, transportadoras, onClose, onSuccess 
               onChange={handleChange}
               required
               rows={2}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full px-3.5 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               placeholder="Calle, número, zona..."
             />
           </div>
 
           {/* Ciudad y Departamento */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Ciudad
@@ -151,7 +151,7 @@ export default function EnvioModal({ envio, transportadoras, onClose, onSuccess 
                 name="ciudad"
                 value={formData.ciudad}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-3.5 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 placeholder="Ej: Yacuiba"
               />
             </div>
@@ -165,14 +165,14 @@ export default function EnvioModal({ envio, transportadoras, onClose, onSuccess 
                 name="departamento"
                 value={formData.departamento}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-3.5 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 placeholder="Ej: Tarija"
               />
             </div>
           </div>
 
           {/* Fecha Estimada y Costo */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Fecha Entrega Estimada <span className="text-red-500">*</span>
@@ -183,7 +183,7 @@ export default function EnvioModal({ envio, transportadoras, onClose, onSuccess 
                 value={formData.fechaEntregaEstimada}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-3.5 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
 
@@ -198,13 +198,13 @@ export default function EnvioModal({ envio, transportadoras, onClose, onSuccess 
                 onChange={handleChange}
                 step="0.01"
                 min="0"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-3.5 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
           </div>
 
           {/* Transportadora y Guía */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Transportadora
@@ -213,7 +213,7 @@ export default function EnvioModal({ envio, transportadoras, onClose, onSuccess 
                 name="idTransportadora"
                 value={formData.idTransportadora || ''}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+                className="w-full px-3.5 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
               >
                 <option value="">Sin asignar</option>
                 {transportadoras.filter(t => t.activo).map((t) => (
@@ -233,7 +233,7 @@ export default function EnvioModal({ envio, transportadoras, onClose, onSuccess 
                 name="guiaRemision"
                 value={formData.guiaRemision}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-3.5 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 placeholder="Número de guía"
               />
             </div>
@@ -249,7 +249,7 @@ export default function EnvioModal({ envio, transportadoras, onClose, onSuccess 
               value={formData.notas}
               onChange={handleChange}
               rows={3}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full px-3.5 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               placeholder="Información adicional sobre el envío..."
             />
           </div>
@@ -259,14 +259,14 @@ export default function EnvioModal({ envio, transportadoras, onClose, onSuccess 
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              className="px-5 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
               disabled={loading}
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium disabled:bg-gray-400"
+              className="px-5 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium disabled:bg-gray-400"
               disabled={loading}
             >
               {loading ? 'Guardando...' : envio ? 'Actualizar' : 'Crear Envío'}

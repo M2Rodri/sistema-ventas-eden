@@ -1,5 +1,5 @@
 // frontend/src/types/producto.ts
-export type TipoProducto = 'CAMA' | 'COLCHON' | 'ALMOHADA' | 'ACCESORIO';
+export type TipoProducto = 'CAMA' | 'COLCHON' | 'ALMOHADA' | 'ACCESORIO' | 'MUEBLE';
 
 export interface Producto {
   id: number;
@@ -49,6 +49,8 @@ export interface ProductoRequest {
   precioVenta: number;
   dimensiones?: string;
   stockMinimo: number;
+  /** Solo al crear: cantidad que ya hay en el local. Vacío = sin stock todavía. */
+  stockInicial?: number;
   tipoProducto: TipoProducto;
   activo: boolean;
 

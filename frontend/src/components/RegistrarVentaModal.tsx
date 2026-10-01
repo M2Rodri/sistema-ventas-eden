@@ -84,11 +84,10 @@ export default function RegistrarVentaModal({
     ModalidadEntrega.RETIRO,
   );
   // Estado con el que se registra la entrega. En tienda siempre nace
-  // entregada; en domicilio y transportadora se puede registrar ya entregada
-  // (a veces se carga cuando todo terminó). Despachada: solo ADMIN y solo
-  // transportadora.
+  // entregada; en domicilio y transportadora arranca Entregado (lo normal es
+  // cargar la venta cuando todo terminó) y se puede cambiar a Pendiente.
   const [estadoEntrega, setEstadoEntrega] = useState<EstadoEntrega>(
-    EstadoEntrega.PENDIENTE,
+    EstadoEntrega.ENTREGADO,
   );
   const [direccionDestino, setDireccionDestino] = useState("");
   const [ciudad, setCiudad] = useState("");
@@ -483,7 +482,7 @@ export default function RegistrarVentaModal({
     setComprobanteFile(null);
     setSaldoPendienteHabilitado(false);
     setModalidadEntrega(ModalidadEntrega.RETIRO);
-    setEstadoEntrega(EstadoEntrega.PENDIENTE);
+    setEstadoEntrega(EstadoEntrega.ENTREGADO);
     setDireccionDestino("");
     setCiudad("");
     setTransportadora("");
@@ -497,44 +496,42 @@ export default function RegistrarVentaModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b sticky top-0 bg-gradient-to-r from-primary-50 to-primary-100 z-10">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">
-              Registrar Nueva Venta
-            </h2>
-            <p className="text-sm text-gray-600 mt-1">Elegí los productos y el cliente para generar la venta</p>
-          </div>
+        <div className="flex justify-between items-center px-5 py-2 border-b bg-gradient-to-r from-primary-50 to-primary-100 shrink-0">
+          <h2 className="text-base font-bold text-gray-900">
+            Registrar Nueva Venta
+          </h2>
           <button
             onClick={() => {
               resetForm();
               onClose();
             }}
             disabled={loading}
+            className="text-gray-400 hover:text-gray-600 p-1"
           >
-            <X size={24} />
+            <X size={20} />
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto px-5 pt-4 pb-3 space-y-3">
           {error && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-              <AlertCircle className="text-red-600 flex-shrink-0" size={20} />
-              <p className="text-sm text-red-600">{error}</p>
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2.5">
+              <AlertCircle className="text-red-600 flex-shrink-0" size={18} />
+              <p className="text-xs text-red-600">{error}</p>
             </div>
           )}
 
           {/* SECCIÓN 1 — CLIENTE */}
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <User size={20} /> Cliente
+            <h3 className="text-sm font-bold text-gray-900 mb-2.5 flex items-center gap-1.5">
+              <User size={18} /> Cliente
             </h3>
 
             {/* Buscador de cliente existente */}
-            <div className="relative mb-3" ref={clienteBoxRef}>
-              <div className="flex items-center border border-gray-300 rounded-lg px-4 py-2 gap-2">
+            <div className="relative mb-2" ref={clienteBoxRef}>
+              <div className="flex items-center border border-gray-300 rounded-lg px-2 py-1.5 gap-2">
                 <Search size={18} className="text-gray-400" />
                 <input
                   type="text"
@@ -594,7 +591,7 @@ export default function RegistrarVentaModal({
                           setBusquedaCliente(`${c.nombre} ${c.apellido || ""}`);
                           setMostrarListaClientes(false);
                         }}
-                        className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b last:border-0"
+                        className="w-full text-left px-4 py-2 hover:bg-gray-50 border-b last:border-0"
                       >
                         <p className="font-medium text-sm">
                           {c.nombre} {c.apellido}
@@ -611,7 +608,7 @@ export default function RegistrarVentaModal({
                         .includes(busquedaCliente.toLowerCase()) ||
                       c.celular?.includes(busquedaCliente),
                   ).length === 0 && (
-                    <p className="text-sm text-gray-400 px-4 py-3">
+                    <p className="text-sm text-gray-400 px-4 py-2">
                       No encontrado. Registrá abajo como cliente nuevo.
                     </p>
                   )}
@@ -621,42 +618,42 @@ export default function RegistrarVentaModal({
 
             {/* Si no seleccionó cliente existente, registrar nuevo */}
             {!clienteSeleccionado && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Nombre Completo <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={nombreCliente}
                     onChange={(e) => setNombreCliente(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     placeholder="Ej: Juan Pérez"
                     maxLength={100}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Celular
                   </label>
                   <input
                     type="text"
                     value={telefonoCliente}
                     onChange={(e) => setCelularCliente(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     placeholder="Ej: 71234567"
                     maxLength={20}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     CI
                   </label>
                   <input
                     type="text"
                     value={ciCliente}
                     onChange={(e) => setCiCliente(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     placeholder="Ej: 9392342"
                     maxLength={20}
                   />
@@ -676,12 +673,12 @@ export default function RegistrarVentaModal({
 
           {/* SECCIÓN 2 — PRODUCTOS */}
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Package size={20} /> Productos
+            <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
+              <Package size={18} /> Productos
             </h3>
 
             {/* Buscador + filtro por tipo, en la misma fila */}
-            <div className="relative mb-4" ref={productoBoxRef}>
+            <div className="relative mb-3" ref={productoBoxRef}>
               <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr] items-stretch gap-2">
                 <div className="flex items-center border border-gray-300 rounded-lg px-3 py-1.5 gap-1.5">
                   <Search size={14} className="text-gray-400 flex-shrink-0" />
@@ -702,6 +699,7 @@ export default function RegistrarVentaModal({
                   { valor: "COLCHON", etiqueta: "Colchones" },
                   { valor: "ALMOHADA", etiqueta: "Almohadas" },
                   { valor: "ACCESORIO", etiqueta: "Accesorios" },
+                  // { valor: "MUEBLE", etiqueta: "Muebles" }, // oculto por ahora
                 ].map((tipo) => (
                   <button
                     key={tipo.valor}
@@ -725,7 +723,7 @@ export default function RegistrarVentaModal({
                         key={p.id}
                         type="button"
                         onClick={() => agregarAlCarrito(p)}
-                        className="w-full text-left px-4 py-3 hover:bg-gray-50 flex justify-between items-center border-b last:border-0"
+                        className="w-full text-left px-4 py-2 hover:bg-gray-50 flex justify-between items-center border-b last:border-0"
                       >
                         <div>
                           <p className="font-medium text-sm">{p.nombre}</p>
@@ -739,7 +737,7 @@ export default function RegistrarVentaModal({
                       </button>
                     ))
                   ) : (
-                    <p className="text-sm text-gray-400 px-4 py-3">
+                    <p className="text-sm text-gray-400 px-4 py-2">
                       No se encontraron productos.
                     </p>
                   )}
@@ -749,7 +747,7 @@ export default function RegistrarVentaModal({
 
             {/* Carrito */}
             {carrito.length === 0 ? (
-              <p className="text-sm text-gray-400 text-center py-4 border border-dashed rounded-lg">
+              <p className="text-sm text-gray-400 text-center py-3 border border-dashed rounded-lg">
                 Ningún producto agregado. Buscá arriba para agregar.
               </p>
             ) : (
@@ -757,9 +755,9 @@ export default function RegistrarVentaModal({
                 {carrito.map((item) => (
                   <div
                     key={item.idProducto}
-                    className="border border-gray-200 rounded-lg p-4"
+                    className="border border-gray-200 rounded-lg p-3"
                   >
-                    <div className="flex justify-between items-start mb-3">
+                    <div className="flex justify-between items-start mb-2">
                       <div>
                         <p className="font-medium text-sm">{item.nombre}</p>
                         <p className="text-xs text-gray-500">SKU: {item.sku}</p>
@@ -844,12 +842,12 @@ export default function RegistrarVentaModal({
 
           {/* SECCIÓN 3 — PAGOS MIXTOS */}
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Pagos</h3>
+            <h3 className="text-sm font-bold text-gray-900 mb-2">Pagos</h3>
 
             {pagos.map((pago, index) => (
               <div
                 key={index}
-                className="border border-gray-200 rounded-lg p-4 mb-3"
+                className="border border-gray-200 rounded-lg p-3 mb-2"
               >
                 <div
                   className={`grid grid-cols-1 gap-3 items-end ${
@@ -867,7 +865,7 @@ export default function RegistrarVentaModal({
                         nuevos[index].metodo = e.target.value as MetodoPago;
                         setPagos(nuevos);
                       }}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                      className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm"
                     >
                       {Object.values(MetodoPago).map((m) => (
                         <option key={m} value={m}>
@@ -907,7 +905,7 @@ export default function RegistrarVentaModal({
                       }}
                       onWheel={evitarCambioPorRueda}
                       disabled={index === 0 && !saldoPendienteHabilitado}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm disabled:bg-gray-100 disabled:text-gray-500"
+                      className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm disabled:bg-gray-100 disabled:text-gray-500"
                     />
                   </div>
                   {index === 0 && !saldoPendienteHabilitado && (
@@ -966,7 +964,7 @@ export default function RegistrarVentaModal({
                           setPagos(nuevos);
                         }}
                         onWheel={evitarCambioPorRueda}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                        className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm"
                       />
                     </div>
                   )}
@@ -991,7 +989,7 @@ export default function RegistrarVentaModal({
                 opcional siempre, y también se puede adjuntar después desde
                 el detalle de la venta si acá no se sube. */}
             {pagos[0].metodo !== MetodoPago.EFECTIVO && (
-              <div className="mb-3 p-3 border border-dashed border-gray-300 rounded-lg">
+              <div className="mb-2 p-3 border border-dashed border-gray-300 rounded-lg">
                 <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
                   <Upload size={16} className="text-gray-500" />
                   {comprobanteFile
@@ -1015,10 +1013,6 @@ export default function RegistrarVentaModal({
                     Quitar
                   </button>
                 )}
-                <p className="text-xs text-gray-400 mt-1">
-                  Si no la adjuntás ahora, se puede subir después desde el
-                  detalle de la venta.
-                </p>
               </div>
             )}
 
@@ -1030,9 +1024,9 @@ export default function RegistrarVentaModal({
                   { metodo: MetodoPago.EFECTIVO, monto: 0, referencia: "" },
                 ])
               }
-              className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 font-medium mb-3"
+              className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 font-medium mb-2"
             >
-              <Plus size={16} /> Agregar otro método de pago
+              <Plus size={16} /> Agregar otro pago
             </button>
 
             {/* Resumen pagos */}
@@ -1072,29 +1066,18 @@ export default function RegistrarVentaModal({
 
           {/* SECCIÓN 4 — ENTREGA */}
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <h3 className="text-sm font-bold text-gray-900 mb-2">
               Venta
             </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Modalidad
               </label>
               <select
                 value={modalidadEntrega}
-                onChange={(e) => {
-                  const nuevaModalidad = e.target.value as ModalidadEntrega;
-                  setModalidadEntrega(nuevaModalidad);
-                  // "Despachado" solo existe en transportadora: si se cambia
-                  // de modalidad, vuelve a Pendiente para no mandar un
-                  // estado que no le corresponde.
-                  if (
-                    nuevaModalidad !== ModalidadEntrega.TRANSPORTADORA &&
-                    estadoEntrega === EstadoEntrega.DESPACHADO
-                  ) {
-                    setEstadoEntrega(EstadoEntrega.PENDIENTE);
-                  }
-                }}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                onChange={(e) => setModalidadEntrega(e.target.value as ModalidadEntrega)}
+                className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm"
               >
                 <option value={ModalidadEntrega.RETIRO}>
                   En tienda
@@ -1108,51 +1091,37 @@ export default function RegistrarVentaModal({
               </select>
             </div>
 
-            {/* En tienda: sin campos, la venta queda entregada. */}
-            {modalidadEntrega === ModalidadEntrega.RETIRO && (
-              <p className="mt-2 text-xs text-gray-500">
-                La venta queda entregada al registrarla.
-              </p>
-            )}
-
             {/* Estado de la entrega: en domicilio y transportadora. */}
             {modalidadEntrega !== ModalidadEntrega.RETIRO && (
-              <div className="mt-3">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Estado de la entrega
                 </label>
                 <select
                   value={estadoEntrega}
                   onChange={(e) => setEstadoEntrega(e.target.value as EstadoEntrega)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm"
                 >
-                  <option value={EstadoEntrega.PENDIENTE}>Pendiente</option>
-                  {userRole === "ADMIN" &&
-                    modalidadEntrega === ModalidadEntrega.TRANSPORTADORA && (
-                      <option value={EstadoEntrega.DESPACHADO}>Despachado</option>
-                    )}
                   <option value={EstadoEntrega.ENTREGADO}>Entregado</option>
+                  <option value={EstadoEntrega.PENDIENTE}>Pendiente</option>
                 </select>
               </div>
             )}
 
             {/* Domicilio: solo la dirección, opcional. No se pide ciudad. */}
             {modalidadEntrega === ModalidadEntrega.DOMICILIO && (
-              <div className="mt-3">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Dirección
                 </label>
                 <input
                   type="text"
                   value={direccionDestino}
                   onChange={(e) => setDireccionDestino(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="Dirección de entrega"
                   maxLength={300}
                 />
-                <p className="mt-1 text-xs text-gray-500">
-                  Te sirve para coordinar la entrega
-                </p>
               </div>
             )}
 
@@ -1160,60 +1129,57 @@ export default function RegistrarVentaModal({
                 completar después desde el detalle de la venta. */}
             {modalidadEntrega === ModalidadEntrega.TRANSPORTADORA && (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                <div className="contents">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Ciudad <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
                       value={ciudad}
                       onChange={(e) => setCiudad(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                       placeholder="Ciudad de destino"
                       maxLength={50}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Dirección
                     </label>
                     <input
                       type="text"
                       value={direccionDestino}
                       onChange={(e) => setDireccionDestino(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                       placeholder="Dirección de entrega"
                       maxLength={300}
                     />
-                    <p className="mt-1 text-xs text-gray-500">
-                      Te sirve para coordinar la entrega
-                    </p>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                <div className="contents">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Transportadora
                     </label>
                     <input
                       type="text"
                       value={transportadora}
                       onChange={(e) => setTransportadora(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                       placeholder="Nombre de la transportadora"
                       maxLength={100}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Guía de remisión
                     </label>
                     <input
                       type="text"
                       value={guiaRemision}
                       onChange={(e) => setGuiaRemision(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                       placeholder="Número de guía"
                       maxLength={100}
                     />
@@ -1221,17 +1187,19 @@ export default function RegistrarVentaModal({
                 </div>
               </>
             )}
+            </div>
           </div>
+        </div>
 
-          {/* BOTONES */}
-          <div className="flex gap-4 pt-2">
+        {/* BOTONES */}
+        <div className="flex justify-end gap-3 px-5 py-2.5 border-t border-gray-200 bg-white shrink-0">
             <button
               type="button"
               onClick={() => {
                 resetForm();
                 onClose();
               }}
-              className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+              className="px-4 py-1.5 text-sm border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
               disabled={loading}
             >
               Cancelar
@@ -1240,12 +1208,11 @@ export default function RegistrarVentaModal({
               type="button"
               onClick={handleSubmit}
               disabled={loading || carrito.length === 0}
-              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 font-medium disabled:opacity-50"
+              className="px-4 py-1.5 text-sm bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 font-medium disabled:opacity-50 transition-colors"
             >
               {loading ? "Registrando..." : "Registrar Venta"}
             </button>
           </div>
-        </div>
       </div>
     </div>
   );

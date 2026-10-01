@@ -14,7 +14,6 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import CompraModal from '@/components/CompraModal';
 import DetalleCompraModal from '@/components/DetalleCompraModal';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
-import StatCard from '@/components/StatCard';
 import { mensajeError } from '@/lib/errores';
 
 /**
@@ -70,7 +69,8 @@ function ComprasContent() {
     try {
       setLoading(true);
       setLoadError(null);
-      setCompras(await getAllCompras());
+      // Lo más nuevo arriba (por ID, de mayor a menor), como Ventas.
+      setCompras([...await getAllCompras()].sort((a, b) => Number(b.id) - Number(a.id)));
     } catch (error: any) {
       setLoadError(mensajeError(error, 'No se pudieron cargar las compras.'));
     } finally {
@@ -165,7 +165,6 @@ function ComprasContent() {
     ? compras.find((c) => c.idProveedor === Number(proveedorFiltroId))?.nombreProveedor
     : null;
 
-  const contar = (estado: string) => compras.filter((c) => c.estado === estado).length;
 
   // Arrastrar la tabla desde el encabezado, como si fuera una barra de
   // scroll horizontal. Ver hooks/useDragScrollTable.ts.
@@ -209,34 +208,6 @@ function ComprasContent() {
           </button>
         </div>
       )}
-
-      {/* Resumen por estado. Cada tarjeta fija TODOS los filtros (búsqueda,
-          estado, proveedor de la URL), no solo el que le importa — mismo
-          criterio que Ventas e Inventario. */}
-      <div className="grid grid-cols-2 gap-4">
-        <StatCard
-          titulo="Por confirmar"
-          valor={contar('POR_CONFIRMAR')}
-          icon={<ShoppingCart size={22} />}
-          loading={loading}
-          onClick={() => {
-            setBusqueda('');
-            setEstadoFiltro('POR_CONFIRMAR');
-            suprimirFiltroProveedor();
-          }}
-        />
-        <StatCard
-          titulo="Confirmadas"
-          valor={contar('CONFIRMADA')}
-          icon={<PackageCheck size={22} />}
-          loading={loading}
-          onClick={() => {
-            setBusqueda('');
-            setEstadoFiltro('CONFIRMADA');
-            suprimirFiltroProveedor();
-          }}
-        />
-      </div>
 
       {/* Filtros */}
       <div className="flex flex-wrap items-center gap-3">
@@ -313,7 +284,7 @@ function ComprasContent() {
                 {...theadProps}
               >
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Compra</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Proveedor</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Factura</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
@@ -325,7 +296,7 @@ function ComprasContent() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filtradas.map((compra) => (
                   <tr key={compra.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">#{compra.id}</td>
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{compra.id}</td>
                     <td className="px-6 py-4 text-sm text-gray-900">
                       {compra.nombreProveedor}
                       <span className="block text-xs text-gray-500">NIT: {compra.nitProveedor || '—'}</span>

@@ -19,12 +19,16 @@ export const faltaCompletarEnvio = (venta: Venta): boolean =>
   venta.modalidadEntrega === ModalidadEntrega.TRANSPORTADORA &&
   (!venta.transportadora?.trim() || !venta.guiaRemision?.trim());
 
+/**
+ * Corregir una entrega de Entregado a Pendiente (clic en la etiqueta, solo ADMIN).
+ * La función ya está hecha; por ahora está apagada. Poner en true para activarla.
+ */
+export const CORREGIR_ENTREGA_ACTIVO = false;
+
 export const etiquetaEstadoEntrega = (estado?: EstadoEntrega): string => {
   switch (estado) {
     case EstadoEntrega.ENTREGADO:
       return 'Entregado';
-    case EstadoEntrega.DESPACHADO:
-      return 'Despachado';
     default:
       return 'Pendiente';
   }
@@ -41,13 +45,23 @@ export const etiquetaModalidad = (modalidad?: ModalidadEntrega): string => {
   }
 };
 
+/** Modalidad en pocas palabras, para la columna Entrega de la tabla. */
+export const etiquetaModalidadCorta = (modalidad?: ModalidadEntrega): string => {
+  switch (modalidad) {
+    case ModalidadEntrega.DOMICILIO:
+      return 'A domicilio';
+    case ModalidadEntrega.TRANSPORTADORA:
+      return 'Transportadora';
+    default:
+      return 'En tienda';
+  }
+};
+
 /** Clases de color del badge de cada estado de entrega. */
 export const claseBadgeEstadoEntrega = (estado?: EstadoEntrega): string => {
   switch (estado) {
     case EstadoEntrega.ENTREGADO:
       return 'bg-green-100 text-green-800 border-green-200';
-    case EstadoEntrega.DESPACHADO:
-      return 'bg-amber-100 text-amber-800 border-amber-200';
     default:
       return 'bg-gray-100 text-gray-800 border-gray-200';
   }

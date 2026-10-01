@@ -783,39 +783,17 @@ export const marcarVentaEntregada = async (id: number): Promise<Venta> => {
 };
 
 /**
- * Marcar una venta por transportadora como despachada (solo ADMIN).
+ * Corregir una entrega marcada por error: ENTREGADO -> PENDIENTE (solo ADMIN).
  */
-export const despacharVenta = async (id: number): Promise<Venta> => {
-  const response = await fetch(`${API_URL}/ventas/${id}/despachar`, {
+export const deshacerEntregaVenta = async (id: number): Promise<Venta> => {
+  const response = await fetch(`${API_URL}/ventas/${id}/deshacer-entrega`, {
     method: 'PATCH',
     headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || 'Error al despachar la venta');
-  }
-
-  return response.json();
-};
-
-/**
- * Retroceder la entrega un paso (solo ADMIN). `volverA` solo importa en una
- * venta por transportadora ya entregada: PENDIENTE o DESPACHADO.
- */
-export const deshacerEntregaVenta = async (
-  id: number,
-  volverA?: EstadoEntrega
-): Promise<Venta> => {
-  const response = await fetch(`${API_URL}/ventas/${id}/deshacer-entrega`, {
-    method: 'PATCH',
-    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-    body: JSON.stringify(volverA ? { estadoEntrega: volverA } : {}),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al deshacer la entrega');
+    throw new Error(error.error || 'Error al corregir la entrega');
   }
 
   return response.json();
@@ -2729,7 +2707,7 @@ export const eliminarMultimedia = async (multimediaId: number): Promise<void> =>
 // DASHBOARD
 // ============================================
 
-import { DashboardEstadisticas } from '@/types/dashboard';
+import { DashboardEstadisticas, VentasSemanal } from '@/types/dashboard';
 
 /**
  * Estadísticas del panel de inicio.
@@ -2748,6 +2726,19 @@ export const getDashboardEstadisticas = async (): Promise<DashboardEstadisticas>
   return response.json();
 };
 
+
+// Ventas de la semana en curso (lunes a domingo), solo completadas.
+export const getVentasSemanal = async (): Promise<VentasSemanal> => {
+  const response = await fetch(`${API_URL}/dashboard/ventas-semanal`, {
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error('Error al obtener las ventas de la semana');
+  }
+
+  return response.json();
+};
 
 // ============================================
 // DATOS PÚBLICOS DEL NEGOCIO

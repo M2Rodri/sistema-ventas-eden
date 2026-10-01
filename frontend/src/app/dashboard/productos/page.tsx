@@ -95,7 +95,8 @@ export default function ProductosPage() {
       const categoriasData = tomar(rCategorias, 'las categorias', [] as Categoria[]);
       const inventarioData = tomar(rInventario, 'el stock de inventario', [] as Inventario[]);
 
-      setProductos(productosData);
+      // Lo más nuevo arriba (por ID, de mayor a menor), como Ventas.
+      setProductos([...productosData].sort((a, b) => Number(b.id) - Number(a.id)));
       setFilteredProductos(productosData);
       setCategorias(categoriasData);
       setStockPorProducto(new Map(inventarioData.map((i) => [i.idProducto, i.cantidadDisponible])));
@@ -361,7 +362,8 @@ export default function ProductosPage() {
               {...theadProps}
             >
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">N°</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">ID</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">SKU</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Imagen</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Nombre</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Categoría</th>
@@ -374,7 +376,8 @@ export default function ProductosPage() {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredProductos.map((producto, index) => (
                 <tr key={producto.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{index + 1}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{producto.id}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700">{producto.sku}</td>
                   <td className="px-4 py-4 whitespace-nowrap">
                     <div className="h-12 w-12 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
                       {producto.imagenes && producto.imagenes.length > 0 && !imagenesConError.has(producto.id) ? (

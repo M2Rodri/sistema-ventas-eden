@@ -138,34 +138,30 @@ export default function ModificarClienteModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b border-gray-200 sticky top-0 bg-gradient-to-r from-primary-50 to-primary-100 z-10">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <User className="text-blue-600" size={28} />
-              Modificar Cliente
-            </h2>
-            <p className="text-sm text-gray-500 mt-1">
-              Cliente ID: <span className="font-semibold">#{cliente.id}</span>
-            </p>
-          </div>
+        <div className="flex justify-between items-center px-5 py-2 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100 shrink-0">
+          <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+            <User className="text-blue-600" size={20} />
+            Modificar Cliente <span className="font-normal text-gray-500">#{cliente.id}</span>
+          </h2>
           <button
             onClick={handleClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
             disabled={loading}
           >
-            <X size={24} />
+            <X size={20} />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <div className="flex-1 overflow-y-auto px-5 pt-4 pb-3">
           {/* Mensajes de error/éxito */}
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-              <AlertCircle className="text-red-600 flex-shrink-0 mt-0.5" size={20} />
+            <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+              <AlertCircle className="text-red-600 flex-shrink-0 mt-0.5" size={18} />
               <div className="flex-1">
                 <p className="text-sm font-medium text-red-800">Error</p>
                 <p className="text-sm text-red-600 mt-1">{error}</p>
@@ -181,8 +177,8 @@ export default function ModificarClienteModal({
           )}
 
           {success && (
-            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3">
-              <CheckCircle className="text-green-600" size={20} />
+            <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3">
+              <CheckCircle className="text-green-600" size={18} />
               <p className="text-sm font-medium text-green-800">
                 Datos del cliente actualizados exitosamente
               </p>
@@ -190,11 +186,11 @@ export default function ModificarClienteModal({
           )}
 
           {/* Campos del formulario */}
-          <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {/* Nombre y Apellido */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="contents">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Nombre <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -202,7 +198,7 @@ export default function ModificarClienteModal({
                   name="nombre"
                   value={formData.nombre}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Ej: Juan"
                   maxLength={100}
                   required
@@ -211,7 +207,7 @@ export default function ModificarClienteModal({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Apellido <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -219,7 +215,7 @@ export default function ModificarClienteModal({
                   name="apellido"
                   value={formData.apellido}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Ej: Pérez"
                   maxLength={100}
                   required
@@ -230,7 +226,7 @@ export default function ModificarClienteModal({
 
             {/* Teléfono */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
                 <Phone size={16} />
                 Número de Teléfono <span className="text-red-500">*</span>
               </label>
@@ -239,18 +235,17 @@ export default function ModificarClienteModal({
                 name="telefono"
                 value={formData.telefono}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Ej: 71234567"
                 maxLength={15}
                 required
                 disabled={loading || success}
               />
-              <p className="text-xs text-gray-500 mt-1">* Campo obligatorio</p>
             </div>
 
             {/* CI */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
                 <CreditCard size={16} />
                 CI
               </label>
@@ -259,7 +254,7 @@ export default function ModificarClienteModal({
                 name="nitCi"
                 value={formData.nitCi}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Ej: 1234567"
                 maxLength={20}
                 disabled={loading || success}
@@ -267,8 +262,8 @@ export default function ModificarClienteModal({
             </div>
 
             {/* Correo Electrónico */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
                 <Mail size={16} />
                 Correo Electrónico (opcional)
               </label>
@@ -277,7 +272,7 @@ export default function ModificarClienteModal({
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Ej: cliente@email.com"
                 maxLength={100}
                 disabled={loading || success}
@@ -287,8 +282,8 @@ export default function ModificarClienteModal({
           </div>
 
           {/* Información adicional */}
-          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-xs font-medium text-blue-700 mb-2">Información del Cliente</p>
+          <div className="mt-3 p-2.5 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-xs font-medium text-blue-700 mb-1">Información del Cliente</p>
             <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
               <div>
                 <span className="font-medium">Fecha de Registro:</span>{' '}
@@ -310,11 +305,12 @@ export default function ModificarClienteModal({
           </div>
 
           {/* Botones de acción */}
-          <div className="flex gap-4 mt-6">
+          </div>
+          <div className="flex justify-end gap-3 px-5 py-2.5 border-t border-gray-200 bg-white shrink-0">
             <button
               type="button"
               onClick={handleClose}
-              className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+              className="px-4 py-1.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
               disabled={loading || success}
             >
               Cancelar
@@ -322,7 +318,7 @@ export default function ModificarClienteModal({
             <button
               type="submit"
               disabled={loading || success}
-              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center justify-center gap-2"
+              className="px-4 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
@@ -331,12 +327,12 @@ export default function ModificarClienteModal({
                 </>
               ) : success ? (
                 <>
-                  <CheckCircle size={20} />
+                  <CheckCircle size={18} />
                   Guardado
                 </>
               ) : (
                 <>
-                  <CheckCircle size={20} />
+                  <CheckCircle size={18} />
                   Guardar Cambios
                 </>
               )}

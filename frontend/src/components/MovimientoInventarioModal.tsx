@@ -56,12 +56,12 @@ export default function MovimientoInventarioModal({ inventario, onClose, onSucce
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100 sticky top-0 z-10">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100 sticky top-0 z-10">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Ajustar Inventario</h2>
+            <h2 className="text-base font-bold text-gray-900">Ajustar Inventario</h2>
             <p className="text-sm text-gray-600 mt-1">
               {inventario.nombreProducto} <span className="text-gray-400">({inventario.skuProducto})</span>
             </p>
@@ -70,26 +70,26 @@ export default function MovimientoInventarioModal({ inventario, onClose, onSucce
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
           >
-            <X size={24} />
+            <X size={20} />
           </button>
         </div>
 
         {/* Información actual */}
-        <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-          <div className="grid grid-cols-2 gap-4">
+        <div className="px-5 py-3 bg-gray-50 border-b border-gray-200">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <p className="text-xs text-gray-500">Stock Actual</p>
-              <p className="text-2xl font-bold text-gray-900">{inventario.cantidadDisponible}</p>
+              <p className="text-lg font-bold text-gray-900">{inventario.cantidadDisponible}</p>
             </div>
             <div>
               <p className="text-xs text-gray-500">Stock Mínimo</p>
-              <p className="text-2xl font-bold text-gray-900">{inventario.stockMinimo}</p>
+              <p className="text-lg font-bold text-gray-900">{inventario.stockMinimo}</p>
             </div>
           </div>
         </div>
 
         {/* Formulario */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-5 space-y-3">
           {error && (
             <div className="flex items-center gap-2 p-3 bg-red-50 text-red-800 rounded-lg text-sm">
               <AlertCircle size={18} />
@@ -106,7 +106,7 @@ export default function MovimientoInventarioModal({ inventario, onClose, onSucce
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, tipoMovimiento: 'ENTRADA' })}
-                className={`px-4 py-3 rounded-lg border-2 font-medium transition-all ${
+                className={`px-4 py-2 rounded-lg border-2 font-medium transition-all ${
                   formData.tipoMovimiento === 'ENTRADA'
                     ? 'border-green-500 bg-green-50 text-green-700'
                     : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
@@ -117,7 +117,7 @@ export default function MovimientoInventarioModal({ inventario, onClose, onSucce
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, tipoMovimiento: 'SALIDA' })}
-                className={`px-4 py-3 rounded-lg border-2 font-medium transition-all ${
+                className={`px-4 py-2 rounded-lg border-2 font-medium transition-all ${
                   formData.tipoMovimiento === 'SALIDA'
                     ? 'border-red-500 bg-red-50 text-red-700'
                     : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
@@ -138,7 +138,7 @@ export default function MovimientoInventarioModal({ inventario, onClose, onSucce
               min="1"
               value={formData.cantidad || ''}
               onChange={(e) => setFormData({ ...formData, cantidad: parseInt(e.target.value) || 0 })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full px-3.5 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               placeholder="Ingrese la cantidad"
               required
             />
@@ -154,7 +154,7 @@ export default function MovimientoInventarioModal({ inventario, onClose, onSucce
               onChange={(e) => setFormData({ ...formData, motivo: e.target.value })}
               rows={3}
               maxLength={200}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+              className="w-full px-3.5 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
               placeholder="Ej: Compra a proveedor, Devolución de cliente, Ajuste por inventario físico..."
               required
             />
@@ -163,7 +163,7 @@ export default function MovimientoInventarioModal({ inventario, onClose, onSucce
 
           {/* Preview del resultado */}
           {formData.cantidad > 0 && (
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-sm text-gray-700 mb-2">
                 <strong>Resultado del ajuste:</strong>
               </p>
@@ -181,7 +181,7 @@ export default function MovimientoInventarioModal({ inventario, onClose, onSucce
               </div>
               <div className="border-t border-blue-300 mt-2 pt-2 flex items-center justify-between">
                 <span className="font-semibold text-gray-700">Nuevo stock:</span>
-                <span className="text-xl font-bold text-blue-700">{calcularNuevaCantidad()}</span>
+                <span className="text-base font-bold text-blue-700">{calcularNuevaCantidad()}</span>
               </div>
             </div>
           )}
@@ -192,14 +192,14 @@ export default function MovimientoInventarioModal({ inventario, onClose, onSucce
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50"
+              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium disabled:opacity-50"
             >
               {loading ? 'Guardando...' : 'Confirmar Ajuste'}
             </button>

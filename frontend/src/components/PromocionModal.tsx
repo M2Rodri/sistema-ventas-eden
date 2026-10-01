@@ -85,42 +85,41 @@ export default function PromocionModal({ promocion, productos, onClose, onSucces
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3">
+      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100 sticky top-0 z-10">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">
-              {promocion ? 'Editar Promoción' : 'Nueva Promoción'}
-            </h2>
-            <p className="text-sm text-gray-600 mt-1">Válida solo mientras esté dentro del rango de fechas y activa</p>
-          </div>
+        <div className="flex items-center justify-between px-5 py-2 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100 shrink-0">
+          <h2 className="text-base font-bold text-gray-900">
+            {promocion ? 'Editar Promoción' : 'Nueva Promoción'}
+          </h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
           >
-            <X size={24} />
+            <X size={20} />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <div className="flex-1 overflow-y-auto px-5 pt-4 pb-3">
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">
+            <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">
               {error}
             </div>
           )}
 
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
           {/* Nombre */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Nombre *
             </label>
             <input
               type="text"
               value={formData.nombre}
               onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               placeholder="Ej: Semana del Descanso"
               maxLength={150}
               required
@@ -128,22 +127,22 @@ export default function PromocionModal({ promocion, productos, onClose, onSucces
           </div>
 
           {/* Descripción */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="md:col-span-3">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Descripción
             </label>
             <textarea
               value={formData.descripcion ?? ''}
               onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+              className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
               placeholder="Ej: Descuento en toda la línea de colchones por aniversario."
               rows={2}
             />
           </div>
 
           {/* Descuento */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Descuento (%) *
             </label>
             <input
@@ -152,45 +151,60 @@ export default function PromocionModal({ promocion, productos, onClose, onSucces
               max="100"
               value={formData.descuento}
               onChange={(e) => setFormData({ ...formData, descuento: parseFloat(e.target.value) })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               required
             />
           </div>
 
           {/* Fechas */}
-          <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="contents">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Fecha Inicio *
               </label>
               <input
                 type="date"
                 value={formData.fechaInicio}
                 onChange={(e) => setFormData({ ...formData, fechaInicio: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Fecha Fin *
               </label>
               <input
                 type="date"
                 value={formData.fechaFin}
                 onChange={(e) => setFormData({ ...formData, fechaFin: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 required
               />
             </div>
           </div>
 
+          {/* Activo */}
+          <div className="flex items-end pb-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.activo}
+                onChange={(e) => setFormData({ ...formData, activo: e.target.checked })}
+                className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+              />
+              <span className="text-sm font-medium text-gray-700">Promocion activa</span>
+            </label>
+          </div>
+
+          </div>
+
           {/* Productos */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="mb-3">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Productos incluidos * ({formData.idsProductos.length} seleccionados)
             </label>
-            <div className="border border-gray-300 rounded-lg max-h-60 overflow-y-auto p-3">
+            <div className="border border-gray-300 rounded-lg max-h-44 overflow-y-auto p-2">
               {productos.map(producto => (
                 <label
                   key={producto.id}
@@ -214,32 +228,21 @@ export default function PromocionModal({ promocion, productos, onClose, onSucces
             </div>
           </div>
 
-          {/* Activo */}
-          <div className="mb-6">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={formData.activo}
-                onChange={(e) => setFormData({ ...formData, activo: e.target.checked })}
-                className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
-              />
-              <span className="text-sm font-medium text-gray-700">Promocion activa</span>
-            </label>
+          {/* Botones */}
           </div>
 
-          {/* Botones */}
-          <div className="flex justify-end gap-3">
+          <div className="flex justify-end gap-3 px-5 py-2.5 border-t border-gray-200 bg-white shrink-0">
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              className="px-4 py-1.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50"
+              className="px-4 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50"
             >
               {loading ? 'Guardando...' : promocion ? 'Actualizar' : 'Crear Promocion'}
             </button>

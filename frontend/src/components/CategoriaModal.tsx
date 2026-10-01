@@ -7,6 +7,8 @@ import { X } from 'lucide-react';
 
 interface CategoriaModalProps {
   categoria: Categoria | null;
+  /** Todas las categorías existentes: para no ofrecer una que ya está creada. */
+  categorias: Categoria[];
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -18,14 +20,17 @@ interface CategoriaFormData {
   activo: boolean;
 }
 
-const TIPOS_PRODUCTO: { value: TipoProducto; label: string }[] = [
-  { value: 'CAMA', label: 'Cama' },
-  { value: 'COLCHON', label: 'Colchón' },
-  { value: 'ALMOHADA', label: 'Almohada' },
-  { value: 'ACCESORIO', label: 'Accesorio' },
+/** Las únicas categorías que existen (cinco): una por cada tipo de producto. */
+export const CATEGORIAS_FIJAS: { nombre: string; tipo: TipoProducto }[] = [
+  { nombre: 'Camas', tipo: 'CAMA' },
+  { nombre: 'Colchones', tipo: 'COLCHON' },
+  { nombre: 'Almohadas', tipo: 'ALMOHADA' },
+  { nombre: 'Accesorios', tipo: 'ACCESORIO' },
+  // Oculta por ahora (el código del tipo MUEBLE ya existe): quitar el // para mostrarla.
+  // { nombre: 'Muebles de dormitorio', tipo: 'MUEBLE' },
 ];
 
-export default function CategoriaModal({ categoria, onClose, onSuccess }: CategoriaModalProps) {
+export default function CategoriaModal({ categoria, categorias, onClose, onSuccess }: CategoriaModalProps) {
   const [formData, setFormData] = useState<CategoriaFormData>({
     nombre: '',
     descripcion: '',
@@ -35,6 +40,15 @@ export default function CategoriaModal({ categoria, onClose, onSuccess }: Catego
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+
+  // Solo se ofrecen las categorías que todavía no existen (más la que se está
+  // editando). El tipo de producto sale de la categoría elegida.
+  const opciones = CATEGORIAS_FIJAS.filter(
+    (f) =>
+      f.nombre.toLowerCase() === categoria?.nombre.toLowerCase() ||
+      !categorias.some((c) => c.nombre.toLowerCase() === f.nombre.toLowerCase())
+  );
+  const tipoElegido = CATEGORIAS_FIJAS.find((f) => f.nombre === formData.nombre)?.tipo;
 
   useEffect(() => {
     if (categoria) {
@@ -71,20 +85,12 @@ export default function CategoriaModal({ categoria, onClose, onSuccess }: Catego
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.nombre.trim()) {
-      newErrors.nombre = 'El nombre es obligatorio';
-    } else if (formData.nombre.length < 2) {
-      newErrors.nombre = 'El nombre debe tener al menos 2 caracteres';
-    } else if (formData.nombre.length > 100) {
-      newErrors.nombre = 'El nombre no puede exceder 100 caracteres';
+    if (!tipoElegido) {
+      newErrors.nombre = 'Elegí la categoría';
     }
 
     if (formData.descripcion && formData.descripcion.length > 500) {
       newErrors.descripcion = 'La descripción no puede exceder 500 caracteres';
-    }
-
-    if (!formData.tipoProducto) {
-      newErrors.tipoProducto = 'Elegí qué tipo de producto agrupa esta categoría';
     }
 
     setErrors(newErrors);
@@ -96,8 +102,10 @@ export default function CategoriaModal({ categoria, onClose, onSuccess }: Catego
 
     if (!validate()) return;
 
-    // validate() ya garantizó que tipoProducto no está vacío.
-    const datosAEnviar = { ...formData, tipoProducto: formData.tipoProducto as TipoProducto };
+    const datosAEnviar = {
+      ...formData,
+      tipoProducto: tipoElegido as TipoProducto,
+    };
 
     setLoading(true);
     try {
@@ -115,63 +123,65 @@ export default function CategoriaModal({ categoria, onClose, onSuccess }: Catego
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg w-full max-w-2xl">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="border-b px-6 py-4 flex justify-between items-center bg-gradient-to-r from-primary-50 to-primary-100">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">
-              {categoria ? 'Editar Categoría' : 'Nueva Categoría'}
-            </h2>
-            <p className="text-sm text-gray-600 mt-1">Agrupa productos para filtrarlos en catálogo y reportes</p>
-          </div>
+        <div className="border-b px-5 py-2 flex justify-between items-center bg-gradient-to-r from-primary-50 to-primary-100 shrink-0">
+          <h2 className="text-base font-bold text-gray-900">
+            {categoria ? 'Editar Categoría' : 'Nueva Categoría'}
+          </h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
           >
-            <X size={24} />
+            <X size={20} />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <div className="flex-1 overflow-y-auto px-5 pt-4 pb-3 space-y-3">
           {/* Error general */}
           {errors.submit && (
-            <div className="bg-red-50 text-red-800 p-4 rounded-lg">
+            <div className="bg-red-50 text-red-800 p-3 rounded-lg">
               {errors.submit}
             </div>
           )}
 
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {/* Nombre */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="md:col-span-3">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Nombre <span className="text-red-500">*</span>
             </label>
-            <input
-              type="text"
+            <select
               name="nombre"
               value={formData.nombre}
               onChange={handleChange}
-              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+              className={`w-full px-2 py-1.5 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 ${
                 errors.nombre ? 'border-red-500' : 'border-gray-300'
               }`}
-              placeholder="Ej: Camas, Colchones, Almohadas"
               disabled={loading}
-            />
+            >
+              <option value="" disabled hidden>Seleccioná…</option>
+              {opciones.map((f) => (
+                <option key={f.tipo} value={f.nombre}>{f.nombre}</option>
+              ))}
+            </select>
             {errors.nombre && <p className="text-red-500 text-xs mt-1">{errors.nombre}</p>}
           </div>
 
           {/* Descripción */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="md:col-span-3">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Descripción
             </label>
             <textarea
               name="descripcion"
               value={formData.descripcion}
               onChange={handleChange}
-              rows={4}
-              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+              rows={2}
+              className={`w-full px-2 py-1.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
                 errors.descripcion ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="Descripción opcional de la categoría"
@@ -180,29 +190,6 @@ export default function CategoriaModal({ categoria, onClose, onSuccess }: Catego
             {errors.descripcion && <p className="text-red-500 text-xs mt-1">{errors.descripcion}</p>}
           </div>
 
-          {/* Tipo de producto */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Tipo de producto <span className="text-red-500">*</span>
-            </label>
-            <select
-              name="tipoProducto"
-              value={formData.tipoProducto}
-              onChange={handleChange}
-              className={`w-full px-4 py-2 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                errors.tipoProducto ? 'border-red-500' : 'border-gray-300'
-              }`}
-              disabled={loading}
-            >
-              <option value="" disabled>Seleccioná...</option>
-              {TIPOS_PRODUCTO.map((t) => (
-                <option key={t.value} value={t.value}>{t.label}</option>
-              ))}
-            </select>
-            <p className="text-xs text-gray-500 mt-1">
-              Los productos de esta categoría van a quedar marcados con este tipo automáticamente.
-            </p>
-            {errors.tipoProducto && <p className="text-red-500 text-xs mt-1">{errors.tipoProducto}</p>}
           </div>
 
           {/* Estado activo */}
@@ -221,18 +208,19 @@ export default function CategoriaModal({ categoria, onClose, onSuccess }: Catego
           </div>
 
           {/* Botones */}
-          <div className="flex justify-end gap-3 pt-4 border-t">
+          </div>
+          <div className="flex justify-end gap-3 px-5 py-2.5 border-t border-gray-200 bg-white shrink-0">
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              className="px-4 py-1.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
               disabled={loading}
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={loading}
             >
               {loading ? 'Guardando...' : categoria ? 'Actualizar' : 'Crear'}

@@ -5,22 +5,19 @@ import { useRouter } from 'next/navigation';
 import { useDragScrollTable } from '@/hooks/useDragScrollTable';
 import {
   getAllVentas,
-  getVentasEstadisticas,
   getVentasDelDia,
   cancelarVenta,
   marcarVentaEntregada,
   getVentaById
 } from '@/lib/api';
-import { Venta, VentaEstadisticas, EstadoVenta, MetodoPago, EstadoEntrega, ModalidadEntrega } from '@/types/venta';
+import { Venta, EstadoVenta, MetodoPago, EstadoEntrega, ModalidadEntrega } from '@/types/venta';
 import {
   Search,
   Plus,
   Eye,
   XCircle,
-  TrendingUp,
   DollarSign,
   ShoppingCart,
-  Calendar,
   Truck,
   Banknote,
   X
@@ -29,10 +26,10 @@ import RegistrarVentaModal from '@/components/RegistrarVentaModal';
 import DetalleVentaModal from '@/components/DetalleVentaModal';
 import CobrarSaldoModal from '@/components/CobrarSaldoModal';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
-import StatCard from '@/components/StatCard';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { mensajeError } from '@/lib/errores';
-import { claseBadgeEstadoEntrega, esPorEntregar, etiquetaEstadoEntrega, faltaCompletarEnvio } from '@/lib/entrega';
+import { CORREGIR_ENTREGA_ACTIVO, claseBadgeEstadoEntrega, esPorEntregar, etiquetaEstadoEntrega, etiquetaModalidadCorta, faltaCompletarEnvio } from '@/lib/entrega';
+import DeshacerEntregaModal from '@/components/DeshacerEntregaModal';
 import { useAuth } from '@/hooks/useAuth';
 
 
@@ -41,7 +38,6 @@ export default function VentasPage() {
   const { user } = useAuth();
   const [ventas, setVentas] = useState<Venta[]>([]);
   const [ventasFiltradas, setVentasFiltradas] = useState<Venta[]>([]);
-  const [estadisticas, setEstadisticas] = useState<VentaEstadisticas | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // Reemplaza los alert() nativos del navegador (mostraban "localhost dice"
@@ -63,6 +59,8 @@ export default function VentasPage() {
   const [ventaACobrar, setVentaACobrar] = useState<Venta | null>(null);
   const [ventaACancelarId, setVentaACancelarId] = useState<number | null>(null);
   const [ventaAEntregarId, setVentaAEntregarId] = useState<number | null>(null);
+  // Venta cuya entrega se corrige a Pendiente (clic en la etiqueta, solo ADMIN).
+  const [ventaACorregir, setVentaACorregir] = useState<Venta | null>(null);
 
   // Estados para filtros
   const [busqueda, setBusqueda] = useState('');
@@ -70,7 +68,7 @@ export default function VentasPage() {
   const [filtroMetodoPago, setFiltroMetodoPago] = useState<MetodoPago | 'TODOS'>('TODOS');
   const [filtroPeriodo, setFiltroPeriodo] = useState<'HOY' | 'SEMANA' | 'MES' | 'TODOS'>('TODOS');
   const [filtroVendedor, setFiltroVendedor] = useState<string>('TODOS');
-  const [filtroEntrega, setFiltroEntrega] = useState<'TODOS' | 'POR_ENTREGAR' | 'PENDIENTE' | 'DESPACHADO' | 'ENTREGADO'>('TODOS');
+  const [filtroEntrega, setFiltroEntrega] = useState<'TODOS' | 'POR_ENTREGAR' | 'PENDIENTE' | 'ENTREGADO'>('TODOS');
 
   useEffect(() => {
     loadVentas();
@@ -93,13 +91,6 @@ export default function VentasPage() {
     window.addEventListener('ventas:reset-filtros', resetearFiltros);
     return () => window.removeEventListener('ventas:reset-filtros', resetearFiltros);
   }, []);
-
-  // Separado de loadVentas: "user" todavía es null en el primer render (lo
-  // carga useAuth de forma asíncrona), así que este efecto espera a que
-  // tenga valor antes de decidir si corresponde pedir las estadísticas.
-  useEffect(() => {
-    loadEstadisticas();
-  }, [user]);
 
   // El "Período" que llega desde una tarjeta de Inicio (ej. "Ventas del
   // mes") queda ya filtrado acá, sin tener que volver a elegirlo a mano.
@@ -124,20 +115,6 @@ export default function VentasPage() {
       setError(mensajeError(err, 'No se pudieron cargar las ventas.'));
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadEstadisticas = async () => {
-    // Solo-admin en el backend (@PreAuthorize hasRole('ADMIN')): pedirlo
-    // como EMPLEADO siempre da 403, así que ni se intenta.
-    if (user?.role !== 'ADMIN') {
-      return;
-    }
-    try {
-      const stats = await getVentasEstadisticas();
-      setEstadisticas(stats);
-    } catch (err) {
-      console.error('Error al cargar estadísticas:', err);
     }
   };
 
@@ -189,9 +166,15 @@ export default function VentasPage() {
           hoy.setHours(0, 0, 0, 0);
           resultado = resultado.filter(v => new Date(v.fechaVenta) >= hoy);
           break;
-        case 'SEMANA':
-          resultado = filtrarPor(7);
+        case 'SEMANA': {
+          // Semana calendario, de lunes a hoy: la misma que cuenta la tarjeta
+          // "Ventas de la semana" del Inicio.
+          const lunes = new Date();
+          lunes.setHours(0, 0, 0, 0);
+          lunes.setDate(lunes.getDate() - ((lunes.getDay() + 6) % 7));
+          resultado = resultado.filter(v => new Date(v.fechaVenta) >= lunes);
           break;
+        }
         case 'MES':
           resultado = filtrarPor(30);
           break;
@@ -205,8 +188,6 @@ export default function VentasPage() {
       resultado = resultado.filter(esPorEntregar);
     } else if (filtroEntrega === 'PENDIENTE') {
       resultado = resultado.filter(v => v.estadoEntrega === EstadoEntrega.PENDIENTE);
-    } else if (filtroEntrega === 'DESPACHADO') {
-      resultado = resultado.filter(v => v.estadoEntrega === EstadoEntrega.DESPACHADO);
     } else if (filtroEntrega === 'ENTREGADO') {
       resultado = resultado.filter(v => v.estadoEntrega === EstadoEntrega.ENTREGADO);
     }
@@ -223,7 +204,6 @@ export default function VentasPage() {
     try {
       await cancelarVenta(id);
       await loadVentas();
-      await loadEstadisticas();
       showMessage('success', 'Venta cancelada correctamente.');
     } catch (err: any) {
       showMessage('error', mensajeError(err, 'No se pudo cancelar la venta.'));
@@ -303,104 +283,40 @@ export default function VentasPage() {
     <div>
       <Breadcrumbs items={[{ label: 'Ventas' }]} />
 
-      {/* Estadísticas: dato solo-admin, ni se intenta mostrar a un EMPLEADO */}
-      {user?.role === 'ADMIN' && (loading || estadisticas) && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          {/* Cada tarjeta fija los DOS filtros (Estado y Período), nunca
-              solo el que le importa: si dejás el otro filtro con lo que
-              haya quedado de un click anterior, la tabla no coincide con lo
-              que la tarjeta dice. */}
-          <StatCard
-            titulo="Ventas del Día"
-            valor={estadisticas?.ventasDelDia ?? 0}
-            subtitulo={`Bs. ${(estadisticas?.montoDelDia ?? 0).toFixed(2)}`}
-            icon={<Calendar size={22} />}
-            loading={loading}
-            onClick={() => {
-              setFiltroPeriodo('HOY');
-              setFiltroEstado('TODOS');
-              setFiltroEntrega('TODOS');
-            }}
-          />
-          {/* Fusiona lo que antes eran dos tarjetas (Completadas + Monto):
-              cantidad y plata de la semana en una sola, mismo patrón que
-              "Ventas del Día" (número grande + Bs. en el subtítulo). */}
-          <StatCard
-            titulo="Completadas (semana)"
-            valor={estadisticas?.ventasCompletadas ?? 0}
-            subtitulo={`Bs. ${(estadisticas?.montoTotal ?? 0).toFixed(2)}`}
-            icon={<TrendingUp size={22} />}
-            loading={loading}
-            onClick={() => {
-              setFiltroEstado(EstadoVenta.COMPLETADA);
-              setFiltroPeriodo('SEMANA');
-              setFiltroEntrega('TODOS');
-            }}
-          />
-          <StatCard
-            titulo="Pendientes"
-            valor={estadisticas?.ventasPendientes ?? 0}
-            subtitulo="Por cobrar"
-            icon={<ShoppingCart size={22} />}
-            loading={loading}
-            onClick={() => {
-              setFiltroEstado(EstadoVenta.PENDIENTE_PAGO);
-              setFiltroPeriodo('TODOS');
-              setFiltroEntrega('TODOS');
-            }}
-          />
-          {/* RF-10: el resumen tiene que mostrar "las ventas hechas y las
-              entregas pendientes". Sin acotar a la semana: una entrega
-              atrasada de hace tiempo sigue siendo relevante. */}
-          <StatCard
-            titulo="Por Entregar"
-            valor={estadisticas?.entregasPendientes ?? 0}
-            subtitulo="Pendientes y despachadas"
-            icon={<Truck size={22} />}
-            loading={loading}
-            onClick={() => {
-              setFiltroEntrega('POR_ENTREGAR');
-              setFiltroEstado('TODOS');
-              setFiltroPeriodo('TODOS');
-            }}
-          />
-        </div>
-      )}
-
       {/* Header con filtros */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4">
         <div className="flex-shrink-0">
-          <h1 className="text-2xl font-bold text-gray-900">Gestión de Ventas</h1>
-          <p className="text-gray-600 mt-1">Registro y seguimiento de ventas realizadas</p>
+          <h1 className="text-xl lg:text-2xl font-bold text-gray-900">Gestión de Ventas</h1>
+          <p className="text-xs lg:text-sm text-gray-600">Registro y seguimiento de ventas realizadas</p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
           <div className="relative w-full sm:w-56">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={17} />
             <input
               type="text"
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
               placeholder="Buscar por cliente, ID, celular o producto..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full pl-9 pr-3 py-1.5 text-xs lg:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
 
           <select
             value={filtroPeriodo}
             onChange={(e) => setFiltroPeriodo(e.target.value as any)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+            className="px-3 py-1.5 text-xs lg:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
           >
             <option value="TODOS">Todos los períodos</option>
             <option value="HOY">Hoy</option>
-            <option value="SEMANA">Última semana</option>
+            <option value="SEMANA">Esta semana</option>
             <option value="MES">Último mes</option>
           </select>
 
           <select
             value={filtroMetodoPago}
             onChange={(e) => setFiltroMetodoPago(e.target.value as any)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+            className="px-3 py-1.5 text-xs lg:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
           >
             <option value="TODOS">Todos los métodos</option>
             {Object.values(MetodoPago).map(metodo => (
@@ -411,7 +327,7 @@ export default function VentasPage() {
           <select
             value={filtroVendedor}
             onChange={(e) => setFiltroVendedor(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+            className="px-3 py-1.5 text-xs lg:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
           >
             <option value="TODOS">Todos los vendedores</option>
             {obtenerVendedores().map(vendedor => (
@@ -422,7 +338,7 @@ export default function VentasPage() {
           <select
             value={filtroEstado}
             onChange={(e) => setFiltroEstado(e.target.value as any)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+            className="px-3 py-1.5 text-xs lg:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
           >
             <option value="TODOS">Todos los estados</option>
             {Object.values(EstadoVenta).map(estado => (
@@ -433,20 +349,19 @@ export default function VentasPage() {
           <select
             value={filtroEntrega}
             onChange={(e) => setFiltroEntrega(e.target.value as any)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+            className="px-3 py-1.5 text-xs lg:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
           >
             <option value="TODOS">Toda entrega</option>
             <option value="POR_ENTREGAR">Por entregar</option>
             <option value="PENDIENTE">Pendiente</option>
-            <option value="DESPACHADO">Despachado</option>
             <option value="ENTREGADO">Entregado</option>
           </select>
 
           <button
             onClick={() => setShowRegistrarModal(true)}
-            className="flex items-center justify-center gap-2 bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors font-medium whitespace-nowrap"
+            className="flex items-center justify-center gap-1.5 bg-primary-600 text-white px-4 py-1.5 rounded-lg hover:bg-primary-700 transition-colors text-xs lg:text-sm font-medium whitespace-nowrap"
           >
-            <Plus size={18} />
+            <Plus size={17} />
             Registrar Venta
           </button>
         </div>
@@ -503,34 +418,28 @@ export default function VentasPage() {
               {...theadProps}
             >
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                  # Venta
+                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  ID
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Cliente
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Fecha y Hora
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Productos
                 </th>
-                <th className="px-6 py-4 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">
+                <th className="px-3 py-2.5 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Total (Bs.)
                 </th>
-                <th className="px-6 py-4 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
-                  Método Pago
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                  Vendedor
-                </th>
-                <th className="px-6 py-4 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
+                <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Estado
                 </th>
-                <th className="px-6 py-4 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
+                <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Entrega
                 </th>
-                <th className="px-6 py-4 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
+                <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Acciones
                 </th>
               </tr>
@@ -538,7 +447,7 @@ export default function VentasPage() {
             <tbody className="bg-white divide-y divide-gray-200">
               {ventasFiltradas.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="px-6 py-12 text-center">
+                  <td colSpan={8} className="px-6 py-12 text-center">
                     <ShoppingCart className="mx-auto text-gray-400 mb-3" size={48} />
                     <p className="text-gray-500 font-medium">No se encontraron ventas</p>
                     <p className="text-sm text-gray-400 mt-1">
@@ -551,73 +460,59 @@ export default function VentasPage() {
               ) : (
                 ventasFiltradas.map((venta) => (
                   <tr key={venta.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm font-bold text-primary-700">#{venta.id}</span>
+                    <td className="px-3 py-2.5 whitespace-nowrap">
+                      <span className="text-sm font-bold text-primary-700">{venta.id}</span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {venta.nombreCliente}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {venta.ciCliente && <span>CI: {venta.ciCliente}</span>}
-                            {venta.ciCliente && venta.telefonoCliente && <span> · </span>}
-                            {venta.telefonoCliente && <span>Cel: {venta.telefonoCliente}</span>}
-                            {!venta.ciCliente && !venta.telefonoCliente && <span>—</span>}
-                          </div>
-                        </div>
+                    <td className="px-3 py-2.5 whitespace-nowrap max-w-[9.5rem]">
+                      <div className="text-sm font-medium text-gray-900 truncate" title={venta.nombreCliente}>
+                        {venta.nombreCliente}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-3 py-2.5 whitespace-nowrap text-sm text-gray-900">
                       {formatFecha(venta.fechaVenta)}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-600 max-w-xs">
+                    <td className="px-3 py-2.5 text-sm text-gray-600 max-w-[12.5rem]">
                       <div className="truncate" title={obtenerResumenProductos(venta)}>
                         {obtenerResumenProductos(venta)}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <span className="text-lg font-semibold text-gray-900">
+                    <td className="px-3 py-2.5 whitespace-nowrap text-right">
+                      <span className="text-sm font-bold text-gray-900">
                         Bs. {venta.montoTotal.toFixed(2)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="px-3 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">
-                          {venta.metodoPago}
-                        </span>
-                        {venta.tienePagosSinRespaldo && (
-                          <span className="px-2 py-0.5 text-xs bg-orange-100 text-orange-700 rounded-full">
-                            Sin respaldo
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{venta.nombreUsuario}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${getEstadoBadgeColor(venta.estado)}`}>
+                    <td className="px-3 py-2.5 whitespace-nowrap text-center">
+                      <span className={`px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full border ${getEstadoBadgeColor(venta.estado)}`}>
                         {venta.estado.replace('_', ' ')}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
-                      {/* Retiro en tienda nace entregado: el cliente se lleva el
-                          producto en el momento, así que muestra "En tienda".
-                          Domicilio y Transportadora muestran su estado real:
-                          Pendiente, Despachado o Entregado. "Falta completar"
-                          avisa, sin bloquear nada, que a una venta por
-                          transportadora le falta la transportadora o la guía. */}
+                    <td className="px-3 py-2.5 whitespace-nowrap text-center">
                       {venta.modalidadEntrega === ModalidadEntrega.RETIRO ? (
-                        <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border bg-blue-50 text-blue-700 border-blue-200">
+                        <span className="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full border bg-blue-50 text-blue-700 border-blue-200">
                           En tienda
                         </span>
                       ) : (
-                        <div className="flex flex-col items-center gap-1">
-                          <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${claseBadgeEstadoEntrega(venta.estadoEntrega)}`}>
-                            {etiquetaEstadoEntrega(venta.estadoEntrega)}
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className="text-[11px] leading-4 text-gray-500">
+                            {etiquetaModalidadCorta(venta.modalidadEntrega)}
                           </span>
+                          {CORREGIR_ENTREGA_ACTIVO
+                            && user?.role === 'ADMIN'
+                            && venta.estadoEntrega === EstadoEntrega.ENTREGADO
+                            && venta.estado !== EstadoVenta.CANCELADA ? (
+                            <button
+                              type="button"
+                              onClick={() => setVentaACorregir(venta)}
+                              title="Corregir a Pendiente"
+                              className={`px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full border cursor-pointer hover:opacity-80 transition-opacity ${claseBadgeEstadoEntrega(venta.estadoEntrega)}`}
+                            >
+                              {etiquetaEstadoEntrega(venta.estadoEntrega)}
+                            </button>
+                          ) : (
+                            <span className={`px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full border ${claseBadgeEstadoEntrega(venta.estadoEntrega)}`}>
+                              {etiquetaEstadoEntrega(venta.estadoEntrega)}
+                            </span>
+                          )}
                           {faltaCompletarEnvio(venta) && (
                             <span className="px-2 py-0.5 inline-flex text-[11px] leading-4 font-semibold rounded-full border bg-orange-50 text-orange-700 border-orange-200">
                               Falta completar
@@ -626,7 +521,7 @@ export default function VentasPage() {
                         </div>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <td className="px-3 py-2.5 whitespace-nowrap text-center">
                       {/* 4 casilleros fijos, siempre en el mismo orden. Lo
                           que no aplica a esta venta queda invisible (no
                           "hidden"): sigue ocupando su lugar, así el ícono
@@ -639,7 +534,7 @@ export default function VentasPage() {
                         // El ícono de entregar se ofrece en toda venta por entregar
                         // (pendiente o despachada, no cancelada). El saldo
                         // pendiente no la bloquea: el modal de confirmación solo
-                        // lo avisa. Despachar, deshacer y editar los datos de
+                        // lo avisa. Corregir a pendiente y editar los datos de
                         // entrega están en el detalle de la venta.
                         const puedeEntregar = esPorEntregar(venta);
                         const puedeCobrarSaldo = venta.estado === EstadoVenta.PENDIENTE_PAGO
@@ -656,7 +551,7 @@ export default function VentasPage() {
                           <div className="flex items-center justify-center gap-0">
                             <button
                               onClick={() => handleVerDetalle(venta)}
-                              className="p-1.5 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                              className="p-1 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
                               title="Ver detalle"
                             >
                               <Eye size={18} />
@@ -667,7 +562,7 @@ export default function VentasPage() {
                                 onClick={() => setVentaAEntregarId(venta.id)}
                                 disabled={!puedeEntregar}
                                 style={{ visibility: puedeEntregar ? 'visible' : 'hidden' }}
-                                className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors pointer-events-auto disabled:pointer-events-none"
+                                className="p-1 text-green-600 hover:bg-green-50 rounded-lg transition-colors pointer-events-auto disabled:pointer-events-none"
                                 title="Marcar entregado"
                               >
                                 <Truck size={18} />
@@ -679,7 +574,7 @@ export default function VentasPage() {
                                 onClick={() => handleAbrirCobrarSaldo(venta)}
                                 disabled={!puedeCobrarSaldo}
                                 style={{ visibility: puedeCobrarSaldo ? 'visible' : 'hidden' }}
-                                className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors pointer-events-auto disabled:pointer-events-none"
+                                className="p-1 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors pointer-events-auto disabled:pointer-events-none"
                                 title="Cobrar saldo pendiente"
                               >
                                 <Banknote size={18} />
@@ -690,7 +585,7 @@ export default function VentasPage() {
                               onClick={() => setVentaACancelarId(venta.id)}
                               disabled={!puedeCancelar}
                               style={{ visibility: puedeCancelar ? 'visible' : 'hidden' }}
-                              className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors pointer-events-auto disabled:pointer-events-none"
+                              className="p-1 text-red-600 hover:bg-red-50 rounded-lg transition-colors pointer-events-auto disabled:pointer-events-none"
                               title="Cancelar venta"
                             >
                               <XCircle size={18} />
@@ -715,7 +610,6 @@ export default function VentasPage() {
         onClose={() => setShowRegistrarModal(false)}
         onSuccess={() => {
           loadVentas();
-          loadEstadisticas();
         }}
         userRole={user?.role === 'ADMIN' ? 'ADMIN' : 'EMPLEADO'}
       />
@@ -732,8 +626,7 @@ export default function VentasPage() {
           onVentaActualizada={(actualizada) => {
             setVentaSeleccionada(actualizada);
             loadVentas();
-            loadEstadisticas();
-          }}
+            }}
           onUpdated={loadVentas}
           onCobrarSaldo={() => {
             setVentaACobrar(ventaSeleccionada);
@@ -751,8 +644,7 @@ export default function VentasPage() {
           }}
           onSuccess={async () => {
             loadVentas();
-            loadEstadisticas();
-            // Si la venta que se acaba de cobrar es la que está abierta en
+              // Si la venta que se acaba de cobrar es la que está abierta en
             // el detalle, se refresca también ahí (si no, queda mostrando
             // el saldo y los pagos viejos hasta cerrar y volver a abrir).
             if (ventaSeleccionada && ventaACobrar && ventaSeleccionada.id === ventaACobrar.id) {
@@ -767,23 +659,24 @@ export default function VentasPage() {
         />
       )}
 
-      {ventaAEntregarId !== null && (() => {
-        const ventaAEntregar = ventas.find(v => v.id === ventaAEntregarId);
-        const saldo = ventaAEntregar?.saldoPendiente ?? 0;
-        // El saldo pendiente no bloquea la entrega: solo se avisa cuánto falta
-        // cobrar y la decisión queda en quien confirma.
-        return (
-          <DeleteConfirmModal
-            title="Marcar como entregada"
-            message={saldo > 0
-              ? `Esta venta todavía tiene un saldo pendiente de Bs. ${saldo.toFixed(2)}.\n¿Marcarla como entregada de todos modos?`
-              : '¿Confirmar que esta venta ya fue entregada?'}
-            confirmLabel="Marcar entregado"
-            onConfirm={() => handleMarcarEntregado(ventaAEntregarId)}
-            onCancel={() => setVentaAEntregarId(null)}
-          />
-        );
-      })()}
+      {ventaAEntregarId !== null && (
+        // El saldo pendiente no bloquea ni avisa: es una confirmación simple.
+        <DeleteConfirmModal
+          title="Marcar como entregada"
+          message="¿Confirmar que esta venta ya fue entregada?"
+          confirmLabel="Marcar entregado"
+          onConfirm={() => handleMarcarEntregado(ventaAEntregarId)}
+          onCancel={() => setVentaAEntregarId(null)}
+        />
+      )}
+
+      {ventaACorregir && (
+        <DeshacerEntregaModal
+          venta={ventaACorregir}
+          onClose={() => setVentaACorregir(null)}
+          onHecho={() => loadVentas()}
+        />
+      )}
 
       {ventaACancelarId !== null && (
         <DeleteConfirmModal

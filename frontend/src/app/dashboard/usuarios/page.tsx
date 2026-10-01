@@ -37,7 +37,8 @@ export default function UsuariosPage() {
       setLoading(true);
       setLoadError(null);
       const data = await getAllUsers();
-      setUsers(data);
+      // Orden por ID, de menor a mayor: este módulo casi no cambia.
+      setUsers([...data].sort((a, b) => Number(a.id) - Number(b.id)));
       setFilteredUsers(data);
     } catch (error: any) {
       setLoadError(mensajeError(error, 'No se pudieron cargar los usuarios.'));

@@ -50,12 +50,12 @@ export default function EnvioDetalleModal({ envio, onClose, onSuccess }: EnvioDe
 
   const getEstadoIcon = (estado: EstadoEnvio) => {
     const icons = {
-      PENDIENTE: <Clock size={20} className="text-gray-600" />,
-      EN_PREPARACION: <Package size={20} className="text-blue-600" />,
-      EN_CAMINO: <Truck size={20} className="text-yellow-600" />,
-      ENTREGADO: <CheckCircle size={20} className="text-green-600" />,
-      DEVUELTO: <MapPin size={20} className="text-orange-600" />,
-      CANCELADO: <MapPin size={20} className="text-red-600" />,
+      PENDIENTE: <Clock size={18} className="text-gray-600" />,
+      EN_PREPARACION: <Package size={18} className="text-blue-600" />,
+      EN_CAMINO: <Truck size={18} className="text-yellow-600" />,
+      ENTREGADO: <CheckCircle size={18} className="text-green-600" />,
+      DEVUELTO: <MapPin size={18} className="text-orange-600" />,
+      CANCELADO: <MapPin size={18} className="text-red-600" />,
     };
     return icons[estado];
   };
@@ -92,16 +92,16 @@ export default function EnvioDetalleModal({ envio, onClose, onSuccess }: EnvioDe
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3">
       <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-gradient-to-r from-primary-50 to-primary-100 z-10">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-200 sticky top-0 bg-gradient-to-r from-primary-50 to-primary-100 z-10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary-100 flex items-center justify-center">
-              <Truck className="text-primary-600" size={20} />
+              <Truck className="text-primary-600" size={18} />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Detalle del Envío</h2>
+              <h2 className="text-base font-bold text-gray-900">Detalle del Envío</h2>
               {envio.guiaRemision && (
                 <p className="text-sm text-gray-500 font-mono">Guía: {envio.guiaRemision}</p>
               )}
@@ -111,37 +111,37 @@ export default function EnvioDetalleModal({ envio, onClose, onSuccess }: EnvioDe
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
           >
-            <X size={24} />
+            <X size={20} />
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-5 space-y-4">
           {error && (
-            <div className="bg-red-50 text-red-800 p-4 rounded-lg text-sm">
+            <div className="bg-red-50 text-red-800 p-3 rounded-lg text-sm">
               {error}
             </div>
           )}
 
           {/* Estado Actual */}
-          <div className="bg-gray-50 rounded-lg p-4 border-2 border-gray-200">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">Estado Actual</h3>
-            <div className={`flex items-center gap-3 px-4 py-3 rounded-lg border-2 ${getEstadoColor(envio.estadoSeguimiento)}`}>
+          <div className="bg-gray-50 rounded-lg p-3 border-2 border-gray-200">
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">Estado Actual</h3>
+            <div className={`flex items-center gap-3 px-4 py-2 rounded-lg border-2 ${getEstadoColor(envio.estadoSeguimiento)}`}>
               {getEstadoIcon(envio.estadoSeguimiento)}
-              <span className="font-bold text-lg">{envio.estadoSeguimiento.replace('_', ' ')}</span>
+              <span className="font-bold text-base">{envio.estadoSeguimiento.replace('_', ' ')}</span>
             </div>
           </div>
 
           {/* Línea de Tiempo Visual */}
-          <div className="bg-white rounded-lg p-4 border border-gray-200">
-            <h3 className="text-sm font-semibold text-gray-700 mb-4">Seguimiento</h3>
-            <div className="space-y-4">
+          <div className="bg-white rounded-lg p-3 border border-gray-200">
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Seguimiento</h3>
+            <div className="space-y-3">
               {estados.map((estado, index) => {
                 const isActual = estado === envio.estadoSeguimiento;
                 const isPasado = estados.indexOf(estado) < estados.indexOf(envio.estadoSeguimiento);
                 const isActive = isActual || isPasado;
 
                 return (
-                  <div key={estado} className="flex items-start gap-4">
+                  <div key={estado} className="flex items-start gap-3">
                     <div className="flex flex-col items-center">
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${
                         isActive 
@@ -173,8 +173,8 @@ export default function EnvioDetalleModal({ envio, onClose, onSuccess }: EnvioDe
           </div>
 
           {/* Información del Cliente */}
-          <div className="bg-white rounded-lg p-4 border border-gray-200">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+          <div className="bg-white rounded-lg p-3 border border-gray-200">
+            <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
               <Phone size={16} />
               Información del Cliente
             </h3>
@@ -191,8 +191,8 @@ export default function EnvioDetalleModal({ envio, onClose, onSuccess }: EnvioDe
           </div>
 
           {/* Información de Destino */}
-          <div className="bg-white rounded-lg p-4 border border-gray-200">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+          <div className="bg-white rounded-lg p-3 border border-gray-200">
+            <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
               <Home size={16} />
               Dirección de Destino
             </h3>
@@ -218,8 +218,8 @@ export default function EnvioDetalleModal({ envio, onClose, onSuccess }: EnvioDe
 
           {/* Información de Transportadora */}
           {envio.nombreTransportadora && (
-            <div className="bg-white rounded-lg p-4 border border-gray-200">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+            <div className="bg-white rounded-lg p-3 border border-gray-200">
+              <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
                 <Truck size={16} />
                 Transportadora
               </h3>
@@ -239,8 +239,8 @@ export default function EnvioDetalleModal({ envio, onClose, onSuccess }: EnvioDe
           )}
 
           {/* Fechas */}
-          <div className="bg-white rounded-lg p-4 border border-gray-200">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+          <div className="bg-white rounded-lg p-3 border border-gray-200">
+            <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
               <Clock size={16} />
               Fechas Importantes
             </h3>
@@ -263,8 +263,8 @@ export default function EnvioDetalleModal({ envio, onClose, onSuccess }: EnvioDe
           </div>
 
           {/* Referencias */}
-          <div className="bg-white rounded-lg p-4 border border-gray-200">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">Referencias</h3>
+          <div className="bg-white rounded-lg p-3 border border-gray-200">
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">Referencias</h3>
             <div className="space-y-2">
               {envio.idVenta && (
                 <div className="flex justify-between">
@@ -277,7 +277,7 @@ export default function EnvioDetalleModal({ envio, onClose, onSuccess }: EnvioDe
 
           {/* Notas */}
           {envio.notas && (
-            <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+            <div className="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
               <h3 className="text-sm font-semibold text-gray-700 mb-2">Notas / Observaciones</h3>
               <p className="text-sm text-gray-700">{envio.notas}</p>
             </div>
@@ -285,13 +285,13 @@ export default function EnvioDetalleModal({ envio, onClose, onSuccess }: EnvioDe
 
           {/* Cambiar Estado */}
           {envio.estadoSeguimiento !== 'ENTREGADO' && envio.estadoSeguimiento !== 'CANCELADO' && (
-            <div className="bg-blue-50 rounded-lg p-4 border-2 border-blue-200">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">Actualizar Estado del Envío</h3>
+            <div className="bg-blue-50 rounded-lg p-3 border-2 border-blue-200">
+              <h3 className="text-sm font-semibold text-gray-700 mb-2">Actualizar Estado del Envío</h3>
               <div className="space-y-3">
                 <select
                   value={nuevoEstado}
                   onChange={(e) => setNuevoEstado(e.target.value as EstadoEnvio)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+                  className="w-full px-3.5 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
                 >
                   {estados.map((estado) => (
                     <option key={estado} value={estado}>
@@ -302,7 +302,7 @@ export default function EnvioDetalleModal({ envio, onClose, onSuccess }: EnvioDe
                 <button
                   onClick={handleCambiarEstado}
                   disabled={loading || nuevoEstado === envio.estadoSeguimiento}
-                  className="w-full px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  className="w-full px-5 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
                   {loading ? 'Actualizando...' : 'Confirmar Cambio de Estado'}
                 </button>
@@ -314,7 +314,7 @@ export default function EnvioDetalleModal({ envio, onClose, onSuccess }: EnvioDe
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
             <button
               onClick={onClose}
-              className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              className="px-5 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
             >
               Cerrar
             </button>

@@ -57,9 +57,10 @@ export default function ClientesPage() {
   // inconsistente. Con esto queda igual de claro que los demás filtros de
   // arriba (búsqueda, categoría, etc. en otros módulos).
   const [ordenColumna, setOrdenColumna] = useState<
-    'nombre' | 'numeroCompras' | 'montoTotal' | 'ultimaCompra'
-  >('nombre');
-  const [ordenDireccion, setOrdenDireccion] = useState<'asc' | 'desc'>('asc');
+    'id' | 'nombre' | 'numeroCompras' | 'montoTotal' | 'ultimaCompra'
+  >('id');
+  // Por defecto lo más nuevo arriba (ID de mayor a menor), como Ventas.
+  const [ordenDireccion, setOrdenDireccion] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
     loadClientes();
@@ -102,6 +103,10 @@ export default function ClientesPage() {
       let valorB: any;
 
       switch (ordenColumna) {
+        case 'id':
+          valorA = a.id;
+          valorB = b.id;
+          break;
         case 'nombre':
           valorA = a.nombreCompleto.toLowerCase();
           valorB = b.nombreCompleto.toLowerCase();
@@ -242,6 +247,9 @@ export default function ClientesPage() {
             >
               <tr>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                  ID
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                   Nombre Completo
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
@@ -267,7 +275,7 @@ export default function ClientesPage() {
             <tbody className="bg-white divide-y divide-gray-200">
               {clientesFiltrados.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center">
+                  <td colSpan={8} className="px-6 py-12 text-center">
                     <Users className="mx-auto text-gray-400 mb-3" size={48} />
                     <p className="text-gray-500 font-medium">No se encontraron clientes</p>
                     <p className="text-sm text-gray-400 mt-1">
@@ -280,6 +288,7 @@ export default function ClientesPage() {
               ) : (
                 clientesFiltrados.map((cliente) => (
                   <tr key={cliente.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{cliente.id}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{cliente.nombreCompleto}</div>
                       {cliente.email && (

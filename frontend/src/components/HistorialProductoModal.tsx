@@ -64,12 +64,12 @@ export default function HistorialProductoModal({ inventario, onClose }: Historia
     useDragScrollTable([visibles]);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-gradient-to-r from-primary-50 to-primary-100 z-10">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-200 sticky top-0 bg-gradient-to-r from-primary-50 to-primary-100 z-10">
           <div>
-            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-              <History className="text-primary-600" size={24} />
+            <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+              <History className="text-primary-600" size={20} />
               Historial de movimientos
             </h2>
             <p className="text-sm text-gray-600 mt-1">
@@ -78,29 +78,29 @@ export default function HistorialProductoModal({ inventario, onClose }: Historia
             </p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <X size={24} />
+            <X size={20} />
           </button>
         </div>
 
-        <div className="p-6">
+        <div className="p-5">
           {/* Estado actual */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
             <div>
               <p className="text-xs text-gray-500">Stock actual</p>
-              <p className="text-2xl font-bold text-gray-900">{inventario.cantidadDisponible}</p>
+              <p className="text-lg font-bold text-gray-900">{inventario.cantidadDisponible}</p>
             </div>
             <div>
               <p className="text-xs text-gray-500">Stock mínimo</p>
-              <p className="text-2xl font-bold text-orange-600">{inventario.stockMinimo}</p>
+              <p className="text-lg font-bold text-orange-600">{inventario.stockMinimo}</p>
             </div>
             <div>
               <p className="text-xs text-gray-500">Movimientos</p>
-              <p className="text-2xl font-bold text-gray-900">{movimientos.length}</p>
+              <p className="text-lg font-bold text-gray-900">{movimientos.length}</p>
             </div>
           </div>
 
           {tiposPresentes.length > 1 && (
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-2 mb-3">
               <Filter size={16} className="text-gray-500" />
               <select
                 value={tipoFiltro}
@@ -116,8 +116,8 @@ export default function HistorialProductoModal({ inventario, onClose }: Historia
           )}
 
           {error && (
-            <div className="flex items-center gap-2 p-4 bg-red-50 text-red-800 rounded-lg mb-4">
-              <AlertCircle size={20} />
+            <div className="flex items-center gap-2 p-3 bg-red-50 text-red-800 rounded-lg mb-3">
+              <AlertCircle size={18} />
               <span className="text-sm">{error}</span>
             </div>
           )}
@@ -126,7 +126,7 @@ export default function HistorialProductoModal({ inventario, onClose }: Historia
             <p className="text-center py-10 text-gray-500">Cargando historial…</p>
           ) : visibles.length === 0 ? (
             <div className="text-center py-12 bg-gray-50 border border-gray-200 rounded-lg">
-              <PackageOpen size={40} className="mx-auto text-gray-400 mb-3" />
+              <PackageOpen size={40} className="mx-auto text-gray-400 mb-2" />
               <p className="text-gray-600 font-medium">
                 {movimientos.length === 0
                   ? 'Este producto todavía no tiene movimientos'
@@ -146,40 +146,40 @@ export default function HistorialProductoModal({ inventario, onClose }: Historia
                     {...theadProps}
                   >
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Motivo</th>
-                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Antes</th>
-                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Cambio</th>
-                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Después</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Responsable</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Motivo</th>
+                      <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Antes</th>
+                      <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Cambio</th>
+                      <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Después</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Responsable</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {visibles.map((m) => (
                       <tr key={m.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">
+                        <td className="px-4 py-2 text-sm text-gray-700 whitespace-nowrap">
                           {fechaHora(m.fecha)}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-2">
                           <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${colorTipo(m.tipoMovimiento)}`}>
                             {m.tipoMovimiento.replace('_', ' ')}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-700">
+                        <td className="px-4 py-2 text-sm text-gray-700">
                           {m.motivo || '—'}
                           {m.observacion && (
                             <span className="block text-xs text-gray-500">{m.observacion}</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-sm text-center text-gray-600">{m.cantidadAnterior}</td>
-                        <td className={`px-4 py-3 text-sm text-center font-semibold ${
+                        <td className="px-4 py-2 text-sm text-center text-gray-600">{m.cantidadAnterior}</td>
+                        <td className={`px-4 py-2 text-sm text-center font-semibold ${
                           m.cantidad >= 0 ? 'text-green-600' : 'text-red-600'
                         }`}>
                           {m.cantidad >= 0 ? `+${m.cantidad}` : m.cantidad}
                         </td>
-                        <td className="px-4 py-3 text-sm text-center font-semibold text-gray-900">{m.cantidadNueva}</td>
-                        <td className="px-4 py-3 text-sm text-gray-700">
+                        <td className="px-4 py-2 text-sm text-center font-semibold text-gray-900">{m.cantidadNueva}</td>
+                        <td className="px-4 py-2 text-sm text-gray-700">
                           {m.nombreUsuario}
                         </td>
                       </tr>
@@ -191,10 +191,10 @@ export default function HistorialProductoModal({ inventario, onClose }: Historia
           )}
         </div>
 
-        <div className="flex justify-end p-6 border-t border-gray-200 bg-gray-50">
+        <div className="flex justify-end px-5 py-3.5 border-t border-gray-200 bg-gray-50">
           <button
             onClick={onClose}
-            className="px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium"
+            className="px-5 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium"
           >
             Cerrar
           </button>

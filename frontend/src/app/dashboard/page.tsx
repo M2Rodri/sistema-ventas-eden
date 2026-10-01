@@ -16,8 +16,8 @@ import {
   DollarSign,
   X,
 } from 'lucide-react';
-import { getDashboardEstadisticas } from '@/lib/api';
-import { DashboardEstadisticas } from '@/types/dashboard';
+import { getDashboardEstadisticas, getVentasSemanal } from '@/lib/api';
+import { DashboardEstadisticas, VentasSemanal } from '@/types/dashboard';
 import StatCard from '@/components/StatCard';
 import { mensajeError } from '@/lib/errores';
 import { useDragScrollTable } from '@/hooks/useDragScrollTable';
@@ -35,6 +35,7 @@ export default function DashboardPage() {
   const router = useRouter();
 
   const [stats, setStats] = useState<DashboardEstadisticas | null>(null);
+  const [semana, setSemana] = useState<VentasSemanal | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,8 +50,11 @@ export default function DashboardPage() {
     let activo = true;
     (async () => {
       try {
-        const data = await getDashboardEstadisticas();
-        if (activo) setStats(data);
+        const [data, deLaSemana] = await Promise.all([getDashboardEstadisticas(), getVentasSemanal()]);
+        if (activo) {
+          setStats(data);
+          setSemana(deLaSemana);
+        }
       } catch (err: any) {
         if (activo) setError(mensajeError(err, 'No se pudieron cargar las estadísticas.'));
       } finally {
@@ -116,12 +120,12 @@ export default function DashboardPage() {
           />
         )}
         <StatCard
-          titulo="Ventas de hoy"
-          valor={bs(stats?.ventasStats?.montoVentasHoy)}
-          subtitulo={`${num(stats?.ventasStats?.totalVentasHoy)} hoy`}
+          titulo="Ventas de la semana"
+          valor={bs(semana?.montoTotal)}
+          subtitulo={`${num(semana?.totalVentas)} ventas completadas`}
           icon={<DollarSign size={22} />}
           loading={loading}
-          onClick={() => router.push('/dashboard/ventas?periodo=HOY')}
+          onClick={() => router.push('/dashboard/ventas?periodo=SEMANA')}
         />
         <StatCard
           titulo="Productos activos"

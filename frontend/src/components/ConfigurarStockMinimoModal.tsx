@@ -12,7 +12,9 @@ interface ConfigurarStockMinimoModalProps {
 }
 
 export default function ConfigurarStockMinimoModal({ inventario, onClose, onSuccess }: ConfigurarStockMinimoModalProps) {
-  const [stockMinimo, setStockMinimo] = useState<number>(inventario.stockMinimo);
+  // Texto y no número: un campo vacío no debe guardarse como 0 ("sin alerta") sin querer.
+  const [textoMinimo, setTextoMinimo] = useState(String(inventario.stockMinimo));
+  const stockMinimo = parseInt(textoMinimo, 10);
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
 
@@ -22,8 +24,8 @@ export default function ConfigurarStockMinimoModal({ inventario, onClose, onSucc
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (stockMinimo <= 0) {
-      setError('Ingrese un valor numérico positivo válido');
+    if (Number.isNaN(stockMinimo) || stockMinimo < 0) {
+      setError('Ingrese un número válido (0 o más)');
       return;
     }
 
@@ -40,12 +42,12 @@ export default function ConfigurarStockMinimoModal({ inventario, onClose, onSucc
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Configurar Stock Mínimo</h2>
+            <h2 className="text-base font-bold text-gray-900">Configurar Stock Mínimo</h2>
             <p className="text-sm text-gray-600 mt-1">
               {inventario.nombreProducto} <span className="text-gray-400">({inventario.skuProducto})</span>
             </p>
@@ -54,26 +56,26 @@ export default function ConfigurarStockMinimoModal({ inventario, onClose, onSucc
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
           >
-            <X size={24} />
+            <X size={20} />
           </button>
         </div>
 
         {/* Información actual */}
-        <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-          <div className="grid grid-cols-2 gap-4">
+        <div className="px-5 py-3 bg-gray-50 border-b border-gray-200">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <p className="text-xs text-gray-500">Stock Actual</p>
-              <p className="text-2xl font-bold text-gray-900">{inventario.cantidadDisponible}</p>
+              <p className="text-lg font-bold text-gray-900">{inventario.cantidadDisponible}</p>
             </div>
             <div>
               <p className="text-xs text-gray-500">Stock Mínimo Actual</p>
-              <p className="text-2xl font-bold text-orange-600">{inventario.stockMinimo}</p>
+              <p className="text-lg font-bold text-orange-600">{inventario.stockMinimo}</p>
             </div>
           </div>
         </div>
 
         {/* Formulario */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-5 space-y-3">
           {error && (
             <div className="flex items-center gap-2 p-3 bg-red-50 text-red-800 rounded-lg text-sm">
               <AlertCircle size={18} />
@@ -87,22 +89,22 @@ export default function ConfigurarStockMinimoModal({ inventario, onClose, onSucc
             </label>
             <input
               type="number"
-              min="1"
-              value={stockMinimo}
+              min="0"
+              value={textoMinimo}
               onChange={(e) => {
-                setStockMinimo(parseInt(e.target.value) || 0);
+                setTextoMinimo(e.target.value);
                 setError(null);
               }}
-              className="w-full px-4 py-3 text-lg border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full px-4 py-2 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               placeholder="Ingrese el stock mínimo"
               required
             />
           </div>
 
           {/* Referencia Visual */}
-          {stockMinimo > 0 && (
-            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-3">
-              <AlertTriangle className="text-yellow-600 flex-shrink-0 mt-0.5" size={20} />
+          {!Number.isNaN(stockMinimo) && stockMinimo > 0 && (
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-3">
+              <AlertTriangle className="text-yellow-600 flex-shrink-0 mt-0.5" size={18} />
               <div>
                 <p className="text-sm font-medium text-gray-900 mb-1">
                   Referencia de Alerta
@@ -114,20 +116,28 @@ export default function ConfigurarStockMinimoModal({ inventario, onClose, onSucc
             </div>
           )}
 
+          {stockMinimo === 0 && (
+            <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+              <p className="text-sm text-gray-700">
+                Con 0 este producto <strong>no genera alertas</strong> de stock bajo.
+              </p>
+            </div>
+          )}
+
           {/* Botones */}
           <div className="flex gap-3 pt-4">
             <button
               type="button"
               onClick={onClose}
               disabled={guardando}
-              className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50"
+              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={guardando}
-              className="flex-1 px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium disabled:opacity-50"
             >
               {guardando ? 'Guardando…' : 'Guardar Configuración'}
             </button>

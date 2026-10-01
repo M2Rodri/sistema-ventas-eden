@@ -37,12 +37,12 @@ export default function DetalleVentaClienteModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60] p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60] p-3">
       <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b border-gray-200 sticky top-0 bg-gradient-to-r from-primary-50 to-primary-100 z-10">
+        <div className="flex justify-between items-center px-5 py-3.5 border-b border-gray-200 sticky top-0 bg-gradient-to-r from-primary-50 to-primary-100 z-10">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
               <ShoppingCart className="text-blue-600" size={28} />
               Detalle de Venta
             </h2>
@@ -51,19 +51,19 @@ export default function DetalleVentaClienteModal({
             </p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
-            <X size={24} />
+            <X size={20} />
           </button>
         </div>
 
-        <div className="p-6">
+        <div className="p-5">
           {/* Información general de la venta */}
-          <div className="mb-6 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="mb-4 p-5 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <p className="text-xs font-medium text-gray-600 uppercase mb-1 flex items-center gap-1">
                   <ShoppingCart size={12} /> Número de Venta
                 </p>
-                <p className="text-2xl font-bold text-blue-600">#{venta.id}</p>
+                <p className="text-lg font-bold text-blue-600">#{venta.id}</p>
               </div>
               <div>
                 <p className="text-xs font-medium text-gray-600 uppercase mb-1 flex items-center gap-1">
@@ -89,25 +89,25 @@ export default function DetalleVentaClienteModal({
           </div>
 
           {/* Productos vendidos */}
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Package size={20} className="text-gray-600" />
+          <div className="mb-4">
+            <h3 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              <Package size={18} className="text-gray-600" />
               Productos Vendidos
             </h3>
             <div className="border border-gray-200 rounded-lg overflow-hidden">
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">
                       Producto
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 uppercase">
+                    <th className="px-4 py-2 text-center text-xs font-medium text-gray-700 uppercase">
                       Cantidad
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase">
+                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-700 uppercase">
                       Precio Unitario
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase">
+                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-700 uppercase">
                       Subtotal
                     </th>
                   </tr>
@@ -115,18 +115,18 @@ export default function DetalleVentaClienteModal({
                 <tbody className="bg-white divide-y divide-gray-200">
                   {venta.detalles.map((detalle: any, index: number) => (
                     <tr key={detalle.id || index} className="hover:bg-gray-50">
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-2">
                         <p className="font-medium text-gray-900">{detalle.nombreProducto}</p>
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-2 text-center">
                         <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-semibold">
                           {detalle.cantidad}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right font-medium text-gray-900">
+                      <td className="px-4 py-2 text-right font-medium text-gray-900">
                         Bs. {detalle.precioUnitario.toFixed(2)}
                       </td>
-                      <td className="px-4 py-3 text-right font-semibold text-gray-900">
+                      <td className="px-4 py-2 text-right font-semibold text-gray-900">
                         Bs. {detalle.subtotal.toFixed(2)}
                       </td>
                     </tr>
@@ -137,11 +137,11 @@ export default function DetalleVentaClienteModal({
           </div>
 
           {/* Totales */}
-          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6">
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-5">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-green-600 rounded-full">
-                  <DollarSign className="text-white" size={24} />
+                  <DollarSign className="text-white" size={20} />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-600">Total de la Venta</p>
@@ -163,7 +163,7 @@ export default function DetalleVentaClienteModal({
 
           {/* Estado de la venta */}
           {venta.estado && (
-            <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-between">
+            <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-between">
               <p className="text-xs font-medium text-gray-600 uppercase">Estado de la venta</p>
               <span
                 className={`px-3 py-1 rounded-full text-sm font-medium ${
@@ -181,10 +181,10 @@ export default function DetalleVentaClienteModal({
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end p-6 border-t border-gray-200 bg-gray-50">
+        <div className="flex justify-end px-5 py-3.5 border-t border-gray-200 bg-gray-50">
           <button
             onClick={onClose}
-            className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-medium transition-colors"
+            className="px-5 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-medium transition-colors"
           >
             Cerrar
           </button>

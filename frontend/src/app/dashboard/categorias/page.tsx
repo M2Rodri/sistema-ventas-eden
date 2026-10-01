@@ -5,7 +5,7 @@ import { getAllCategorias, deleteCategoria, toggleCategoriaStatus } from '@/lib/
 import { Categoria } from '@/types/producto';
 import { Search, FolderOpen, Edit, Trash2, Power, Package } from 'lucide-react';
 import Breadcrumbs from '@/components/Breadcrumbs';
-import CategoriaModal from '@/components/CategoriaModal';
+import CategoriaModal, { CATEGORIAS_FIJAS } from '@/components/CategoriaModal';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 import { useDragScrollTable } from '@/hooks/useDragScrollTable';
 
@@ -34,7 +34,8 @@ export default function CategoriasPage() {
     try {
       setLoading(true);
       const data = await getAllCategorias();
-      setCategorias(data);
+      // Orden por ID, de menor a mayor.
+      setCategorias([...data].sort((a, b) => Number(a.id) - Number(b.id)));
       setFilteredCategorias(data);
     } catch (error: any) {
       showMessage('error', error.message);
@@ -180,7 +181,11 @@ export default function CategoriasPage() {
           {/* Botón Nueva Categoría */}
           <button
             onClick={handleCreateCategoria}
-            className="flex items-center justify-center gap-2 bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors font-medium whitespace-nowrap"
+            disabled={CATEGORIAS_FIJAS.every((f) =>
+              categorias.some((c) => c.nombre.toLowerCase() === f.nombre.toLowerCase())
+            )}
+            title="Ya existen todas las categorías"
+            className="flex items-center justify-center gap-2 bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <FolderOpen size={20} />
             Nueva Categoría
@@ -283,6 +288,7 @@ export default function CategoriasPage() {
       {isModalOpen && (
         <CategoriaModal
           categoria={selectedCategoria}
+          categorias={categorias}
           onClose={() => setIsModalOpen(false)}
           onSuccess={() => {
             loadCategorias();

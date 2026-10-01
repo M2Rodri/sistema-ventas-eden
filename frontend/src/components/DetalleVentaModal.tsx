@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { X, User, Calendar, CreditCard, Package, AlertCircle, FileText, Upload, Image as ImageIcon, Banknote, Truck } from 'lucide-react';
 import { Venta, Pago, EstadoEntrega, EstadoVenta, ModalidadEntrega } from '@/types/venta';
-import { adjuntarComprobantePago, despacharVenta, marcarVentaEntregada, BACKEND_URL } from '@/lib/api';
+import { adjuntarComprobantePago, marcarVentaEntregada, BACKEND_URL } from '@/lib/api';
 import {
+  CORREGIR_ENTREGA_ACTIVO,
   claseBadgeEstadoEntrega,
   etiquetaEstadoEntrega,
   etiquetaModalidad,
@@ -21,7 +22,7 @@ interface DetalleVentaModalProps {
   venta: Venta;
   onUpdated?: () => void;
   onCobrarSaldo?: () => void;
-  /** Despachar, deshacer y editar la entrega son solo de ADMIN. */
+  /** Corregir a pendiente y editar la entrega son solo de ADMIN. */
   userRole?: 'ADMIN' | 'EMPLEADO';
   /** Se llama con la venta ya actualizada después de una acción de entrega. */
   onVentaActualizada?: (venta: Venta) => void;
@@ -74,7 +75,7 @@ export default function DetalleVentaModal({
     }
   };
 
-  // Despachar y entregar devuelven la venta actualizada: se la pasa al padre
+  // Entregar devuelve la venta actualizada: se la pasa al padre
   // para que la tabla y este detalle muestren el estado nuevo.
   const ejecutarAccionEntrega = async (accion: () => Promise<Venta>) => {
     setEntregaError(null);
@@ -160,34 +161,34 @@ export default function DetalleVentaModal({
 
   return (
     <>
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3">
         <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100 sticky top-0 z-10">
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100 sticky top-0 z-10">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">Detalle de Venta</h2>
-              <p className="text-sm text-gray-600 mt-1">
+              <h2 className="text-lg font-bold text-gray-900">Detalle de Venta</h2>
+              <p className="text-xs text-gray-600 mt-0.5">
                 ID: <span className="font-bold text-blue-600">#{venta.id}</span>
               </p>
             </div>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-gray-400 hover:text-gray-600 transition-colors p-1"
             >
-              <X size={24} />
+              <X size={20} />
             </button>
           </div>
 
           {/* Información General */}
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-3.5">
             {/* Cliente */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <div className="flex items-center gap-2 mb-3">
-                <User className="text-blue-600" size={20} />
-                <h3 className="font-semibold text-gray-900">Cliente</h3>
+            <div className="bg-gray-50 p-3 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <User className="text-blue-600" size={18} />
+                <h3 className="text-sm font-semibold text-gray-900">Cliente</h3>
               </div>
-              <p className="text-gray-900 font-medium">{venta.nombreCliente}</p>
-              <p className="text-sm text-gray-600">
+              <p className="text-gray-900 font-medium text-sm">{venta.nombreCliente}</p>
+              <p className="text-xs text-gray-600">
                 {venta.ciCliente && <>CI: {venta.ciCliente}</>}
                 {venta.ciCliente && venta.telefonoCliente && ' · '}
                 {venta.telefonoCliente && <>Cel: {venta.telefonoCliente}</>}
@@ -196,8 +197,8 @@ export default function DetalleVentaModal({
             </div>
 
             {/* Vendedor */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <div className="flex items-center gap-2 mb-3">
+            <div className="bg-gray-50 p-3 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
                 <User className="text-blue-600" size={20} />
                 <h3 className="font-semibold text-gray-900">Vendedor</h3>
               </div>
@@ -205,8 +206,8 @@ export default function DetalleVentaModal({
             </div>
 
             {/* Fecha */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <div className="flex items-center gap-2 mb-3">
+            <div className="bg-gray-50 p-3 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
                 <Calendar className="text-blue-600" size={20} />
                 <h3 className="font-semibold text-gray-900">Fecha de Venta</h3>
               </div>
@@ -214,8 +215,8 @@ export default function DetalleVentaModal({
             </div>
 
             {/* Método de Pago */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <div className="flex items-center gap-2 mb-3">
+            <div className="bg-gray-50 p-3 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
                 <CreditCard className="text-blue-600" size={20} />
                 <h3 className="font-semibold text-gray-900">Método de Pago</h3>
               </div>
@@ -227,8 +228,8 @@ export default function DetalleVentaModal({
           </div>
 
           {/* Estado */}
-          <div className="px-6 pb-6">
-            <div className="bg-gray-50 p-4 rounded-lg">
+          <div className="px-5 pb-6">
+            <div className="bg-gray-50 p-3 rounded-lg">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-700">Estado de la Venta:</span>
                 <span className={`px-4 py-1.5 rounded-full text-sm font-semibold ${estadoBadge.color}`}>
@@ -253,15 +254,14 @@ export default function DetalleVentaModal({
             const esRetiro = venta.modalidadEntrega === ModalidadEntrega.RETIRO;
             const esTransportadora = venta.modalidadEntrega === ModalidadEntrega.TRANSPORTADORA;
             const estado = venta.estadoEntrega;
-            const puedeDespachar = esAdmin && esTransportadora && estado === EstadoEntrega.PENDIENTE && !cancelada;
             const puedeEntregar = estado !== EstadoEntrega.ENTREGADO && !cancelada;
-            const puedeDeshacer = esAdmin && !esRetiro && estado !== EstadoEntrega.PENDIENTE && !cancelada;
+            const puedeCorregir = CORREGIR_ENTREGA_ACTIVO && esAdmin && !esRetiro && estado === EstadoEntrega.ENTREGADO && !cancelada;
             const puedeEditar = esAdmin && !esRetiro && !cancelada;
             const dato = (valor?: string) => valor?.trim() || null;
 
             return (
-              <div className="px-6 pb-6">
-                <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="px-5 pb-6">
+                <div className="bg-gray-50 p-3 rounded-lg">
                   <div className="flex items-center justify-between gap-3 flex-wrap">
                     <div className="flex items-center gap-2">
                       <Truck className="text-blue-600" size={20} />
@@ -273,9 +273,21 @@ export default function DetalleVentaModal({
                           Falta completar
                         </span>
                       )}
-                      <span className={`px-3 py-1 text-xs font-semibold rounded-full border ${claseBadgeEstadoEntrega(estado)}`}>
-                        {etiquetaEstadoEntrega(estado)}
-                      </span>
+                      {puedeCorregir ? (
+                        <button
+                          type="button"
+                          onClick={() => setShowDeshacerModal(true)}
+                          disabled={entregaProcesando}
+                          title="Corregir a Pendiente"
+                          className={`px-3 py-1 text-xs font-semibold rounded-full border cursor-pointer hover:opacity-80 transition-opacity ${claseBadgeEstadoEntrega(estado)}`}
+                        >
+                          {etiquetaEstadoEntrega(estado)}
+                        </button>
+                      ) : (
+                        <span className={`px-3 py-1 text-xs font-semibold rounded-full border ${claseBadgeEstadoEntrega(estado)}`}>
+                          {etiquetaEstadoEntrega(estado)}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -312,22 +324,13 @@ export default function DetalleVentaModal({
                     </div>
                   )}
 
-                  {(puedeDespachar || puedeEntregar || puedeDeshacer || puedeEditar) && (
-                    <div className="flex flex-wrap gap-2 mt-4">
-                      {puedeDespachar && (
-                        <button
-                          onClick={() => ejecutarAccionEntrega(() => despacharVenta(venta.id))}
-                          disabled={entregaProcesando}
-                          className="px-4 py-2 text-sm font-medium bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-60"
-                        >
-                          Marcar despachado
-                        </button>
-                      )}
+                  {(puedeEntregar || puedeEditar) && (
+                    <div className="flex flex-wrap gap-2 mt-3">
                       {puedeEntregar && (
                         <button
                           onClick={() => setConfirmarEntrega(true)}
                           disabled={entregaProcesando}
-                          className="px-4 py-2 text-sm font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-60"
+                          className="px-3.5 py-1.5 text-sm font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-60"
                         >
                           Marcar entregada
                         </button>
@@ -336,18 +339,9 @@ export default function DetalleVentaModal({
                         <button
                           onClick={() => setShowEditarEntregaModal(true)}
                           disabled={entregaProcesando}
-                          className="px-4 py-2 text-sm font-medium border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-60"
+                          className="px-3.5 py-1.5 text-sm font-medium border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-60"
                         >
                           Editar datos de entrega
-                        </button>
-                      )}
-                      {puedeDeshacer && (
-                        <button
-                          onClick={() => setShowDeshacerModal(true)}
-                          disabled={entregaProcesando}
-                          className="px-4 py-2 text-sm font-medium border border-amber-300 text-amber-700 rounded-lg hover:bg-amber-50 transition-colors disabled:opacity-60"
-                        >
-                          Deshacer entrega
                         </button>
                       )}
                     </div>
@@ -359,8 +353,8 @@ export default function DetalleVentaModal({
 
           {/* Aviso: pagos sin respaldo */}
           {tienePagosSinRespaldo && (
-            <div className="px-6 pb-6">
-              <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg flex items-start gap-3">
+            <div className="px-5 pb-6">
+              <div className="bg-orange-50 border border-orange-200 p-3 rounded-lg flex items-start gap-3">
                 <AlertCircle className="text-orange-600 flex-shrink-0" size={20} />
                 <p className="text-sm text-orange-800">
                   Esta venta tiene pagos sin respaldo: falta la foto del comprobante de un pago
@@ -373,8 +367,8 @@ export default function DetalleVentaModal({
 
 
           {/* Detalle de Productos */}
-          <div className="px-6 pb-6">
-            <div className="flex items-center gap-2 mb-4">
+          <div className="px-5 pb-6">
+            <div className="flex items-center gap-2 mb-3">
               <Package className="text-blue-600" size={20} />
               <h3 className="font-semibold text-gray-900">Productos</h3>
             </div>
@@ -383,28 +377,28 @@ export default function DetalleVentaModal({
                 <thead className="bg-gray-50">
                   <tr>
                     {/* NUEVA COLUMNA: Código */}
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Código</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Cantidad</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Precio Unit.</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Subtotal</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Código</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
+                    <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Cantidad</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Precio Unit.</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Subtotal</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {venta.detalles.map((detalle, index) => (
                     <tr key={index}>
                       {/* NUEVA COLUMNA: Código del producto */}
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-2">
                         <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded text-gray-700">
                           {detalle.skuProducto}
                         </span>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-2">
                         <div className="text-sm font-medium text-gray-900">{detalle.nombreProducto}</div>
                       </td>
-                      <td className="px-4 py-3 text-center text-sm text-gray-900">{detalle.cantidad}</td>
-                      <td className="px-4 py-3 text-right text-sm text-gray-900">{formatPrice(detalle.precioUnitario)}</td>
-                      <td className="px-4 py-3 text-right text-sm font-semibold text-gray-900">
+                      <td className="px-4 py-2 text-center text-sm text-gray-900">{detalle.cantidad}</td>
+                      <td className="px-4 py-2 text-right text-sm text-gray-900">{formatPrice(detalle.precioUnitario)}</td>
+                      <td className="px-4 py-2 text-right text-sm font-semibold text-gray-900">
                         {formatPrice(detalle.subtotal)}
                       </td>
                     </tr>
@@ -415,29 +409,29 @@ export default function DetalleVentaModal({
           </div>
 
           {/* Total */}
-          <div className="px-6 pb-6">
-            <div className="bg-blue-50 border-2 border-blue-200 p-4 rounded-lg">
+          <div className="px-5 pb-6">
+            <div className="bg-blue-50 border-2 border-blue-200 p-3 rounded-lg">
               <div className="flex justify-between items-center">
                 <span className="text-lg font-bold text-gray-900">TOTAL:</span>
-                <span className="text-3xl font-bold text-blue-600">{formatPrice(venta.montoTotal)}</span>
+                <span className="text-2xl font-bold text-blue-600">{formatPrice(venta.montoTotal)}</span>
               </div>
             </div>
           </div>
 
           {/* Pagos registrados */}
           {pagosState && pagosState.length > 0 && (
-            <div className="px-6 pb-6">
-              <div className="flex items-center gap-2 mb-4">
+            <div className="px-5 pb-6">
+              <div className="flex items-center gap-2 mb-3">
                 <CreditCard className="text-blue-600" size={20} />
                 <h3 className="font-semibold text-gray-900">Pagos Registrados</h3>
               </div>
               {venta.estado === 'CANCELADA' && (
-                <div className="mb-3 p-3 bg-gray-100 border border-gray-300 rounded-lg text-sm text-gray-600">
+                <div className="mb-2 p-3 bg-gray-100 border border-gray-300 rounded-lg text-sm text-gray-600">
                   Esta venta está cancelada: los pagos de abajo ya no son válidos, quedan solo como registro histórico.
                 </div>
               )}
               {uploadError && (
-                <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+                <div className="mb-2 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
                   {uploadError}
                 </div>
               )}
@@ -512,14 +506,14 @@ export default function DetalleVentaModal({
           )}
 
           {/* Botones */}
-          <div className="flex gap-3 p-6 border-t border-gray-200 bg-gray-50">
+          <div className="flex gap-3 px-5 py-3.5 border-t border-gray-200 bg-gray-50">
             
             {/* El comprobante se genera para toda venta al registrarla, sin
                 importar el estado: documenta qué se vendió, no si está
                 pagada. Por eso este botón no depende del estado. */}
             <button
               onClick={handleVerComprobante}
-              className="flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
             >
               <FileText size={20} />
               Ver Comprobante
@@ -528,7 +522,7 @@ export default function DetalleVentaModal({
             {venta.estado === 'PENDIENTE_PAGO' && (venta.saldoPendiente ?? 0) > 0 && onCobrarSaldo && (
               <button
                 onClick={onCobrarSaldo}
-                className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
               >
                 <Banknote size={20} />
                 Cobrar saldo pendiente
@@ -537,7 +531,7 @@ export default function DetalleVentaModal({
 
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
             >
               Cerrar
             </button>

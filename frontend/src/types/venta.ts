@@ -18,14 +18,11 @@ export enum ModalidadEntrega {
   TRANSPORTADORA = 'TRANSPORTADORA'
 }
 
-// Recorrido según la modalidad:
-//   RETIRO:         nace ENTREGADO.
-//   DOMICILIO:      PENDIENTE -> ENTREGADO.
-//   TRANSPORTADORA: PENDIENTE -> DESPACHADO -> ENTREGADO (también se puede
-//                   pasar de PENDIENTE a ENTREGADO directamente).
+// ENTREGADO significa que el cliente ya recibió el producto, en cualquier
+// modalidad. RETIRO nace ENTREGADO; DOMICILIO y TRANSPORTADORA van de PENDIENTE
+// a ENTREGADO, y un ADMIN puede corregir un ENTREGADO a PENDIENTE.
 export enum EstadoEntrega {
   PENDIENTE = 'PENDIENTE',
-  DESPACHADO = 'DESPACHADO',
   ENTREGADO = 'ENTREGADO'
 }
 
@@ -69,7 +66,6 @@ export interface VentaRequest {
   modalidadEntrega?: ModalidadEntrega;
   // Estado con el que se registra. Si no viene queda PENDIENTE (RETIRO siempre
   // queda ENTREGADO). ENTREGADO: DOMICILIO o TRANSPORTADORA, cualquier rol.
-  // DESPACHADO: solo TRANSPORTADORA y solo ADMIN.
   estadoEntrega?: EstadoEntrega;
   direccionDestino?: string; // opcional en DOMICILIO y TRANSPORTADORA
   ciudad?: string; // obligatoria solo en TRANSPORTADORA

@@ -73,33 +73,31 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3">
+      <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100 sticky top-0 z-10">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">
-              {user ? 'Editar Usuario' : 'Nuevo Usuario'}
-            </h2>
-            <p className="text-sm text-gray-600 mt-1">El rol define qué puede ver y hacer dentro del sistema</p>
-          </div>
+        <div className="flex justify-between items-center px-5 py-2 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100 shrink-0">
+          <h2 className="text-base font-bold text-gray-900">
+            {user ? 'Editar Usuario' : 'Nuevo Usuario'}
+          </h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
           >
-            <X size={24} />
+            <X size={20} />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <div className="flex-1 overflow-y-auto px-5 pt-4 pb-3 space-y-3">
           {error && (
-            <div className="bg-red-50 text-red-800 p-4 rounded-lg">
+            <div className="bg-red-50 text-red-800 p-3 rounded-lg">
               {error}
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {/* Nombre */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -110,7 +108,7 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
                 required
                 value={formData.nombre}
                 onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 placeholder="Juan"
               />
             </div>
@@ -125,11 +123,10 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
                 required
                 value={formData.apellido}
                 onChange={(e) => setFormData({ ...formData, apellido: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 placeholder="Pérez"
               />
             </div>
-          </div>
 
           {/* Usuario */}
           <div>
@@ -145,7 +142,7 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
               title="Solo letras, números, puntos y guiones bajos"
               value={formData.usuario}
               onChange={(e) => setFormData({ ...formData, usuario: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               placeholder="jperez"
             />
           </div>
@@ -161,13 +158,13 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
               required={!user}
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               placeholder="••••••••"
               minLength={6}
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="contents">
             {/* Teléfono */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -177,7 +174,7 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
                 type="tel"
                 value={formData.telefono}
                 onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 placeholder="77123456"
               />
             </div>
@@ -191,7 +188,7 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
                 required
                 value={formData.role}
                 onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 <option value="ADMIN">Admin</option>
                 <option value="EMPLEADO">Empleado</option>
@@ -200,7 +197,7 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
           </div>
 
           {/* Dirección */}
-          <div>
+          <div className="md:col-span-3">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Dirección
             </label>
@@ -208,9 +205,11 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
               type="text"
               value={formData.direccion}
               onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               placeholder="Calle Principal #123"
             />
+          </div>
+
           </div>
 
           {/* Estado */}
@@ -228,18 +227,20 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
           </div>
 
           {/* Botones */}
-          <div className="flex justify-end gap-3 pt-4">
+          </div>
+
+          <div className="flex justify-end gap-3 px-5 py-2.5 border-t border-gray-200 bg-white shrink-0">
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              className="px-4 py-1.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50"
+              className="px-4 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50"
             >
               {loading ? 'Guardando...' : user ? 'Actualizar' : 'Crear'}
             </button>
