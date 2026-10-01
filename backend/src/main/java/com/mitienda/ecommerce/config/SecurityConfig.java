@@ -2,6 +2,7 @@ package com.mitienda.ecommerce.config;
 
 import com.mitienda.ecommerce.security.JwtAuthFilter;
 import com.mitienda.ecommerce.security.UserDetailsServiceImpl;
+import com.mitienda.ecommerce.storage.AlmacenArchivos;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -10,6 +11,9 @@ import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.authorization.AuthorityAuthorizationManager;
+import org.springframework.security.authorization.AuthorizationDecision;
+import org.springframework.security.authorization.AuthorizationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -18,6 +22,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
 
@@ -34,6 +39,8 @@ public class SecurityConfig {
 
     private final CorsConfigurationSource corsConfigurationSource;
 
+    private final AlmacenArchivos almacen;
+
     /**
      * Inyeccion por constructor, no por campo.
      *
@@ -43,15 +50,26 @@ public class SecurityConfig {
      */
     public SecurityConfig(UserDetailsServiceImpl userDetailsService,
                           JwtAuthFilter jwtAuthFilter,
-                          CorsConfigurationSource corsConfigurationSource) {
+                          CorsConfigurationSource corsConfigurationSource,
+                          AlmacenArchivos almacen) {
         this.userDetailsService = userDetailsService;
         this.jwtAuthFilter = jwtAuthFilter;
         this.corsConfigurationSource = corsConfigurationSource;
+        this.almacen = almacen;
     }
 
 
     @Bean
     public SecurityFilterChain securityFilterChain(@NonNull HttpSecurity http) throws Exception {
+        // /uploads/** solo se sirve desde este servidor para archivos del disco local:
+        // los de desarrollo y los registros viejos. Cuando los archivos viven en Supabase
+        // Storage (producción), nada nuevo se pide por esta ruta y se cierra: exige sesión
+        // de ADMIN o EMPLEADO. En desarrollo con disco local sigue abierta, porque las
+        // pantallas muestran las fotos con <img>/<a href>, que no pueden mandar el token.
+        AuthorizationManager<RequestAuthorizationContext> accesoUploads = almacen.esExterno()
+                ? AuthorityAuthorizationManager.hasAnyAuthority("ROLE_ADMIN", "ROLE_EMPLEADO")
+                : (autenticacion, contexto) -> new AuthorizationDecision(true);
+
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .csrf(csrf -> csrf.disable())
@@ -70,15 +88,11 @@ public class SecurityConfig {
                                 // ERROR. Sin este permitAll, cualquier 404 o 500 se
                                 // convierte en un 403 con cuerpo vacío y el error real
                                 // nunca llega al navegador. No expone datos del negocio.
-                                "/error",
-                                // Archivos estáticos (imágenes de producto, modelos 3D,
-                                // comprobantes de pago). El propio panel ADMIN/EMPLEADO los
-                                // muestra con <img>/<a href> directos al backend, que no
-                                // pueden mandar el header Authorization, así que esta ruta
-                                // tiene que seguir sin login aunque la tienda haya quedado
-                                // fuera de alcance.
-                                "/uploads/**"
+                                "/error"
                         ).permitAll()
+
+                        // Archivos del disco del servidor (ver accesoUploads, arriba).
+                        .requestMatchers("/uploads/**").access(accesoUploads)
 
                         // ========================================
                         // PROMOCIONES, IMÁGENES DE PRODUCTO, CATEGORÍAS
