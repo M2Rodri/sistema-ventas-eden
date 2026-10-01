@@ -157,11 +157,40 @@ y sin valores reales.
 
 | Parte | Archivo real | Variables |
 |---|---|---|
-| Backend | `backend/.env` | `SPRING_PROFILE`, `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET` |
+| Backend | `backend/.env` | `SPRING_PROFILE`, `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` |
 | Frontend | `frontend/.env.local` | `NEXT_PUBLIC_BACKEND_URL` |
 | App | `app/.env` | `API_URL` |
 
 Los archivos reales están en `.gitignore`. **Nunca se suben.**
+
+### Almacenamiento de archivos (Supabase Storage)
+
+Las fotos que suben los usuarios no se guardan en el disco del servidor, porque en
+Render el disco se borra al redesplegar o suspender el servicio. Van a Supabase Storage:
+
+| Bucket | Acceso | Qué guarda |
+|---|---|---|
+| `productos` | Público | Fotos del catálogo. En la base queda la URL pública. |
+| `comprobantes` | Privado | Fotos de comprobantes de pago. En la base queda el nombre del objeto y el backend entrega una URL firmada que vence a la hora. |
+
+El backend usa la API REST de Storage con dos variables de entorno, que **solo** se leen
+del entorno (o de `backend/.env` en desarrollo):
+
+| Variable | Qué es |
+|---|---|
+| `SUPABASE_URL` | URL del proyecto, `https://<proyecto>.supabase.co` (Project Settings → API) |
+| `SUPABASE_SERVICE_KEY` | Clave `service_role` (Project Settings → API). Da acceso total al proyecto: la usa solo el backend, nunca el frontend ni la app, y no va en el repositorio. |
+
+- **Desarrollo:** sin las dos variables, los archivos se guardan en `backend/uploads/` (disco local).
+- **Producción (perfil `prod`):** si faltan, el backend **no arranca** y el mensaje dice qué variable falta.
+- **Validación:** el servidor revisa el tipo real de la imagen (JPG, PNG o WebP), que no pase de 5 MB (productos) o 10 MB (comprobantes) y ignora el nombre original del archivo.
+- **Registros viejos** (rutas `/uploads/...` del disco): siguen funcionando; si el archivo ya no existe, la web muestra la imagen genérica.
+- **Ruta `/uploads/**`:** con Supabase activo exige sesión de ADMIN o EMPLEADO; con disco local (desarrollo) sigue abierta para que las pantallas muestren las fotos.
+- **Fuera de este cambio:** los modelos 3D y sus vistas previas (tienda) siguen en el disco.
+
+**Preparar Supabase (a mano, una sola vez):** en Storage, crear el bucket `productos` con *Public bucket* activado y el bucket `comprobantes` con *Public bucket* desactivado. No hacen falta políticas: el backend usa la clave de servicio.
+
+**Preparar Render:** en Environment del servicio, agregar `SUPABASE_URL` y `SUPABASE_SERVICE_KEY` y volver a desplegar (*Save and Deploy*).
 
 ## Seguridad
 
