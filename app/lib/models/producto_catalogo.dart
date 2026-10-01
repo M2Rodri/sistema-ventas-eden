@@ -41,7 +41,8 @@ class ProductoCatalogo {
           );
       final urlImagen = principal['urlImagen'] as String?;
       if (urlImagen != null && urlImagen.isNotEmpty) {
-        imagenUrl = '${ApiConfig.baseUrl}$urlImagen';
+        // Las fotos nuevas vienen con la URL completa (Supabase); las viejas, relativas al backend.
+        imagenUrl = urlImagen.startsWith('http') ? urlImagen : '${ApiConfig.baseUrl}$urlImagen';
       }
     }
 
