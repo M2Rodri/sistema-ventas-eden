@@ -8,13 +8,16 @@ import com.mitienda.ecommerce.models.Pago;
 import com.mitienda.ecommerce.models.Venta;
 import com.mitienda.ecommerce.repositories.PagoRepository;
 import com.mitienda.ecommerce.repositories.VentaRepository;
+import com.mitienda.ecommerce.storage.AlmacenArchivos;
+import com.mitienda.ecommerce.storage.ValidadorImagen;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -34,13 +37,11 @@ public class PagoService {
 
     private final VentaRepository ventaRepository;
 
-    private final FileStorageService fileStorageService;
+    private final AlmacenArchivos almacen;
 
     private final UsuarioActualService usuarioActualService;
 
-    private static final List<String> EXTENSIONES_COMPROBANTE = Arrays.asList(".jpg", ".jpeg", ".png", ".webp");
-
-    private static final long TAMANO_MAXIMO_COMPROBANTE = 10 * 1024 * 1024; // 10MB, igual que las demas fotos
+    private static final Logger log = LoggerFactory.getLogger(PagoService.class);
 
     /**
      * Inyeccion por constructor, no por campo.
@@ -50,10 +51,10 @@ public class PagoService {
      * arrancar en vez de aparecer en ejecucion.
      */
     public PagoService(PagoRepository pagoRepository, VentaRepository ventaRepository,
-                        FileStorageService fileStorageService, UsuarioActualService usuarioActualService) {
+                        AlmacenArchivos almacen, UsuarioActualService usuarioActualService) {
         this.pagoRepository = pagoRepository;
         this.ventaRepository = ventaRepository;
-        this.fileStorageService = fileStorageService;
+        this.almacen = almacen;
         this.usuarioActualService = usuarioActualService;
     }
 
@@ -119,30 +120,46 @@ public class PagoService {
     /**
      * Adjunta (o reemplaza) la foto de comprobante de un pago ya registrado.
      *
-     * TODO: esto guarda el archivo en disco local (misma carpeta uploads/ que
-     * usan las imágenes de producto). En Railway el filesystem no es
-     * persistente entre despliegues, así que un redeploy borra los
-     * comprobantes ya subidos. Pendiente: mover a almacenamiento externo
-     * (S3, Supabase Storage, etc.) antes de depender de esto en producción.
+     * La foto va al bucket privado "comprobantes" de Supabase Storage; en la base
+     * se guarda el nombre del objeto y la URL firmada se genera al responder.
      */
     @Transactional
     public PagoDTO adjuntarComprobante(Long idPago, MultipartFile file) throws IOException {
         Pago pago = pagoRepository.findById(idPago)
                 .orElseThrow(() -> new RuntimeException("Pago no encontrado con ID: " + idPago));
 
+        // Se valida antes de tocar el almacenamiento: tipo real, contenido y tamaño.
+        ValidadorImagen.ImagenValida imagen = ValidadorImagen.validar(file, ValidadorImagen.MAXIMO_COMPROBANTE);
+
         String urlAnterior = pago.getUrlComprobante();
 
-        String urlNueva = fileStorageService.saveFile(
-                file, "comprobantes-pago", EXTENSIONES_COMPROBANTE, TAMANO_MAXIMO_COMPROBANTE);
-        pago.setUrlComprobante(urlNueva);
+        String referencia = almacen.guardar(AlmacenArchivos.BUCKET_COMPROBANTES,
+                imagen.nombreObjeto(), imagen.contenido(), imagen.tipoContenido());
+        pago.setUrlComprobante(referencia);
 
-        Pago savedPago = pagoRepository.save(pago);
+        Pago savedPago;
+        try {
+            savedPago = pagoRepository.save(pago);
+        } catch (RuntimeException e) {
+            // Si la base falla, el archivo recién subido quedaría huérfano en el bucket.
+            eliminarSinFallar(referencia);
+            throw e;
+        }
 
         if (urlAnterior != null && !urlAnterior.isBlank()) {
-            fileStorageService.deleteFile(urlAnterior);
+            eliminarSinFallar(urlAnterior);
         }
 
         return new PagoDTO(savedPago);
+    }
+
+    /** Borrar un comprobante que ya no se usa no debe tumbar la operación principal. */
+    private void eliminarSinFallar(String referencia) {
+        try {
+            almacen.eliminar(AlmacenArchivos.BUCKET_COMPROBANTES, referencia);
+        } catch (IOException e) {
+            log.warn("No se pudo eliminar un comprobante del almacenamiento: {}", e.getMessage());
+        }
     }
 
     /**

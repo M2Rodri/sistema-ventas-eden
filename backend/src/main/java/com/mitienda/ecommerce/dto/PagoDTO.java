@@ -1,5 +1,6 @@
 package com.mitienda.ecommerce.dto;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.mitienda.ecommerce.models.EstadoPago;
 import com.mitienda.ecommerce.models.MetodoPago;
 import com.mitienda.ecommerce.models.Pago;
@@ -26,6 +27,8 @@ public class PagoDTO {
     private String referencia;
     private String observacion;
     private EstadoPago estado;
+    // Lo guardado se convierte en URL firmada al armar la respuesta JSON.
+    @JsonSerialize(using = ComprobanteUrlSerializer.class)
     private String urlComprobante;
 
     private Long idUsuario;
