@@ -192,6 +192,29 @@ del entorno (o de `backend/.env` en desarrollo):
 
 **Preparar Render:** en Environment del servicio, agregar `SUPABASE_URL` y `SUPABASE_SERVICE_KEY` y volver a desplegar (*Save and Deploy*).
 
+#### Respaldo de los archivos
+
+Supabase guarda los archivos, pero conviene tener una copia propia. El script
+`scripts/respaldar-storage.mjs` descarga todo lo que hay en los buckets `productos` y
+`comprobantes` a la carpeta `respaldo-storage/`, conservando la estructura
+(`respaldo-storage/<bucket>/<ruta>`). Se ejecuta a mano, necesita Node 18 o superior y solo
+lee: no borra ni cambia nada en Supabase.
+
+```bash
+# Usa SUPABASE_URL y SUPABASE_SERVICE_KEY del entorno; si no están, las toma de backend/.env
+node scripts/respaldar-storage.mjs
+
+# Opcionales
+node scripts/respaldar-storage.mjs --carpeta D:/respaldos/eden   # otra carpeta de destino
+node scripts/respaldar-storage.mjs --forzar                      # volver a bajar todo
+```
+
+Por defecto no vuelve a bajar lo que ya está con el mismo tamaño, así que se puede correr
+seguido. Si algún archivo falla, lo informa y termina con código de error. La carpeta
+`respaldo-storage/` está en `.gitignore`: tiene comprobantes de pago y **no se sube al
+repositorio ni se comparte**. Las pruebas del script se corren con
+`node --test scripts/respaldar-storage.test.mjs`.
+
 ## Seguridad
 
 El `.gitignore` de la raíz excluye todo lo que no debe entrar al repositorio:

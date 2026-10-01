@@ -93,6 +93,10 @@ xcuserdata/
 .env.*
 !.env.example
 
+# Respaldo de los archivos de Supabase Storage (scripts/respaldar-storage.mjs).
+# Incluye comprobantes de pago: son datos sensibles, nunca se suben.
+respaldo-storage/
+
 # Configuración del backend: protege contra subir un secreto real por error
 # si alguien llega a escribirlo hardcodeado en vez de ${VARIABLE}.
 # application.properties y application-prod.properties SÍ se versionan (sin
