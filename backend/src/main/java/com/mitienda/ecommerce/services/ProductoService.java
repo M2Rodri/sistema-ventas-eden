@@ -178,13 +178,25 @@ public class ProductoService {
         Producto savedProducto = productoRepository.save(producto);
 
         // ✅ CREAR INVENTARIO AUTOMÁTICAMENTE
+        int stockInicial = request.getStockInicial() != null ? request.getStockInicial() : 0;
         Inventario inventario = new Inventario();
         inventario.setProducto(savedProducto);
-        inventario.setCantidadDisponible(0); // Stock inicial en 0
+        inventario.setCantidadDisponible(stockInicial);
         inventarioRepository.save(inventario);
 
+        // Si ya hay mercadería, el stock no puede aparecer sin origen: se deja
+        // un movimiento AJUSTE_INICIAL con el usuario que dio de alta el producto.
+        if (stockInicial > 0) {
+            inventarioService.registrarAjusteAutomatico(
+                    savedProducto.getId(), 0, stockInicial, "AJUSTE_INICIAL",
+                    "Stock inicial al crear el producto",
+                    usuarioActualService.obtenerRequerido().getId());
+            inventarioService.sincronizarAlerta(savedProducto.getId());
+        }
+
         registroAuditoria.registrar("CREAR_PRODUCTO", "productos", savedProducto.getId(),
-                "Alta de " + savedProducto.getSku() + " - " + savedProducto.getNombre());
+                "Alta de " + savedProducto.getSku() + " - " + savedProducto.getNombre()
+                        + (stockInicial > 0 ? " con stock inicial " + stockInicial : ""));
 
         return ocultarCostoSiNoEsAdmin(new ProductoResponse(savedProducto));
     }
@@ -251,12 +263,13 @@ public class ProductoService {
      * de inventario: obligarla a enviar el producto completo (SKU, precios,
      * categoría) para tocar un número sería frágil y arriesga pisar datos.
      *
-     * Este valor es el que dispara las alertas de stock bajo.
+     * Este valor es el que dispara las alertas de stock bajo. Un mínimo de 0
+     * significa "sin alerta para este producto".
      */
     @Transactional
     public ProductoResponse actualizarStockMinimo(Long id, Integer stockMinimo) {
         if (stockMinimo == null || stockMinimo < 0) {
-            throw new RuntimeException("El stock mínimo debe ser un número positivo");
+            throw new RuntimeException("El stock mínimo no puede ser negativo");
         }
 
         Producto producto = productoRepository.findById(id)

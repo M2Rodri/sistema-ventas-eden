@@ -3,11 +3,14 @@ package com.mitienda.ecommerce.services;
 import com.mitienda.ecommerce.dto.CategoriaRequest;
 import com.mitienda.ecommerce.dto.CategoriaResponse;
 import com.mitienda.ecommerce.models.Categoria;
+import com.mitienda.ecommerce.models.TipoProducto;
 import com.mitienda.ecommerce.repositories.CategoriaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional; // Importar esta anotación
 
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -21,6 +24,14 @@ import java.util.stream.Collectors;
 // Los métodos que escriben llevan su propio @Transactional, que tiene precedencia.
 @Transactional(readOnly = true)
 public class CategoriaService {
+
+    /** Las únicas categorías que existen: una por tipo de producto (son cinco). */
+    private static final Map<TipoProducto, String> CATEGORIAS_FIJAS = new EnumMap<>(Map.of(
+            TipoProducto.CAMA, "Camas",
+            TipoProducto.COLCHON, "Colchones",
+            TipoProducto.ALMOHADA, "Almohadas",
+            TipoProducto.ACCESORIO, "Accesorios",
+            TipoProducto.MUEBLE, "Muebles de dormitorio"));
 
     private final CategoriaRepository categoriaRepository;
 
@@ -69,12 +80,29 @@ public class CategoriaService {
     }
 
     /**
+     * Solo se admiten las cuatro categorías fijas. El tipo de producto sale del
+     * nombre, y el nombre se guarda siempre con su forma canónica ("Camas").
+     */
+    private void normalizarCategoriaFija(CategoriaRequest request) {
+        String nombre = request.getNombre() == null ? "" : request.getNombre().trim();
+        for (Map.Entry<TipoProducto, String> fija : CATEGORIAS_FIJAS.entrySet()) {
+            if (fija.getValue().equalsIgnoreCase(nombre)) {
+                request.setNombre(fija.getValue());
+                request.setTipoProducto(fija.getKey());
+                return;
+            }
+        }
+        throw new RuntimeException("Solo existen las categorías: Camas, Colchones, Almohadas, Accesorios y Muebles de dormitorio");
+    }
+
+    /**
      * Crear nueva categoría
      */
     @Transactional
     public CategoriaResponse createCategoria(CategoriaRequest request) {
+        normalizarCategoriaFija(request);
         // Validar que el nombre no exista
-        if (categoriaRepository.existsByNombre(request.getNombre())) {
+        if (categoriaRepository.existsByNombreIgnoreCase(request.getNombre().trim())) {
             throw new RuntimeException("Ya existe una categoría con el nombre: " + request.getNombre());
         }
 
@@ -96,9 +124,11 @@ public class CategoriaService {
         Categoria categoria = categoriaRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Categoría no encontrada con ID: " + id));
 
+        normalizarCategoriaFija(request);
+
         // Validar nombre único (si cambió)
-        if (!categoria.getNombre().equals(request.getNombre()) &&
-            categoriaRepository.existsByNombre(request.getNombre())) {
+        if (!categoria.getNombre().equalsIgnoreCase(request.getNombre().trim()) &&
+            categoriaRepository.existsByNombreIgnoreCase(request.getNombre().trim())) {
             throw new RuntimeException("Ya existe una categoría con el nombre: " + request.getNombre());
         }
 

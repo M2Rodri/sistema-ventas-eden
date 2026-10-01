@@ -55,7 +55,9 @@ public class Inventario {
      * Verificar si está por debajo del stock mínimo
      */
     public boolean estaBajoStockMinimo() {
-        return this.cantidadDisponible <= this.producto.getStockMinimo();
+        // Un mínimo de 0 es "sin alerta": producto bajo pedido o que ya no se compra.
+        return this.producto.getStockMinimo() > 0
+                && this.cantidadDisponible <= this.producto.getStockMinimo();
     }
 
     /**

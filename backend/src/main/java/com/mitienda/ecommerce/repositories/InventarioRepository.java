@@ -38,9 +38,9 @@ public interface InventarioRepository extends JpaRepository<Inventario, Long> {
     boolean existsByProductoId(Long idProducto);
 
     /**
-     * Obtener productos con stock bajo (stock <= stock mínimo)
+     * Obtener productos con stock bajo (stock <= stock mínimo; un mínimo de 0 no genera alerta)
      */
-    @Query("SELECT i FROM Inventario i WHERE i.cantidadDisponible <= i.producto.stockMinimo")
+    @Query("SELECT i FROM Inventario i WHERE i.producto.stockMinimo > 0 AND i.cantidadDisponible <= i.producto.stockMinimo")
     List<Inventario> findProductosConStockBajo();
 
     /**
@@ -52,7 +52,7 @@ public interface InventarioRepository extends JpaRepository<Inventario, Long> {
     /**
      * Contar productos con stock bajo
      */
-    @Query("SELECT COUNT(i) FROM Inventario i WHERE i.cantidadDisponible <= i.producto.stockMinimo")
+    @Query("SELECT COUNT(i) FROM Inventario i WHERE i.producto.stockMinimo > 0 AND i.cantidadDisponible <= i.producto.stockMinimo")
     Long countProductosConStockBajo();
 
     /**
@@ -79,7 +79,7 @@ public interface InventarioRepository extends JpaRepository<Inventario, Long> {
     @Query("SELECT i FROM Inventario i "
             + "WHERE i.producto.activo = true "
             + "AND (:nombre IS NULL OR LOWER(i.producto.nombre) LIKE LOWER(CONCAT('%', CAST(:nombre AS string), '%'))) "
-            + "AND (:soloBajoMinimo = false OR i.cantidadDisponible <= i.producto.stockMinimo) "
+            + "AND (:soloBajoMinimo = false OR (i.producto.stockMinimo > 0 AND i.cantidadDisponible <= i.producto.stockMinimo)) "
             + "ORDER BY i.producto.nombre")
     List<Inventario> findCatalogoApp(@Param("nombre") String nombre, @Param("soloBajoMinimo") boolean soloBajoMinimo);
 }

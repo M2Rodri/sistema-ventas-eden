@@ -7,5 +7,6 @@ public enum TipoProducto {
     CAMA,
     COLCHON,
     ALMOHADA,
-    ACCESORIO
+    ACCESORIO,
+    MUEBLE
 }

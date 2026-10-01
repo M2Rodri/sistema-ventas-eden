@@ -2,7 +2,6 @@ package com.mitienda.ecommerce.controllers;
 
 import com.mitienda.ecommerce.dto.ComprobanteRequest;
 import com.mitienda.ecommerce.dto.DatosEntregaRequest;
-import com.mitienda.ecommerce.dto.DeshacerEntregaRequest;
 import com.mitienda.ecommerce.dto.VentaRequest;
 import com.mitienda.ecommerce.dto.VentaResponse;
 import com.mitienda.ecommerce.models.EstadoVenta;
@@ -137,34 +136,14 @@ public class VentaController {
     }
 
     /**
-     * PATCH /api/ventas/{id}/despachar
-     * Marcar una venta por transportadora como despachada (solo ADMIN).
-     */
-    @PatchMapping("/{id}/despachar")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> despachar(@PathVariable Long id) {
-        try {
-            VentaResponse venta = ventaService.despachar(id);
-            return ResponseEntity.ok(venta);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    /**
      * PATCH /api/ventas/{id}/deshacer-entrega
-     * Retroceder la entrega un paso (solo ADMIN). El cuerpo es opcional: en
-     * una venta por transportadora ya entregada permite elegir si vuelve a
-     * PENDIENTE o a DESPACHADO.
+     * Corregir una entrega marcada por error: ENTREGADO -> PENDIENTE (solo ADMIN).
      */
     @PatchMapping("/{id}/deshacer-entrega")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> deshacerEntrega(@PathVariable Long id,
-                                             @RequestBody(required = false) DeshacerEntregaRequest request) {
+    public ResponseEntity<?> deshacerEntrega(@PathVariable Long id) {
         try {
-            VentaResponse venta = ventaService.deshacerEntrega(id,
-                    request != null ? request.getEstadoEntrega() : null);
+            VentaResponse venta = ventaService.deshacerEntrega(id);
             return ResponseEntity.ok(venta);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)

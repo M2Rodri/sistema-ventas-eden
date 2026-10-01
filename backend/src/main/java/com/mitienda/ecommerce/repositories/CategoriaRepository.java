@@ -22,6 +22,12 @@ public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
     Boolean existsByNombre(String nombre);
 
     /**
+     * Igual que existsByNombre pero sin distinguir mayúsculas: "Camas" y
+     * "camas" cuentan como la misma categoría.
+     */
+    Boolean existsByNombreIgnoreCase(String nombre);
+
+    /**
      * Listar solo categorías activas
      */
     List<Categoria> findByActivoTrue();

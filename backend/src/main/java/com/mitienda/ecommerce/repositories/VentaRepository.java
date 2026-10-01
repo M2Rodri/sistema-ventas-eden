@@ -118,7 +118,7 @@ public interface VentaRepository extends JpaRepository<Venta, Long> {
 
     /**
      * Ventas por entregar: una sola definición para el backend, la web y la app.
-     * Estado de entrega distinto de ENTREGADO (o sea PENDIENTE o DESPACHADO) y
+     * Estado de entrega distinto de ENTREGADO (o sea PENDIENTE) y
      * venta no cancelada. RETIRO no aparece porque nace ENTREGADO.
      */
     @Query("SELECT COUNT(v) FROM Venta v WHERE v.estadoEntrega <> com.mitienda.ecommerce.models.EstadoEntrega.ENTREGADO " +

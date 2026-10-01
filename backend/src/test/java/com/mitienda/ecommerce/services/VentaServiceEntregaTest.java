@@ -105,12 +105,6 @@ class VentaServiceEntregaTest {
     }
 
     @Test
-    void entregarDesdeDespachado() {
-        venta(ModalidadEntrega.TRANSPORTADORA, EstadoEntrega.DESPACHADO);
-        assertEquals(EstadoEntrega.ENTREGADO, servicio.marcarEntregado(1L).getEstadoEntrega());
-    }
-
-    @Test
     void entregarDirectoDesdePendienteEnTransportadora() {
         venta(ModalidadEntrega.TRANSPORTADORA, EstadoEntrega.PENDIENTE);
         assertEquals(EstadoEntrega.ENTREGADO, servicio.marcarEntregado(1L).getEstadoEntrega());
@@ -130,88 +124,51 @@ class VentaServiceEntregaTest {
         assertThrows(RuntimeException.class, () -> servicio.marcarEntregado(1L));
     }
 
-    // ---------- Despachar ----------
+    // ---------- Corregir a pendiente ----------
 
     @Test
-    void despacharPasaDePendienteADespachado() {
-        venta(ModalidadEntrega.TRANSPORTADORA, EstadoEntrega.PENDIENTE);
-        assertEquals(EstadoEntrega.DESPACHADO, servicio.despachar(1L).getEstadoEntrega());
-        verify(registroAuditoria).registrar(org.mockito.ArgumentMatchers.eq("DESPACHAR_VENTA"),
-                any(), any(), any());
-    }
-
-    @Test
-    void despacharSoloAplicaATransportadora() {
-        venta(ModalidadEntrega.DOMICILIO, EstadoEntrega.PENDIENTE);
-        assertThrows(RuntimeException.class, () -> servicio.despachar(1L));
-    }
-
-    @Test
-    void despacharNoSeBloqueaPorSaldoPendiente() {
-        Venta v = venta(ModalidadEntrega.TRANSPORTADORA, EstadoEntrega.PENDIENTE);
-        v.setEstado(EstadoVenta.PENDIENTE_PAGO);
-        v.setSaldoPendiente(new BigDecimal("300.00"));
-        assertEquals(EstadoEntrega.DESPACHADO, servicio.despachar(1L).getEstadoEntrega());
-    }
-
-    @Test
-    void noSeDespachaDosVeces() {
-        venta(ModalidadEntrega.TRANSPORTADORA, EstadoEntrega.DESPACHADO);
-        assertThrows(RuntimeException.class, () -> servicio.despachar(1L));
-    }
-
-    // ---------- Deshacer ----------
-
-    @Test
-    void deshacerDespachadoVuelveAPendiente() {
-        venta(ModalidadEntrega.TRANSPORTADORA, EstadoEntrega.DESPACHADO);
-        assertEquals(EstadoEntrega.PENDIENTE, servicio.deshacerEntrega(1L, null).getEstadoEntrega());
-    }
-
-    @Test
-    void deshacerEntregadoEnTransportadoraPorDefectoVuelveADespachado() {
-        venta(ModalidadEntrega.TRANSPORTADORA, EstadoEntrega.ENTREGADO);
-        assertEquals(EstadoEntrega.DESPACHADO, servicio.deshacerEntrega(1L, null).getEstadoEntrega());
-    }
-
-    @Test
-    void deshacerEntregadoEnTransportadoraPermiteElegirPendiente() {
-        venta(ModalidadEntrega.TRANSPORTADORA, EstadoEntrega.ENTREGADO);
-        assertEquals(EstadoEntrega.PENDIENTE,
-                servicio.deshacerEntrega(1L, EstadoEntrega.PENDIENTE).getEstadoEntrega());
-    }
-
-    @Test
-    void deshacerEntregadoEnTransportadoraNoAceptaEntregado() {
-        venta(ModalidadEntrega.TRANSPORTADORA, EstadoEntrega.ENTREGADO);
-        assertThrows(RuntimeException.class,
-                () -> servicio.deshacerEntrega(1L, EstadoEntrega.ENTREGADO));
-    }
-
-    @Test
-    void deshacerEntregadoADomicilioVuelveAPendiente() {
+    void corregirEntregadoADomicilioVuelveAPendiente() {
         venta(ModalidadEntrega.DOMICILIO, EstadoEntrega.ENTREGADO);
-        // Aunque se pida DESPACHADO, a domicilio no existe ese paso.
-        assertEquals(EstadoEntrega.PENDIENTE,
-                servicio.deshacerEntrega(1L, EstadoEntrega.DESPACHADO).getEstadoEntrega());
+        assertEquals(EstadoEntrega.PENDIENTE, servicio.deshacerEntrega(1L).getEstadoEntrega());
     }
 
     @Test
-    void deshacerNoSeOfreceEnRetiro() {
+    void corregirEntregadoEnTransportadoraVuelveAPendiente() {
+        venta(ModalidadEntrega.TRANSPORTADORA, EstadoEntrega.ENTREGADO);
+        assertEquals(EstadoEntrega.PENDIENTE, servicio.deshacerEntrega(1L).getEstadoEntrega());
+    }
+
+    @Test
+    void corregirNoSeOfreceEnRetiro() {
         venta(ModalidadEntrega.RETIRO, EstadoEntrega.ENTREGADO);
-        assertThrows(RuntimeException.class, () -> servicio.deshacerEntrega(1L, null));
+        assertThrows(RuntimeException.class, () -> servicio.deshacerEntrega(1L));
     }
 
     @Test
-    void deshacerUnaVentaPendienteNoHaceNada() {
+    void corregirUnaVentaPendienteNoHaceNada() {
         venta(ModalidadEntrega.DOMICILIO, EstadoEntrega.PENDIENTE);
-        assertThrows(RuntimeException.class, () -> servicio.deshacerEntrega(1L, null));
+        assertThrows(RuntimeException.class, () -> servicio.deshacerEntrega(1L));
     }
 
     @Test
-    void deshacerQuedaEnLaAuditoria() {
+    void corregirNoSeOfreceEnUnaVentaCancelada() {
+        Venta v = venta(ModalidadEntrega.DOMICILIO, EstadoEntrega.ENTREGADO);
+        v.setEstado(EstadoVenta.CANCELADA);
+        assertThrows(RuntimeException.class, () -> servicio.deshacerEntrega(1L));
+    }
+
+    @Test
+    void corregirNoSeBloqueaPorSaldoPendiente() {
+        Venta v = venta(ModalidadEntrega.DOMICILIO, EstadoEntrega.ENTREGADO);
+        v.setEstado(EstadoVenta.PENDIENTE_PAGO);
+        v.setSaldoPendiente(new BigDecimal("200.00"));
+        assertEquals(EstadoEntrega.PENDIENTE, servicio.deshacerEntrega(1L).getEstadoEntrega());
+    }
+
+    @Test
+    void corregirQuedaEnLaAuditoria() {
         venta(ModalidadEntrega.DOMICILIO, EstadoEntrega.ENTREGADO);
-        servicio.deshacerEntrega(1L, null);
+        servicio.deshacerEntrega(1L);
         verify(registroAuditoria).registrar(org.mockito.ArgumentMatchers.eq("DESHACER_ENTREGA"),
                 any(), any(), any());
     }
@@ -220,7 +177,7 @@ class VentaServiceEntregaTest {
 
     @Test
     void editarDatosEnTransportadoraCambiaDireccionTransportadoraYGuia() {
-        Venta v = venta(ModalidadEntrega.TRANSPORTADORA, EstadoEntrega.DESPACHADO);
+        Venta v = venta(ModalidadEntrega.TRANSPORTADORA, EstadoEntrega.PENDIENTE);
         v.setCiudad("La Paz");
 
         servicio.actualizarDatosEntrega(1L,
@@ -230,7 +187,7 @@ class VentaServiceEntregaTest {
         assertEquals("Flota Bolivia", v.getTransportadora());
         assertEquals("G-789", v.getGuiaRemision());
         assertEquals("La Paz", v.getCiudad());
-        assertEquals(EstadoEntrega.DESPACHADO, v.getEstadoEntrega());
+        assertEquals(EstadoEntrega.PENDIENTE, v.getEstadoEntrega());
     }
 
     @Test
@@ -270,20 +227,5 @@ class VentaServiceEntregaTest {
         RuntimeException error = assertThrows(RuntimeException.class,
                 () -> servicio.createVentaDirecta(pedido(ModalidadEntrega.TRANSPORTADORA, null, "  ")));
         assertEquals("La ciudad es obligatoria para el envío por transportadora", error.getMessage());
-    }
-
-    @Test
-    void registrarYaDespachadaEsSoloParaAdmin() {
-        when(usuarioActualService.esAdmin()).thenReturn(false);
-        RuntimeException error = assertThrows(RuntimeException.class, () -> servicio.createVentaDirecta(
-                pedido(ModalidadEntrega.TRANSPORTADORA, EstadoEntrega.DESPACHADO, "Oruro")));
-        assertEquals("Solo un administrador puede registrar una venta ya despachada", error.getMessage());
-    }
-
-    @Test
-    void registrarYaDespachadaSoloAplicaATransportadora() {
-        when(usuarioActualService.esAdmin()).thenReturn(true);
-        assertThrows(RuntimeException.class, () -> servicio.createVentaDirecta(
-                pedido(ModalidadEntrega.DOMICILIO, EstadoEntrega.DESPACHADO, null)));
     }
 }

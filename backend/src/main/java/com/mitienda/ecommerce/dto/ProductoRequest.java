@@ -57,7 +57,14 @@ public class ProductoRequest {
     private String dimensiones;
 
     @Min(value = 0, message = "El stock mínimo no puede ser negativo")
-    private Integer stockMinimo = 0;
+    // Por defecto 1: el formulario ya no lo pide; se ajusta desde Inventario.
+    private Integer stockMinimo = 1;
+
+    // Solo se usa al crear: es la cantidad que ya hay en el local. Vacío o 0
+    // significa "sin stock todavía". Al editar se ignora: el stock se cambia
+    // desde Inventario, con motivo.
+    @Min(value = 0, message = "El stock inicial no puede ser negativo")
+    private Integer stockInicial;
 
     @NotNull(message = "El tipo de producto es obligatorio")
     private TipoProducto tipoProducto;

@@ -368,7 +368,7 @@ public class VentaService {
     /**
      * Marca la entrega de una venta como completada. La pueden hacer ADMIN y
      * EMPLEADO, en cualquier venta no cancelada y sin importar desde qué
-     * estado (PENDIENTE o DESPACHADO).
+     * estado.
      *
      * El saldo pendiente NO bloquea la entrega: el sistema registra lo que
      * pasa en el negocio, y la decisión de entregar con saldo es del dueño.
@@ -395,85 +395,31 @@ public class VentaService {
     }
 
     /**
-     * Marca una venta por transportadora como despachada (PENDIENTE ->
-     * DESPACHADO). Solo ADMIN: lo exige el controlador.
+     * Corrige una entrega ya marcada: ENTREGADO -> PENDIENTE. Solo ADMIN: lo
+     * exige el controlador. Queda registrado en la auditoría. Si la venta
+     * vuelve a PENDIENTE, vuelve a ofrecerse marcarla como entregada.
+     *
+     * En una venta en tienda (RETIRO) no se ofrece: siempre es ENTREGADO.
      */
     @Transactional
-    public VentaResponse despachar(Long id) {
+    public VentaResponse deshacerEntrega(Long id) {
         Venta venta = buscarVenta(id);
 
         if (venta.getEstado() == EstadoVenta.CANCELADA) {
-            throw new RuntimeException("No se puede despachar una venta cancelada");
-        }
-        if (venta.getModalidadEntrega() != ModalidadEntrega.TRANSPORTADORA) {
-            throw new RuntimeException("Solo las ventas por transportadora se pueden despachar");
-        }
-        if (venta.getEstadoEntrega() == EstadoEntrega.DESPACHADO) {
-            throw new RuntimeException("Esta venta ya está despachada");
-        }
-        if (venta.getEstadoEntrega() == EstadoEntrega.ENTREGADO) {
-            throw new RuntimeException("Esta venta ya fue entregada");
-        }
-
-        venta.setEstadoEntrega(EstadoEntrega.DESPACHADO);
-        Venta despachada = ventaRepository.save(venta);
-
-        registroAuditoria.registrar("DESPACHAR_VENTA", "ventas", despachada.getId(),
-                "Venta #" + despachada.getId() + " despachada por transportadora");
-
-        return new VentaResponse(despachada);
-    }
-
-    /**
-     * Retrocede la entrega de una venta un paso. Solo ADMIN: lo exige el
-     * controlador. Queda registrado en la auditoría.
-     *
-     *   TRANSPORTADORA, DESPACHADO -> PENDIENTE.
-     *   TRANSPORTADORA, ENTREGADO  -> PENDIENTE o DESPACHADO, a elección: pudo
-     *                                 entregarse sin pasar por el despacho.
-     *                                 Si no se elige, vuelve a DESPACHADO.
-     *   DOMICILIO,      ENTREGADO  -> PENDIENTE.
-     *   RETIRO: no se ofrece, siempre es ENTREGADO.
-     *
-     * @param destino a qué estado volver; solo se tiene en cuenta en una venta
-     *                por TRANSPORTADORA que está ENTREGADA.
-     */
-    @Transactional
-    public VentaResponse deshacerEntrega(Long id, EstadoEntrega destino) {
-        Venta venta = buscarVenta(id);
-
-        if (venta.getEstado() == EstadoVenta.CANCELADA) {
-            throw new RuntimeException("No se puede deshacer la entrega de una venta cancelada");
+            throw new RuntimeException("No se puede corregir la entrega de una venta cancelada");
         }
         if (venta.getModalidadEntrega() == ModalidadEntrega.RETIRO) {
-            throw new RuntimeException("En una venta en tienda no se puede deshacer la entrega");
+            throw new RuntimeException("En una venta en tienda no se puede corregir la entrega");
+        }
+        if (venta.getEstadoEntrega() != EstadoEntrega.ENTREGADO) {
+            throw new RuntimeException("No hay nada que corregir: la venta está pendiente de entrega");
         }
 
-        EstadoEntrega actual = venta.getEstadoEntrega();
-        EstadoEntrega nuevo;
-        if (actual == EstadoEntrega.PENDIENTE) {
-            throw new RuntimeException("No hay nada que deshacer: la venta está pendiente de entrega");
-        } else if (actual == EstadoEntrega.DESPACHADO) {
-            nuevo = EstadoEntrega.PENDIENTE;
-        } else if (venta.getModalidadEntrega() == ModalidadEntrega.TRANSPORTADORA) {
-            // ENTREGADO por transportadora: a elección del ADMIN.
-            if (destino == null || destino == EstadoEntrega.DESPACHADO) {
-                nuevo = EstadoEntrega.DESPACHADO;
-            } else if (destino == EstadoEntrega.PENDIENTE) {
-                nuevo = EstadoEntrega.PENDIENTE;
-            } else {
-                throw new RuntimeException("Al deshacer solo se puede volver a PENDIENTE o DESPACHADO");
-            }
-        } else {
-            // ENTREGADO a domicilio
-            nuevo = EstadoEntrega.PENDIENTE;
-        }
-
-        venta.setEstadoEntrega(nuevo);
+        venta.setEstadoEntrega(EstadoEntrega.PENDIENTE);
         Venta actualizada = ventaRepository.save(venta);
 
         registroAuditoria.registrar("DESHACER_ENTREGA", "ventas", actualizada.getId(),
-                "Entrega deshecha en la venta #" + actualizada.getId() + ": de " + actual + " a " + nuevo);
+                "Entrega corregida en la venta #" + actualizada.getId() + ": de ENTREGADO a PENDIENTE");
 
         return new VentaResponse(actualizada);
     }
@@ -530,7 +476,6 @@ public class VentaService {
      *   sin indicar:    PENDIENTE.
      *   PENDIENTE:      cualquier modalidad.
      *   ENTREGADO:      DOMICILIO o TRANSPORTADORA, ADMIN y EMPLEADO.
-     *   DESPACHADO:     solo TRANSPORTADORA y solo ADMIN.
      */
     private EstadoEntrega resolverEstadoInicial(ModalidadEntrega modalidad, EstadoEntrega pedido) {
         if (modalidad == ModalidadEntrega.RETIRO) {
@@ -538,14 +483,6 @@ public class VentaService {
         }
         if (pedido == null || pedido == EstadoEntrega.PENDIENTE) {
             return EstadoEntrega.PENDIENTE;
-        }
-        if (pedido == EstadoEntrega.DESPACHADO) {
-            if (modalidad != ModalidadEntrega.TRANSPORTADORA) {
-                throw new RuntimeException("Solo una venta por transportadora puede registrarse como despachada");
-            }
-            if (!usuarioActualService.esAdmin()) {
-                throw new RuntimeException("Solo un administrador puede registrar una venta ya despachada");
-            }
         }
         return pedido;
     }

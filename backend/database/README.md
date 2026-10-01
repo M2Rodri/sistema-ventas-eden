@@ -28,6 +28,8 @@ después.
 | 14 | Restaura los datos del negocio |
 | 15 | Renombra las claves `empresa_*` a `negocio_*` |
 | 24 | Estado de entrega `DESPACHADO`; el retiro en tienda nace `ENTREGADO` |
+| 25 | Tipo de producto `MUEBLE` (categoría "Muebles de dormitorio") y restricción de `categorias.tipo_producto` |
+| 26 | Se quita el estado de entrega `DESPACHADO`: quedan `PENDIENTE` y `ENTREGADO` |
 
 Los scripts 16 al 23 existen en esta carpeta pero todavía no están en esta
 tabla.

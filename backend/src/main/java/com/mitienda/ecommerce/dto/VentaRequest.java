@@ -68,7 +68,6 @@ public class VentaRequest {
      *   PENDIENTE:  cualquier modalidad.
      *   ENTREGADO:  DOMICILIO o TRANSPORTADORA, para ADMIN y EMPLEADO (a
      *               veces la venta se registra cuando todo ya terminó).
-     *   DESPACHADO: solo TRANSPORTADORA y solo para ADMIN.
      */
     private EstadoEntrega estadoEntrega;
 
