@@ -47,23 +47,24 @@ NuevaVentaRequest _pedido({
 
 void main() {
   group('estado de entrega', () {
-    test('reconoce los tres valores del backend', () {
+    test('reconoce los dos valores del backend', () {
       expect(estadoEntregaDesdeApi('PENDIENTE'), EstadoEntrega.pendiente);
-      expect(estadoEntregaDesdeApi('DESPACHADO'), EstadoEntrega.despachado);
       expect(estadoEntregaDesdeApi('ENTREGADO'), EstadoEntrega.entregado);
+    });
+
+    test('un valor desconocido se trata como pendiente', () {
+      expect(estadoEntregaDesdeApi('DESPACHADO'), EstadoEntrega.pendiente);
     });
 
     test('los valores de la API coinciden con los del backend', () {
       expect(EstadoEntrega.pendiente.valorApi, 'PENDIENTE');
-      expect(EstadoEntrega.despachado.valorApi, 'DESPACHADO');
       expect(EstadoEntrega.entregado.valorApi, 'ENTREGADO');
     });
   });
 
   group('por entregar (definición única)', () {
-    test('pendiente y despachada cuentan', () {
+    test('pendiente cuenta', () {
       expect(_venta(estadoEntrega: 'PENDIENTE').porEntregar, isTrue);
-      expect(_venta(estadoEntrega: 'DESPACHADO', modalidad: 'TRANSPORTADORA').porEntregar, isTrue);
     });
 
     test('entregada no cuenta', () {
@@ -136,13 +137,13 @@ void main() {
     test('transportadora manda la ciudad y solo los opcionales que se llenaron', () {
       final json = _pedido(
         modalidad: ModalidadEntrega.transportadora,
-        estado: EstadoEntrega.despachado,
+        estado: EstadoEntrega.entregado,
         ciudad: 'La Paz',
         transportadora: '',
         guia: 'G-9',
       ).toJson();
       expect(json['ciudad'], 'La Paz');
-      expect(json['estadoEntrega'], 'DESPACHADO');
+      expect(json['estadoEntrega'], 'ENTREGADO');
       expect(json.containsKey('transportadora'), isFalse);
       expect(json['guiaRemision'], 'G-9');
     });

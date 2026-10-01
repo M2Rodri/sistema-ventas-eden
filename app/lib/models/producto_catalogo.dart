@@ -29,7 +29,7 @@ class ProductoCatalogo {
   final int stockMinimo;
 
   bool get agotado => cantidadDisponible <= 0;
-  bool get bajoStockMinimo => cantidadDisponible > 0 && cantidadDisponible <= stockMinimo;
+  bool get bajoStockMinimo => stockMinimo > 0 && cantidadDisponible > 0 && cantidadDisponible <= stockMinimo;
 
   factory ProductoCatalogo.desdeApi(Map<String, dynamic> json) {
     final imagenes = json['imagenes'] as List<dynamic>? ?? const <dynamic>[];

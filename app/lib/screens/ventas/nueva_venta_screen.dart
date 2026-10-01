@@ -24,7 +24,6 @@ class NuevaVentaScreen extends StatefulWidget {
 
   final String token;
 
-  /// Solo el ADMIN puede registrar una venta ya despachada.
   final bool esAdmin;
 
   @override
@@ -58,7 +57,9 @@ class _NuevaVentaScreenState extends State<NuevaVentaScreen> {
 
   // Entrega
   ModalidadEntrega _modalidad = ModalidadEntrega.retiro;
-  EstadoEntrega _estadoEntrega = EstadoEntrega.pendiente;
+  // Domicilio y transportadora arrancan Entregado (lo normal es cargar la venta
+  // cuando todo terminó); se puede cambiar a Pendiente. En tienda no se elige.
+  EstadoEntrega _estadoEntrega = EstadoEntrega.entregado;
   final _direccionCtrl = TextEditingController();
   final _ciudadCtrl = TextEditingController();
   final _transportadoraCtrl = TextEditingController();
@@ -364,15 +365,7 @@ class _NuevaVentaScreenState extends State<NuevaVentaScreen> {
             onElegirComprobante: _elegirComprobante,
             onQuitarComprobante: () => setState(() => _comprobante = null),
             modalidad: _modalidad,
-            onCambiarModalidad: (m) => setState(() {
-              _modalidad = m;
-              // "Despachado" solo existe en transportadora: al cambiar de
-              // modalidad vuelve a Pendiente para no mandar un estado que no
-              // le corresponde.
-              if (m != ModalidadEntrega.transportadora && _estadoEntrega == EstadoEntrega.despachado) {
-                _estadoEntrega = EstadoEntrega.pendiente;
-              }
-            }),
+            onCambiarModalidad: (m) => setState(() => _modalidad = m),
             estadoEntrega: _estadoEntrega,
             onCambiarEstadoEntrega: (e) => setState(() => _estadoEntrega = e),
             esAdmin: widget.esAdmin,
@@ -502,7 +495,6 @@ class _Formulario extends StatelessWidget {
   final EstadoEntrega estadoEntrega;
   final ValueChanged<EstadoEntrega> onCambiarEstadoEntrega;
 
-  /// Solo el ADMIN puede registrar una venta ya despachada.
   final bool esAdmin;
   final TextEditingController direccionCtrl;
   final TextEditingController ciudadCtrl;
@@ -763,7 +755,7 @@ class _Formulario extends StatelessWidget {
                   style: TextStyle(fontSize: 12, color: AppColors.textoSecundario),
                 ),
               ],
-              // Estado de la entrega. Despachado: solo ADMIN y solo transportadora.
+              // Estado de la entrega: en domicilio y transportadora, ADMIN y EMPLEADO.
               if (modalidad != ModalidadEntrega.retiro) ...<Widget>[
                 const SizedBox(height: 14),
                 const Text(
@@ -775,9 +767,8 @@ class _Formulario extends StatelessWidget {
                   spacing: 8,
                   runSpacing: 8,
                   children: <EstadoEntrega>[
-                    EstadoEntrega.pendiente,
-                    if (esAdmin && modalidad == ModalidadEntrega.transportadora) EstadoEntrega.despachado,
                     EstadoEntrega.entregado,
+                    EstadoEntrega.pendiente,
                   ].map((estado) {
                     final sel = estadoEntrega == estado;
                     return SizedBox(

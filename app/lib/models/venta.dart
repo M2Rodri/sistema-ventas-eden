@@ -15,19 +15,15 @@ EstadoVenta estadoVentaDesdeApi(String valor) {
   }
 }
 
-/// Recorrido según la modalidad:
-///   RETIRO:         nace ENTREGADO.
-///   DOMICILIO:      PENDIENTE -> ENTREGADO.
-///   TRANSPORTADORA: PENDIENTE -> DESPACHADO -> ENTREGADO (también se puede
-///                   pasar de PENDIENTE a ENTREGADO directamente).
-enum EstadoEntrega { pendiente, despachado, entregado }
+/// ENTREGADO significa que el cliente ya recibió el producto, en cualquier
+/// modalidad. RETIRO nace ENTREGADO; DOMICILIO y TRANSPORTADORA van de
+/// PENDIENTE a ENTREGADO, y un ADMIN puede corregir un ENTREGADO a PENDIENTE.
+enum EstadoEntrega { pendiente, entregado }
 
 EstadoEntrega estadoEntregaDesdeApi(String valor) {
   switch (valor) {
     case 'ENTREGADO':
       return EstadoEntrega.entregado;
-    case 'DESPACHADO':
-      return EstadoEntrega.despachado;
     default:
       return EstadoEntrega.pendiente;
   }
@@ -39,8 +35,6 @@ extension EstadoEntregaApi on EstadoEntrega {
     switch (this) {
       case EstadoEntrega.pendiente:
         return 'PENDIENTE';
-      case EstadoEntrega.despachado:
-        return 'DESPACHADO';
       case EstadoEntrega.entregado:
         return 'ENTREGADO';
     }
@@ -51,8 +45,6 @@ extension EstadoEntregaApi on EstadoEntrega {
     switch (this) {
       case EstadoEntrega.pendiente:
         return 'Pendiente';
-      case EstadoEntrega.despachado:
-        return 'Despachado';
       case EstadoEntrega.entregado:
         return 'Entregado';
     }
@@ -238,7 +230,7 @@ class NuevaVentaRequest {
   final ModalidadEntrega modalidadEntrega;
 
   /// Estado con el que se registra. En tienda el backend lo deja ENTREGADO por
-  /// su cuenta; despachado es solo para ADMIN y solo en transportadora.
+  /// su cuenta.
   final EstadoEntrega? estadoEntrega;
   final String? direccionDestino;
   final String? ciudad;

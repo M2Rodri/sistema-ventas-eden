@@ -10,7 +10,7 @@ import 'venta_detalle_screen.dart';
 
 enum _EstadoVentas { cargando, conDatos, vacio, error }
 
-enum _Filtro { todas, porCobrar, porEntregar, despachado }
+enum _Filtro { todas, porCobrar, porEntregar }
 
 /// Ventas y entregas: lista con filtros, mismo patrón que Catálogo
 /// (repositorio propio, mismos cuatro estados).
@@ -19,7 +19,7 @@ class VentasScreen extends StatefulWidget {
 
   final String token;
 
-  /// Se pasa al detalle: despachar y editar la entrega son solo del ADMIN.
+  /// Se pasa al detalle: corregir a pendiente y editar la entrega son solo del ADMIN.
   final bool esAdmin;
 
   @override
@@ -79,8 +79,6 @@ class _VentasScreenState extends State<VentasScreen> {
       case _Filtro.porEntregar:
         // Definición única: estado distinto de ENTREGADO y venta no cancelada.
         return _ventas.where((v) => v.porEntregar).toList();
-      case _Filtro.despachado:
-        return _ventas.where((v) => v.estadoEntrega == EstadoEntrega.despachado).toList();
     }
   }
 
@@ -162,8 +160,6 @@ class _SelectorFiltro extends StatelessWidget {
           _ChipFiltro(texto: 'Por cobrar', seleccionado: filtro == _Filtro.porCobrar, onTap: () => onCambiar(_Filtro.porCobrar)),
           const SizedBox(width: 8),
           _ChipFiltro(texto: 'Por entregar', seleccionado: filtro == _Filtro.porEntregar, onTap: () => onCambiar(_Filtro.porEntregar)),
-          const SizedBox(width: 8),
-          _ChipFiltro(texto: 'Despachado', seleccionado: filtro == _Filtro.despachado, onTap: () => onCambiar(_Filtro.despachado)),
         ],
       ),
     );

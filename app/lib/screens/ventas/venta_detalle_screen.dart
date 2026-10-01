@@ -10,15 +10,15 @@ import 'estado_entrega_ui.dart';
 enum _EstadoDetalle { cargando, conDatos, error }
 
 /// Detalle de una venta: productos, pagos, entrega y sus acciones: registrar
-/// pago y marcar entregado (ADMIN y EMPLEADO); despachar y editar los datos de
-/// entrega (solo ADMIN).
+/// pago y marcar entregado (ADMIN y EMPLEADO); corregir a pendiente y editar los
+/// datos de entrega (solo ADMIN).
 class VentaDetalleScreen extends StatefulWidget {
   const VentaDetalleScreen({super.key, required this.idVenta, required this.token, this.esAdmin = false});
 
   final int idVenta;
   final String token;
 
-  /// Despachar y editar los datos de entrega son solo del ADMIN.
+  /// Corregir a pendiente y editar los datos de entrega son solo del ADMIN.
   final bool esAdmin;
 
   @override
@@ -135,11 +135,26 @@ class _VentaDetalleScreenState extends State<VentaDetalleScreen> {
     );
   }
 
-  Future<void> _despachar() {
-    return _ejecutarAccionEntrega(
-      () => _ventasRepository.despachar(widget.idVenta, widget.token),
-      mensajeOk: 'Venta marcada como despachada',
-      mensajeError: 'No se pudo marcar el despacho.',
+  /// Corregir una entrega marcada por error (solo ADMIN): ENTREGADO -> PENDIENTE.
+  /// Se llega tocando la etiqueta del estado, con confirmación; queda en la
+  /// auditoría del backend.
+  Future<void> _corregirAPendiente() async {
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (contexto) => AlertDialog(
+        title: const Text('Corregir a Pendiente'),
+        content: Text('La venta #${widget.idVenta} volverá a Pendiente de entrega. Queda registrado en la auditoría.'),
+        actions: <Widget>[
+          TextButton(onPressed: () => Navigator.of(contexto).pop(false), child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.of(contexto).pop(true), child: const Text('Corregir')),
+        ],
+      ),
+    );
+    if (confirmado != true) return;
+    await _ejecutarAccionEntrega(
+      () => _ventasRepository.corregirAPendiente(widget.idVenta, widget.token),
+      mensajeOk: 'La venta volvió a Pendiente',
+      mensajeError: 'No se pudo corregir la entrega.',
     );
   }
 
@@ -192,7 +207,7 @@ class _VentaDetalleScreenState extends State<VentaDetalleScreen> {
             esAdmin: widget.esAdmin,
             onRegistrarPago: _abrirFormularioPago,
             onMarcarEntregado: _marcarEntregado,
-            onDespachar: _despachar,
+            onCorregirEntrega: _corregirAPendiente,
             onEditarEntrega: _editarEntrega,
           ),
       },
@@ -239,7 +254,7 @@ class _Contenido extends StatelessWidget {
     required this.esAdmin,
     required this.onRegistrarPago,
     required this.onMarcarEntregado,
-    required this.onDespachar,
+    required this.onCorregirEntrega,
     required this.onEditarEntrega,
   });
 
@@ -250,7 +265,7 @@ class _Contenido extends StatelessWidget {
   final bool esAdmin;
   final VoidCallback onRegistrarPago;
   final VoidCallback onMarcarEntregado;
-  final VoidCallback onDespachar;
+  final VoidCallback onCorregirEntrega;
   final VoidCallback onEditarEntrega;
 
   String get _modalidadTexto {
@@ -354,7 +369,19 @@ class _Contenido extends StatelessWidget {
                 spacing: 8,
                 runSpacing: 6,
                 children: <Widget>[
-                  _Badge(texto: venta.estadoEntrega.etiqueta, color: colorEstadoEntrega(venta.estadoEntrega)),
+                  _Badge(
+                    texto: venta.estadoEntrega.etiqueta,
+                    color: colorEstadoEntrega(venta.estadoEntrega),
+                    // Solo ADMIN, en una venta entregada que no es en tienda.
+                    onTap: (corregirEntregaActivo &&
+                            esAdmin &&
+                            !accionEnCurso &&
+                            !cancelada &&
+                            venta.modalidadEntrega != ModalidadEntrega.retiro &&
+                            venta.estadoEntrega == EstadoEntrega.entregado)
+                        ? onCorregirEntrega
+                        : null,
+                  ),
                   if (venta.faltaCompletarEnvio) const _Badge(texto: 'Falta completar', color: Color(0xFFEA580C)),
                 ],
               ),
@@ -426,24 +453,9 @@ class _Contenido extends StatelessWidget {
               icon: const Icon(Icons.add_card_outlined),
               label: const Text('Registrar pago'),
             ),
-          // Despachar: solo ADMIN y solo en ventas por transportadora.
-          if (esAdmin &&
-              venta.modalidadEntrega == ModalidadEntrega.transportadora &&
-              venta.estadoEntrega == EstadoEntrega.pendiente) ...<Widget>[
-            if (venta.tieneSaldoPendiente) const SizedBox(height: 10),
-            OutlinedButton.icon(
-              onPressed: accionEnCurso ? null : onDespachar,
-              icon: const Icon(Icons.local_shipping_outlined),
-              label: const Text('Marcar como despachada'),
-            ),
-          ],
           // Entregar: ADMIN y EMPLEADO. El saldo pendiente no la bloquea.
           if (!yaEntregado) ...<Widget>[
-            if (venta.tieneSaldoPendiente ||
-                (esAdmin &&
-                    venta.modalidadEntrega == ModalidadEntrega.transportadora &&
-                    venta.estadoEntrega == EstadoEntrega.pendiente))
-              const SizedBox(height: 10),
+            if (venta.tieneSaldoPendiente) const SizedBox(height: 10),
             OutlinedButton.icon(
               onPressed: accionEnCurso ? null : onMarcarEntregado,
               icon: accionEnCurso
@@ -503,17 +515,26 @@ class _Seccion extends StatelessWidget {
 }
 
 class _Badge extends StatelessWidget {
-  const _Badge({required this.texto, required this.color});
+  const _Badge({required this.texto, required this.color, this.onTap});
 
   final String texto;
   final Color color;
 
+  /// Si viene, la etiqueta se puede tocar (por ejemplo, para corregir la entrega).
+  final VoidCallback? onTap;
+
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final etiqueta = Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
       child: Text(texto, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color)),
+    );
+    if (onTap == null) return etiqueta;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: etiqueta,
     );
   }
 }

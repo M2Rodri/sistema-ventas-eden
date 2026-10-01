@@ -52,9 +52,9 @@ class VentasRepository {
     return Venta.desdeApi(json);
   }
 
-  /// Solo ADMIN, y solo en ventas por transportadora.
-  Future<Venta> despachar(int idVenta, String token) async {
-    final json = await _apiClient.patch('/api/ventas/$idVenta/despachar', token: token);
+  /// Solo ADMIN: corrige una entrega marcada por error, ENTREGADO -> PENDIENTE.
+  Future<Venta> corregirAPendiente(int idVenta, String token) async {
+    final json = await _apiClient.patch('/api/ventas/$idVenta/deshacer-entrega', token: token);
     return Venta.desdeApi(json);
   }
 
