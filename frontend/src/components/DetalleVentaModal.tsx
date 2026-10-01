@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, User, Calendar, CreditCard, Package, AlertCircle, FileText, Upload, Image as ImageIcon, Banknote, Truck } from 'lucide-react';
 import { Venta, Pago, EstadoEntrega, EstadoVenta, ModalidadEntrega } from '@/types/venta';
-import { adjuntarComprobantePago, marcarVentaEntregada, BACKEND_URL } from '@/lib/api';
+import { adjuntarComprobantePago, marcarVentaEntregada, urlArchivo } from '@/lib/api';
 import {
   CORREGIR_ENTREGA_ACTIVO,
   claseBadgeEstadoEntrega,
@@ -468,7 +468,7 @@ export default function DetalleVentaModal({
                     <div className="mt-2 pt-2 border-t border-green-200 flex items-center gap-3">
                       {pago.urlComprobante ? (
                         <a
-                          href={`${BACKEND_URL}${pago.urlComprobante}`}
+                          href={urlArchivo(pago.urlComprobante)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"

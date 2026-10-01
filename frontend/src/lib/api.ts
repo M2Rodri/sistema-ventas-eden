@@ -5,6 +5,14 @@ export const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL ?? 'https://backend-sistema-ventas-production-d0a4.up.railway.app';
 const API_URL = `${BACKEND_URL}/api`;
 
+/**
+ * URL con la que se muestra un archivo subido. Los archivos nuevos vienen con la
+ * URL completa (fotos públicas de Supabase, comprobantes con URL firmada); los
+ * registros viejos traen una ruta relativa al backend (/uploads/...).
+ */
+export const urlArchivo = (url: string): string =>
+  /^https?:\/\//i.test(url) ? url : `${BACKEND_URL}${url}`;
+
 export interface RegisterData {
   nombre: string;
   apellido: string;

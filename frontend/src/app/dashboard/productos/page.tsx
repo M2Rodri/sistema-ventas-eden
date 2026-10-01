@@ -1,6 +1,6 @@
 'use client';
 
-import { BACKEND_URL } from '@/lib/api';
+import { urlArchivo } from '@/lib/api';
 import { useState, useEffect } from 'react';
 import { useDragScrollTable } from '@/hooks/useDragScrollTable';
 import {
@@ -382,7 +382,7 @@ export default function ProductosPage() {
                     <div className="h-12 w-12 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
                       {producto.imagenes && producto.imagenes.length > 0 && !imagenesConError.has(producto.id) ? (
                         <img
-                          src={`${BACKEND_URL}${producto.imagenes[0].urlImagen}`}
+                          src={urlArchivo(producto.imagenes[0].urlImagen)}
                           alt={producto.nombre}
                           className="h-full w-full object-cover"
                           onError={() =>

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Producto, ProductoRequest, Categoria, ImagenProducto, TipoProducto } from '@/types/producto';
-import { createProducto, updateProducto, BACKEND_URL } from '@/lib/api';
+import { createProducto, updateProducto, urlArchivo } from '@/lib/api';
 import { X, Upload, Trash2, ChevronDown } from 'lucide-react';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 
@@ -224,7 +224,7 @@ export default function ProductoModal({
   const [confirmacionImagen, setConfirmacionImagen] = useState<'cambiar' | 'quitar' | null>(null);
   const imagenActual = imagenesActuales[0] ?? null;
   const urlImagenMostrada = previewImagenPendiente
-    ?? (quitarImagenAlGuardar || !imagenActual ? null : `${BACKEND_URL}${imagenActual.urlImagen}`);
+    ?? (quitarImagenAlGuardar || !imagenActual ? null : urlArchivo(imagenActual.urlImagen));
   const mostrarRecuadroVacio = !urlImagenMostrada || reemplazandoImagen;
   // Dimensiones solo tiene sentido para Cama y Colchón: una almohada o un
   // accesorio no se describen por su medida de la misma forma.

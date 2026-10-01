@@ -9,7 +9,7 @@ import Link from 'next/link';
 // duplicadas de esta página habían quedado desactualizadas (seguían con
 // precioUnitario y sin marca, firmeza ni materialNucleo).
 import { Producto, ImagenProducto } from '@/types/producto';
-import { BACKEND_URL } from '@/lib/api';
+import { BACKEND_URL, urlArchivo } from '@/lib/api';
 import { MdStar, MdStarBorder, MdStarHalf, MdVisibility, MdViewInAr } from 'react-icons/md';
 import { FiShoppingCart } from 'react-icons/fi';
 
@@ -91,7 +91,7 @@ const DetalleProductoPage = () => {
           {/* Galería de Imágenes */}
           <div>
             <img
-              src={`${BACKEND_URL}${imagenPrincipal}`}
+              src={urlArchivo(imagenPrincipal)}
               alt={producto.nombre}
               className="w-full h-auto object-cover rounded-lg"
             />
@@ -101,7 +101,7 @@ const DetalleProductoPage = () => {
                 {producto.imagenes.map((img, index) => (
                   <img
                     key={img.id}
-                    src={`${BACKEND_URL}${img.urlImagen}`}
+                    src={urlArchivo(img.urlImagen)}
                     alt={`Imagen ${index + 1} de ${producto.nombre}`}
                     className={`w-full h-24 object-cover rounded cursor-pointer border-2 transition-colors ${
                       imagenPrincipal === img.urlImagen ? 'border-primary-600' : 'border-gray-200 hover:border-gray-400'

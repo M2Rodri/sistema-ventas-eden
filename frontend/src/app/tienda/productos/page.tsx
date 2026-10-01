@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { BACKEND_URL } from '@/lib/api';
+import { BACKEND_URL, urlArchivo } from '@/lib/api';
 // Se usa el tipo compartido en lugar de una copia local: las interfaces
 // duplicadas de esta página habían quedado desactualizadas (seguían con
 // precioUnitario y sin marca, firmeza ni materialNucleo).
@@ -52,7 +52,7 @@ const ProductoCard = ({ producto }: { producto: Producto }) => {
       {/* Imagen del producto - Clickeable hacia detalles */}
       <Link href={productoHref} className="relative h-60 w-full bg-gray-100 flex items-center justify-center overflow-hidden">
         <img
-          src={`${BACKEND_URL}${imagenPrincipal}`} // Cambiado para usar BACKEND_URL y urlImagen
+          src={urlArchivo(imagenPrincipal)} // Cambiado para usar BACKEND_URL y urlImagen
           alt={producto.nombre}
           className="w-full h-full object-cover"
           onError={(e) => {

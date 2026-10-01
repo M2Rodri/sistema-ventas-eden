@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getActiveProductos, getActiveCategorias, BACKEND_URL } from '@/lib/api';
+import { getActiveProductos, getActiveCategorias, urlArchivo } from '@/lib/api';
 import { Producto, Categoria } from '@/types/producto';
 
 /**
@@ -38,7 +38,7 @@ const ProductoCard = ({ producto }: { producto: Producto }) => {
         <div className="h-48 bg-gray-100 flex items-center justify-center overflow-hidden">
           {principal ? (
             <img
-              src={`${BACKEND_URL}${principal.urlImagen}`}
+              src={urlArchivo(principal.urlImagen)}
               alt={producto.nombre}
               className="h-full w-full object-cover"
               onError={(e) => {
