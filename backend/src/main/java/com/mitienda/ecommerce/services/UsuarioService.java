@@ -1,5 +1,9 @@
 package com.mitienda.ecommerce.services;
 
+import com.mitienda.ecommerce.exception.ConflictoEstadoException;
+import com.mitienda.ecommerce.exception.PeticionInvalidaException;
+import com.mitienda.ecommerce.exception.RecursoNoEncontradoException;
+import com.mitienda.ecommerce.exception.ReglaNegocioException;
 import com.mitienda.ecommerce.dto.UsuarioRequest;
 import com.mitienda.ecommerce.dto.UsuarioResponse;
 import com.mitienda.ecommerce.models.Role;
@@ -57,10 +61,10 @@ public class UsuarioService {
      */
     private Role resolverRol(String nombreRol) {
         if (nombreRol == null || nombreRol.isBlank()) {
-            throw new RuntimeException("El rol es obligatorio");
+            throw new PeticionInvalidaException("ROL_REQUERIDO", "El rol es obligatorio");
         }
         return roleRepository.findByNombre(nombreRol.trim().toUpperCase())
-                .orElseThrow(() -> new RuntimeException("Rol no válido: " + nombreRol));
+                .orElseThrow(() -> new PeticionInvalidaException("ROL_INVALIDO", "Rol no válido: " + nombreRol));
     }
 
     /**
@@ -84,7 +88,7 @@ public class UsuarioService {
                         && "ADMIN".equalsIgnoreCase(u.getRoleName())
                         && Boolean.TRUE.equals(u.getActivo()));
         if (!quedaOtroAdminActivo) {
-            throw new RuntimeException("Es el único administrador activo. No se puede desactivar.");
+            throw new ReglaNegocioException("ULTIMO_ADMINISTRADOR", "Es el único administrador activo. No se puede desactivar.");
         }
     }
 
@@ -103,7 +107,7 @@ public class UsuarioService {
      */
     public UsuarioResponse getUserById(Long id) {
         Usuario user = usuarioRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("USUARIO_NO_ENCONTRADO", "Usuario no encontrado con ID: " + id));
         return new UsuarioResponse(user);
     }
 
@@ -119,12 +123,12 @@ public class UsuarioService {
 
         // Validar que el usuario no exista
         if (usuarioRepository.existsByUsuario(usuarioNormalizado)) {
-            throw new RuntimeException("El usuario ya está registrado: " + usuarioNormalizado);
+            throw new ConflictoEstadoException("USUARIO_DUPLICADO", "El usuario ya está registrado: " + usuarioNormalizado);
         }
 
         // Validar que la contraseña no esté vacía al crear
         if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
-            throw new RuntimeException("La contraseña es obligatoria al crear un usuario");
+            throw new PeticionInvalidaException("PASSWORD_REQUERIDA", "La contraseña es obligatoria al crear un usuario");
         }
 
         // Crear nuevo usuario
@@ -154,14 +158,14 @@ public class UsuarioService {
     @Transactional
     public UsuarioResponse updateUser(Long id, UsuarioRequest request) {
         Usuario user = usuarioRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("USUARIO_NO_ENCONTRADO", "Usuario no encontrado con ID: " + id));
 
         String usuarioNormalizado = request.getUsuario().trim().toLowerCase();
 
         // Validar usuario único (si cambió)
         if (!user.getUsuario().equals(usuarioNormalizado) &&
             usuarioRepository.existsByUsuario(usuarioNormalizado)) {
-            throw new RuntimeException("El usuario ya está registrado: " + usuarioNormalizado);
+            throw new ConflictoEstadoException("USUARIO_DUPLICADO", "El usuario ya está registrado: " + usuarioNormalizado);
         }
 
         Role nuevoRol = resolverRol(request.getRole());
@@ -201,7 +205,7 @@ public class UsuarioService {
     @Transactional
     public void deleteUser(Long id) {
         Usuario user = usuarioRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("USUARIO_NO_ENCONTRADO", "Usuario no encontrado con ID: " + id));
 
         // Desactivar en lugar de eliminar
         validarQuedeUnAdminActivo(user, false);
@@ -218,7 +222,7 @@ public class UsuarioService {
     @Transactional
     public UsuarioResponse toggleUserStatus(Long id) {
         Usuario user = usuarioRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("USUARIO_NO_ENCONTRADO", "Usuario no encontrado con ID: " + id));
 
         boolean nuevoActivo = !user.getActivo();
         validarQuedeUnAdminActivo(user, nuevoActivo);

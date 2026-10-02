@@ -2,11 +2,9 @@ package com.mitienda.ecommerce.controllers;
 
 import com.mitienda.ecommerce.dto.AuthResponse;
 import com.mitienda.ecommerce.dto.LoginRequest;
+import com.mitienda.ecommerce.exception.CredencialesInvalidasException;
 import com.mitienda.ecommerce.services.AuthService;
 import jakarta.validation.Valid;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
@@ -19,8 +17,6 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/auth")
 @CrossOrigin(origins = "http://localhost:3000")
 public class AuthController {
-
-    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
 
     private final AuthService authService;
 
@@ -53,16 +49,11 @@ public class AuthController {
             return ResponseEntity.ok(response);
         } catch (AuthenticationException e) {
             // Único caso que realmente son credenciales inválidas: usuario
-            // inexistente, contraseña incorrecta o cuenta desactivada.
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Credenciales inválidas");
-        } catch (RuntimeException e) {
-            // Cualquier otra excepción (base de datos caída, columna que no
-            // coincide con la entidad, etc.) NO es un problema de credenciales.
-            // Antes se devolvía "Credenciales inválidas" para todo, lo que
-            // ocultaba la causa real y volvía imposible diagnosticar.
-            log.error("Error no relacionado con credenciales durante el login", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error interno al iniciar sesión: " + e.getMessage());
+            // inexistente, contraseña incorrecta o cuenta desactivada. Cualquier
+            // otra excepción (base de datos caída, columna que no coincide con la
+            // entidad, etc.) NO es un problema de credenciales: sigue de largo y el
+            // manejador global la registra y responde 500.
+            throw new CredencialesInvalidasException();
         }
     }
 }

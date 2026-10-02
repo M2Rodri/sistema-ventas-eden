@@ -1,5 +1,7 @@
 package com.mitienda.ecommerce.services;
 
+import com.mitienda.ecommerce.exception.ConflictoEstadoException;
+import com.mitienda.ecommerce.exception.RecursoNoEncontradoException;
 import com.mitienda.ecommerce.dto.ClienteRequest;
 import com.mitienda.ecommerce.dto.ClienteResponse;
 import com.mitienda.ecommerce.dto.ClienteConEstadisticasResponse;
@@ -94,7 +96,7 @@ public class ClienteService {
     @Transactional(readOnly = true)
     public ClienteResponse getClienteById(Long id) {
         Cliente cliente = clienteRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Cliente no encontrado con ID: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("CLIENTE_NO_ENCONTRADO", "Cliente no encontrado con ID: " + id));
         return new ClienteResponse(cliente);
     }
 
@@ -104,7 +106,7 @@ public class ClienteService {
     @Transactional(readOnly = true)
     public ClienteResponse getClienteByCorreo(String email) {
         Cliente cliente = clienteRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Cliente no encontrado con email: " + email));
+                .orElseThrow(() -> new RecursoNoEncontradoException("CLIENTE_NO_ENCONTRADO", "Cliente no encontrado con email: " + email));
         return new ClienteResponse(cliente);
     }
 
@@ -116,13 +118,13 @@ public class ClienteService {
         // Validar que el email no exista (si se proporcionó)
         if (request.getEmail() != null && !request.getEmail().isEmpty() 
             && clienteRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Ya existe un cliente con el email: " + request.getEmail());
+            throw new ConflictoEstadoException("EMAIL_DUPLICADO", "Ya existe un cliente con el email: " + request.getEmail());
         }
 
         // Validar NIT/CI único (si se proporcionó)
         if (request.getNitCi() != null && !request.getNitCi().isEmpty()
             && clienteRepository.findByNitCi(request.getNitCi()).isPresent()) {
-            throw new RuntimeException("El NIT o CI ya está registrado para otro cliente");
+            throw new ConflictoEstadoException("NIT_CI_DUPLICADO", "El NIT o CI ya está registrado para otro cliente");
         }
 
         Cliente cliente = new Cliente();
@@ -149,13 +151,13 @@ public class ClienteService {
     @Transactional
     public ClienteResponse updateCliente(Long id, ClienteRequest request) {
         Cliente cliente = clienteRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Cliente no encontrado con ID: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("CLIENTE_NO_ENCONTRADO", "Cliente no encontrado con ID: " + id));
 
         // Validar email único (si cambió y no es nulo)
         if (request.getEmail() != null && !request.getEmail().isEmpty()
             && !request.getEmail().equals(cliente.getEmail())
             && clienteRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Ya existe un cliente con el email: " + request.getEmail());
+            throw new ConflictoEstadoException("EMAIL_DUPLICADO", "Ya existe un cliente con el email: " + request.getEmail());
         }
 
         // Validar NIT/CI único (si cambió y no es nulo)
@@ -163,7 +165,7 @@ public class ClienteService {
             && !request.getNitCi().equals(cliente.getNitCi())) {
             clienteRepository.findByNitCi(request.getNitCi()).ifPresent(c -> {
                 if (!c.getId().equals(id)) {
-                    throw new RuntimeException("El NIT o CI ya está registrado para otro cliente");
+                    throw new ConflictoEstadoException("NIT_CI_DUPLICADO", "El NIT o CI ya está registrado para otro cliente");
                 }
             });
         }
@@ -219,7 +221,7 @@ public class ClienteService {
     @Transactional(readOnly = true)
     public HistorialComprasResponse getHistorialCompras(Long clienteId) {
         Cliente cliente = clienteRepository.findById(clienteId)
-                .orElseThrow(() -> new RuntimeException("Cliente no encontrado con ID: " + clienteId));
+                .orElseThrow(() -> new RecursoNoEncontradoException("CLIENTE_NO_ENCONTRADO", "Cliente no encontrado con ID: " + clienteId));
 
         List<Venta> ventas = ventaRepository.findByClienteIdOrderByFechaVentaDesc(clienteId);
 
@@ -233,7 +235,7 @@ public class ClienteService {
     @Transactional(readOnly = true)
     public HistorialComprasResponse getHistorialComprasFiltrado(Long clienteId, LocalDateTime inicio, LocalDateTime fin) {
         Cliente cliente = clienteRepository.findById(clienteId)
-                .orElseThrow(() -> new RuntimeException("Cliente no encontrado con ID: " + clienteId));
+                .orElseThrow(() -> new RecursoNoEncontradoException("CLIENTE_NO_ENCONTRADO", "Cliente no encontrado con ID: " + clienteId));
 
         List<Venta> todasVentas = ventaRepository.findByClienteIdOrderByFechaVentaDesc(clienteId);
         List<Venta> ventasFiltradas = todasVentas.stream()

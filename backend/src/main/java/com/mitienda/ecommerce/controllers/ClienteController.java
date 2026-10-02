@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Controlador REST para gestión de clientes
@@ -69,13 +68,8 @@ public class ClienteController {
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLEADO')")
     public ResponseEntity<?> getClienteById(@PathVariable Long id) {
-        try {
-            ClienteResponse cliente = clienteService.getClienteById(id);
-            return ResponseEntity.ok(cliente);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        ClienteResponse cliente = clienteService.getClienteById(id);
+        return ResponseEntity.ok(cliente);
     }
 
     /**
@@ -90,13 +84,8 @@ public class ClienteController {
      */
     @PostMapping
     public ResponseEntity<?> createCliente(@Valid @RequestBody ClienteRequest request) {
-        try {
-            ClienteResponse createdCliente = clienteService.createCliente(request);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdCliente);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        ClienteResponse createdCliente = clienteService.createCliente(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdCliente);
     }
 
     /**
@@ -108,13 +97,8 @@ public class ClienteController {
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLEADO')")
     public ResponseEntity<?> updateCliente(@PathVariable Long id, 
                                           @Valid @RequestBody ClienteRequest request) {
-        try {
-            ClienteResponse updatedCliente = clienteService.updateCliente(id, request);
-            return ResponseEntity.ok(updatedCliente);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        ClienteResponse updatedCliente = clienteService.updateCliente(id, request);
+        return ResponseEntity.ok(updatedCliente);
     }
 
     /**
@@ -137,13 +121,8 @@ public class ClienteController {
     @GetMapping("/{id}/historial-compras")
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLEADO')")
     public ResponseEntity<?> getHistorialCompras(@PathVariable Long id) {
-        try {
-            HistorialComprasResponse historial = clienteService.getHistorialCompras(id);
-            return ResponseEntity.ok(historial);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        HistorialComprasResponse historial = clienteService.getHistorialCompras(id);
+        return ResponseEntity.ok(historial);
     }
 
     /**
@@ -157,12 +136,7 @@ public class ClienteController {
             @PathVariable Long id,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime inicio,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fin) {
-        try {
-            HistorialComprasResponse historial = clienteService.getHistorialComprasFiltrado(id, inicio, fin);
-            return ResponseEntity.ok(historial);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        HistorialComprasResponse historial = clienteService.getHistorialComprasFiltrado(id, inicio, fin);
+        return ResponseEntity.ok(historial);
     }
 }

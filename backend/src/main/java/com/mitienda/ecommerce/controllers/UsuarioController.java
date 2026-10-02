@@ -52,13 +52,8 @@ public class UsuarioController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<?> getUserById(@PathVariable Long id) {
-        try {
-            UsuarioResponse user = usuarioService.getUserById(id);
-            return ResponseEntity.ok(user);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        UsuarioResponse user = usuarioService.getUserById(id);
+        return ResponseEntity.ok(user);
     }
 
     /**
@@ -67,13 +62,8 @@ public class UsuarioController {
      */
     @PostMapping
     public ResponseEntity<?> createUser(@Valid @RequestBody UsuarioRequest request) {
-        try {
-            UsuarioResponse createdUser = usuarioService.createUser(request);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        UsuarioResponse createdUser = usuarioService.createUser(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
     }
 
     /**
@@ -83,13 +73,8 @@ public class UsuarioController {
     @PutMapping("/{id}")
     public ResponseEntity<?> updateUser(@PathVariable Long id, 
                                        @Valid @RequestBody UsuarioRequest request) {
-        try {
-            UsuarioResponse updatedUser = usuarioService.updateUser(id, request);
-            return ResponseEntity.ok(updatedUser);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        UsuarioResponse updatedUser = usuarioService.updateUser(id, request);
+        return ResponseEntity.ok(updatedUser);
     }
 
     /**
@@ -98,13 +83,8 @@ public class UsuarioController {
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable Long id) {
-        try {
-            usuarioService.deleteUser(id);
-            return ResponseEntity.ok(Map.of("message", "Usuario desactivado correctamente"));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        usuarioService.deleteUser(id);
+        return ResponseEntity.ok(Map.of("message", "Usuario desactivado correctamente"));
     }
 
     /**
@@ -113,13 +93,8 @@ public class UsuarioController {
      */
     @PatchMapping("/{id}/toggle-status")
     public ResponseEntity<?> toggleUserStatus(@PathVariable Long id) {
-        try {
-            UsuarioResponse user = usuarioService.toggleUserStatus(id);
-            return ResponseEntity.ok(user);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        UsuarioResponse user = usuarioService.toggleUserStatus(id);
+        return ResponseEntity.ok(user);
     }
 
     /**
