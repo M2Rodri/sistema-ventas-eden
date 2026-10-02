@@ -69,7 +69,7 @@ public class InventarioService {
     }
 
     /**
-     * GET /api/inventario y sus variantes las puede llamar EMPLEADO.
+     * GET /api/v1/inventario y sus variantes las puede llamar EMPLEADO.
      * precioCompra no debe llegarle: el rol EMPLEADO existe justamente
      * para no ver costos ni margenes.
      */

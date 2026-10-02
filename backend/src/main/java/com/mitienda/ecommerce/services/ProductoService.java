@@ -69,7 +69,7 @@ public class ProductoService {
     }
 
     /**
-     * GET /api/productos y sus variantes son de lectura publica (los usa la
+     * GET /api/v1/productos y sus variantes son de lectura publica (los usa la
      * tienda sin login) o EMPLEADO. Ninguno de los dos debe recibir
      * precioCompra: el rol EMPLEADO existe justamente para no ver
      * costos, y un visitante anonimo mucho menos.

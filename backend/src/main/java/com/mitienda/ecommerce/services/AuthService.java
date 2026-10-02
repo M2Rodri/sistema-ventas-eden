@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
  * Solo maneja el login. El registro público se eliminó: la tienda web es una
  * vitrina sin inicio de sesión, así que los únicos usuarios del sistema son el
  * dueño y los vendedores, y las altas las hace el ADMIN desde la gestión de
- * usuarios. Dejar abierto /api/auth/register habría permitido que cualquiera
+ * usuarios. Dejar abierto /api/v1/auth/register habría permitido que cualquiera
  * se creara una cuenta contra la API.
  */
 @Service

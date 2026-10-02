@@ -10,9 +10,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Producto activo con precio y stock juntos, para GET /api/inventario/catalogo.
+ * Producto activo con precio y stock juntos, para GET /api/v1/inventario/catalogo.
  *
- * Antes la app móvil pedía /api/productos/activos y /api/inventario por
+ * Antes la app móvil pedía /api/v1/productos/activos y /api/v1/inventario por
  * separado y los cruzaba en el cliente. Este DTO es ese cruce hecho en el
  * servidor, en una sola consulta (ver InventarioRepository#findCatalogoApp).
  */

@@ -67,7 +67,7 @@ public class UsuarioActualService {
     /**
      * True solo si quien hace la petición es ADMIN. False para EMPLEADO y
      * para cualquiera sin sesión (incluida la tienda pública, que lee
-     * /api/productos sin login).
+     * /api/v1/productos sin login).
      *
      * Se usa para no incluir precioCompra (ni nada calculado a partir de
      * él, como el valor total del inventario) en respuestas que un EMPLEADO
