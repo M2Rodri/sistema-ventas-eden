@@ -2,10 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Bell, AlertTriangle, Mail, RefreshCw } from 'lucide-react';
-import { getAlertasPendientes, getMensajesContacto } from '@/lib/api';
+import { Bell, AlertTriangle, RefreshCw } from 'lucide-react';
+import { getAlertasPendientes } from '@/lib/api';
 import { AlertaInventario } from '@/types/inventario';
-import { MensajeContacto } from '@/lib/api';
 
 /**
  * Campana de notificaciones.
@@ -13,14 +12,11 @@ import { MensajeContacto } from '@/lib/api';
  * Antes era un botón sin comportamiento con un punto rojo escrito en el HTML:
  * siempre parecía haber avisos sin leer, y al hacer clic no pasaba nada.
  *
- * Ahora muestra las dos cosas del sistema que realmente reclaman atención de
- * quien administra, y que hasta hoy solo se veían entrando a la pantalla
- * correspondiente:
+ * Ahora muestra lo que reclama atención de quien administra y que hasta hoy
+ * solo se veía entrando a la pantalla correspondiente: los productos por
+ * debajo del stock mínimo (alertas_inventario).
  *
- *   - Productos por debajo del stock mínimo (alertas_inventario).
- *   - Consultas de la tienda que nadie atendió todavía (mensajes_contacto).
- *
- * Si no hay ninguna, no se pinta el punto rojo. Un indicador que está siempre
+ * Si no hay ninguno, no se pinta el punto rojo. Un indicador que está siempre
  * encendido deja de significar algo.
  */
 
@@ -29,40 +25,26 @@ const INTERVALO_REFRESCO = 60_000;
 
 export default function NotificacionesMenu() {
   const [alertas, setAlertas] = useState<AlertaInventario[]>([]);
-  const [mensajes, setMensajes] = useState<MensajeContacto[]>([]);
   const [abierto, setAbierto] = useState(false);
   const [cargando, setCargando] = useState(true);
   const contenedor = useRef<HTMLDivElement>(null);
 
   const cargar = async () => {
     setCargando(true);
-    // allSettled: si se cae uno de los dos endpoints, el otro tipo de aviso
-    // igual se muestra. Los errores no se le cantan al usuario porque esto es
-    // un accesorio de la cabecera, no la pantalla que vino a usar.
-    const [rAlertas, rMensajes] = await Promise.allSettled([
-      getAlertasPendientes(),
-      getMensajesContacto(),
-    ]);
-
-    if (rAlertas.status === 'fulfilled') {
-      setAlertas(rAlertas.value);
-    } else {
-      console.error('No se pudieron cargar las alertas de stock:', rAlertas.reason);
+    // Los errores no se le cantan al usuario porque esto es un accesorio de la
+    // cabecera, no la pantalla que vino a usar.
+    try {
+      setAlertas(await getAlertasPendientes());
+    } catch (error) {
+      console.error('No se pudieron cargar las alertas de stock:', error);
     }
-
-    if (rMensajes.status === 'fulfilled') {
-      setMensajes(rMensajes.value.filter((m) => !m.atendido));
-    } else {
-      console.error('No se pudieron cargar los mensajes de contacto:', rMensajes.reason);
-    }
-
     setCargando(false);
   };
 
   useEffect(() => {
     cargar();
-    // Se relee cada tanto para que una consulta que entra por la tienda aparezca
-    // sin obligar a recargar la página.
+    // Se relee cada tanto para que una alerta nueva aparezca sin obligar a
+    // recargar la página.
     const temporizador = setInterval(cargar, INTERVALO_REFRESCO);
     return () => clearInterval(temporizador);
   }, []);
@@ -79,7 +61,7 @@ export default function NotificacionesMenu() {
     return () => document.removeEventListener('mousedown', alClicar);
   }, [abierto]);
 
-  const total = alertas.length + mensajes.length;
+  const total = alertas.length;
 
   const formatearFecha = (fecha: string) =>
     new Date(fecha).toLocaleString('es-BO', {
@@ -128,61 +110,32 @@ export default function NotificacionesMenu() {
                 <p className="text-sm text-gray-500">No hay nada pendiente</p>
               </div>
             ) : (
-              <>
-                {alertas.length > 0 && (
-                  <div>
-                    <p className="bg-yellow-50 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-yellow-800">
-                      Stock bajo ({alertas.length})
-                    </p>
-                    {alertas.map((a) => (
-                      <Link
-                        key={`alerta-${a.id}`}
-                        href={`/dashboard/inventario?producto=${a.idProducto}`}
-                        onClick={() => setAbierto(false)}
-                        className="flex gap-3 border-b border-gray-100 px-4 py-3 transition-colors hover:bg-gray-50"
-                      >
-                        <AlertTriangle size={18} className="mt-0.5 flex-shrink-0 text-yellow-600" />
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-gray-900">
-                            {a.nombreProducto}
-                          </p>
-                          <p className="text-xs text-gray-600">
-                            Quedan {a.cantidadActual} y el mínimo es {a.cantidadMinima}
-                          </p>
-                          <p className="mt-0.5 text-xs text-gray-400">
-                            {formatearFecha(a.fechaAlerta)}
-                          </p>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                )}
-
-                {mensajes.length > 0 && (
-                  <div>
-                    <p className="bg-blue-50 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-blue-800">
-                      Consultas sin responder ({mensajes.length})
-                    </p>
-                    {mensajes.map((m) => (
-                      <Link
-                        key={`mensaje-${m.id}`}
-                        href="/dashboard/configuracion?tab=mensajes"
-                        onClick={() => setAbierto(false)}
-                        className="flex gap-3 border-b border-gray-100 px-4 py-3 transition-colors hover:bg-gray-50"
-                      >
-                        <Mail size={18} className="mt-0.5 flex-shrink-0 text-blue-600" />
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-gray-900">{m.asunto}</p>
-                          <p className="truncate text-xs text-gray-600">De {m.nombre}</p>
-                          <p className="mt-0.5 text-xs text-gray-400">
-                            {formatearFecha(m.fechaEnvio)}
-                          </p>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </>
+              <div>
+                <p className="bg-yellow-50 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-yellow-800">
+                  Stock bajo ({alertas.length})
+                </p>
+                {alertas.map((a) => (
+                  <Link
+                    key={`alerta-${a.id}`}
+                    href={`/dashboard/inventario?producto=${a.idProducto}`}
+                    onClick={() => setAbierto(false)}
+                    className="flex gap-3 border-b border-gray-100 px-4 py-3 transition-colors hover:bg-gray-50"
+                  >
+                    <AlertTriangle size={18} className="mt-0.5 flex-shrink-0 text-yellow-600" />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-gray-900">
+                        {a.nombreProducto}
+                      </p>
+                      <p className="text-xs text-gray-600">
+                        Quedan {a.cantidadActual} y el mínimo es {a.cantidadMinima}
+                      </p>
+                      <p className="mt-0.5 text-xs text-gray-400">
+                        {formatearFecha(a.fechaAlerta)}
+                      </p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
             )}
           </div>
         </div>
