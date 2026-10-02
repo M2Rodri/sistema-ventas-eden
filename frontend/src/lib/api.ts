@@ -1,6 +1,7 @@
 // Servicio de API para conectar con el backend Spring Boot
 import { ImagenProducto } from '@/types/imagenProducto';
 import { esPorEntregar } from '@/lib/entrega';
+import { errorDeRespuesta } from '@/lib/errores';
 export const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL ?? 'https://backend-sistema-ventas-production-d0a4.up.railway.app';
 // Todas las rutas de la API van con la versión: /api/v1/...
@@ -136,7 +137,7 @@ export const getAllUsers = async (): Promise<User[]> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener usuarios');
+    throw await errorDeRespuesta(response, 'Error al obtener usuarios');
   }
 
   return response.json();
@@ -149,7 +150,7 @@ export const getUserById = async (id: number): Promise<User> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener usuario');
+    throw await errorDeRespuesta(response, 'Error al obtener usuario');
   }
 
   return response.json();
@@ -164,8 +165,7 @@ export const createUser = async (data: UserRequest): Promise<User> => {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al crear usuario');
+    throw await errorDeRespuesta(response, 'Error al crear usuario');
   }
 
   return response.json();
@@ -180,8 +180,7 @@ export const updateUser = async (id: number, data: UserRequest): Promise<User> =
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al actualizar usuario');
+    throw await errorDeRespuesta(response, 'Error al actualizar usuario');
   }
 
   return response.json();
@@ -195,8 +194,7 @@ export const deleteUser = async (id: number): Promise<void> => {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al eliminar usuario');
+    throw await errorDeRespuesta(response, 'Error al eliminar usuario');
   }
 };
 
@@ -208,8 +206,7 @@ export const toggleUserStatus = async (id: number): Promise<User> => {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al cambiar estado del usuario');
+    throw await errorDeRespuesta(response, 'Error al cambiar estado del usuario');
   }
 
   return response.json();
@@ -222,7 +219,7 @@ export const getUsersByRole = async (role: string): Promise<User[]> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al filtrar usuarios');
+    throw await errorDeRespuesta(response, 'Error al filtrar usuarios');
   }
 
   return response.json();
@@ -235,7 +232,7 @@ export const getUserStatistics = async () => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener estadísticas');
+    throw await errorDeRespuesta(response, 'Error al obtener estadísticas');
   }
 
   return response.json();
@@ -253,7 +250,7 @@ export const getAllCategorias = async (): Promise<Categoria[]> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener categorías');
+    throw await errorDeRespuesta(response, 'Error al obtener categorías');
   }
 
   return response.json();
@@ -266,7 +263,7 @@ export const getActiveCategorias = async (): Promise<Categoria[]> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener categorías activas');
+    throw await errorDeRespuesta(response, 'Error al obtener categorías activas');
   }
 
   return response.json();
@@ -281,8 +278,7 @@ export const createCategoria = async (data: { nombre: string; descripcion?: stri
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al crear categoría');
+    throw await errorDeRespuesta(response, 'Error al crear categoría');
   }
 
   return response.json();
@@ -297,8 +293,7 @@ export const updateCategoria = async (id: number, data: { nombre: string; descri
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al actualizar categoría');
+    throw await errorDeRespuesta(response, 'Error al actualizar categoría');
   }
 
   return response.json();
@@ -312,7 +307,7 @@ export const deleteCategoria = async (id: number): Promise<void> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al eliminar categoría');
+    throw await errorDeRespuesta(response, 'Error al eliminar categoría');
   }
 };
 
@@ -324,7 +319,7 @@ export const toggleCategoriaStatus = async (id: number): Promise<Categoria> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al cambiar estado de la categoría');
+    throw await errorDeRespuesta(response, 'Error al cambiar estado de la categoría');
   }
 
   return response.json();
@@ -343,22 +338,7 @@ export const getAllProductos = async (): Promise<Producto[]> => {
   });
 
   if (!response.ok) {
-    // Leemos el cuerpo del error como texto
-    const errorBody = await response.text(); // ✅ Esperamos a que se resuelva la promesa
-    let errorMessage = 'Error al obtener productos';
-
-    if (errorBody) {
-      try {
-        // Intentamos parsear el cuerpo como JSON para obtener un mensaje amigable
-        const errorJson = JSON.parse(errorBody);
-        errorMessage = errorJson.error || errorMessage; // Usamos el mensaje del backend o el genérico
-      } catch (e) {
-        // Si no es JSON, usamos el texto plano como mensaje
-        errorMessage = errorBody;
-      }
-    }
-
-    throw new Error(errorMessage);
+    throw await errorDeRespuesta(response, 'Error al obtener productos');
   }
 
   // Si la respuesta es exitosa, leemos el cuerpo como texto
@@ -383,7 +363,7 @@ export const getActiveProductos = async (): Promise<Producto[]> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener productos activos');
+    throw await errorDeRespuesta(response, 'Error al obtener productos activos');
   }
 
   return response.json();
@@ -396,7 +376,7 @@ export const getProductoById = async (id: number): Promise<Producto> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener producto');
+    throw await errorDeRespuesta(response, 'Error al obtener producto');
   }
 
   return response.json();
@@ -409,7 +389,7 @@ export const getProductoBySku = async (sku: string): Promise<Producto> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener producto por SKU');
+    throw await errorDeRespuesta(response, 'Error al obtener producto por SKU');
   }
 
   return response.json();
@@ -424,8 +404,7 @@ export const createProducto = async (data: ProductoRequest): Promise<Producto> =
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al crear producto');
+    throw await errorDeRespuesta(response, 'Error al crear producto');
   }
 
   return response.json();
@@ -440,8 +419,7 @@ export const updateProducto = async (id: number, data: ProductoRequest): Promise
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al actualizar producto');
+    throw await errorDeRespuesta(response, 'Error al actualizar producto');
   }
 
   return response.json();
@@ -455,7 +433,7 @@ export const deleteProducto = async (id: number): Promise<void> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al eliminar producto');
+    throw await errorDeRespuesta(response, 'Error al eliminar producto');
   }
 };
 
@@ -467,7 +445,7 @@ export const toggleProductoStatus = async (id: number): Promise<Producto> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al cambiar estado del producto');
+    throw await errorDeRespuesta(response, 'Error al cambiar estado del producto');
   }
 
   return response.json();
@@ -480,7 +458,7 @@ export const getProductosByCategoria = async (categoriaId: number): Promise<Prod
   });
 
   if (!response.ok) {
-    throw new Error('Error al filtrar productos por categoría');
+    throw await errorDeRespuesta(response, 'Error al filtrar productos por categoría');
   }
 
   return response.json();
@@ -494,7 +472,7 @@ export const searchProductos = async (nombre: string): Promise<Producto[]> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al buscar productos');
+    throw await errorDeRespuesta(response, 'Error al buscar productos');
   }
 
   return response.json();
@@ -519,7 +497,7 @@ export const getAllInventario = async (): Promise<Inventario[]> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener inventario');
+    throw await errorDeRespuesta(response, 'Error al obtener inventario');
   }
 
   return response.json();
@@ -532,7 +510,7 @@ export const getInventarioById = async (id: number): Promise<Inventario> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener inventario');
+    throw await errorDeRespuesta(response, 'Error al obtener inventario');
   }
 
   return response.json();
@@ -545,7 +523,7 @@ export const getInventarioByProducto = async (idProducto: number): Promise<Inven
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener inventario del producto');
+    throw await errorDeRespuesta(response, 'Error al obtener inventario del producto');
   }
 
   return response.json();
@@ -560,8 +538,7 @@ export const createInventario = async (data: InventarioRequest): Promise<Inventa
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al crear inventario');
+    throw await errorDeRespuesta(response, 'Error al crear inventario');
   }
 
   return response.json();
@@ -576,8 +553,7 @@ export const updateInventario = async (id: number, data: InventarioRequest): Pro
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al actualizar inventario');
+    throw await errorDeRespuesta(response, 'Error al actualizar inventario');
   }
 
   return response.json();
@@ -592,8 +568,7 @@ export const ajustarInventario = async (data: MovimientoInventarioRequest): Prom
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al ajustar inventario');
+    throw await errorDeRespuesta(response, 'Error al ajustar inventario');
   }
 
   return response.json();
@@ -606,7 +581,7 @@ export const getHistorialAjustes = async (idProducto: number): Promise<Movimient
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener historial de ajustes');
+    throw await errorDeRespuesta(response, 'Error al obtener historial de ajustes');
   }
 
   return response.json();
@@ -619,7 +594,7 @@ export const getUltimosAjustes = async (): Promise<MovimientoInventario[]> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener últimos ajustes');
+    throw await errorDeRespuesta(response, 'Error al obtener últimos ajustes');
   }
 
   return response.json();
@@ -632,7 +607,7 @@ export const getProductosConStockBajo = async (): Promise<Inventario[]> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener productos con stock bajo');
+    throw await errorDeRespuesta(response, 'Error al obtener productos con stock bajo');
   }
 
   return response.json();
@@ -645,7 +620,7 @@ export const getProductosSinStock = async (): Promise<Inventario[]> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener productos sin stock');
+    throw await errorDeRespuesta(response, 'Error al obtener productos sin stock');
   }
 
   return response.json();
@@ -658,7 +633,7 @@ export const verificarDisponibilidad = async (idProducto: number, cantidad: numb
   });
 
   if (!response.ok) {
-    throw new Error('Error al verificar disponibilidad');
+    throw await errorDeRespuesta(response, 'Error al verificar disponibilidad');
   }
 
   return response.json();
@@ -671,7 +646,7 @@ export const getAlertasPendientes = async (): Promise<AlertaInventario[]> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener alertas pendientes');
+    throw await errorDeRespuesta(response, 'Error al obtener alertas pendientes');
   }
 
   return response.json();
@@ -684,7 +659,7 @@ export const getInventarioStatistics = async () => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener estadísticas de inventario');
+    throw await errorDeRespuesta(response, 'Error al obtener estadísticas de inventario');
   }
 
   return response.json();
@@ -713,7 +688,7 @@ export const getAllVentas = async (): Promise<Venta[]> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener ventas');
+    throw await errorDeRespuesta(response, 'Error al obtener ventas');
   }
 
   return response.json();
@@ -728,7 +703,7 @@ export const getVentaById = async (id: number): Promise<Venta> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener venta');
+    throw await errorDeRespuesta(response, 'Error al obtener venta');
   }
 
   return response.json();
@@ -748,8 +723,7 @@ export const createVentaDirecta = async (
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al crear venta');
+    throw await errorDeRespuesta(response, 'Error al crear venta');
   }
 
   return response.json();
@@ -766,8 +740,7 @@ export const cancelarVenta = async (id: number): Promise<Venta> => {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al cancelar venta');
+    throw await errorDeRespuesta(response, 'Error al cancelar venta');
   }
 
   return response.json();
@@ -784,8 +757,7 @@ export const marcarVentaEntregada = async (id: number): Promise<Venta> => {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al marcar la venta como entregada');
+    throw await errorDeRespuesta(response, 'Error al marcar la venta como entregada');
   }
 
   return response.json();
@@ -801,8 +773,7 @@ export const deshacerEntregaVenta = async (id: number): Promise<Venta> => {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al corregir la entrega');
+    throw await errorDeRespuesta(response, 'Error al corregir la entrega');
   }
 
   return response.json();
@@ -823,8 +794,7 @@ export const actualizarDatosEntrega = async (
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al guardar los datos de entrega');
+    throw await errorDeRespuesta(response, 'Error al guardar los datos de entrega');
   }
 
   return response.json();
@@ -844,8 +814,7 @@ export const adjuntarComprobantePago = async (idPago: number, file: File): Promi
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al subir el comprobante');
+    throw await errorDeRespuesta(response, 'Error al subir el comprobante');
   }
 
   return response.json();
@@ -860,7 +829,7 @@ export const getVentasByCliente = async (clienteId: number): Promise<Venta[]> =>
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener ventas del cliente');
+    throw await errorDeRespuesta(response, 'Error al obtener ventas del cliente');
   }
 
   return response.json();
@@ -875,7 +844,7 @@ export const getVentasByEstado = async (estado: string): Promise<Venta[]> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al filtrar ventas por estado');
+    throw await errorDeRespuesta(response, 'Error al filtrar ventas por estado');
   }
 
   return response.json();
@@ -890,7 +859,7 @@ export const getVentasDelDia = async (): Promise<Venta[]> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener ventas del día');
+    throw await errorDeRespuesta(response, 'Error al obtener ventas del día');
   }
 
   return response.json();
@@ -905,7 +874,7 @@ export const getUltimasVentas = async (): Promise<Venta[]> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener últimas ventas');
+    throw await errorDeRespuesta(response, 'Error al obtener últimas ventas');
   }
 
   return response.json();
@@ -923,7 +892,7 @@ export const getVentasByFechas = async (inicio: string, fin: string): Promise<Ve
   );
 
   if (!response.ok) {
-    throw new Error('Error al filtrar ventas por fecha');
+    throw await errorDeRespuesta(response, 'Error al filtrar ventas por fecha');
   }
 
   return response.json();
@@ -941,7 +910,7 @@ export const getTotalVentasByFechas = async (inicio: string, fin: string): Promi
   );
 
   if (!response.ok) {
-    throw new Error('Error al obtener total de ventas');
+    throw await errorDeRespuesta(response, 'Error al obtener total de ventas');
   }
 
   const data = await response.json();
@@ -958,7 +927,7 @@ export const getVentasEstadisticas = async (): Promise<VentaEstadisticas> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener estadísticas de ventas');
+    throw await errorDeRespuesta(response, 'Error al obtener estadísticas de ventas');
   }
 
   const data = await response.json();
@@ -1024,7 +993,7 @@ export const getAllClientes = async (): Promise<ClienteResponse[]> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener clientes');
+    throw await errorDeRespuesta(response, 'Error al obtener clientes');
   }
 
   return response.json();
@@ -1039,7 +1008,7 @@ export const getClienteById = async (id: number): Promise<ClienteResponse> => {
   });
 
   if (!response.ok) {
-    throw new Error('Cliente no encontrado');
+    throw await errorDeRespuesta(response, 'Cliente no encontrado');
   }
 
   return response.json();
@@ -1056,8 +1025,7 @@ export const createCliente = async (request: ClienteRequest): Promise<ClienteRes
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al crear cliente');
+    throw await errorDeRespuesta(response, 'Error al crear cliente');
   }
 
   return response.json();
@@ -1078,8 +1046,7 @@ export const updateCliente = async (
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al actualizar cliente');
+    throw await errorDeRespuesta(response, 'Error al actualizar cliente');
   }
 
   return response.json();
@@ -1098,7 +1065,7 @@ export const searchClientes = async (query: string): Promise<ClienteResponse[]> 
   );
 
   if (!response.ok) {
-    throw new Error('Error al buscar clientes');
+    throw await errorDeRespuesta(response, 'Error al buscar clientes');
   }
 
   return response.json();
@@ -1114,7 +1081,7 @@ export const getHistorialCompras = async (clienteId: number): Promise<HistorialC
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener historial de compras');
+    throw await errorDeRespuesta(response, 'Error al obtener historial de compras');
   }
 
   return response.json();
@@ -1139,7 +1106,7 @@ export const getHistorialComprasFiltrado = async (
   );
 
   if (!response.ok) {
-    throw new Error('Error al obtener historial filtrado');
+    throw await errorDeRespuesta(response, 'Error al obtener historial filtrado');
   }
 
   return response.json();
@@ -1159,7 +1126,7 @@ export const getClientesConEstadisticas = async (): Promise<ClienteConEstadistic
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener clientes con estadísticas');
+    throw await errorDeRespuesta(response, 'Error al obtener clientes con estadísticas');
   }
 
   return response.json();
@@ -1185,7 +1152,7 @@ export const getAllProveedores = async (): Promise<Proveedor[]> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener proveedores');
+    throw await errorDeRespuesta(response, 'Error al obtener proveedores');
   }
 
   return response.json();
@@ -1198,7 +1165,7 @@ export const getActiveProveedores = async (): Promise<Proveedor[]> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener proveedores activos');
+    throw await errorDeRespuesta(response, 'Error al obtener proveedores activos');
   }
 
   return response.json();
@@ -1211,7 +1178,7 @@ export const getProveedorById = async (id: number): Promise<Proveedor> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener proveedor');
+    throw await errorDeRespuesta(response, 'Error al obtener proveedor');
   }
 
   return response.json();
@@ -1226,8 +1193,7 @@ export const createProveedor = async (data: ProveedorRequest): Promise<Proveedor
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al crear proveedor');
+    throw await errorDeRespuesta(response, 'Error al crear proveedor');
   }
 
   return response.json();
@@ -1242,8 +1208,7 @@ export const updateProveedor = async (id: number, data: ProveedorRequest): Promi
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al actualizar proveedor');
+    throw await errorDeRespuesta(response, 'Error al actualizar proveedor');
   }
 
   return response.json();
@@ -1258,7 +1223,7 @@ export const toggleProveedorStatus = async (id: number): Promise<Proveedor> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al cambiar estado del proveedor');
+    throw await errorDeRespuesta(response, 'Error al cambiar estado del proveedor');
   }
 
   return response.json();
@@ -1271,7 +1236,7 @@ export const searchProveedores = async (nombre: string): Promise<Proveedor[]> =>
   });
 
   if (!response.ok) {
-    throw new Error('Error al buscar proveedores');
+    throw await errorDeRespuesta(response, 'Error al buscar proveedores');
   }
 
   return response.json();
@@ -1288,7 +1253,7 @@ export const getAllCompras = async (): Promise<Compra[]> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener compras');
+    throw await errorDeRespuesta(response, 'Error al obtener compras');
   }
 
   return response.json();
@@ -1301,7 +1266,7 @@ export const getCompraById = async (id: number): Promise<Compra> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener compra');
+    throw await errorDeRespuesta(response, 'Error al obtener compra');
   }
 
   return response.json();
@@ -1316,8 +1281,7 @@ export const createCompra = async (data: CompraRequest): Promise<Compra> => {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al crear compra');
+    throw await errorDeRespuesta(response, 'Error al crear compra');
   }
 
   return response.json();
@@ -1332,8 +1296,7 @@ export const updateCompra = async (id: number, data: CompraRequest): Promise<Com
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al editar compra');
+    throw await errorDeRespuesta(response, 'Error al editar compra');
   }
 
   return response.json();
@@ -1347,8 +1310,7 @@ export const recibirCompra = async (id: number): Promise<Compra> => {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al recibir compra');
+    throw await errorDeRespuesta(response, 'Error al recibir compra');
   }
 
   return response.json();
@@ -1362,8 +1324,7 @@ export const cancelarCompra = async (id: number): Promise<Compra> => {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al cancelar compra');
+    throw await errorDeRespuesta(response, 'Error al cancelar compra');
   }
 
   return response.json();
@@ -1390,7 +1351,7 @@ export const getAllEnvios = async (): Promise<Envio[]> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener envíos');
+    throw await errorDeRespuesta(response, 'Error al obtener envíos');
   }
 
   return response.json();
@@ -1403,7 +1364,7 @@ export const getEnvioById = async (id: number): Promise<Envio> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener envío');
+    throw await errorDeRespuesta(response, 'Error al obtener envío');
   }
 
   return response.json();
@@ -1417,7 +1378,7 @@ export const getEnvioByVenta = async (idVenta: number): Promise<Envio> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener envío de la venta');
+    throw await errorDeRespuesta(response, 'Error al obtener envío de la venta');
   }
 
   return response.json();
@@ -1428,7 +1389,7 @@ export const getEnvioByGuia = async (guiaRemision: string): Promise<Envio> => {
   const response = await fetch(`${API_URL}/envios/guia/${guiaRemision}`);
 
   if (!response.ok) {
-    throw new Error('Error al obtener envío por guía');
+    throw await errorDeRespuesta(response, 'Error al obtener envío por guía');
   }
 
   return response.json();
@@ -1443,8 +1404,7 @@ export const createEnvio = async (data: EnvioRequest): Promise<Envio> => {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al crear envío');
+    throw await errorDeRespuesta(response, 'Error al crear envío');
   }
 
   return response.json();
@@ -1459,8 +1419,7 @@ export const updateEnvio = async (id: number, data: EnvioRequest): Promise<Envio
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al actualizar envío');
+    throw await errorDeRespuesta(response, 'Error al actualizar envío');
   }
 
   return response.json();
@@ -1474,8 +1433,7 @@ export const cambiarEstadoEnvio = async (id: number, nuevoEstado: string): Promi
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al cambiar estado del envío');
+    throw await errorDeRespuesta(response, 'Error al cambiar estado del envío');
   }
 
   return response.json();
@@ -1489,8 +1447,7 @@ export const marcarEnvioEntregado = async (id: number): Promise<Envio> => {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al marcar envío como entregado');
+    throw await errorDeRespuesta(response, 'Error al marcar envío como entregado');
   }
 
   return response.json();
@@ -1503,7 +1460,7 @@ export const getEnviosByEstado = async (estado: string): Promise<Envio[]> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al filtrar envíos por estado');
+    throw await errorDeRespuesta(response, 'Error al filtrar envíos por estado');
   }
 
   return response.json();
@@ -1516,7 +1473,7 @@ export const getEnviosByTransportadora = async (idTransportadora: number): Promi
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener envíos de la transportadora');
+    throw await errorDeRespuesta(response, 'Error al obtener envíos de la transportadora');
   }
 
   return response.json();
@@ -1529,7 +1486,7 @@ export const getEnviosPendientes = async (): Promise<Envio[]> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener envíos pendientes');
+    throw await errorDeRespuesta(response, 'Error al obtener envíos pendientes');
   }
 
   return response.json();
@@ -1542,7 +1499,7 @@ export const getEnviosEnCamino = async (): Promise<Envio[]> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener envíos en camino');
+    throw await errorDeRespuesta(response, 'Error al obtener envíos en camino');
   }
 
   return response.json();
@@ -1555,7 +1512,7 @@ export const getEnviosPorEntregar = async (): Promise<Envio[]> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener envíos por entregar');
+    throw await errorDeRespuesta(response, 'Error al obtener envíos por entregar');
   }
 
   return response.json();
@@ -1568,7 +1525,7 @@ export const getEnviosEstadisticas = async (): Promise<EnvioEstadisticas> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener estadísticas de envíos');
+    throw await errorDeRespuesta(response, 'Error al obtener estadísticas de envíos');
   }
 
   return response.json();
@@ -1585,7 +1542,7 @@ export const getAllTransportadoras = async (): Promise<Transportadora[]> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener transportadoras');
+    throw await errorDeRespuesta(response, 'Error al obtener transportadoras');
   }
 
   return response.json();
@@ -1598,7 +1555,7 @@ export const getActiveTransportadoras = async (): Promise<Transportadora[]> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener transportadoras activas');
+    throw await errorDeRespuesta(response, 'Error al obtener transportadoras activas');
   }
 
   return response.json();
@@ -1611,7 +1568,7 @@ export const getTransportadoraById = async (id: number): Promise<Transportadora>
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener transportadora');
+    throw await errorDeRespuesta(response, 'Error al obtener transportadora');
   }
 
   return response.json();
@@ -1626,8 +1583,7 @@ export const createTransportadora = async (data: TransportadoraRequest): Promise
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al crear transportadora');
+    throw await errorDeRespuesta(response, 'Error al crear transportadora');
   }
 
   return response.json();
@@ -1642,8 +1598,7 @@ export const updateTransportadora = async (id: number, data: TransportadoraReque
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al actualizar transportadora');
+    throw await errorDeRespuesta(response, 'Error al actualizar transportadora');
   }
 
   return response.json();
@@ -1657,7 +1612,7 @@ export const deleteTransportadora = async (id: number): Promise<void> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al eliminar transportadora');
+    throw await errorDeRespuesta(response, 'Error al eliminar transportadora');
   }
 };
 
@@ -1669,7 +1624,7 @@ export const toggleTransportadoraStatus = async (id: number): Promise<Transporta
   });
 
   if (!response.ok) {
-    throw new Error('Error al cambiar estado de la transportadora');
+    throw await errorDeRespuesta(response, 'Error al cambiar estado de la transportadora');
   }
 
   return response.json();
@@ -1682,7 +1637,7 @@ export const getTransportadoraStatistics = async () => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener estadísticas de transportadoras');
+    throw await errorDeRespuesta(response, 'Error al obtener estadísticas de transportadoras');
   }
 
   return response.json();
@@ -1706,7 +1661,7 @@ export const getAllPagos = async (): Promise<Pago[]> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener pagos');
+    throw await errorDeRespuesta(response, 'Error al obtener pagos');
   }
 
   return response.json();
@@ -1719,7 +1674,7 @@ export const getPagoById = async (id: number): Promise<Pago> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener pago');
+    throw await errorDeRespuesta(response, 'Error al obtener pago');
   }
 
   return response.json();
@@ -1734,8 +1689,7 @@ export const registrarPago = async (data: PagoRequest): Promise<Pago> => {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al registrar pago');
+    throw await errorDeRespuesta(response, 'Error al registrar pago');
   }
 
   return response.json();
@@ -1748,7 +1702,7 @@ export const getPagosByVenta = async (ventaId: number): Promise<Pago[]> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener pagos de la venta');
+    throw await errorDeRespuesta(response, 'Error al obtener pagos de la venta');
   }
 
   return response.json();
@@ -1761,7 +1715,7 @@ export const getPagosByEstado = async (estado: string): Promise<Pago[]> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al filtrar pagos por estado');
+    throw await errorDeRespuesta(response, 'Error al filtrar pagos por estado');
   }
 
   return response.json();
@@ -1774,7 +1728,7 @@ export const getPagosEstadisticas = async (): Promise<PagoEstadisticas> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener estadísticas de pagos');
+    throw await errorDeRespuesta(response, 'Error al obtener estadísticas de pagos');
   }
 
   return response.json();
@@ -1839,7 +1793,7 @@ export const getReporteVentas = async (fechaInicio: string, fechaFin: string): P
   );
 
   if (!response.ok) {
-    throw new Error('Error al obtener reporte de ventas');
+    throw await errorDeRespuesta(response, 'Error al obtener reporte de ventas');
   }
 
   return response.json();
@@ -1855,7 +1809,7 @@ export const getReporteProductosMasVendidos = async (limite: number = 10): Promi
   );
 
   if (!response.ok) {
-    throw new Error('Error al obtener reporte de productos');
+    throw await errorDeRespuesta(response, 'Error al obtener reporte de productos');
   }
 
   return response.json();
@@ -1871,7 +1825,7 @@ export const getReporteClientesFrecuentes = async (limite: number = 10): Promise
   );
 
   if (!response.ok) {
-    throw new Error('Error al obtener reporte de clientes');
+    throw await errorDeRespuesta(response, 'Error al obtener reporte de clientes');
   }
 
   return response.json();
@@ -1887,7 +1841,7 @@ export const getReporteInventarioValorizado = async (): Promise<ReporteInventari
   );
 
   if (!response.ok) {
-    throw new Error('Error al obtener reporte de inventario valorizado');
+    throw await errorDeRespuesta(response, 'Error al obtener reporte de inventario valorizado');
   }
 
   return response.json();
@@ -1903,7 +1857,7 @@ export const getReporteVentasPorCategoria = async (fechaInicio: string, fechaFin
   );
 
   if (!response.ok) {
-    throw new Error('Error al obtener reporte de ventas por categoría');
+    throw await errorDeRespuesta(response, 'Error al obtener reporte de ventas por categoría');
   }
 
   return response.json();
@@ -1919,7 +1873,7 @@ export const getReporteVentasPorMetodoPago = async (fechaInicio: string, fechaFi
   );
 
   if (!response.ok) {
-    throw new Error('Error al obtener reporte de ventas por método de pago');
+    throw await errorDeRespuesta(response, 'Error al obtener reporte de ventas por método de pago');
   }
 
   return response.json();
@@ -2037,7 +1991,7 @@ export const getReporteCuentasPorCobrar = async (): Promise<ReporteCuentasPorCob
   );
 
   if (!response.ok) {
-    throw new Error('Error al obtener reporte de cuentas por cobrar');
+    throw await errorDeRespuesta(response, 'Error al obtener reporte de cuentas por cobrar');
   }
 
   return response.json();
@@ -2058,7 +2012,7 @@ export const getReporteFinanciero = async (fechaInicio: string, fechaFin: string
   );
 
   if (!response.ok) {
-    throw new Error('Error al obtener reporte financiero');
+    throw await errorDeRespuesta(response, 'Error al obtener reporte financiero');
   }
 
   return response.json();
@@ -2079,7 +2033,7 @@ export const getAllPromociones = async (): Promise<Promocion[]> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener promociones');
+    throw await errorDeRespuesta(response, 'Error al obtener promociones');
   }
 
   return response.json();
@@ -2092,7 +2046,7 @@ export const getActivePromociones = async (): Promise<Promocion[]> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener promociones activas');
+    throw await errorDeRespuesta(response, 'Error al obtener promociones activas');
   }
 
   return response.json();
@@ -2103,7 +2057,7 @@ export const getPromocionesVigentes = async (): Promise<Promocion[]> => {
   const response = await fetch(`${API_URL}/promociones/vigentes`);
 
   if (!response.ok) {
-    throw new Error('Error al obtener promociones vigentes');
+    throw await errorDeRespuesta(response, 'Error al obtener promociones vigentes');
   }
 
   return response.json();
@@ -2116,7 +2070,7 @@ export const getPromocionById = async (id: number): Promise<Promocion> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener promocion');
+    throw await errorDeRespuesta(response, 'Error al obtener promocion');
   }
 
   return response.json();
@@ -2131,8 +2085,7 @@ export const createPromocion = async (data: PromocionRequest): Promise<Promocion
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al crear promocion');
+    throw await errorDeRespuesta(response, 'Error al crear promocion');
   }
 
   return response.json();
@@ -2147,8 +2100,7 @@ export const updatePromocion = async (id: number, data: PromocionRequest): Promi
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al actualizar promocion');
+    throw await errorDeRespuesta(response, 'Error al actualizar promocion');
   }
 
   return response.json();
@@ -2162,7 +2114,7 @@ export const deletePromocion = async (id: number): Promise<void> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al eliminar promocion');
+    throw await errorDeRespuesta(response, 'Error al eliminar promocion');
   }
 };
 
@@ -2174,7 +2126,7 @@ export const togglePromocionStatus = async (id: number): Promise<Promocion> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al cambiar estado de la promocion');
+    throw await errorDeRespuesta(response, 'Error al cambiar estado de la promocion');
   }
 
   return response.json();
@@ -2187,7 +2139,7 @@ export const getPromocionStatistics = async () => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener estadísticas de promociones');
+    throw await errorDeRespuesta(response, 'Error al obtener estadísticas de promociones');
   }
 
   return response.json();
@@ -2207,7 +2159,7 @@ export const getAllConfiguraciones = async (): Promise<Configuracion[]> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener configuraciones');
+    throw await errorDeRespuesta(response, 'Error al obtener configuraciones');
   }
 
   return response.json();
@@ -2220,7 +2172,7 @@ export const getConfiguracionById = async (id: number): Promise<Configuracion> =
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener configuración');
+    throw await errorDeRespuesta(response, 'Error al obtener configuración');
   }
 
   return response.json();
@@ -2233,7 +2185,7 @@ export const getConfiguracionByClave = async (clave: string): Promise<Configurac
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener configuración');
+    throw await errorDeRespuesta(response, 'Error al obtener configuración');
   }
 
   return response.json();
@@ -2246,7 +2198,7 @@ export const getValorConfiguracion = async (clave: string): Promise<string> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener valor de configuración');
+    throw await errorDeRespuesta(response, 'Error al obtener valor de configuración');
   }
 
   const data = await response.json();
@@ -2262,8 +2214,7 @@ export const createConfiguracion = async (data: ConfiguracionRequest): Promise<C
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al crear configuración');
+    throw await errorDeRespuesta(response, 'Error al crear configuración');
   }
 
   return response.json();
@@ -2278,8 +2229,7 @@ export const updateConfiguracion = async (id: number, data: ConfiguracionRequest
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al actualizar configuración');
+    throw await errorDeRespuesta(response, 'Error al actualizar configuración');
   }
 
   return response.json();
@@ -2293,8 +2243,7 @@ export const updateValorByClave = async (clave: string, nuevoValor: string): Pro
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al actualizar configuración');
+    throw await errorDeRespuesta(response, 'Error al actualizar configuración');
   }
 
   return response.json();
@@ -2308,7 +2257,7 @@ export const deleteConfiguracion = async (id: number): Promise<void> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al eliminar configuración');
+    throw await errorDeRespuesta(response, 'Error al eliminar configuración');
   }
 };
 
@@ -2320,7 +2269,7 @@ export const inicializarConfiguraciones = async (): Promise<void> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al inicializar configuraciones');
+    throw await errorDeRespuesta(response, 'Error al inicializar configuraciones');
   }
 };
 
@@ -2335,7 +2284,7 @@ export const getAllAuditorias = async (): Promise<Auditoria[]> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener auditorías');
+    throw await errorDeRespuesta(response, 'Error al obtener auditorías');
   }
 
   return response.json();
@@ -2348,7 +2297,7 @@ export const getAuditoriaById = async (id: number): Promise<Auditoria> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener auditoría');
+    throw await errorDeRespuesta(response, 'Error al obtener auditoría');
   }
 
   return response.json();
@@ -2361,7 +2310,7 @@ export const getAuditoriasByUsuario = async (idUsuario: number): Promise<Auditor
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener auditorías del usuario');
+    throw await errorDeRespuesta(response, 'Error al obtener auditorías del usuario');
   }
 
   return response.json();
@@ -2374,7 +2323,7 @@ export const getAuditoriasByTabla = async (tablaAfectada: string): Promise<Audit
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener auditorías de la tabla');
+    throw await errorDeRespuesta(response, 'Error al obtener auditorías de la tabla');
   }
 
   return response.json();
@@ -2387,7 +2336,7 @@ export const getAuditoriasByAccion = async (accion: string): Promise<Auditoria[]
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener auditorías por acción');
+    throw await errorDeRespuesta(response, 'Error al obtener auditorías por acción');
   }
 
   return response.json();
@@ -2403,7 +2352,7 @@ export const getAuditoriasByFechas = async (inicio: string, fin: string): Promis
   );
 
   if (!response.ok) {
-    throw new Error('Error al obtener auditorías por fechas');
+    throw await errorDeRespuesta(response, 'Error al obtener auditorías por fechas');
   }
 
   return response.json();
@@ -2416,7 +2365,7 @@ export const getUltimasAuditorias = async (): Promise<Auditoria[]> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener últimas auditorías');
+    throw await errorDeRespuesta(response, 'Error al obtener últimas auditorías');
   }
 
   return response.json();
@@ -2429,7 +2378,7 @@ export const getAuditoriasDelDia = async (): Promise<Auditoria[]> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener auditorías del día');
+    throw await errorDeRespuesta(response, 'Error al obtener auditorías del día');
   }
 
   return response.json();
@@ -2444,8 +2393,7 @@ export const getImagenesProducto = async (idProducto: number): Promise<ImagenPro
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al obtener imágenes del producto');
+    throw await errorDeRespuesta(response, 'Error al obtener imágenes del producto');
   }
   return response.json();
 };
@@ -2465,8 +2413,7 @@ export const addImagenProducto = async (idProducto: number, file: File, esPrinci
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al subir la imagen');
+    throw await errorDeRespuesta(response, 'Error al subir la imagen');
   }
   return response.json();
 };
@@ -2478,8 +2425,7 @@ export const deleteImagenProducto = async (idImagen: number): Promise<void> => {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al eliminar la imagen');
+    throw await errorDeRespuesta(response, 'Error al eliminar la imagen');
   }
   // No hay cuerpo de respuesta para DELETE
 };
@@ -2491,8 +2437,7 @@ export const setImagenPrincipal = async (idImagen: number, idProducto: number): 
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al marcar imagen como principal');
+    throw await errorDeRespuesta(response, 'Error al marcar imagen como principal');
   }
   // No hay cuerpo de respuesta para PUT
 };
@@ -2533,7 +2478,7 @@ export const getComprobanteByVenta = async (idVenta: number): Promise<Comprobant
   });
 
   if (!response.ok) {
-    throw new Error('No existe comprobante para esta venta');
+    throw await errorDeRespuesta(response, 'No existe comprobante para esta venta');
   }
 
   return response.json();
@@ -2550,8 +2495,7 @@ export const createComprobante = async (data: ComprobanteRequest): Promise<Compr
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al crear comprobante');
+    throw await errorDeRespuesta(response, 'Error al crear comprobante');
   }
 
   return response.json();
@@ -2577,7 +2521,7 @@ export const getMultimediaProducto = async (productoId: number): Promise<Multime
     }
 
     if (!response.ok) {
-      throw new Error('Error al obtener multimedia del producto');
+      throw await errorDeRespuesta(response, 'Error al obtener multimedia del producto');
     }
 
     return response.json();
@@ -2615,8 +2559,7 @@ export const subirModelo3D = async (
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al subir modelo 3D');
+    throw await errorDeRespuesta(response, 'Error al subir modelo 3D');
   }
 
   return response.json();
@@ -2630,7 +2573,7 @@ export const eliminarMultimedia = async (multimediaId: number): Promise<void> =>
   });
 
   if (!response.ok) {
-    throw new Error('Error al eliminar multimedia');
+    throw await errorDeRespuesta(response, 'Error al eliminar multimedia');
   }
 };
 
@@ -2651,7 +2594,7 @@ export const getDashboardEstadisticas = async (): Promise<DashboardEstadisticas>
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener las estadísticas del panel');
+    throw await errorDeRespuesta(response, 'Error al obtener las estadísticas del panel');
   }
 
   return response.json();
@@ -2665,7 +2608,7 @@ export const getVentasSemanal = async (): Promise<VentasSemanal> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener las ventas de la semana');
+    throw await errorDeRespuesta(response, 'Error al obtener las ventas de la semana');
   }
 
   return response.json();
@@ -2697,7 +2640,7 @@ export const getDatosNegocio = async (): Promise<DatosNegocio> => {
   const response = await fetch(`${API_URL}/configuracion/negocio`);
 
   if (!response.ok) {
-    throw new Error('Error al obtener los datos del negocio');
+    throw await errorDeRespuesta(response, 'Error al obtener los datos del negocio');
   }
 
   return response.json();
@@ -2744,8 +2687,7 @@ export const enviarMensajeContacto = async (
   });
 
   if (!response.ok) {
-    const detalle = await response.json().catch(() => null);
-    throw new Error(detalle?.error || 'No se pudo enviar el mensaje');
+    throw await errorDeRespuesta(response, 'No se pudo enviar el mensaje');
   }
 
   return response.json();
@@ -2757,7 +2699,7 @@ export const getMensajesContacto = async (): Promise<MensajeContacto[]> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al obtener los mensajes de contacto');
+    throw await errorDeRespuesta(response, 'Error al obtener los mensajes de contacto');
   }
 
   return response.json();
@@ -2773,7 +2715,7 @@ export const marcarMensajeAtendido = async (
   );
 
   if (!response.ok) {
-    throw new Error('Error al marcar el mensaje como atendido');
+    throw await errorDeRespuesta(response, 'Error al marcar el mensaje como atendido');
   }
 
   return response.json();
@@ -2786,7 +2728,7 @@ export const eliminarMensajeContacto = async (id: number): Promise<void> => {
   });
 
   if (!response.ok) {
-    throw new Error('Error al eliminar el mensaje');
+    throw await errorDeRespuesta(response, 'Error al eliminar el mensaje');
   }
 };
 
@@ -2806,8 +2748,7 @@ export const actualizarStockMinimo = async (
   );
 
   if (!response.ok) {
-    const detalle = await response.json().catch(() => null);
-    throw new Error(detalle?.error || 'Error al actualizar el stock mínimo');
+    throw await errorDeRespuesta(response, 'Error al actualizar el stock mínimo');
   }
 
   return response.json();
