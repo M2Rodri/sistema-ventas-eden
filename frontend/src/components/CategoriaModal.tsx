@@ -135,6 +135,7 @@ export default function CategoriaModal({ categoria, onClose, onSuccess }: Catego
               value={formData.nombre}
               onChange={handleChange}
               maxLength={100}
+              autoComplete="off"
               className={`w-full px-2 py-1.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
                 errors.nombre ? 'border-red-500' : 'border-gray-300'
               }`}
