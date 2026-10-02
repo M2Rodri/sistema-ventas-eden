@@ -369,7 +369,8 @@ export default function CompraModal({
               </button>
             </div>
 
-            <div className="p-5 pb-3 space-y-3 border-b border-gray-200">
+            <div className="p-5 pb-3 space-y-2 border-b border-gray-200">
+              <p className="text-xs text-gray-500 leading-tight">¿No encuentras el producto? Primero créalo en Productos.</p>
               <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 gap-2">
                 <Search size={16} className="text-gray-400 flex-shrink-0" />
                 <input
@@ -397,7 +398,6 @@ export default function CompraModal({
                   </button>
                 ))}
               </div>
-              <p className="text-xs text-gray-500">¿No encuentras el producto? Primero créalo en Productos.</p>
             </div>
 
             <div className="flex-1 overflow-y-auto p-2">
