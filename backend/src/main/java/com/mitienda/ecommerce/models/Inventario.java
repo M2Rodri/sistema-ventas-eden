@@ -1,5 +1,6 @@
 package com.mitienda.ecommerce.models;
 
+import com.mitienda.ecommerce.exception.ReglaNegocioException;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -65,7 +66,7 @@ public class Inventario {
      */
     public void reducirStock(Integer cantidad) {
         if (cantidad > this.cantidadDisponible) {
-            throw new RuntimeException("Stock insuficiente. Disponible: " + this.cantidadDisponible);
+            throw new ReglaNegocioException("STOCK_INSUFICIENTE", "Stock insuficiente. Disponible: " + this.cantidadDisponible);
         }
         this.cantidadDisponible -= cantidad;
     }

@@ -1,5 +1,6 @@
 package com.mitienda.ecommerce.services;
 
+import com.mitienda.ecommerce.dto.MovimientoInventarioRequest;
 import com.mitienda.ecommerce.dto.PagoRequest;
 import com.mitienda.ecommerce.dto.VentaRequest;
 import com.mitienda.ecommerce.exception.ApiException;
@@ -7,16 +8,19 @@ import com.mitienda.ecommerce.models.Compra;
 import com.mitienda.ecommerce.models.EstadoCompra;
 import com.mitienda.ecommerce.models.EstadoEntrega;
 import com.mitienda.ecommerce.models.EstadoVenta;
+import com.mitienda.ecommerce.models.Inventario;
 import com.mitienda.ecommerce.models.MetodoPago;
 import com.mitienda.ecommerce.models.ModalidadEntrega;
 import com.mitienda.ecommerce.models.Producto;
 import com.mitienda.ecommerce.models.Usuario;
 import com.mitienda.ecommerce.models.Venta;
+import com.mitienda.ecommerce.repositories.AlertaInventarioRepository;
 import com.mitienda.ecommerce.repositories.ClienteRepository;
 import com.mitienda.ecommerce.repositories.CompraRepository;
 import com.mitienda.ecommerce.repositories.DetalleCompraRepository;
 import com.mitienda.ecommerce.repositories.DetalleVentaRepository;
 import com.mitienda.ecommerce.repositories.InventarioRepository;
+import com.mitienda.ecommerce.repositories.MovimientoInventarioRepository;
 import com.mitienda.ecommerce.repositories.PagoRepository;
 import com.mitienda.ecommerce.repositories.ProductoRepository;
 import com.mitienda.ecommerce.repositories.ProveedorRepository;
@@ -68,10 +72,13 @@ class ErroresNegocioTest {
     @Mock private DetalleCompraRepository detalleCompraRepository;
     @Mock private ProveedorRepository proveedorRepository;
     @Mock private AlmacenArchivos almacen;
+    @Mock private AlertaInventarioRepository alertaInventarioRepository;
+    @Mock private MovimientoInventarioRepository movimientoInventarioRepository;
 
     private VentaService ventas;
     private PagoService pagos;
     private CompraService compras;
+    private InventarioService inventario;
 
     @BeforeEach
     void preparar() {
@@ -82,6 +89,8 @@ class ErroresNegocioTest {
         compras = new CompraService(compraRepository, detalleCompraRepository, proveedorRepository,
                 productoRepository, usuarioRepository, inventarioService, inventarioRepository,
                 registroAuditoria, usuarioActualService);
+        inventario = new InventarioService(inventarioRepository, alertaInventarioRepository, productoRepository,
+                movimientoInventarioRepository, usuarioRepository, registroAuditoria, usuarioActualService);
         when(ventaRepository.save(any(Venta.class))).thenAnswer(i -> i.getArgument(0));
         when(usuarioActualService.obtenerRequerido()).thenReturn(new Usuario());
     }
@@ -238,6 +247,24 @@ class ErroresNegocioTest {
     void productoDeBaja_es422() {
         productoActivo().setActivo(false);
         esperar(HttpStatus.UNPROCESSABLE_ENTITY, "PRODUCTO_NO_DISPONIBLE", () -> ventas.createVentaDirecta(ventaDe(7L, 1, null)));
+    }
+
+    @Test
+    void ajusteDeSalidaMayorAlStock_es422_conElMensaje() {
+        Inventario stock = new Inventario();
+        stock.setCantidadDisponible(5);
+        when(inventarioRepository.findByProductoId(7L)).thenReturn(Optional.of(stock));
+        MovimientoInventarioRequest request = new MovimientoInventarioRequest();
+        request.setIdProducto(7L);
+        request.setCantidad(6);
+        request.setTipoMovimiento("SALIDA");
+
+        ApiException error = assertThrows(ApiException.class, () -> inventario.ajustarInventario(request));
+
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, error.getEstado());
+        assertEquals("STOCK_INSUFICIENTE", error.getCodigo());
+        assertEquals("Stock insuficiente. Disponible: 5", error.getMessage());
+        assertEquals(5, stock.getCantidadDisponible(), "no descuenta nada");
     }
 
     // ---------- 400: dato inválido ----------
