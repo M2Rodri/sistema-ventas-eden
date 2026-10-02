@@ -44,6 +44,71 @@ const aFechaInput = (fecha: Date) => {
   return `${anio}-${mes}-${dia}`;
 };
 
+const sinTildes = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+/**
+ * Cuadro de texto que sugiere mientras se escribe: no es un selector, no muestra nada hasta que
+ * hay texto, y sugiere los nombres cuyo nombre o apellido empieza con lo escrito ("rodr" → "Rodrigo Mamani").
+ */
+function TextoConSugerencias({
+  value,
+  onChange,
+  sugerencias,
+  placeholder,
+}: {
+  value: string;
+  onChange: (valor: string) => void;
+  sugerencias: string[];
+  placeholder: string;
+}) {
+  const [abierto, setAbierto] = useState(false);
+  const escrito = sinTildes(value.trim());
+  const coincidencias = escrito
+    ? sugerencias
+        .filter((n) => sinTildes(n).split(/s+/).some((palabra) => palabra.startsWith(escrito)) || sinTildes(n).startsWith(escrito))
+        .filter((n) => sinTildes(n) !== escrito)
+        .slice(0, 8)
+    : [];
+
+  return (
+    <div className="relative">
+      <input
+        type="text"
+        className={inputClase}
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setAbierto(true);
+        }}
+        onFocus={() => setAbierto(true)}
+        onBlur={() => setAbierto(false)}
+        placeholder={placeholder}
+        autoComplete="off"
+      />
+      {abierto && coincidencias.length > 0 && (
+        <ul className="absolute left-0 right-0 z-20 mt-1 max-h-56 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg">
+          {coincidencias.map((n) => (
+            <li key={n}>
+              <button
+                type="button"
+                // onMouseDown y no onClick: se dispara antes de que el campo pierda el foco y cierre la lista.
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  onChange(n);
+                  setAbierto(false);
+                }}
+                className="w-full text-left px-3 py-1.5 text-sm text-gray-800 hover:bg-primary-50"
+              >
+                {n}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 interface ReportePersonalizadoModalProps {
   /** Un reporte reciente que se vuelve a abrir: arranca con sus mismos datos y directo en el resultado. */
   reciente?: ReporteReciente;
@@ -177,25 +242,24 @@ export default function ReportePersonalizadoModal({ reciente, onClose, onGenerad
           </label>
         );
       default:
-        return (
-          <>
-            <input
-              type="text"
-              className={inputClase}
-              value={(criterios[c] as string | undefined) ?? ''}
-              onChange={(e) => poner(c, e.target.value)}
-              placeholder={c === 'cliente' ? 'Escribí el nombre…' : 'Todos'}
-              list={c === 'cliente' ? 'clientes-sugeridos' : undefined}
-              autoComplete="off"
+        if (c === 'cliente') {
+          return (
+            <TextoConSugerencias
+              value={criterios.cliente ?? ''}
+              onChange={(valor) => poner(c, valor)}
+              sugerencias={nombresClientes}
+              placeholder="Escribí el nombre…"
             />
-            {c === 'cliente' && (
-              <datalist id="clientes-sugeridos">
-                {nombresClientes.map((n) => (
-                  <option key={n} value={n} />
-                ))}
-              </datalist>
-            )}
-          </>
+          );
+        }
+        return (
+          <input
+            type="text"
+            className={inputClase}
+            value={(criterios[c] as string | undefined) ?? ''}
+            onChange={(e) => poner(c, e.target.value)}
+            placeholder="Todos"
+          />
         );
     }
   };
