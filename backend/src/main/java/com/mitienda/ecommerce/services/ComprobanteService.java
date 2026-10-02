@@ -1,5 +1,7 @@
 package com.mitienda.ecommerce.services;
 
+import com.mitienda.ecommerce.exception.ConflictoEstadoException;
+import com.mitienda.ecommerce.exception.RecursoNoEncontradoException;
 import com.mitienda.ecommerce.dto.ComprobanteRequest;
 import com.mitienda.ecommerce.dto.ComprobanteResponse;
 import com.mitienda.ecommerce.models.Comprobante;
@@ -58,7 +60,7 @@ public class ComprobanteService {
      */
     public ComprobanteResponse getComprobanteById(Long id) {
         Comprobante comprobante = comprobanteRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Comprobante no encontrado con ID: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("COMPROBANTE_NO_ENCONTRADO", "Comprobante no encontrado con ID: " + id));
         return new ComprobanteResponse(comprobante);
     }
 
@@ -67,7 +69,7 @@ public class ComprobanteService {
      */
     public ComprobanteResponse getComprobanteByNumero(String numeroComprobante) {
         Comprobante comprobante = comprobanteRepository.findByNumeroComprobante(numeroComprobante)
-                .orElseThrow(() -> new RuntimeException("Comprobante no encontrado con número: " + numeroComprobante));
+                .orElseThrow(() -> new RecursoNoEncontradoException("COMPROBANTE_NO_ENCONTRADO", "Comprobante no encontrado con número: " + numeroComprobante));
         return new ComprobanteResponse(comprobante);
     }
 
@@ -76,7 +78,7 @@ public class ComprobanteService {
      */
     public ComprobanteResponse getComprobanteByVenta(Long idVenta) {
         Comprobante comprobante = comprobanteRepository.findByVentaId(idVenta)
-                .orElseThrow(() -> new RuntimeException("No existe comprobante para la venta con ID: " + idVenta));
+                .orElseThrow(() -> new RecursoNoEncontradoException("COMPROBANTE_NO_ENCONTRADO", "No existe comprobante para la venta con ID: " + idVenta));
         return new ComprobanteResponse(comprobante);
     }
 
@@ -87,11 +89,11 @@ public class ComprobanteService {
     public ComprobanteResponse createComprobante(ComprobanteRequest request) {
         // Validar venta
         Venta venta = ventaRepository.findById(request.getIdVenta())
-                .orElseThrow(() -> new RuntimeException("Venta no encontrada con ID: " + request.getIdVenta()));
+                .orElseThrow(() -> new RecursoNoEncontradoException("VENTA_NO_ENCONTRADA", "Venta no encontrada con ID: " + request.getIdVenta()));
 
         // Validar que la venta no tenga comprobante
         if (comprobanteRepository.findByVentaId(request.getIdVenta()).isPresent()) {
-            throw new RuntimeException("Esta venta ya tiene un comprobante asociado");
+            throw new ConflictoEstadoException("COMPROBANTE_YA_EXISTE", "Esta venta ya tiene un comprobante asociado");
         }
 
         // Generar número de comprobante
@@ -122,10 +124,10 @@ public class ComprobanteService {
     @Transactional
     public ComprobanteResponse anularComprobante(Long id, String motivo) {
         Comprobante comprobante = comprobanteRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Comprobante no encontrado con ID: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("COMPROBANTE_NO_ENCONTRADO", "Comprobante no encontrado con ID: " + id));
 
         if (comprobante.getAnulado()) {
-            throw new RuntimeException("Este comprobante ya está anulado");
+            throw new ConflictoEstadoException("COMPROBANTE_YA_ANULADO", "Este comprobante ya está anulado");
         }
 
         comprobante.setAnulado(true);

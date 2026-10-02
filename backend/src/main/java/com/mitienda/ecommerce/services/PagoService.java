@@ -1,5 +1,8 @@
 package com.mitienda.ecommerce.services;
 
+import com.mitienda.ecommerce.exception.ConflictoEstadoException;
+import com.mitienda.ecommerce.exception.RecursoNoEncontradoException;
+import com.mitienda.ecommerce.exception.ReglaNegocioException;
 import com.mitienda.ecommerce.dto.PagoDTO;
 import com.mitienda.ecommerce.dto.PagoRequest;
 import com.mitienda.ecommerce.models.EstadoPago;
@@ -74,7 +77,7 @@ public class PagoService {
      */
     public PagoDTO getPagoById(Long id) {
         Pago pago = pagoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Pago no encontrado con ID: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("PAGO_NO_ENCONTRADO", "Pago no encontrado con ID: " + id));
         return new PagoDTO(pago);
     }
 
@@ -85,13 +88,13 @@ public class PagoService {
     public PagoDTO registrarPago(PagoRequest request) {
         // Validar venta
         Venta venta = ventaRepository.findById(request.getIdVenta())
-                .orElseThrow(() -> new RuntimeException("Venta no encontrada con ID: " + request.getIdVenta()));
+                .orElseThrow(() -> new RecursoNoEncontradoException("VENTA_NO_ENCONTRADA", "Venta no encontrada con ID: " + request.getIdVenta()));
 
         if (venta.getEstado() == EstadoVenta.CANCELADA) {
-            throw new RuntimeException("No se puede registrar un pago sobre una venta cancelada");
+            throw new ConflictoEstadoException("VENTA_CANCELADA", "No se puede registrar un pago sobre una venta cancelada");
         }
         if (request.getMonto().compareTo(venta.getSaldoPendiente()) > 0) {
-            throw new RuntimeException("El monto supera el saldo pendiente de la venta (Bs. "
+            throw new ReglaNegocioException("PAGO_EXCEDE_SALDO", "El monto supera el saldo pendiente de la venta (Bs. "
                     + venta.getSaldoPendiente() + ")");
         }
 
@@ -126,7 +129,7 @@ public class PagoService {
     @Transactional
     public PagoDTO adjuntarComprobante(Long idPago, MultipartFile file) throws IOException {
         Pago pago = pagoRepository.findById(idPago)
-                .orElseThrow(() -> new RuntimeException("Pago no encontrado con ID: " + idPago));
+                .orElseThrow(() -> new RecursoNoEncontradoException("PAGO_NO_ENCONTRADO", "Pago no encontrado con ID: " + idPago));
 
         // Se valida antes de tocar el almacenamiento: tipo real, contenido y tamaño.
         ValidadorImagen.ImagenValida imagen = ValidadorImagen.validar(file, ValidadorImagen.MAXIMO_COMPROBANTE);

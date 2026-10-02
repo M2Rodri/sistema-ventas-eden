@@ -1,5 +1,6 @@
 package com.mitienda.ecommerce.controllers;
 
+import com.mitienda.ecommerce.exception.PeticionInvalidaException;
 import com.mitienda.ecommerce.dto.ComprobanteRequest;
 import com.mitienda.ecommerce.dto.DatosEntregaRequest;
 import com.mitienda.ecommerce.dto.VentaRequest;
@@ -63,13 +64,8 @@ public class VentaController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<?> getVentaById(@PathVariable Long id) {
-        try {
-            VentaResponse venta = ventaService.getVentaById(id);
-            return ResponseEntity.ok(venta);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        VentaResponse venta = ventaService.getVentaById(id);
+        return ResponseEntity.ok(venta);
     }
 
     /**
@@ -78,30 +74,25 @@ public class VentaController {
      */
     @PostMapping
     public ResponseEntity<?> createVentaDirecta(@Valid @RequestBody VentaRequest request) {
+        VentaResponse createdVenta = ventaService.createVentaDirecta(request);
+
+        // Aparte y después de confirmada la venta: si esto falla (por
+        // ejemplo, un numeroComprobante repetido), la venta ya quedó
+        // registrada igual. Antes se generaba dentro de la misma
+        // transacción de la venta, y una falla acá revertía la venta
+        // entera con un error que no explicaba nada.
         try {
-            VentaResponse createdVenta = ventaService.createVentaDirecta(request);
-
-            // Aparte y después de confirmada la venta: si esto falla (por
-            // ejemplo, un numeroComprobante repetido), la venta ya quedó
-            // registrada igual. Antes se generaba dentro de la misma
-            // transacción de la venta, y una falla acá revertía la venta
-            // entera con un error que no explicaba nada.
-            try {
-                ComprobanteRequest comprobanteRequest = new ComprobanteRequest();
-                comprobanteRequest.setIdVenta(createdVenta.getId());
-                comprobanteRequest.setTipoComprobante(TipoComprobante.RECIBO);
-                comprobanteRequest.setNombreCliente(createdVenta.getNombreCliente());
-                comprobanteService.createComprobante(comprobanteRequest);
-            } catch (Exception e) {
-                System.err.println("Error al generar comprobante de la venta "
-                        + createdVenta.getId() + ": " + e.getMessage());
-            }
-
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdVenta);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
+            ComprobanteRequest comprobanteRequest = new ComprobanteRequest();
+            comprobanteRequest.setIdVenta(createdVenta.getId());
+            comprobanteRequest.setTipoComprobante(TipoComprobante.RECIBO);
+            comprobanteRequest.setNombreCliente(createdVenta.getNombreCliente());
+            comprobanteService.createComprobante(comprobanteRequest);
+        } catch (Exception e) {
+            System.err.println("Error al generar comprobante de la venta "
+                    + createdVenta.getId() + ": " + e.getMessage());
         }
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdVenta);
     }
 
     /**
@@ -111,13 +102,8 @@ public class VentaController {
     @PatchMapping("/{id}/cancelar")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> cancelarVenta(@PathVariable Long id) {
-        try {
-            VentaResponse venta = ventaService.cancelarVenta(id);
-            return ResponseEntity.ok(venta);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        VentaResponse venta = ventaService.cancelarVenta(id);
+        return ResponseEntity.ok(venta);
     }
 
     /**
@@ -126,13 +112,8 @@ public class VentaController {
      */
     @PatchMapping("/{id}/entregar")
     public ResponseEntity<?> marcarEntregado(@PathVariable Long id) {
-        try {
-            VentaResponse venta = ventaService.marcarEntregado(id);
-            return ResponseEntity.ok(venta);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        VentaResponse venta = ventaService.marcarEntregado(id);
+        return ResponseEntity.ok(venta);
     }
 
     /**
@@ -142,13 +123,8 @@ public class VentaController {
     @PatchMapping("/{id}/deshacer-entrega")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deshacerEntrega(@PathVariable Long id) {
-        try {
-            VentaResponse venta = ventaService.deshacerEntrega(id);
-            return ResponseEntity.ok(venta);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        VentaResponse venta = ventaService.deshacerEntrega(id);
+        return ResponseEntity.ok(venta);
     }
 
     /**
@@ -159,13 +135,8 @@ public class VentaController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> actualizarDatosEntrega(@PathVariable Long id,
                                                     @Valid @RequestBody DatosEntregaRequest request) {
-        try {
-            VentaResponse venta = ventaService.actualizarDatosEntrega(id, request);
-            return ResponseEntity.ok(venta);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        VentaResponse venta = ventaService.actualizarDatosEntrega(id, request);
+        return ResponseEntity.ok(venta);
     }
 
     /**
@@ -184,14 +155,14 @@ public class VentaController {
      */
     @GetMapping("/estado/{estado}")
     public ResponseEntity<?> getVentasByEstado(@PathVariable String estado) {
+        EstadoVenta estadoEnum;
         try {
-            EstadoVenta estadoEnum = EstadoVenta.valueOf(estado.toUpperCase());
-            List<VentaResponse> ventas = ventaService.getVentasByEstado(estadoEnum);
-            return ResponseEntity.ok(ventas);
+            estadoEnum = EstadoVenta.valueOf(estado.toUpperCase());
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "Estado de venta inválido: " + estado));
+            throw new PeticionInvalidaException("ESTADO_INVALIDO", "Estado de venta inválido: " + estado);
         }
+        List<VentaResponse> ventas = ventaService.getVentasByEstado(estadoEnum);
+        return ResponseEntity.ok(ventas);
     }
 
     /**

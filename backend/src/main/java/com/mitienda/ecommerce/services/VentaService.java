@@ -1,5 +1,9 @@
 package com.mitienda.ecommerce.services;
 
+import com.mitienda.ecommerce.exception.ConflictoEstadoException;
+import com.mitienda.ecommerce.exception.PeticionInvalidaException;
+import com.mitienda.ecommerce.exception.RecursoNoEncontradoException;
+import com.mitienda.ecommerce.exception.ReglaNegocioException;
 import com.mitienda.ecommerce.dto.DatosEntregaRequest;
 import com.mitienda.ecommerce.dto.VentaRequest;
 import com.mitienda.ecommerce.dto.VentaResponse;
@@ -88,14 +92,14 @@ public class VentaService {
     @Transactional(readOnly = true)
     public VentaResponse getVentaById(Long id) {
         Venta venta = ventaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Venta no encontrada con ID: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("VENTA_NO_ENCONTRADA", "Venta no encontrada con ID: " + id));
         return new VentaResponse(venta);
     }
 
     @Transactional
     public VentaResponse createVentaDirecta(VentaRequest request) {
         if (!request.tieneCliente()) {
-            throw new RuntimeException(
+            throw new PeticionInvalidaException("CLIENTE_REQUERIDO",
                     "Debe proporcionar un cliente registrado (idCliente) o el nombre del cliente de mostrador");
         }
 
@@ -112,7 +116,7 @@ public class VentaService {
         //   TRANSPORTADORA: ciudad obligatoria; dirección, transportadora y
         //                   guía opcionales (se completan después si hace falta).
         if (modalidadEntrega == ModalidadEntrega.TRANSPORTADORA && esVacio(request.getCiudad())) {
-            throw new RuntimeException("La ciudad es obligatoria para el envío por transportadora");
+            throw new PeticionInvalidaException("CIUDAD_REQUERIDA", "La ciudad es obligatoria para el envío por transportadora");
         }
 
         EstadoEntrega estadoEntrega = resolverEstadoInicial(modalidadEntrega, request.getEstadoEntrega());
@@ -121,7 +125,7 @@ public class VentaService {
 
         if (request.esClienteRegistrado()) {
             Cliente cliente = clienteRepository.findById(request.getIdCliente())
-                    .orElseThrow(() -> new RuntimeException("Cliente no encontrado con ID: " + request.getIdCliente()));
+                    .orElseThrow(() -> new RecursoNoEncontradoException("CLIENTE_NO_ENCONTRADO", "Cliente no encontrado con ID: " + request.getIdCliente()));
             venta.setCliente(cliente);
         } else if (request.esClienteRapido()) {
             // Venta de mostrador: en lugar de guardar el nombre suelto dentro de
@@ -163,14 +167,14 @@ public class VentaService {
 
         for (VentaRequest.ItemVentaRequest item : request.getItems()) {
             Producto producto = productoRepository.findById(item.getIdProducto())
-                    .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + item.getIdProducto()));
+                    .orElseThrow(() -> new RecursoNoEncontradoException("PRODUCTO_NO_ENCONTRADO", "Producto no encontrado con ID: " + item.getIdProducto()));
 
             if (!producto.getActivo()) {
-                throw new RuntimeException("El producto '" + producto.getNombre() + "' no está disponible");
+                throw new ReglaNegocioException("PRODUCTO_NO_DISPONIBLE", "El producto '" + producto.getNombre() + "' no está disponible");
             }
 
             if (!inventarioService.verificarDisponibilidad(producto.getId(), item.getCantidad())) {
-                throw new RuntimeException("Stock insuficiente para el producto '" + producto.getNombre() + "'");
+                throw new ReglaNegocioException("STOCK_INSUFICIENTE", "Stock insuficiente para el producto '" + producto.getNombre() + "'");
             }
 
             BigDecimal precioOriginal = producto.getPrecioVenta();
@@ -182,7 +186,7 @@ public class VentaService {
                 // en silencio y se terminaba cobrando el precio normal sin
                 // avisar. Ahora se rechaza, como pide CA-04.2.
                 if (item.getPrecioUnitarioConDescuento().compareTo(precioOriginal) > 0) {
-                    throw new RuntimeException("No se puede vender '" + producto.getNombre() +
+                    throw new ReglaNegocioException("PRECIO_EXCEDE_CATALOGO", "No se puede vender '" + producto.getNombre() +
                             "' por encima del precio de catálogo (máximo Bs. " + precioOriginal + ")");
                 }
                 precioFinal = item.getPrecioUnitarioConDescuento();
@@ -190,7 +194,7 @@ public class VentaService {
                 // se puede saber si se está vendiendo con pérdida.
                 if (producto.getPrecioCompra() != null
                         && precioFinal.compareTo(producto.getPrecioCompra()) < 0) {
-                    throw new RuntimeException("No se puede vender '" + producto.getNombre() +
+                    throw new ReglaNegocioException("PRECIO_BAJO_COSTO", "No se puede vender '" + producto.getNombre() +
                             "' por debajo del costo (Bs. " + producto.getPrecioCompra() + ")");
                 }
             } else {
@@ -212,10 +216,10 @@ public class VentaService {
         // previo a la venta a crédito).
         BigDecimal montoPagado = request.getMontoPagado() != null ? request.getMontoPagado() : total;
         if (montoPagado.compareTo(BigDecimal.ZERO) < 0) {
-            throw new RuntimeException("El monto pagado no puede ser negativo");
+            throw new PeticionInvalidaException("MONTO_INVALIDO", "El monto pagado no puede ser negativo");
         }
         if (montoPagado.compareTo(total) > 0) {
-            throw new RuntimeException("El monto pagado no puede superar el total de la venta");
+            throw new ReglaNegocioException("PAGO_EXCEDE_TOTAL", "El monto pagado no puede superar el total de la venta");
         }
 
         BigDecimal saldoPendiente = total.subtract(montoPagado);
@@ -228,10 +232,10 @@ public class VentaService {
         // PASO 3: CREAR DETALLES Y REDUCIR INVENTARIO
         for (VentaRequest.ItemVentaRequest item : request.getItems()) {
             Producto producto = productoRepository.findById(item.getIdProducto())
-                    .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+                    .orElseThrow(() -> new RecursoNoEncontradoException("PRODUCTO_NO_ENCONTRADO", "Producto no encontrado"));
 
             Inventario inventario = inventarioRepository.findByProductoId(producto.getId())
-                    .orElseThrow(() -> new RuntimeException(
+                    .orElseThrow(() -> new RecursoNoEncontradoException("INVENTARIO_NO_ENCONTRADO",
                             "No existe inventario para el producto con ID: " + producto.getId()));
 
             Integer cantidadAnterior = inventario.getCantidadDisponible();
@@ -245,7 +249,7 @@ public class VentaService {
                 // Misma validación que en el cálculo del total: un precio
                 // por encima del catálogo se rechaza, no se corrige solo.
                 if (item.getPrecioUnitarioConDescuento().compareTo(precioOriginal) > 0) {
-                    throw new RuntimeException("No se puede vender '" + producto.getNombre() +
+                    throw new ReglaNegocioException("PRECIO_EXCEDE_CATALOGO", "No se puede vender '" + producto.getNombre() +
                             "' por encima del precio de catálogo (máximo Bs. " + precioOriginal + ")");
                 }
                 precioFinal = item.getPrecioUnitarioConDescuento();
@@ -281,7 +285,7 @@ public class VentaService {
             inventarioService.reducirStock(producto.getId(), item.getCantidad());
 
             Inventario inventarioActualizado = inventarioRepository.findByProductoId(producto.getId())
-                    .orElseThrow(() -> new RuntimeException("Error al obtener inventario actualizado"));
+                    .orElseThrow(() -> new IllegalStateException("Error al obtener inventario actualizado"));
 
             inventarioService.registrarAjusteAutomatico(
                     producto.getId(),
@@ -328,22 +332,22 @@ public class VentaService {
     @Transactional
     public VentaResponse cancelarVenta(Long id) {
         Venta venta = ventaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Venta no encontrada con ID: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("VENTA_NO_ENCONTRADA", "Venta no encontrada con ID: " + id));
 
         if (venta.getEstado() == EstadoVenta.CANCELADA) {
-            throw new RuntimeException("Esta venta ya está cancelada");
+            throw new ConflictoEstadoException("VENTA_YA_CANCELADA", "Esta venta ya está cancelada");
         }
 
         for (DetalleVenta detalle : venta.getDetalles()) {
             Inventario inventario = inventarioRepository.findByProductoId(detalle.getProducto().getId())
-                    .orElseThrow(() -> new RuntimeException("No existe inventario para el producto"));
+                    .orElseThrow(() -> new RecursoNoEncontradoException("INVENTARIO_NO_ENCONTRADO", "No existe inventario para el producto"));
 
             Integer cantidadAnterior = inventario.getCantidadDisponible();
 
             inventarioService.aumentarStock(detalle.getProducto().getId(), detalle.getCantidad());
 
             Inventario inventarioActualizado = inventarioRepository.findByProductoId(detalle.getProducto().getId())
-                    .orElseThrow(() -> new RuntimeException("Error al obtener inventario actualizado"));
+                    .orElseThrow(() -> new IllegalStateException("Error al obtener inventario actualizado"));
 
             inventarioService.registrarAjusteAutomatico(
                     detalle.getProducto().getId(),
@@ -384,10 +388,10 @@ public class VentaService {
         Venta venta = buscarVenta(id);
 
         if (venta.getEstado() == EstadoVenta.CANCELADA) {
-            throw new RuntimeException("No se puede entregar una venta cancelada");
+            throw new ConflictoEstadoException("VENTA_CANCELADA", "No se puede entregar una venta cancelada");
         }
         if (venta.getEstadoEntrega() == EstadoEntrega.ENTREGADO) {
-            throw new RuntimeException("Esta venta ya está marcada como entregada");
+            throw new ConflictoEstadoException("VENTA_YA_ENTREGADA", "Esta venta ya está marcada como entregada");
         }
 
         venta.setEstadoEntrega(EstadoEntrega.ENTREGADO);
@@ -411,13 +415,13 @@ public class VentaService {
         Venta venta = buscarVenta(id);
 
         if (venta.getEstado() == EstadoVenta.CANCELADA) {
-            throw new RuntimeException("No se puede corregir la entrega de una venta cancelada");
+            throw new ConflictoEstadoException("VENTA_CANCELADA", "No se puede corregir la entrega de una venta cancelada");
         }
         if (venta.getModalidadEntrega() == ModalidadEntrega.RETIRO) {
-            throw new RuntimeException("En una venta en tienda no se puede corregir la entrega");
+            throw new ReglaNegocioException("VENTA_EN_TIENDA_SIN_ENTREGA", "En una venta en tienda no se puede corregir la entrega");
         }
         if (venta.getEstadoEntrega() != EstadoEntrega.ENTREGADO) {
-            throw new RuntimeException("No hay nada que corregir: la venta está pendiente de entrega");
+            throw new ConflictoEstadoException("VENTA_ENTREGA_PENDIENTE", "No hay nada que corregir: la venta está pendiente de entrega");
         }
 
         venta.setEstadoEntrega(EstadoEntrega.PENDIENTE);
@@ -441,10 +445,10 @@ public class VentaService {
         Venta venta = buscarVenta(id);
 
         if (venta.getEstado() == EstadoVenta.CANCELADA) {
-            throw new RuntimeException("No se pueden editar los datos de entrega de una venta cancelada");
+            throw new ConflictoEstadoException("VENTA_CANCELADA", "No se pueden editar los datos de entrega de una venta cancelada");
         }
         if (venta.getModalidadEntrega() == ModalidadEntrega.RETIRO) {
-            throw new RuntimeException("Una venta en tienda no tiene datos de entrega");
+            throw new ReglaNegocioException("VENTA_EN_TIENDA_SIN_ENTREGA", "Una venta en tienda no tiene datos de entrega");
         }
 
         venta.setDireccionDestino(textoOpcional(datos.getDireccionDestino()));
@@ -462,7 +466,7 @@ public class VentaService {
 
     private Venta buscarVenta(Long id) {
         return ventaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Venta no encontrada con ID: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("VENTA_NO_ENCONTRADA", "Venta no encontrada con ID: " + id));
     }
 
     private boolean esVacio(String texto) {

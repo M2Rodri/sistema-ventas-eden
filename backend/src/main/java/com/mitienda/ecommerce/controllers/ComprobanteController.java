@@ -9,7 +9,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
 
 /**
  * Comprobante interno de la venta (recibo para el cliente).
@@ -43,13 +42,8 @@ public class ComprobanteController {
      */
     @GetMapping("/venta/{idVenta}")
     public ResponseEntity<?> getComprobanteByVenta(@PathVariable Long idVenta) {
-        try {
-            ComprobanteResponse comprobante = comprobanteService.getComprobanteByVenta(idVenta);
-            return ResponseEntity.ok(comprobante);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        ComprobanteResponse comprobante = comprobanteService.getComprobanteByVenta(idVenta);
+        return ResponseEntity.ok(comprobante);
     }
 
     /**
@@ -58,12 +52,7 @@ public class ComprobanteController {
      */
     @PostMapping
     public ResponseEntity<?> createComprobante(@Valid @RequestBody ComprobanteRequest request) {
-        try {
-            ComprobanteResponse createdComprobante = comprobanteService.createComprobante(request);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdComprobante);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        ComprobanteResponse createdComprobante = comprobanteService.createComprobante(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdComprobante);
     }
 }

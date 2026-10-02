@@ -1,5 +1,6 @@
 package com.mitienda.ecommerce.controllers;
 
+import com.mitienda.ecommerce.exception.PeticionInvalidaException;
 import com.mitienda.ecommerce.dto.PagoDTO;
 import com.mitienda.ecommerce.dto.PagoRequest;
 import com.mitienda.ecommerce.models.EstadoPago;
@@ -54,13 +55,8 @@ public class PagoController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<?> getPagoById(@PathVariable Long id) {
-        try {
-            PagoDTO pago = pagoService.getPagoById(id);
-            return ResponseEntity.ok(pago);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        PagoDTO pago = pagoService.getPagoById(id);
+        return ResponseEntity.ok(pago);
     }
 
     /**
@@ -69,13 +65,8 @@ public class PagoController {
      */
     @PostMapping
     public ResponseEntity<?> registrarPago(@Valid @RequestBody PagoRequest request) {
-        try {
-            PagoDTO createdPago = pagoService.registrarPago(request);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdPago);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        PagoDTO createdPago = pagoService.registrarPago(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdPago);
     }
 
     /**
@@ -84,21 +75,12 @@ public class PagoController {
      */
     @PostMapping("/{id}/comprobante")
     public ResponseEntity<?> adjuntarComprobante(@PathVariable Long id,
-                                                  @RequestParam("file") MultipartFile file) {
-        try {
-            if (file == null || file.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(Map.of("error", "El archivo del comprobante no puede estar vacío."));
-            }
-            PagoDTO pago = pagoService.adjuntarComprobante(id, file);
-            return ResponseEntity.ok(pago);
-        } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Error al guardar el comprobante: " + e.getMessage()));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
+                                                  @RequestParam("file") MultipartFile file) throws IOException {
+        if (file == null || file.isEmpty()) {
+            throw new PeticionInvalidaException("ARCHIVO_VACIO", "El archivo del comprobante no puede estar vacío.");
         }
+        PagoDTO pago = pagoService.adjuntarComprobante(id, file);
+        return ResponseEntity.ok(pago);
     }
 
     /**
@@ -117,14 +99,14 @@ public class PagoController {
      */
     @GetMapping("/estado/{estado}")
     public ResponseEntity<?> getPagosByEstado(@PathVariable String estado) {
+        EstadoPago estadoEnum;
         try {
-            EstadoPago estadoEnum = EstadoPago.valueOf(estado.toUpperCase());
-            List<PagoDTO> pagos = pagoService.getPagosByEstado(estadoEnum);
-            return ResponseEntity.ok(pagos);
+            estadoEnum = EstadoPago.valueOf(estado.toUpperCase());
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "Estado de pago inválido: " + estado));
+            throw new PeticionInvalidaException("ESTADO_INVALIDO", "Estado de pago inválido: " + estado);
         }
+        List<PagoDTO> pagos = pagoService.getPagosByEstado(estadoEnum);
+        return ResponseEntity.ok(pagos);
     }
 
     /**
