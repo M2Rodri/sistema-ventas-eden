@@ -55,7 +55,7 @@ export const ETIQUETA_CRITERIO: Record<CampoCriterio, string> = {
   producto: 'Producto o SKU',
   categoria: 'Categoría',
   minimoCompras: 'Mínimo de compras',
-  minimoDias: 'Antigüedad de la venta desde (días)',
+  minimoDias: 'Días de atraso desde',
   proveedor: 'Proveedor',
   soloActivos: 'Solo proveedores activos',
   montoMinimo: 'Monto desde (Bs)',
@@ -111,7 +111,7 @@ export function resumenCriterios(c: CriteriosReporte): string[] {
     if (campo === 'soloActivos') resumen.push('Solo activos');
     else if (campo === 'estadoPago') resumen.push(`Pago: ${ETIQUETA_ESTADO_PAGO[c.estadoPago!] ?? c.estadoPago}`);
     else if (campo === 'minimoCompras') resumen.push(`${c.minimoCompras}+ compras`);
-    else if (campo === 'minimoDias') resumen.push(`Hace ${c.minimoDias}+ días`);
+    else if (campo === 'minimoDias') resumen.push(`${c.minimoDias}+ días`);
     else if (campo === 'orden') resumen.push(c.orden === 'monto' ? 'Mayor monto primero' : c.orden === 'valor' ? 'Mayor valor primero' : 'Mayor saldo primero');
     else resumen.push(`${ETIQUETA_CRITERIO[campo]}: ${c[campo]}`);
   });
