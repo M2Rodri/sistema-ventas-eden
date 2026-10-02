@@ -127,7 +127,7 @@ class CompraServiceTest {
 
         assertEquals(EstadoCompra.CONFIRMADA, respuesta.getEstado());
         verify(inventarioService).aumentarStock(7L, 3);
-        verify(inventarioService).registrarAjusteAutomatico(eq(7L), eq(4), eq(7), eq("COMPRA"), any(), eq(3L));
+        verify(inventarioService).registrarAjusteAutomatico(eq(7L), eq(4), eq(7), eq("ENTRADA"), any(), eq(3L));
         assertEquals(new BigDecimal("25.00"), cama.getPrecioCompra());
         assertEquals(1, respuesta.getDetalles().size(), "la respuesta trae los productos de la compra");
     }

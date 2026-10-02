@@ -584,7 +584,10 @@ export const getHistorialAjustes = async (idProducto: number): Promise<Movimient
     throw await errorDeRespuesta(response, 'Error al obtener historial de ajustes');
   }
 
-  return response.json();
+  // Los movimientos viejos de una compra se guardaron como COMPRA: se muestran como ENTRADA,
+  // igual que los nuevos, para que el historial hable de entradas y salidas.
+  const movimientos: MovimientoInventario[] = await response.json();
+  return movimientos.map((m) => (m.tipoMovimiento === 'COMPRA' ? { ...m, tipoMovimiento: 'ENTRADA' } : m));
 };
 
 // Obtener últimos 50 ajustes

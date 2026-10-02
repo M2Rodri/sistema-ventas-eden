@@ -179,7 +179,7 @@ public class CompraService {
                 idProducto,
                 cantidadAnterior,
                 cantidadAnterior + detalle.getCantidad(),
-                "COMPRA",
+                "ENTRADA",
                 "Compra #" + compra.getId()
                         + (compra.getNumeroFactura() != null ? " - Factura " + compra.getNumeroFactura() : ""),
                 idUsuario
