@@ -397,6 +397,7 @@ export default function CompraModal({
                   </button>
                 ))}
               </div>
+              <p className="text-xs text-gray-500">¿No encontrás el producto? Primero créalo en Productos.</p>
             </div>
 
             <div className="flex-1 overflow-y-auto p-2">
