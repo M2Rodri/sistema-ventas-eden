@@ -589,21 +589,24 @@ export default function ProductoModal({
                   placeholder={placeholderColor} />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Precio de Compra</label>
-                {productoParaEditar?.tieneComprasConfirmadas ? (
-                  <p className="mt-1 px-2 py-2 text-gray-700">
-                    {formData.precioCompra != null
-                      ? `Bs ${Number(formData.precioCompra).toLocaleString('es-BO', { minimumFractionDigits: 2 })}`
-                      : '—'}
-                    <span className="text-xs text-gray-500 ml-2">Ya tiene compras confirmadas: se administra desde Compras, no aquí.</span>
-                  </p>
-                ) : (
-                  <input type="number" step="0.01" name="precioCompra" value={formData.precioCompra ?? ''} onChange={handleChange}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-2 py-1.5"
-                    placeholder="Opcional" />
-                )}
-              </div>
+              {/* Al crear no se pide: el costo entra con la primera compra (módulo Compras). */}
+              {isEditing && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Precio de Compra</label>
+                  {productoParaEditar?.tieneComprasConfirmadas ? (
+                    <p className="mt-1 px-2 py-2 text-gray-700">
+                      {formData.precioCompra != null
+                        ? `Bs ${Number(formData.precioCompra).toLocaleString('es-BO', { minimumFractionDigits: 2 })}`
+                        : '—'}
+                      <span className="text-xs text-gray-500 ml-2">Ya tiene compras confirmadas: se administra desde Compras, no aquí.</span>
+                    </p>
+                  ) : (
+                    <input type="number" step="0.01" name="precioCompra" value={formData.precioCompra ?? ''} onChange={handleChange}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-2 py-1.5"
+                      placeholder="Opcional" />
+                  )}
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700">Precio de Venta *</label>
