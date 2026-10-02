@@ -150,9 +150,9 @@ export default function HistorialProductoModal({ inventario, onClose }: Historia
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Motivo</th>
-                      <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Antes</th>
-                      <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Cambio</th>
-                      <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Después</th>
+                      <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Tenía</th>
+                      <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Entró / salió</th>
+                      <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Quedó</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Responsable</th>
                     </tr>
                   </thead>
