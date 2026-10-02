@@ -110,20 +110,8 @@ export default function ReportesPage() {
         </button>
       </div>
 
-      {/* Las cuatro tarjetas principales */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-stretch">
-        {configuracionesReportes.map((config) => (
-          <ReporteCard
-            key={config.id}
-            config={config}
-            IconComponent={iconos[config.icono] ?? Package}
-            onGenerar={() => setTipoReporteSeleccionado(config.id)}
-          />
-        ))}
-      </div>
-
       {/* Reportes recientes */}
-      <div className="mt-10">
+      <div className="mb-8">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
             <Clock size={20} className="text-gray-500" />
@@ -177,6 +165,18 @@ export default function ReportesPage() {
             })}
           </ul>
         )}
+      </div>
+
+      {/* Las cuatro tarjetas principales */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-stretch">
+        {configuracionesReportes.map((config) => (
+          <ReporteCard
+            key={config.id}
+            config={config}
+            IconComponent={iconos[config.icono] ?? Package}
+            onGenerar={() => setTipoReporteSeleccionado(config.id)}
+          />
+        ))}
       </div>
 
       {/* Parámetros de una tarjeta */}
