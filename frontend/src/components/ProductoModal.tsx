@@ -182,6 +182,8 @@ interface ProductoModalProps {
    * el siguiente SKU de la serie, mirando los que ya existen. */
   productos: Producto[];
   onClose: () => void;
+  /** Se dibuja como un panel al costado (dentro de otro modal) en vez de como un modal a pantalla completa. */
+  modoPanel?: boolean;
   /** Al crear, recibe el producto nuevo (Compras lo agrega a la compra en curso). */
   onSuccess: (productoCreado?: Producto) => void;
 }
@@ -198,6 +200,7 @@ export default function ProductoModal({
   categorias,
   productos,
   onClose,
+  modoPanel = false,
   onSuccess
 }: ProductoModalProps) {
 
@@ -456,8 +459,8 @@ export default function ProductoModal({
 
   return (
     <>
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
-        <div className="bg-white rounded-lg shadow-lg w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden m-4">
+      <div className={modoPanel ? 'flex-1 min-w-0 flex justify-center' : 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto'}>
+        <div className={`bg-white rounded-lg shadow-lg w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden ${modoPanel ? '' : 'm-4'}`}>
           <div className="flex items-center justify-between px-5 py-2 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100 shrink-0">
             <h2 className="text-base font-bold text-gray-900">
               {isEditing ? `Editar Producto: ${productoParaEditar?.nombre}` : 'Crear Nuevo Producto'}

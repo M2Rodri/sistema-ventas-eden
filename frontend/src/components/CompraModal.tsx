@@ -2,9 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { X, AlertCircle, Search, Trash2, Package, Plus, Check } from 'lucide-react';
-import { createCompra, getActiveProductos, getActiveProveedores, getAllInventario } from '@/lib/api';
+import {
+  createCompra, getActiveProductos, getAllProductos, getActiveProveedores, getAllCategorias, getAllInventario,
+  addImagenProducto, deleteImagenProducto,
+} from '@/lib/api';
 import { CompraRequest, Proveedor } from '@/types/proveedor';
-import { Producto, TipoProducto } from '@/types/producto';
+import { Categoria, Producto, TipoProducto } from '@/types/producto';
+import ProductoModal from '@/components/ProductoModal';
 import ProductoDetalleModal from '@/components/ProductoDetalleModal';
 
 interface CompraModalProps {
@@ -55,6 +59,11 @@ export default function CompraModal({
   const [productos, setProductos] = useState<Producto[]>([]);
   const [stockPorProducto, setStockPorProducto] = useState<Map<number, number>>(new Map());
   const [productoVer, setProductoVer] = useState<Producto | null>(null);
+  /** Todos los productos (activos e inactivos): solo para sugerir el siguiente SKU al crear uno. */
+  const [todosLosProductos, setTodosLosProductos] = useState<Producto[]>([]);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  // Panel de producto nuevo, al costado de la compra.
+  const [nuevoProductoAbierto, setNuevoProductoAbierto] = useState(false);
   const [proveedorSeleccionado, setProveedorSeleccionado] = useState<number>(
     idProveedor ?? 0
   );
@@ -72,11 +81,15 @@ export default function CompraModal({
   const [seleccionados, setSeleccionados] = useState<Set<number>>(new Set());
 
   const cargarDatos = async () => {
-    const [prods, provs, inv] = await Promise.allSettled([
+    const [prods, todos, provs, cats, inv] = await Promise.allSettled([
       getActiveProductos(),
+      getAllProductos(),
       getActiveProveedores(),
+      getAllCategorias(),
       getAllInventario(),
     ]);
+    if (todos.status === 'fulfilled') setTodosLosProductos(todos.value);
+    if (cats.status === 'fulfilled') setCategorias(cats.value);
     if (prods.status === 'fulfilled') setProductos(prods.value);
     if (provs.status === 'fulfilled') setProveedores(provs.value);
     if (inv.status === 'fulfilled') {
@@ -88,6 +101,42 @@ export default function CompraModal({
   useEffect(() => {
     cargarDatos();
   }, []);
+
+  // Con el panel de producto abierto, el menú lateral se achica para dar lugar a los dos.
+  useEffect(() => {
+    if (!nuevoProductoAbierto) return;
+    window.dispatchEvent(new Event('sidebar:achicar'));
+    return () => {
+      window.dispatchEvent(new Event('sidebar:restaurar'));
+    };
+  }, [nuevoProductoAbierto]);
+
+  const imagenesDeProductoNuevo = {
+    agregar: async (idProducto: number, file: File) => {
+      await addImagenProducto(idProducto, file, true);
+    },
+    reemplazar: async (idImagenVieja: number, idProducto: number, file: File) => {
+      await deleteImagenProducto(idImagenVieja);
+      await addImagenProducto(idProducto, file, true);
+    },
+    eliminar: async (idImagen: number) => {
+      await deleteImagenProducto(idImagen);
+    },
+  };
+
+  /** Producto recién creado: queda agregado a la compra y el panel se cierra. */
+  const alCrearProducto = async (nuevo?: Producto) => {
+    setNuevoProductoAbierto(false);
+    if (nuevo) {
+      setLineas((actuales) => [...actuales, { idProducto: nuevo.id, cantidad: 1, precioUnitario: 0 }]);
+    }
+    await cargarDatos();
+  };
+
+  const abrirNuevoProducto = () => {
+    setPickerAbierto(false);
+    setNuevoProductoAbierto(true);
+  };
 
   /** Lo que distingue a un producto de otro parecido: color, medida, material y marca. */
   const detalleCorto = (p: Producto) =>
@@ -177,8 +226,8 @@ export default function CompraModal({
   const bs = (n: number) => `Bs ${n.toLocaleString('es-BO', { minimumFractionDigits: 2 })}`;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center gap-3 z-50 p-3">
+      <div className={`bg-white rounded-lg shadow-xl w-full ${nuevoProductoAbierto ? 'flex-1 min-w-0 max-w-xl' : 'max-w-3xl'} max-h-[90vh] flex flex-col overflow-hidden`}>
         <div className="flex items-center justify-between px-5 py-2 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100 shrink-0">
           <h2 className="text-base font-bold text-gray-900">
             Registrar compra
@@ -247,6 +296,16 @@ export default function CompraModal({
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="block text-sm font-medium text-gray-700">Productos comprados *</label>
+              <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={abrirNuevoProducto}
+                disabled={cargandoDatos}
+                className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 border border-primary-300 text-primary-700 rounded-lg hover:bg-primary-50 disabled:opacity-50"
+              >
+                <Plus size={16} />
+                Nuevo producto
+              </button>
               <button
                 type="button"
                 onClick={abrirPicker}
@@ -256,6 +315,7 @@ export default function CompraModal({
                 <Plus size={16} />
                 Buscar y agregar productos
               </button>
+              </div>
             </div>
 
             {/* Lista de lo que se fue agregando */}
@@ -358,6 +418,24 @@ export default function CompraModal({
         </form>
       </div>
 
+      {/* Producto nuevo: el mismo formulario de Productos, como panel a la derecha de la compra. */}
+      {nuevoProductoAbierto && (
+        <ProductoModal
+          modoPanel
+          producto={null}
+          productoParaEditar={null}
+          productos={todosLosProductos}
+          categorias={categorias}
+          imagenesActuales={[]}
+          onAgregarImagen={imagenesDeProductoNuevo.agregar}
+          onReemplazarImagen={imagenesDeProductoNuevo.reemplazar}
+          onEliminarImagen={imagenesDeProductoNuevo.eliminar}
+          loadingImages={false}
+          onClose={() => setNuevoProductoAbierto(false)}
+          onSuccess={alCrearProducto}
+        />
+      )}
+
       {/* Modal de selección de productos, arriba del modal de la compra. */}
       {pickerAbierto && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-3">
@@ -370,7 +448,12 @@ export default function CompraModal({
             </div>
 
             <div className="p-5 pb-3 space-y-2 border-b border-gray-200">
-              <p className="text-xs text-gray-500 leading-tight">¿No encuentras el producto? Primero créalo en Productos.</p>
+              <p className="text-xs text-gray-500 leading-tight">
+                ¿No encuentras el producto?{' '}
+                <button type="button" onClick={abrirNuevoProducto} className="text-primary-600 hover:underline font-medium">
+                  Crea uno nuevo
+                </button>
+              </p>
               <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 gap-2">
                 <Search size={16} className="text-gray-400 flex-shrink-0" />
                 <input
@@ -478,6 +561,7 @@ export default function CompraModal({
       )}
 
       {productoVer && <ProductoDetalleModal producto={productoVer} onClose={() => setProductoVer(null)} />}
+
     </div>
   );
 }

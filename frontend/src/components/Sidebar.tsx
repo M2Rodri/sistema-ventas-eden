@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   LayoutDashboard,
   Users,
@@ -56,6 +56,25 @@ interface SidebarProps {
 export default function Sidebar({ isAdmin }: SidebarProps) {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  // Una pantalla puede pedir más lugar (por ejemplo, Compras con el panel de nuevo producto):
+  // el menú se achica mientras dura y vuelve a como estaba.
+  const estabaCerrado = useRef(false);
+
+  useEffect(() => {
+    const achicar = () => {
+      setIsCollapsed((actual) => {
+        estabaCerrado.current = actual;
+        return true;
+      });
+    };
+    const restaurar = () => setIsCollapsed(estabaCerrado.current);
+    window.addEventListener('sidebar:achicar', achicar);
+    window.addEventListener('sidebar:restaurar', restaurar);
+    return () => {
+      window.removeEventListener('sidebar:achicar', achicar);
+      window.removeEventListener('sidebar:restaurar', restaurar);
+    };
+  }, []);
 
   const filteredMenu = menuItems.filter(item => 
     !item.adminOnly || (item.adminOnly && isAdmin)
