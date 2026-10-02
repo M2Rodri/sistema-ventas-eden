@@ -1,6 +1,10 @@
 // src/main/java/com/mitienda/ecommerce/services/ProductoService.java
 package com.mitienda.ecommerce.services;
 
+import com.mitienda.ecommerce.exception.ConflictoEstadoException;
+import com.mitienda.ecommerce.exception.PeticionInvalidaException;
+import com.mitienda.ecommerce.exception.RecursoNoEncontradoException;
+import com.mitienda.ecommerce.exception.ReglaNegocioException;
 import com.mitienda.ecommerce.dto.ProductoRequest;
 import com.mitienda.ecommerce.dto.ProductoResponse;
 import com.mitienda.ecommerce.models.Categoria;
@@ -117,7 +121,7 @@ public class ProductoService {
     @Transactional(readOnly = true)
     public ProductoResponse getProductoById(Long id) {
         Producto producto = productoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("PRODUCTO_NO_ENCONTRADO", "Producto no encontrado con ID: " + id));
         return ocultarCostoSiNoEsAdmin(new ProductoResponse(producto));
     }
 
@@ -127,7 +131,7 @@ public class ProductoService {
     @Transactional(readOnly = true)
     public ProductoResponse getProductoBySku(String sku) {
         Producto producto = productoRepository.findBySku(sku)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado con SKU: " + sku));
+                .orElseThrow(() -> new RecursoNoEncontradoException("PRODUCTO_NO_ENCONTRADO", "Producto no encontrado con SKU: " + sku));
         return ocultarCostoSiNoEsAdmin(new ProductoResponse(producto));
     }
 
@@ -139,16 +143,16 @@ public class ProductoService {
     public ProductoResponse createProducto(ProductoRequest request) {
         // Validar que el SKU no exista
         if (productoRepository.existsBySku(request.getSku())) {
-            throw new RuntimeException("Ya existe un producto con el SKU: " + request.getSku());
+            throw new ConflictoEstadoException("SKU_DUPLICADO", "Ya existe un producto con el SKU: " + request.getSku());
         }
 
         // Validar que la categoría exista
         Categoria categoria = categoriaRepository.findById(request.getIdCategoria())
-                .orElseThrow(() -> new RuntimeException("Categoría no encontrada con ID: " + request.getIdCategoria()));
+                .orElseThrow(() -> new RecursoNoEncontradoException("CATEGORIA_NO_ENCONTRADA", "Categoría no encontrada con ID: " + request.getIdCategoria()));
 
         // Validar que la categoría esté activa
         if (!categoria.getActivo()) {
-            throw new RuntimeException("No se puede crear un producto en una categoría inactiva");
+            throw new ReglaNegocioException("CATEGORIA_INACTIVA", "No se puede crear un producto en una categoría inactiva");
         }
 
         // Crear producto
@@ -207,17 +211,17 @@ public class ProductoService {
     @Transactional
     public ProductoResponse updateProducto(Long id, ProductoRequest request) {
         Producto producto = productoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("PRODUCTO_NO_ENCONTRADO", "Producto no encontrado con ID: " + id));
 
         // Validar SKU único (si cambió)
         if (!producto.getSku().equals(request.getSku()) &&
             productoRepository.existsBySku(request.getSku())) {
-            throw new RuntimeException("Ya existe un producto con el SKU: " + request.getSku());
+            throw new ConflictoEstadoException("SKU_DUPLICADO", "Ya existe un producto con el SKU: " + request.getSku());
         }
 
         // Validar categoría
         Categoria categoria = categoriaRepository.findById(request.getIdCategoria())
-                .orElseThrow(() -> new RuntimeException("Categoría no encontrada con ID: " + request.getIdCategoria()));
+                .orElseThrow(() -> new RecursoNoEncontradoException("CATEGORIA_NO_ENCONTRADA", "Categoría no encontrada con ID: " + request.getIdCategoria()));
 
         // Actualizar campos
         producto.setSku(request.getSku());
@@ -269,11 +273,11 @@ public class ProductoService {
     @Transactional
     public ProductoResponse actualizarStockMinimo(Long id, Integer stockMinimo) {
         if (stockMinimo == null || stockMinimo < 0) {
-            throw new RuntimeException("El stock mínimo no puede ser negativo");
+            throw new PeticionInvalidaException("STOCK_MINIMO_INVALIDO", "El stock mínimo no puede ser negativo");
         }
 
         Producto producto = productoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("PRODUCTO_NO_ENCONTRADO", "Producto no encontrado con ID: " + id));
 
         Integer anterior = producto.getStockMinimo();
         producto.setStockMinimo(stockMinimo);
@@ -297,7 +301,7 @@ public class ProductoService {
     @Transactional
     public void deleteProducto(Long id) {
         Producto producto = productoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("PRODUCTO_NO_ENCONTRADO", "Producto no encontrado con ID: " + id));
 
         producto.setActivo(false);
         productoRepository.save(producto);
@@ -315,7 +319,7 @@ public class ProductoService {
     @Transactional
     public ProductoResponse toggleProductoStatus(Long id) {
         Producto producto = productoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("PRODUCTO_NO_ENCONTRADO", "Producto no encontrado con ID: " + id));
 
         producto.setActivo(!producto.getActivo());
         Producto updatedProducto = productoRepository.save(producto);

@@ -1,5 +1,6 @@
 package com.mitienda.ecommerce.services;
 
+import com.mitienda.ecommerce.exception.PeticionInvalidaException;
 import com.mitienda.ecommerce.models.ImagenProducto;
 import com.mitienda.ecommerce.models.Producto;
 import com.mitienda.ecommerce.repositories.ImagenProductoRepository;
@@ -59,7 +60,7 @@ class ImagenProductoServiceTest {
 
     @Test
     void unArchivoQueNoEsImagenNoLlegaAlAlmacenamiento() throws IOException {
-        assertThrows(IllegalArgumentException.class, () -> servicio.saveImagenProducto(
+        assertThrows(PeticionInvalidaException.class, () -> servicio.saveImagenProducto(
                 new MockMultipartFile("file", "foto.png", "image/png", "no soy imagen".getBytes()), 1L, false));
 
         verify(almacen, never()).guardar(anyString(), anyString(), any(byte[].class), anyString());

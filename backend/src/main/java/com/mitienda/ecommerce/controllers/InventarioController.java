@@ -68,13 +68,8 @@ public class InventarioController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<?> getInventarioById(@PathVariable Long id) {
-        try {
-            InventarioResponse inventario = inventarioService.getInventarioById(id);
-            return ResponseEntity.ok(inventario);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        InventarioResponse inventario = inventarioService.getInventarioById(id);
+        return ResponseEntity.ok(inventario);
     }
 
     /**
@@ -83,13 +78,8 @@ public class InventarioController {
      */
     @GetMapping("/producto/{idProducto}")
     public ResponseEntity<?> getInventarioByProducto(@PathVariable Long idProducto) {
-        try {
-            InventarioResponse inventario = inventarioService.getInventarioByProducto(idProducto);
-            return ResponseEntity.ok(inventario);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        InventarioResponse inventario = inventarioService.getInventarioByProducto(idProducto);
+        return ResponseEntity.ok(inventario);
     }
 
     /**
@@ -99,13 +89,8 @@ public class InventarioController {
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> createInventario(@Valid @RequestBody InventarioRequest request) {
-        try {
-            InventarioResponse createdInventario = inventarioService.createInventario(request);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdInventario);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        InventarioResponse createdInventario = inventarioService.createInventario(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdInventario);
     }
 
     /**
@@ -116,13 +101,8 @@ public class InventarioController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> updateInventario(@PathVariable Long id, 
                                              @Valid @RequestBody InventarioRequest request) {
-        try {
-            InventarioResponse updatedInventario = inventarioService.updateInventario(id, request);
-            return ResponseEntity.ok(updatedInventario);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        InventarioResponse updatedInventario = inventarioService.updateInventario(id, request);
+        return ResponseEntity.ok(updatedInventario);
     }
 
     /**
@@ -139,13 +119,8 @@ public class InventarioController {
     @PostMapping("/ajustar")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> ajustarInventario(@Valid @RequestBody MovimientoInventarioRequest request) {
-        try {
-            InventarioResponse inventario = inventarioService.ajustarInventario(request);
-            return ResponseEntity.ok(inventario);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        InventarioResponse inventario = inventarioService.ajustarInventario(request);
+        return ResponseEntity.ok(inventario);
     }
 
     /**
@@ -195,17 +170,12 @@ public class InventarioController {
     @GetMapping("/verificar-disponibilidad")
     public ResponseEntity<?> verificarDisponibilidad(@RequestParam Long idProducto, 
                                                      @RequestParam Integer cantidad) {
-        try {
-            boolean disponible = inventarioService.verificarDisponibilidad(idProducto, cantidad);
-            return ResponseEntity.ok(Map.of(
-                "disponible", disponible,
-                "idProducto", idProducto,
-                "cantidadSolicitada", cantidad
-            ));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        boolean disponible = inventarioService.verificarDisponibilidad(idProducto, cantidad);
+        return ResponseEntity.ok(Map.of(
+            "disponible", disponible,
+            "idProducto", idProducto,
+            "cantidadSolicitada", cantidad
+        ));
     }
 
     /**

@@ -1,5 +1,6 @@
 package com.mitienda.ecommerce.storage;
 
+import com.mitienda.ecommerce.exception.PeticionInvalidaException;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -34,33 +35,33 @@ public final class ValidadorImagen {
 
     public static ImagenValida validar(MultipartFile archivo, long maximoBytes) throws IOException {
         if (archivo == null || archivo.isEmpty()) {
-            throw new IllegalArgumentException("El archivo no puede estar vacío");
+            throw new PeticionInvalidaException("ARCHIVO_VACIO", "El archivo no puede estar vacío");
         }
         if (archivo.getSize() > maximoBytes) {
-            throw new IllegalArgumentException(
+            throw new PeticionInvalidaException("ARCHIVO_MUY_GRANDE",
                     "El archivo excede el tamaño máximo permitido de " + (maximoBytes / (1024 * 1024)) + " MB");
         }
 
         String extension = extensionDe(archivo.getOriginalFilename());
         if (!EXTENSIONES.contains(extension)) {
-            throw new IllegalArgumentException(
+            throw new PeticionInvalidaException("IMAGEN_INVALIDA",
                     "Tipo de archivo no permitido. Solo se aceptan imágenes JPG, PNG o WebP");
         }
 
         String declarado = archivo.getContentType();
         if (declarado != null && !declarado.isBlank()
                 && !TIPOS_DECLARADOS.contains(declarado.toLowerCase(Locale.ROOT))) {
-            throw new IllegalArgumentException(
+            throw new PeticionInvalidaException("IMAGEN_INVALIDA",
                     "Tipo de archivo no permitido. Solo se aceptan imágenes JPG, PNG o WebP");
         }
 
         byte[] contenido = archivo.getBytes();
         String tipoReal = tipoSegunContenido(contenido);
         if (tipoReal == null) {
-            throw new IllegalArgumentException("El contenido del archivo no es una imagen JPG, PNG o WebP válida");
+            throw new PeticionInvalidaException("IMAGEN_INVALIDA", "El contenido del archivo no es una imagen JPG, PNG o WebP válida");
         }
         if (!extensionCoincide(extension, tipoReal)) {
-            throw new IllegalArgumentException("La extensión del archivo no corresponde a su contenido");
+            throw new PeticionInvalidaException("IMAGEN_INVALIDA", "La extensión del archivo no corresponde a su contenido");
         }
 
         return new ImagenValida(contenido, tipoReal, UUID.randomUUID() + extensionParaGuardar(tipoReal));

@@ -1,5 +1,6 @@
 package com.mitienda.ecommerce.services;
 
+import com.mitienda.ecommerce.exception.PeticionInvalidaException;
 import com.mitienda.ecommerce.dto.PagoDTO;
 import com.mitienda.ecommerce.models.MetodoPago;
 import com.mitienda.ecommerce.models.Pago;
@@ -92,7 +93,7 @@ class PagoServiceComprobanteTest {
 
     @Test
     void unArchivoQueNoEsImagenNoLlegaAlAlmacenamiento() throws IOException {
-        assertThrows(IllegalArgumentException.class, () -> servicio.adjuntarComprobante(3L,
+        assertThrows(PeticionInvalidaException.class, () -> servicio.adjuntarComprobante(3L,
                 new MockMultipartFile("file", "comprobante.jpg", "image/jpeg", "no soy imagen".getBytes())));
 
         verify(almacen, never()).guardar(anyString(), anyString(), any(byte[].class), anyString());

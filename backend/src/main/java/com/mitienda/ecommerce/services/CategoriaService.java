@@ -1,5 +1,8 @@
 package com.mitienda.ecommerce.services;
 
+import com.mitienda.ecommerce.exception.ConflictoEstadoException;
+import com.mitienda.ecommerce.exception.RecursoNoEncontradoException;
+import com.mitienda.ecommerce.exception.ReglaNegocioException;
 import com.mitienda.ecommerce.dto.CategoriaRequest;
 import com.mitienda.ecommerce.dto.CategoriaResponse;
 import com.mitienda.ecommerce.models.Categoria;
@@ -75,7 +78,7 @@ public class CategoriaService {
     @Transactional(readOnly = true) // <--- AÑADIR ESTA ANOTACIÓN
     public CategoriaResponse getCategoriaById(Long id) {
         Categoria categoria = categoriaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Categoría no encontrada con ID: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("CATEGORIA_NO_ENCONTRADA", "Categoría no encontrada con ID: " + id));
         return new CategoriaResponse(categoria); // Se ejecuta dentro de la transacción
     }
 
@@ -92,7 +95,7 @@ public class CategoriaService {
                 return;
             }
         }
-        throw new RuntimeException("Solo existen las categorías: Camas, Colchones, Almohadas, Accesorios y Muebles de dormitorio");
+        throw new ReglaNegocioException("CATEGORIA_NO_PERMITIDA", "Solo existen las categorías: Camas, Colchones, Almohadas, Accesorios y Muebles de dormitorio");
     }
 
     /**
@@ -103,7 +106,7 @@ public class CategoriaService {
         normalizarCategoriaFija(request);
         // Validar que el nombre no exista
         if (categoriaRepository.existsByNombreIgnoreCase(request.getNombre().trim())) {
-            throw new RuntimeException("Ya existe una categoría con el nombre: " + request.getNombre());
+            throw new ConflictoEstadoException("CATEGORIA_DUPLICADA", "Ya existe una categoría con el nombre: " + request.getNombre());
         }
 
         Categoria categoria = new Categoria();
@@ -122,14 +125,14 @@ public class CategoriaService {
     @Transactional
     public CategoriaResponse updateCategoria(Long id, CategoriaRequest request) {
         Categoria categoria = categoriaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Categoría no encontrada con ID: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("CATEGORIA_NO_ENCONTRADA", "Categoría no encontrada con ID: " + id));
 
         normalizarCategoriaFija(request);
 
         // Validar nombre único (si cambió)
         if (!categoria.getNombre().equalsIgnoreCase(request.getNombre().trim()) &&
             categoriaRepository.existsByNombreIgnoreCase(request.getNombre().trim())) {
-            throw new RuntimeException("Ya existe una categoría con el nombre: " + request.getNombre());
+            throw new ConflictoEstadoException("CATEGORIA_DUPLICADA", "Ya existe una categoría con el nombre: " + request.getNombre());
         }
 
         categoria.setNombre(request.getNombre());
@@ -147,12 +150,12 @@ public class CategoriaService {
     @Transactional
     public void deleteCategoria(Long id) {
         Categoria categoria = categoriaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Categoría no encontrada con ID: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("CATEGORIA_NO_ENCONTRADA", "Categoría no encontrada con ID: " + id));
 
         // Verificar que no tenga productos asociados
         // Este acceso también se beneficia de estar dentro de la transacción
         if (!categoria.getProductos().isEmpty()) {
-            throw new RuntimeException("No se puede eliminar una categoría con productos asociados");
+            throw new ConflictoEstadoException("CATEGORIA_CON_PRODUCTOS", "No se puede eliminar una categoría con productos asociados");
         }
 
         categoria.setActivo(false);
@@ -165,7 +168,7 @@ public class CategoriaService {
     @Transactional
     public CategoriaResponse toggleCategoriaStatus(Long id) {
         Categoria categoria = categoriaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Categoría no encontrada con ID: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("CATEGORIA_NO_ENCONTRADA", "Categoría no encontrada con ID: " + id));
 
         categoria.setActivo(!categoria.getActivo());
         Categoria updatedCategoria = categoriaRepository.save(categoria);

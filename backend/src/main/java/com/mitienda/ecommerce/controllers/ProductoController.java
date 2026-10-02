@@ -49,35 +49,20 @@ public class ProductoController {
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getProductoById(@PathVariable Long id) {
-        try {
-            ProductoResponse producto = productoService.getProductoById(id);
-            return ResponseEntity.ok(producto);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        ProductoResponse producto = productoService.getProductoById(id);
+        return ResponseEntity.ok(producto);
     }
 
     @GetMapping("/sku/{sku}")
     public ResponseEntity<?> getProductoBySku(@PathVariable String sku) {
-        try {
-            ProductoResponse producto = productoService.getProductoBySku(sku);
-            return ResponseEntity.ok(producto);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        ProductoResponse producto = productoService.getProductoBySku(sku);
+        return ResponseEntity.ok(producto);
     }
 
     @GetMapping("/categoria/{categoriaId}")
     public ResponseEntity<?> getProductosByCategoria(@PathVariable Long categoriaId) {
-        try {
-            List<ProductoResponse> productos = productoService.getProductosByCategoria(categoriaId);
-            return ResponseEntity.ok(productos);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        List<ProductoResponse> productos = productoService.getProductosByCategoria(categoriaId);
+        return ResponseEntity.ok(productos);
     }
 
     @GetMapping("/buscar")
@@ -93,13 +78,8 @@ public class ProductoController {
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> createProducto(@Valid @RequestBody ProductoRequest request) {
-        try {
-            ProductoResponse createdProducto = productoService.createProducto(request);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdProducto);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        ProductoResponse createdProducto = productoService.createProducto(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdProducto);
     }
 
     /**
@@ -110,49 +90,29 @@ public class ProductoController {
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLEADO')")
     public ResponseEntity<?> actualizarStockMinimo(@PathVariable Long id,
                                                    @RequestParam Integer stockMinimo) {
-        try {
-            return ResponseEntity.ok(productoService.actualizarStockMinimo(id, stockMinimo));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        return ResponseEntity.ok(productoService.actualizarStockMinimo(id, stockMinimo));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> updateProducto(@PathVariable Long id, 
                                            @Valid @RequestBody ProductoRequest request) {
-        try {
-            ProductoResponse updatedProducto = productoService.updateProducto(id, request);
-            return ResponseEntity.ok(updatedProducto);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        ProductoResponse updatedProducto = productoService.updateProducto(id, request);
+        return ResponseEntity.ok(updatedProducto);
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deleteProducto(@PathVariable Long id) {
-        try {
-            productoService.deleteProducto(id);
-            return ResponseEntity.ok(Map.of("message", "Producto desactivado correctamente"));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        productoService.deleteProducto(id);
+        return ResponseEntity.ok(Map.of("message", "Producto desactivado correctamente"));
     }
 
     @PatchMapping("/{id}/toggle-status")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> toggleProductoStatus(@PathVariable Long id) {
-        try {
-            ProductoResponse producto = productoService.toggleProductoStatus(id);
-            return ResponseEntity.ok(producto);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        ProductoResponse producto = productoService.toggleProductoStatus(id);
+        return ResponseEntity.ok(producto);
     }
 
     @GetMapping("/estadisticas")

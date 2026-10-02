@@ -61,13 +61,8 @@ public class CategoriaController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<?> getCategoriaById(@PathVariable Long id) {
-        try {
-            CategoriaResponse categoria = categoriaService.getCategoriaById(id);
-            return ResponseEntity.ok(categoria);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        CategoriaResponse categoria = categoriaService.getCategoriaById(id);
+        return ResponseEntity.ok(categoria);
     }
 
     /**
@@ -77,13 +72,8 @@ public class CategoriaController {
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> createCategoria(@Valid @RequestBody CategoriaRequest request) {
-        try {
-            CategoriaResponse createdCategoria = categoriaService.createCategoria(request);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdCategoria);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        CategoriaResponse createdCategoria = categoriaService.createCategoria(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdCategoria);
     }
 
     /**
@@ -94,13 +84,8 @@ public class CategoriaController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> updateCategoria(@PathVariable Long id, 
                                             @Valid @RequestBody CategoriaRequest request) {
-        try {
-            CategoriaResponse updatedCategoria = categoriaService.updateCategoria(id, request);
-            return ResponseEntity.ok(updatedCategoria);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        CategoriaResponse updatedCategoria = categoriaService.updateCategoria(id, request);
+        return ResponseEntity.ok(updatedCategoria);
     }
 
     /**
@@ -110,13 +95,8 @@ public class CategoriaController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deleteCategoria(@PathVariable Long id) {
-        try {
-            categoriaService.deleteCategoria(id);
-            return ResponseEntity.ok(Map.of("message", "Categoría desactivada correctamente"));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        categoriaService.deleteCategoria(id);
+        return ResponseEntity.ok(Map.of("message", "Categoría desactivada correctamente"));
     }
 
     /**
@@ -126,13 +106,8 @@ public class CategoriaController {
     @PatchMapping("/{id}/toggle-status")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> toggleCategoriaStatus(@PathVariable Long id) {
-        try {
-            CategoriaResponse categoria = categoriaService.toggleCategoriaStatus(id);
-            return ResponseEntity.ok(categoria);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        CategoriaResponse categoria = categoriaService.toggleCategoriaStatus(id);
+        return ResponseEntity.ok(categoria);
     }
 
     /**

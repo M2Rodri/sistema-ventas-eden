@@ -1,9 +1,9 @@
 package com.mitienda.ecommerce.controllers;
 
 import com.mitienda.ecommerce.dto.ImagenProductoDTO;
+import com.mitienda.ecommerce.exception.PeticionInvalidaException;
 import com.mitienda.ecommerce.models.ImagenProducto;
 import com.mitienda.ecommerce.services.ImagenProductoService;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -45,70 +45,23 @@ public class ImagenProductoController {
     public ResponseEntity<?> saveImagenProducto(
             @RequestParam("file") MultipartFile file,
             @PathVariable Long idProducto,
-            @RequestParam(defaultValue = "false") Boolean esPrincipal) {
-        
-        System.out.println("===========================================");
-        System.out.println("🔥 CONTROLADOR DE IMÁGENES - INICIO");
-        System.out.println("ID Producto: " + idProducto);
-        System.out.println("Archivo: " + (file != null ? file.getOriginalFilename() : "NULL"));
-        System.out.println("Es Principal: " + esPrincipal);
-        System.out.println("Tamaño: " + (file != null ? file.getSize() : 0) + " bytes");
-        System.out.println("Vacío: " + (file != null ? file.isEmpty() : "NULL"));
-        System.out.println("===========================================");
-        
-        try {
-            if (file == null || file.isEmpty()) {
-                System.err.println("❌ Archivo vacío o nulo");
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(Map.of("error", "El archivo de imagen no puede estar vacío."));
-            }
-            
-            System.out.println("✅ Llamando al servicio...");
-            ImagenProducto savedImagen = imagenProductoService.saveImagenProducto(file, idProducto, esPrincipal);
-            System.out.println("✅ Imagen guardada correctamente: " + savedImagen.getUrlImagen());
-            
-            ImagenProductoDTO response = new ImagenProductoDTO(savedImagen);
-            return ResponseEntity.ok(response);
-            
-        } catch (IOException e) {
-            System.err.println("❌ ERROR DE IO:");
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Error al guardar la imagen: " + e.getMessage()));
-                    
-        } catch (RuntimeException e) {
-            System.err.println("❌ ERROR DE RUNTIME:");
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-                    
-        } catch (Exception e) {
-            System.err.println("❌ ERROR INESPERADO:");
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Error inesperado: " + e.getMessage()));
+            @RequestParam(defaultValue = "false") Boolean esPrincipal) throws IOException {
+        if (file == null || file.isEmpty()) {
+            throw new PeticionInvalidaException("ARCHIVO_VACIO", "El archivo de imagen no puede estar vacío.");
         }
+        ImagenProducto savedImagen = imagenProductoService.saveImagenProducto(file, idProducto, esPrincipal);
+        return ResponseEntity.ok(new ImagenProductoDTO(savedImagen));
     }
 
     @DeleteMapping("/{idImagen}")
     public ResponseEntity<?> deleteImagenProducto(@PathVariable Long idImagen) {
-        try {
-            imagenProductoService.deleteImagenProducto(idImagen);
-            return ResponseEntity.ok(Map.of("message", "Imagen eliminada correctamente."));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        imagenProductoService.deleteImagenProducto(idImagen);
+        return ResponseEntity.ok(Map.of("message", "Imagen eliminada correctamente."));
     }
 
     @PutMapping("/{idImagen}/principal/{idProducto}")
     public ResponseEntity<?> setImagenPrincipal(@PathVariable Long idImagen, @PathVariable Long idProducto) {
-        try {
-            imagenProductoService.setImagenPrincipal(idImagen, idProducto);
-            return ResponseEntity.ok(Map.of("message", "Imagen marcada como principal correctamente."));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        imagenProductoService.setImagenPrincipal(idImagen, idProducto);
+        return ResponseEntity.ok(Map.of("message", "Imagen marcada como principal correctamente."));
     }
 }

@@ -1,5 +1,6 @@
 package com.mitienda.ecommerce.services;
 
+import com.mitienda.ecommerce.exception.RecursoNoEncontradoException;
 import com.mitienda.ecommerce.models.ImagenProducto;
 import com.mitienda.ecommerce.models.Producto;
 import com.mitienda.ecommerce.repositories.ImagenProductoRepository;
@@ -59,7 +60,7 @@ public class ImagenProductoService {
                 ValidadorImagen.validar(file, ValidadorImagen.MAXIMO_FOTO_PRODUCTO);
 
         Producto producto = productoRepository.findById(idProducto)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + idProducto));
+                .orElseThrow(() -> new RecursoNoEncontradoException("PRODUCTO_NO_ENCONTRADO", "Producto no encontrado con ID: " + idProducto));
 
         String referencia = almacen.guardar(AlmacenArchivos.BUCKET_PRODUCTOS,
                 imagen.nombreObjeto(), imagen.contenido(), imagen.tipoContenido());
@@ -100,7 +101,7 @@ public class ImagenProductoService {
     @Transactional
     public void deleteImagenProducto(Long idImagen) {
         ImagenProducto imagen = imagenProductoRepository.findById(idImagen)
-                .orElseThrow(() -> new RuntimeException("Imagen no encontrada con ID: " + idImagen));
+                .orElseThrow(() -> new RecursoNoEncontradoException("IMAGEN_NO_ENCONTRADA", "Imagen no encontrada con ID: " + idImagen));
 
         // Primero el archivo en el bucket: si no se puede borrar, se avisa y el
         // registro queda para reintentar, en vez de dejar un archivo huérfano.
@@ -116,10 +117,10 @@ public class ImagenProductoService {
     @Transactional
     public void setImagenPrincipal(Long idImagen, Long idProducto) {
         ImagenProducto imagen = imagenProductoRepository.findById(idImagen)
-                .orElseThrow(() -> new RuntimeException("Imagen no encontrada con ID: " + idImagen));
+                .orElseThrow(() -> new RecursoNoEncontradoException("IMAGEN_NO_ENCONTRADA", "Imagen no encontrada con ID: " + idImagen));
 
         if (!imagen.getProducto().getId().equals(idProducto)) {
-            throw new RuntimeException("La imagen no pertenece al producto especificado");
+            throw new RecursoNoEncontradoException("IMAGEN_NO_ENCONTRADA", "La imagen no pertenece al producto especificado");
         }
 
         desmarcarImagenPrincipalAnterior(idProducto);

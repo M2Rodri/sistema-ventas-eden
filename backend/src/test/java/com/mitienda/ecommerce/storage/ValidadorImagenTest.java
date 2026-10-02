@@ -1,5 +1,6 @@
 package com.mitienda.ecommerce.storage;
 
+import com.mitienda.ecommerce.exception.PeticionInvalidaException;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
 
@@ -35,43 +36,43 @@ class ValidadorImagenTest {
 
     @Test
     void rechazaUnArchivoVacioONulo() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(PeticionInvalidaException.class,
                 () -> ValidadorImagen.validar(archivo("a.png", "image/png", new byte[0]), 1024));
-        assertThrows(IllegalArgumentException.class, () -> ValidadorImagen.validar(null, 1024));
+        assertThrows(PeticionInvalidaException.class, () -> ValidadorImagen.validar(null, 1024));
     }
 
     @Test
     void rechazaLoQueExcedeElTamanoMaximo() {
-        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+        PeticionInvalidaException error = assertThrows(PeticionInvalidaException.class,
                 () -> ValidadorImagen.validar(archivo("a.png", "image/png", PNG), 4));
         assertTrue(error.getMessage().contains("tamaño máximo"));
     }
 
     @Test
     void rechazaUnaExtensionNoPermitida() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(PeticionInvalidaException.class,
                 () -> ValidadorImagen.validar(archivo("virus.exe", "image/png", PNG), 1024));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(PeticionInvalidaException.class,
                 () -> ValidadorImagen.validar(archivo("sin_extension", "image/png", PNG), 1024));
     }
 
     @Test
     void rechazaUnTipoDeclaradoNoPermitido() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(PeticionInvalidaException.class,
                 () -> ValidadorImagen.validar(archivo("a.png", "application/pdf", PNG), 1024));
     }
 
     @Test
     void rechazaUnArchivoCuyoContenidoNoEsUnaImagenAunqueSeLlamePng() {
         byte[] texto = "<?php echo 'hola'; ?>".getBytes();
-        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+        PeticionInvalidaException error = assertThrows(PeticionInvalidaException.class,
                 () -> ValidadorImagen.validar(archivo("a.png", "image/png", texto), 1024));
         assertTrue(error.getMessage().contains("contenido"));
     }
 
     @Test
     void rechazaUnaExtensionQueNoCorrespondeAlContenido() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(PeticionInvalidaException.class,
                 () -> ValidadorImagen.validar(archivo("a.png", "image/png", JPEG), 1024));
     }
 }

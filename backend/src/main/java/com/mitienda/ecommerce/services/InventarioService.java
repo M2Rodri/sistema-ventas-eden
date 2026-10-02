@@ -1,6 +1,9 @@
 // src/main/java/com/mitienda/ecommerce/services/InventarioService.java
 package com.mitienda.ecommerce.services;
 
+import com.mitienda.ecommerce.exception.ConflictoEstadoException;
+import com.mitienda.ecommerce.exception.PeticionInvalidaException;
+import com.mitienda.ecommerce.exception.RecursoNoEncontradoException;
 import com.mitienda.ecommerce.dto.MovimientoInventarioRequest;
 import com.mitienda.ecommerce.dto.MovimientoInventarioResponse;
 import com.mitienda.ecommerce.dto.AlertaInventarioResponse;
@@ -110,7 +113,7 @@ public class InventarioService {
     @Transactional(readOnly = true) // <--- AÑADIDO ESTA ANOTACIÓN
     public InventarioResponse getInventarioById(Long id) {
         Inventario inventario = inventarioRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Inventario no encontrado con ID: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("INVENTARIO_NO_ENCONTRADO", "Inventario no encontrado con ID: " + id));
         return ocultarCostoSiNoEsAdmin(new InventarioResponse(inventario));
     }
 
@@ -121,7 +124,7 @@ public class InventarioService {
     @Transactional(readOnly = true) // <--- AÑADIDO ESTA ANOTACIÓN
     public InventarioResponse getInventarioByProducto(Long idProducto) {
         Inventario inventario = inventarioRepository.findByProductoId(idProducto)
-                .orElseThrow(() -> new RuntimeException("No existe inventario para el producto con ID: " + idProducto));
+                .orElseThrow(() -> new RecursoNoEncontradoException("INVENTARIO_NO_ENCONTRADO", "No existe inventario para el producto con ID: " + idProducto));
         return ocultarCostoSiNoEsAdmin(new InventarioResponse(inventario));
     }
 
@@ -133,11 +136,11 @@ public class InventarioService {
     public InventarioResponse createInventario(InventarioRequest request) {
         // Validar que el producto exista
         Producto producto = productoRepository.findById(request.getIdProducto())
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + request.getIdProducto()));
+                .orElseThrow(() -> new RecursoNoEncontradoException("PRODUCTO_NO_ENCONTRADO", "Producto no encontrado con ID: " + request.getIdProducto()));
 
         // Validar que no exista inventario previo
         if (inventarioRepository.existsByProductoId(request.getIdProducto())) {
-            throw new RuntimeException("Ya existe inventario para este producto");
+            throw new ConflictoEstadoException("INVENTARIO_YA_EXISTE", "Ya existe inventario para este producto");
         }
 
         // Crear inventario
@@ -160,7 +163,7 @@ public class InventarioService {
     @Transactional
     public InventarioResponse updateInventario(Long id, InventarioRequest request) {
         Inventario inventario = inventarioRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Inventario no encontrado con ID: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("INVENTARIO_NO_ENCONTRADO", "Inventario no encontrado con ID: " + id));
 
         inventario.setCantidadDisponible(request.getCantidadDisponible());
 
@@ -184,7 +187,7 @@ public class InventarioService {
     @Transactional
     public InventarioResponse ajustarInventario(MovimientoInventarioRequest request) {
         Inventario inventario = inventarioRepository.findByProductoId(request.getIdProducto())
-                .orElseThrow(() -> new RuntimeException("No existe inventario para el producto con ID: " + request.getIdProducto()));
+                .orElseThrow(() -> new RecursoNoEncontradoException("INVENTARIO_NO_ENCONTRADO", "No existe inventario para el producto con ID: " + request.getIdProducto()));
         Integer cantidadAnterior = inventario.getCantidadDisponible();
 
         // Aplicar movimiento según tipo
@@ -193,7 +196,7 @@ public class InventarioService {
         } else if ("SALIDA".equalsIgnoreCase(request.getTipoMovimiento())) {
             inventario.reducirStock(request.getCantidad());
         } else {
-            throw new RuntimeException("Tipo de movimiento inválido. Use 'ENTRADA' o 'SALIDA'");
+            throw new PeticionInvalidaException("MOVIMIENTO_INVALIDO", "Tipo de movimiento inválido. Use 'ENTRADA' o 'SALIDA'");
         }
         Inventario updatedInventario = inventarioRepository.save(inventario);
 
@@ -234,7 +237,7 @@ public class InventarioService {
     public void registrarAjusteAutomatico(Long idProducto, Integer cantidadAnterior, Integer cantidadNueva,
                                       String tipoMovimiento, String motivo, Long idUsuario) {
         Producto producto = productoRepository.findById(idProducto)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + idProducto));
+                .orElseThrow(() -> new RecursoNoEncontradoException("PRODUCTO_NO_ENCONTRADO", "Producto no encontrado con ID: " + idProducto));
 
         Usuario usuario = idUsuario != null ? usuarioRepository.findById(idUsuario).orElse(null) : null;
 
@@ -280,7 +283,7 @@ public class InventarioService {
     @Transactional
     public void reducirStock(Long idProducto, Integer cantidad) {
         Inventario inventario = inventarioRepository.findByProductoId(idProducto)
-                .orElseThrow(() -> new RuntimeException("No existe inventario para el producto con ID: " + idProducto));
+                .orElseThrow(() -> new RecursoNoEncontradoException("INVENTARIO_NO_ENCONTRADO", "No existe inventario para el producto con ID: " + idProducto));
 
         inventario.reducirStock(cantidad);
         inventarioRepository.save(inventario);
@@ -296,7 +299,7 @@ public class InventarioService {
     @Transactional
     public void aumentarStock(Long idProducto, Integer cantidad) {
         Inventario inventario = inventarioRepository.findByProductoId(idProducto)
-                .orElseThrow(() -> new RuntimeException("No existe inventario para el producto con ID: " + idProducto));
+                .orElseThrow(() -> new RecursoNoEncontradoException("INVENTARIO_NO_ENCONTRADO", "No existe inventario para el producto con ID: " + idProducto));
 
         inventario.aumentarStock(cantidad);
         inventarioRepository.save(inventario);
@@ -334,7 +337,7 @@ public class InventarioService {
     @Transactional(readOnly = true) // <--- AÑADIDO ESTA ANOTACIÓN (buen práctica para métodos de solo lectura que acceden a entidades)
     public boolean verificarDisponibilidad(Long idProducto, Integer cantidad) {
         Inventario inventario = inventarioRepository.findByProductoId(idProducto)
-                .orElseThrow(() -> new RuntimeException("No existe inventario para el producto con ID: " + idProducto));
+                .orElseThrow(() -> new RecursoNoEncontradoException("INVENTARIO_NO_ENCONTRADO", "No existe inventario para el producto con ID: " + idProducto));
         return inventario.tieneStock(cantidad);
     }
 
