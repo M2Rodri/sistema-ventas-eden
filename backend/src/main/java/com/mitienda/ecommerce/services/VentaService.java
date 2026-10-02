@@ -274,7 +274,9 @@ public class VentaService {
             detalle.setCostoUnitario(producto.getPrecioCompra() != null
                     ? producto.getPrecioCompra() : BigDecimal.ZERO);
             detalle.calcularSubtotal();
-            detalleVentaRepository.save(detalle);
+            // Se agrega también a la lista de la venta en memoria: la respuesta se arma
+            // desde ahí y, si no, saldría sin los productos recién guardados.
+            savedVenta.getDetalles().add(detalleVentaRepository.save(detalle));
 
             inventarioService.reducirStock(producto.getId(), item.getCantidad());
 
@@ -301,7 +303,10 @@ public class VentaService {
             pago.setReferencia(request.getReferenciaPago());
             pago.setUsuario(usuario);
             pago.setEstado(EstadoPago.COMPLETADO);
-            pagoRepository.save(pago);
+            // Se agrega también a la lista de la venta en memoria: la respuesta se arma
+            // desde ahí. Sin esto salía con pagos vacíos y la web, que sube la foto del
+            // comprobante a pagos[0] al registrar la venta, nunca la subía.
+            savedVenta.getPagos().add(pagoRepository.save(pago));
         }
 
         // El comprobante se genera aparte, después de que esta transacción
