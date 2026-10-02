@@ -3,7 +3,7 @@
 Todas las rutas de la API van con el prefijo `/api/v1`. Una ruta con `/api/` sin la versión responde 404.
 
 - **versionada**: sigue existiendo, ahora con `/api/v1`.
-- **eliminada**: se quitó del sistema (no la usaba ninguna pantalla o era una ruta de prueba).
+- **eliminada**: se quitó del sistema (no la usaba ninguna pantalla, era de prueba, o dejó de existir al quitar el estado y la edición de las compras).
 - **apagada (404)**: módulo fuera de alcance; su código sigue en el repositorio pero la ruta no responde.
 
 ## Auditoria
@@ -59,9 +59,9 @@ Todas las rutas de la API van con el prefijo `/api/v1`. Una ruta con `/api/` sin
 | GET | `/api/compras` | `/api/v1/compras` | versionada |
 | GET | `/api/compras/{id}` | `/api/v1/compras/{id}` | versionada |
 | POST | `/api/compras` | `/api/v1/compras` | versionada |
-| PUT | `/api/compras/{id}` | `/api/v1/compras/{id}` | versionada |
-| PATCH | `/api/compras/{id}/estado` | `/api/v1/compras/{id}/estado` | versionada |
-| PATCH | `/api/compras/{id}/recibir` | `/api/v1/compras/{id}/recibir` | versionada |
+| PUT | `/api/compras/{id}` | — | eliminada |
+| PATCH | `/api/compras/{id}/estado` | — | eliminada |
+| PATCH | `/api/compras/{id}/recibir` | — | eliminada |
 | PATCH | `/api/compras/{id}/cancelar` | `/api/v1/compras/{id}/cancelar` | versionada |
 
 ## Comprobante
