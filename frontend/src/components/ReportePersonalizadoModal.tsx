@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { X, Eye, AlertCircle } from 'lucide-react';
 import { TipoReporte, ReporteReciente } from '@/types/reporte';
 import {
@@ -14,6 +14,7 @@ import {
   CampoCriterio,
   criteriosVigentes,
 } from '@/lib/reporteCriterios';
+import { getAllClientes } from '@/lib/api';
 import ReporteVistaPrevia from './ReporteVistaPrevia';
 
 /** Lo que se puede consultar, con las fechas y el límite que pide cada tipo. */
@@ -65,6 +66,18 @@ export default function ReportePersonalizadoModal({ reciente, onClose, onGenerad
   const [criterios, setCriterios] = useState<CriteriosReporte>(reciente?.criterios ?? {});
   const [verResultado, setVerResultado] = useState(!!reciente);
   const [error, setError] = useState<string | null>(null);
+  // Nombres de los clientes del sistema, para sugerirlos mientras se escribe en el criterio Cliente.
+  const [nombresClientes, setNombresClientes] = useState<string[]>([]);
+
+  useEffect(() => {
+    getAllClientes()
+      .then((clientes) =>
+        setNombresClientes(
+          Array.from(new Set(clientes.map((cl) => (cl.nombreCompleto || cl.nombre || '').trim()).filter(Boolean))).sort()
+        )
+      )
+      .catch(() => {});
+  }, []);
 
   const config = TIPOS_PERSONALIZABLES.find((t) => t.id === tipo)!;
   const campos = CAMPOS_POR_TIPO[tipo];
@@ -165,13 +178,24 @@ export default function ReportePersonalizadoModal({ reciente, onClose, onGenerad
         );
       default:
         return (
-          <input
-            type="text"
-            className={inputClase}
-            value={(criterios[c] as string | undefined) ?? ''}
-            onChange={(e) => poner(c, e.target.value)}
-            placeholder="Todos"
-          />
+          <>
+            <input
+              type="text"
+              className={inputClase}
+              value={(criterios[c] as string | undefined) ?? ''}
+              onChange={(e) => poner(c, e.target.value)}
+              placeholder={c === 'cliente' ? 'Escribí el nombre…' : 'Todos'}
+              list={c === 'cliente' ? 'clientes-sugeridos' : undefined}
+              autoComplete="off"
+            />
+            {c === 'cliente' && (
+              <datalist id="clientes-sugeridos">
+                {nombresClientes.map((n) => (
+                  <option key={n} value={n} />
+                ))}
+              </datalist>
+            )}
+          </>
         );
     }
   };
