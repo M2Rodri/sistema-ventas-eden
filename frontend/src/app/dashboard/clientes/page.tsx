@@ -8,7 +8,6 @@ import { ClienteConEstadisticas } from '@/types/cliente';
 import {
   Search,
   Users,
-  ArrowUpDown,
   Edit2,
   History,
   X,
@@ -51,24 +50,13 @@ export default function ClientesPage() {
     }
   }, []);
 
-  // El orden ahora es un filtro más (select + dirección), no clickear el
-  // encabezado de la tabla: nada en el encabezado avisaba que se podía
-  // clickear, y de las 8 columnas solo 4 respondían, así que quedaba
-  // inconsistente. Con esto queda igual de claro que los demás filtros de
-  // arriba (búsqueda, categoría, etc. en otros módulos).
-  const [ordenColumna, setOrdenColumna] = useState<
-    'id' | 'nombre' | 'numeroCompras' | 'montoTotal' | 'ultimaCompra'
-  >('id');
-  // Por defecto lo más nuevo arriba (ID de mayor a menor), como Ventas.
-  const [ordenDireccion, setOrdenDireccion] = useState<'asc' | 'desc'>('desc');
-
   useEffect(() => {
     loadClientes();
   }, []);
 
   useEffect(() => {
     aplicarFiltros();
-  }, [clientes, busqueda, ordenColumna, ordenDireccion]);
+  }, [clientes, busqueda]);
 
   const loadClientes = async () => {
     setLoading(true);
@@ -97,40 +85,8 @@ export default function ClientesPage() {
       );
     }
 
-    // Ordenar
-    resultado.sort((a, b) => {
-      let valorA: any;
-      let valorB: any;
-
-      switch (ordenColumna) {
-        case 'id':
-          valorA = a.id;
-          valorB = b.id;
-          break;
-        case 'nombre':
-          valorA = a.nombreCompleto.toLowerCase();
-          valorB = b.nombreCompleto.toLowerCase();
-          break;
-        case 'numeroCompras':
-          valorA = a.numeroCompras;
-          valorB = b.numeroCompras;
-          break;
-        case 'montoTotal':
-          valorA = a.montoTotalComprado;
-          valorB = b.montoTotalComprado;
-          break;
-        case 'ultimaCompra':
-          valorA = a.ultimaFechaCompra ? new Date(a.ultimaFechaCompra).getTime() : 0;
-          valorB = b.ultimaFechaCompra ? new Date(b.ultimaFechaCompra).getTime() : 0;
-          break;
-        default:
-          return 0;
-      }
-
-      if (valorA < valorB) return ordenDireccion === 'asc' ? -1 : 1;
-      if (valorA > valorB) return ordenDireccion === 'asc' ? 1 : -1;
-      return 0;
-    });
+    // Siempre lo más nuevo arriba: ID de mayor a menor, como Ventas.
+    resultado.sort((x, y) => y.id - x.id);
 
     setClientesFiltrados(resultado);
     setError(null);
@@ -178,7 +134,7 @@ export default function ClientesPage() {
           </p>
         </div>
 
-        {/* Filtros: búsqueda + orden */}
+        {/* Solo el buscador */}
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative w-full sm:w-72">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
@@ -190,26 +146,6 @@ export default function ClientesPage() {
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
-
-          <select
-            value={ordenColumna}
-            onChange={(e) => setOrdenColumna(e.target.value as typeof ordenColumna)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
-          >
-            <option value="nombre">Ordenar por Nombre</option>
-            <option value="numeroCompras">Ordenar por # Compras</option>
-            <option value="montoTotal">Ordenar por Monto Total</option>
-            <option value="ultimaCompra">Ordenar por Última Compra</option>
-          </select>
-
-          <button
-            onClick={() => setOrdenDireccion(ordenDireccion === 'asc' ? 'desc' : 'asc')}
-            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 hover:bg-gray-50 transition-colors"
-            title={ordenDireccion === 'asc' ? 'Ascendente' : 'Descendente'}
-          >
-            <ArrowUpDown size={18} className={ordenDireccion === 'desc' ? 'rotate-180' : ''} />
-            {ordenDireccion === 'asc' ? 'Ascendente' : 'Descendente'}
-          </button>
         </div>
       </div>
 
