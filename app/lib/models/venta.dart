@@ -1,5 +1,5 @@
 // Modelos de venta: cliente, importes, entrega y sus pagos. Salen de
-// GET /api/ventas y GET /api/ventas/{id} (VentaResponse en el backend).
+// GET /api/v1/ventas y GET /api/v1/ventas/{id} (VentaResponse en el backend).
 
 enum EstadoVenta { completada, pendientePago, cancelada }
 
@@ -203,7 +203,7 @@ class ItemCarrito {
   }
 }
 
-/// Lo que manda POST /api/ventas (VentaRequest en el backend). Mismos
+/// Lo que manda POST /api/v1/ventas (VentaRequest en el backend). Mismos
 /// campos y las mismas reglas de armado que RegistrarVentaModal.tsx.
 class NuevaVentaRequest {
   const NuevaVentaRequest({

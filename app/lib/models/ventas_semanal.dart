@@ -1,5 +1,5 @@
 /// Ventas de una semana calendario (lunes a domingo), leídas de
-/// GET /api/dashboard/ventas-semanal (VentasSemanalResponse en el backend).
+/// GET /api/v1/dashboard/ventas-semanal (VentasSemanalResponse en el backend).
 ///
 /// Los nombres siguen a los del backend tal cual. Cuenta solo ventas
 /// COMPLETADA, igual que la tarjeta "Ventas hoy".

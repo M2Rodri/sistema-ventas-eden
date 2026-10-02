@@ -18,7 +18,7 @@ class AuthRepository {
     required String usuario,
     required String password,
   }) async {
-    final json = await _apiClient.post('/api/auth/login', <String, dynamic>{
+    final json = await _apiClient.post('/api/v1/auth/login', <String, dynamic>{
       'usuario': usuario,
       'password': password,
     });

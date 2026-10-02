@@ -56,7 +56,7 @@ class ApiClient {
   }
 
   /// Sube un único archivo como multipart/form-data, en el campo "file" (el
-  /// mismo nombre que espera POST /api/pagos/{id}/comprobante).
+  /// mismo nombre que espera POST /api/v1/pagos/{id}/comprobante).
   Future<Map<String, dynamic>> postArchivo(
     String path, {
     required File archivo,

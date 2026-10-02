@@ -1,5 +1,5 @@
 /// Recorte del resumen del día que muestra la pantalla principal, leído de
-/// GET /api/dashboard/estadisticas (DashboardResponse en el backend).
+/// GET /api/v1/dashboard/estadisticas (DashboardResponse en el backend).
 ///
 /// Los nombres de acá siguen a los del backend tal cual, aunque el DTO
 /// completo trae más campos que esta pantalla no usa:

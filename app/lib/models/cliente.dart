@@ -1,4 +1,4 @@
-// Sale de GET /api/clientes (ClienteResponse en el backend). Solo lo que
+// Sale de GET /api/v1/clientes (ClienteResponse en el backend). Solo lo que
 // necesita el selector de cliente de Nueva venta.
 class Cliente {
   const Cliente({

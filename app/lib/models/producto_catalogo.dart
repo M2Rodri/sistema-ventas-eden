@@ -3,7 +3,7 @@ import '../config/api_config.dart';
 /// Producto para la pantalla de Catálogo: nombre, precio, stock y lo mínimo
 /// para mostrarlo en una tarjeta y en su detalle.
 ///
-/// Sale de GET /api/inventario/catalogo (CatalogoProductoResponse en el
+/// Sale de GET /api/v1/inventario/catalogo (CatalogoProductoResponse en el
 /// backend), que ya cruza producto + inventario en el servidor.
 class ProductoCatalogo {
   const ProductoCatalogo({

@@ -8,7 +8,7 @@ class DashboardRepository {
   final ApiClient _apiClient;
 
   Future<DashboardResumen> obtenerResumenDelDia(String token) async {
-    final json = await _apiClient.get('/api/dashboard/estadisticas', token: token);
+    final json = await _apiClient.get('/api/v1/dashboard/estadisticas', token: token);
     return DashboardResumen.fromJson(json);
   }
 
@@ -18,7 +18,7 @@ class DashboardRepository {
     final query = fecha == null
         ? ''
         : '?fecha=${fecha.year.toString().padLeft(4, '0')}-${fecha.month.toString().padLeft(2, '0')}-${fecha.day.toString().padLeft(2, '0')}';
-    final json = await _apiClient.get('/api/dashboard/ventas-semanal$query', token: token);
+    final json = await _apiClient.get('/api/v1/dashboard/ventas-semanal$query', token: token);
     return VentasSemanal.fromJson(json);
   }
 }
