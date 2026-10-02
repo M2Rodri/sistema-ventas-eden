@@ -16,6 +16,7 @@ import {
   getReporteCuentasPorCobrar,
 } from '@/lib/api';
 import { mensajeError } from '@/lib/errores';
+import { CriteriosReporte, aplicarCriterios, limiteAPedir } from '@/lib/reporteCriterios';
 import {
   BarChart,
   Bar,
@@ -37,7 +38,11 @@ interface ReporteVistaPreviaProps {
   fechaInicio: string;
   fechaFin: string;
   limite: number;
+  /** Criterios del reporte personalizado; sin ellos el reporte sale completo. */
+  criterios?: CriteriosReporte;
   onVolver: () => void;
+  /** Texto del botón de volver (según de dónde se abrió el reporte). */
+  textoVolver?: string;
 }
 
 const COLORS = ['#00a0a0', '#aa8f67', '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
@@ -60,7 +65,9 @@ export default function ReporteVistaPrevia({
   fechaInicio,
   fechaFin,
   limite,
+  criterios,
   onVolver,
+  textoVolver = 'Volver a parámetros',
 }: ReporteVistaPreviaProps) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -95,10 +102,10 @@ export default function ReporteVistaPrevia({
           resultado = await getReporteVentas(inicio, fin);
           break;
         case 'PRODUCTOS_MAS_VENDIDOS':
-          resultado = await getReporteProductosMasVendidos(limite);
+          resultado = await getReporteProductosMasVendidos(limiteAPedir(tipoReporte, limite, criterios ?? {}));
           break;
         case 'CLIENTES_FRECUENTES':
-          resultado = await getReporteClientesFrecuentes(limite);
+          resultado = await getReporteClientesFrecuentes(limiteAPedir(tipoReporte, limite, criterios ?? {}));
           break;
         case 'INVENTARIO_VALORIZADO':
           resultado = await getReporteInventarioValorizado();
@@ -127,7 +134,7 @@ export default function ReporteVistaPrevia({
         default:
           throw new Error('Tipo de reporte no soportado');
       }
-      setData(resultado);
+      setData(criterios ? aplicarCriterios(tipoReporte, resultado, criterios, limite) : resultado);
     } catch (err: any) {
       setError(mensajeError(err, 'No se pudo generar el reporte.'));
     } finally {
@@ -191,7 +198,7 @@ export default function ReporteVistaPrevia({
           className="flex items-center gap-2 text-primary-600 hover:text-primary-700 font-medium"
         >
           <ArrowLeft size={20} />
-          Volver a parámetros
+          {textoVolver}
         </button>
         <button
           onClick={handleImprimir}

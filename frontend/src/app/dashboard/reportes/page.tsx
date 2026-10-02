@@ -2,30 +2,73 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  TrendingUp,
-  Package,
-  Users,
-  DollarSign,
-  PieChart,
-  CreditCard,
-  AlertTriangle,
-  Building2,
-  Truck,
-  BarChart3,
-  Wallet
-} from 'lucide-react';
+import { TrendingUp, Package, DollarSign, Wallet, SlidersHorizontal, Clock, X } from 'lucide-react';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import ReporteCard from '@/components/ReporteCard';
 import ReporteParametrosModal from '@/components/ReporteParametrosModal';
-import { TipoReporte, ConfiguracionReporte } from '@/types/reporte';
+import ReportePersonalizadoModal from '@/components/ReportePersonalizadoModal';
+import { TipoReporte, ConfiguracionReporte, ReporteReciente } from '@/types/reporte';
+import { resumenCriterios } from '@/lib/reporteCriterios';
+import { agregarReciente, leerRecientes, limpiarRecientes, quitarReciente } from '@/lib/reportesRecientes';
 import { useAuth } from '@/hooks/useAuth';
+
+/**
+ * Las cuatro tarjetas son los reportes que más se piden. Todo lo demás (y filtrar por estado,
+ * método de pago, cliente, categoría...) sale del generador personalizado, y lo generado queda en
+ * "Reportes recientes".
+ */
+const configuracionesReportes: ConfiguracionReporte[] = [
+  {
+    id: 'VENTAS',
+    titulo: 'Ventas del período',
+    descripcion: 'Cada venta del período, con sus totales',
+    icono: 'TrendingUp',
+    color: 'from-primary-500 to-primary-600',
+    requiereFechas: true,
+    requiereLimite: false,
+    categorias: ['Ventas'],
+  },
+  {
+    id: 'CUENTAS_POR_COBRAR',
+    titulo: 'Cuentas por cobrar',
+    descripcion: 'Ventas con saldo pendiente, ordenadas por antigüedad',
+    icono: 'Wallet',
+    color: 'from-primary-500 to-primary-600',
+    requiereFechas: false,
+    requiereLimite: false,
+    categorias: ['Cobranza'],
+  },
+  {
+    id: 'PRODUCTOS_MAS_VENDIDOS',
+    titulo: 'Productos más vendidos',
+    descripcion: 'Los productos con mayor cantidad de ventas',
+    icono: 'Package',
+    color: 'from-primary-500 to-primary-600',
+    requiereFechas: false,
+    requiereLimite: true,
+    categorias: ['Productos'],
+  },
+  {
+    id: 'INVENTARIO_VALORIZADO',
+    titulo: 'Inventario valorizado',
+    descripcion: 'Cuánto vale el stock actual',
+    icono: 'DollarSign',
+    color: 'from-primary-500 to-primary-600',
+    requiereFechas: false,
+    requiereLimite: false,
+    categorias: ['Inventario'],
+  },
+];
+
+const iconos: Record<string, any> = { TrendingUp, Package, DollarSign, Wallet };
 
 export default function ReportesPage() {
   const router = useRouter();
   const { user, loading, isAdmin } = useAuth();
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [tipoReporteSeleccionado, setTipoReporteSeleccionado] = useState<TipoReporte | null>(null);
+  const [generadorAbierto, setGeneradorAbierto] = useState(false);
+  const [recientes, setRecientes] = useState<ReporteReciente[]>([]);
+  const [recienteAbierto, setRecienteAbierto] = useState<ReporteReciente | null>(null);
 
   // Reportes es solo para ADMIN. El menú ya no le muestra el enlace al
   // EMPLEADO, pero esto cierra el acceso directo por URL.
@@ -35,180 +78,127 @@ export default function ReportesPage() {
     }
   }, [loading, user, isAdmin, router]);
 
-  const configuracionesReportes: ConfiguracionReporte[] = [
-    {
-      id: 'FINANCIERO',
-      titulo: 'Reporte Financiero',
-      descripcion: 'Ingresos, gastos y ganancias del negocio',
-      icono: 'BarChart3',
-      color: 'from-primary-500 to-primary-600',
-      requiereFechas: true,
-      requiereLimite: false,
-      categorias: ['Financiero', 'Análisis']
-    },
-    {
-      id: 'VENTAS',
-      titulo: 'Reporte de Ventas',
-      descripcion: 'Análisis de ventas por período, productos y clientes',
-      icono: 'TrendingUp',
-      color: 'from-primary-500 to-primary-600',
-      requiereFechas: true,
-      requiereLimite: false,
-      categorias: ['Ventas', 'Financiero']
-    },
-    {
-      id: 'PRODUCTOS_MAS_VENDIDOS',
-      titulo: 'Productos Más Vendidos',
-      descripcion: 'Top de productos con mayor cantidad de ventas',
-      icono: 'Package',
-      color: 'from-primary-500 to-primary-600',
-      requiereFechas: false,
-      requiereLimite: true,
-      categorias: ['Productos', 'Ventas']
-    },
-    {
-      id: 'CLIENTES_FRECUENTES',
-      titulo: 'Clientes Frecuentes',
-      descripcion: 'Clientes con mayor cantidad de compras',
-      icono: 'Users',
-      color: 'from-primary-500 to-primary-600',
-      requiereFechas: false,
-      requiereLimite: true,
-      categorias: ['Clientes', 'Ventas']
-    },
-    {
-      id: 'INVENTARIO_VALORIZADO',
-      titulo: 'Inventario Valorizado',
-      descripcion: 'Valor total del inventario actual',
-      icono: 'DollarSign',
-      color: 'from-primary-500 to-primary-600',
-      requiereFechas: false,
-      requiereLimite: false,
-      categorias: ['Inventario', 'Financiero']
-    },
-    {
-      id: 'VENTAS_POR_CATEGORIA',
-      titulo: 'Ventas por Categoría',
-      descripcion: 'Distribución de ventas según categorías de productos',
-      icono: 'PieChart',
-      color: 'from-primary-500 to-primary-600',
-      requiereFechas: true,
-      requiereLimite: false,
-      categorias: ['Ventas', 'Productos']
-    },
-    {
-      id: 'VENTAS_POR_METODO_PAGO',
-      titulo: 'Ventas por Método de Pago',
-      descripcion: 'Métodos de pago más utilizados',
-      icono: 'CreditCard',
-      color: 'from-primary-500 to-primary-600',
-      requiereFechas: true,
-      requiereLimite: false,
-      categorias: ['Ventas', 'Pagos']
-    },
-    {
-      id: 'INVENTARIO_STOCK_BAJO',
-      titulo: 'Inventario Stock Bajo',
-      descripcion: 'Productos que requieren reabastecimiento',
-      icono: 'AlertTriangle',
-      color: 'from-primary-500 to-primary-600',
-      requiereFechas: false,
-      requiereLimite: false,
-      categorias: ['Inventario', 'Alertas']
-    },
-    {
-      id: 'CUENTAS_POR_COBRAR',
-      titulo: 'Cuentas por Cobrar',
-      descripcion: 'Ventas con saldo pendiente, ordenadas por antigüedad',
-      icono: 'Wallet',
-      color: 'from-primary-500 to-primary-600',
-      requiereFechas: false,
-      requiereLimite: false,
-      categorias: ['Ventas', 'Cobranza']
-    },
-    {
-      id: 'PROVEEDORES',
-      titulo: 'Reporte de Proveedores',
-      descripcion: 'Análisis de compras y proveedores activos',
-      icono: 'Building2',
-      color: 'from-primary-500 to-primary-600',
-      requiereFechas: false,
-      requiereLimite: false,
-      categorias: ['Proveedores', 'Compras']
-    },
-    // Transportadoras queda fuera de alcance (declarado en el documento del
-    // entregable): el módulo de Envíos/Transportadoras ya está comentado en
-    // el menú lateral, mismo patrón acá.
-    // {
-    //   id: 'TRANSPORTADORAS',
-    //   titulo: 'Reporte de Transportadoras',
-    //   descripcion: 'Rendimiento y estadísticas de envíos',
-    //   icono: 'Truck',
-    //   color: 'from-primary-500 to-primary-600',
-    //   requiereFechas: false,
-    //   requiereLimite: false,
-    //   categorias: ['Envíos', 'Logística']
-    // },
-  ];
-
-  const handleOpenReporte = (tipoReporte: TipoReporte) => {
-    setTipoReporteSeleccionado(tipoReporte);
-    setIsModalOpen(true);
-  };
-
-  const getIconComponent = (iconName: string) => {
-    const icons: Record<string, any> = {
-      TrendingUp,
-      Package,
-      Users,
-      DollarSign,
-      PieChart,
-      CreditCard,
-      AlertTriangle,
-      Building2,
-      Truck,
-      BarChart3,
-      Wallet
-    };
-    return icons[iconName] || Package;
-  };
+  useEffect(() => {
+    setRecientes(leerRecientes());
+  }, []);
 
   if (loading || !user || !isAdmin()) {
     return null;
   }
 
+  const fechaHora = (iso: string) =>
+    new Date(iso).toLocaleString('es-BO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+  const periodo = (r: ReporteReciente) =>
+    r.fechaInicio && r.fechaFin ? `${r.fechaInicio.split('-').reverse().join('/')} al ${r.fechaFin.split('-').reverse().join('/')}` : null;
+
   return (
     <div className="max-w-full">
       <Breadcrumbs items={[{ label: 'Reportes' }]} />
 
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Reportes del negocio</h1>
-        <p className="text-gray-600 mt-1">Genera informes detallados del sistema</p>
+      <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Reportes del negocio</h1>
+          <p className="text-gray-600 mt-1">Los reportes más usados, o armá el tuyo</p>
+        </div>
+        <button
+          onClick={() => setGeneradorAbierto(true)}
+          className="inline-flex items-center gap-2 bg-primary-600 text-white px-5 py-2.5 rounded-lg hover:bg-primary-700 transition-colors font-medium shadow-sm"
+        >
+          <SlidersHorizontal size={20} />
+          Generar reporte personalizado
+        </button>
       </div>
 
-      {/* Grid de Reportes */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 items-stretch">
+      {/* Las cuatro tarjetas principales */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-stretch">
         {configuracionesReportes.map((config) => (
           <ReporteCard
             key={config.id}
             config={config}
-            IconComponent={getIconComponent(config.icono)}
-            onGenerar={() => handleOpenReporte(config.id)}
+            IconComponent={iconos[config.icono] ?? Package}
+            onGenerar={() => setTipoReporteSeleccionado(config.id)}
           />
         ))}
       </div>
 
-      {/* Modal de Parámetros */}
-      {isModalOpen && tipoReporteSeleccionado && (
+      {/* Reportes recientes */}
+      <div className="mt-10">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+            <Clock size={20} className="text-gray-500" />
+            Reportes recientes
+          </h2>
+          {recientes.length > 0 && (
+            <button
+              onClick={() => setRecientes(limpiarRecientes())}
+              className="text-sm text-gray-500 hover:text-gray-800"
+            >
+              Limpiar lista
+            </button>
+          )}
+        </div>
+
+        {recientes.length === 0 ? (
+          <div className="bg-white border border-dashed border-gray-300 rounded-lg p-8 text-center">
+            <p className="text-gray-600 font-medium">Todavía no generaste reportes personalizados</p>
+            <p className="text-sm text-gray-500 mt-1">
+              Los que armes con «Generar reporte personalizado» quedan acá para abrirlos de nuevo.
+            </p>
+          </div>
+        ) : (
+          <ul className="bg-white border border-gray-200 rounded-lg divide-y divide-gray-200">
+            {recientes.map((r) => {
+              const chips = [periodo(r), r.limite ? `Los ${r.limite} primeros` : null, ...resumenCriterios(r.criterios)].filter(
+                Boolean
+              ) as string[];
+              return (
+                <li key={r.id} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50">
+                  <button onClick={() => setRecienteAbierto(r)} className="flex-1 min-w-0 text-left">
+                    <p className="text-sm font-semibold text-gray-900">{r.titulo}</p>
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {chips.map((chip) => (
+                        <span key={chip} className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
+                          {chip}
+                        </span>
+                      ))}
+                    </div>
+                  </button>
+                  <span className="text-xs text-gray-500 whitespace-nowrap hidden sm:block">{fechaHora(r.generado)}</span>
+                  <button
+                    onClick={() => setRecientes(quitarReciente(r.id))}
+                    className="text-gray-400 hover:text-gray-700 p-1"
+                    title="Quitar de la lista"
+                  >
+                    <X size={16} />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
+      {/* Parámetros de una tarjeta */}
+      {tipoReporteSeleccionado && (
         <ReporteParametrosModal
           tipoReporte={tipoReporteSeleccionado}
-          configuracion={configuracionesReportes.find(c => c.id === tipoReporteSeleccionado)!}
-          onClose={() => {
-            setIsModalOpen(false);
-            setTipoReporteSeleccionado(null);
-          }}
+          configuracion={configuracionesReportes.find((c) => c.id === tipoReporteSeleccionado)!}
+          onClose={() => setTipoReporteSeleccionado(null)}
         />
+      )}
+
+      {/* Generador personalizado */}
+      {generadorAbierto && (
+        <ReportePersonalizadoModal
+          onClose={() => setGeneradorAbierto(false)}
+          onGenerado={(reporte) => setRecientes(agregarReciente(reporte))}
+        />
+      )}
+
+      {/* Un reciente que se vuelve a abrir */}
+      {recienteAbierto && (
+        <ReportePersonalizadoModal reciente={recienteAbierto} onClose={() => setRecienteAbierto(null)} onGenerado={() => {}} />
       )}
     </div>
   );

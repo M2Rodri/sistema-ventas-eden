@@ -221,3 +221,20 @@ export interface ConfiguracionReporte {
   requiereLimite: boolean;
   categorias: string[];
 }
+
+// ============================================
+// REPORTES PERSONALIZADOS Y RECIENTES
+// ============================================
+/** Un reporte personalizado ya generado: guarda lo necesario para volver a abrirlo igual. */
+export interface ReporteReciente {
+  id: string;
+  tipo: TipoReporte;
+  titulo: string;
+  fechaInicio?: string;
+  fechaFin?: string;
+  limite?: number;
+  /** Criterios aplicados (solo los que tienen valor). */
+  criterios: import('@/lib/reporteCriterios').CriteriosReporte;
+  /** Cuándo se generó (ISO). */
+  generado: string;
+}
