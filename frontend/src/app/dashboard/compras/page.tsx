@@ -257,8 +257,10 @@ function ComprasContent() {
                       )}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900">
-                      {compra.nombreProveedor}
-                      <span className="block text-xs text-gray-500">NIT: {compra.nitProveedor || '—'}</span>
+                      {compra.nombreProveedor ?? <span className="text-gray-500">Sin proveedor</span>}
+                      {compra.nombreProveedor && (
+                        <span className="block text-xs text-gray-500">NIT: {compra.nitProveedor || '—'}</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-700">{compra.numeroFactura || '—'}</td>
                     <td className="px-6 py-4 text-sm text-gray-700">{fecha(compra.fechaCompra)}</td>

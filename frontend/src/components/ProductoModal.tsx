@@ -182,8 +182,6 @@ interface ProductoModalProps {
    * el siguiente SKU de la serie, mirando los que ya existen. */
   productos: Producto[];
   onClose: () => void;
-  /** Abierto desde una compra: el stock actual se ve pero queda en 0 y no se edita; el stock entra con la compra. */
-  stockActualBloqueado?: boolean;
   /** Al crear, recibe el producto nuevo (Compras lo agrega a la compra en curso). */
   onSuccess: (productoCreado?: Producto) => void;
 }
@@ -200,7 +198,6 @@ export default function ProductoModal({
   categorias,
   productos,
   onClose,
-  stockActualBloqueado = false,
   onSuccess
 }: ProductoModalProps) {
 
@@ -264,7 +261,6 @@ export default function ProductoModal({
   );
   const [listaMedidasAbierta, setListaMedidasAbierta] = useState(false);
   // Solo al crear: al editar el stock se cambia desde Inventario.
-  const [stockInicial, setStockInicial] = useState('0');
 
   // Imagen del producto: elegir/arrastrar un archivo, cambiarlo o quitarlo
   // solo queda en memoria acá. Nada de esto pega contra el backend hasta
@@ -362,9 +358,6 @@ export default function ProductoModal({
     }
     if (formData.tipoProducto !== 'CAMA') {
       delete dataToSend.materialArmazon;
-    }
-    if (!isEditing) {
-      dataToSend.stockInicial = Number(stockInicial);
     }
     dataToSend.dimensiones = tipoTieneDimensiones && medidaLeida
       ? componerDimensiones(medidaLeida.ancho, medidaLeida.largo, medidaLeida.alto)
@@ -652,17 +645,6 @@ export default function ProductoModal({
                     {stockActual ?? 0}
                     <span className="text-xs text-gray-500 ml-2">Se administra desde Inventario, no aquí.</span>
                   </p>
-                </div>
-              )}
-
-              {!isEditing && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Stock actual *</label>
-                  <input type="number" min={0} step={1} value={stockActualBloqueado ? '0' : stockInicial}
-                    onChange={(e) => setStockInicial(e.target.value)}
-                    disabled={stockActualBloqueado}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-2 py-1.5 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
-                    required />
                 </div>
               )}
 

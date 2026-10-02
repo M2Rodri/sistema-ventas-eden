@@ -30,9 +30,10 @@ export interface ProveedorRequest {
 
 export interface Compra {
   id: number;
-  idProveedor: number;
-  nombreProveedor: string;
-  nitProveedor: string;
+  /** Una compra puede no tener proveedor. */
+  idProveedor: number | null;
+  nombreProveedor: string | null;
+  nitProveedor: string | null;
   fechaCompra: string;
   subtotal: number;
   descuento?: number;
@@ -63,7 +64,8 @@ export interface ItemCompraRequest {
 }
 
 export interface CompraRequest {
-  idProveedor: number;
+  /** Opcional: una compra puede registrarse sin proveedor. */
+  idProveedor?: number;
   /** Número de factura del proveedor: respaldo legal del gasto. */
   numeroFactura?: string;
   notas?: string;

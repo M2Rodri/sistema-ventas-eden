@@ -38,9 +38,11 @@ public class CompraResponse {
     // Constructor desde entidad
     public CompraResponse(Compra compra) {
         this.id = compra.getId();
-        this.idProveedor = compra.getProveedor().getId();
-        this.nombreProveedor = compra.getProveedor().getNombreEmpresa();
-        this.nitProveedor = compra.getProveedor().getNit();
+        if (compra.getProveedor() != null) {
+            this.idProveedor = compra.getProveedor().getId();
+            this.nombreProveedor = compra.getProveedor().getNombreEmpresa();
+            this.nitProveedor = compra.getProveedor().getNit();
+        }
         this.fechaCompra = compra.getFechaCompra();
         this.subtotal = compra.getSubtotal();
         this.descuento = compra.getDescuento();

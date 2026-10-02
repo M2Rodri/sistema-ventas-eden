@@ -98,14 +98,17 @@ public class CompraService {
      */
     @Transactional
     public CompraResponse createCompra(CompraRequest request) {
-        // Validar proveedor
-        Proveedor proveedor = proveedorRepository.findById(request.getIdProveedor())
-                .orElseThrow(() -> new RecursoNoEncontradoException("PROVEEDOR_NO_ENCONTRADO", "Proveedor no encontrado con ID: " + request.getIdProveedor()));
+        // El proveedor es opcional; si viene, tiene que existir.
+        Proveedor proveedor = null;
+        if (request.getIdProveedor() != null) {
+            proveedor = proveedorRepository.findById(request.getIdProveedor())
+                    .orElseThrow(() -> new RecursoNoEncontradoException("PROVEEDOR_NO_ENCONTRADO", "Proveedor no encontrado con ID: " + request.getIdProveedor()));
+        }
 
         // La base bloquea repetir número de factura para el mismo proveedor
         // (uq_compras_proveedor_factura); se avisa antes para no mostrar el
         // error técnico de la base.
-        if (request.getNumeroFactura() != null && !request.getNumeroFactura().isBlank()
+        if (proveedor != null && request.getNumeroFactura() != null && !request.getNumeroFactura().isBlank()
                 && compraRepository.existsByProveedorIdAndNumeroFactura(
                         request.getIdProveedor(), request.getNumeroFactura())) {
             throw new ConflictoEstadoException("FACTURA_DUPLICADA", "Ya existe una compra con esa factura para este proveedor");

@@ -20,7 +20,7 @@ import java.util.List;
 @AllArgsConstructor
 public class CompraRequest {
 
-    @NotNull(message = "El proveedor es obligatorio")
+    /** Opcional: una compra puede registrarse sin proveedor. */
     private Long idProveedor;
 
     @Size(max = 50, message = "El número de factura no puede exceder 50 caracteres")

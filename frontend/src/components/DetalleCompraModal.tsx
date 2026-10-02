@@ -83,7 +83,7 @@ export default function DetalleCompraModal({ compra, onClose }: DetalleCompraMod
         await navigator.share({
           files: [archivo],
           title: `Compra #${compra.id}`,
-          text: `Compra #${compra.id} a ${compra.nombreProveedor}`,
+          text: `Compra #${compra.id}${compra.nombreProveedor ? ` a ${compra.nombreProveedor}` : ''}`,
         });
       } else {
         const url = URL.createObjectURL(blob);
@@ -171,8 +171,8 @@ export default function DetalleCompraModal({ compra, onClose }: DetalleCompraMod
                 <Building2 className="text-secondary-600" size={20} />
                 <h3 className="font-semibold text-gray-900">Proveedor</h3>
               </div>
-              <p className="text-gray-900 font-medium">{compra.nombreProveedor}</p>
-              <p className="text-sm text-gray-600">NIT: {compra.nitProveedor}</p>
+              <p className="text-gray-900 font-medium">{compra.nombreProveedor ?? 'Sin proveedor'}</p>
+              {compra.nombreProveedor && <p className="text-sm text-gray-600">NIT: {compra.nitProveedor}</p>}
             </div>
 
             {/* Usuario: quién lo cargó en el sistema. Útil en pantalla para

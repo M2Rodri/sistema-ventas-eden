@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -130,6 +131,19 @@ class CompraServiceTest {
         verify(inventarioService).registrarAjusteAutomatico(eq(7L), eq(4), eq(7), eq("ENTRADA"), any(), eq(3L));
         assertEquals(new BigDecimal("25.00"), cama.getPrecioCompra());
         assertEquals(1, respuesta.getDetalles().size(), "la respuesta trae los productos de la compra");
+    }
+
+    @Test
+    void registrarUnaCompraSinProveedor_funcionaYEntraAlStock() {
+        CompraRequest pedido = pedido(3, "25.00");
+        pedido.setIdProveedor(null);
+
+        CompraResponse respuesta = servicio.createCompra(pedido);
+
+        assertEquals(EstadoCompra.CONFIRMADA, respuesta.getEstado());
+        assertNull(respuesta.getIdProveedor());
+        assertNull(respuesta.getNombreProveedor());
+        verify(inventarioService).aumentarStock(7L, 3);
     }
 
     @Test

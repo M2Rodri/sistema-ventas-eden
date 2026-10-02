@@ -27,9 +27,9 @@ public class Compra {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotNull(message = "El proveedor es obligatorio")
+    /** Puede faltar: a veces se compra sin un proveedor formal. */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_proveedor", nullable = false)
+    @JoinColumn(name = "id_proveedor")
     private Proveedor proveedor;
 
     @CreationTimestamp
