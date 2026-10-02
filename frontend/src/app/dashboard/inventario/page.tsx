@@ -6,10 +6,9 @@ import {
   getAllInventario,
   getProductosConStockBajo,
   getAlertasPendientes,
-  getUltimosAjustes
 } from '@/lib/api';
-import { Inventario, AlertaInventario, MovimientoInventario } from '@/types/inventario';
-import { Search, Package, AlertTriangle, Edit, History, TrendingUp, TrendingDown, Settings, Eye, DollarSign, X } from 'lucide-react';
+import { Inventario, AlertaInventario } from '@/types/inventario';
+import { Search, Package, AlertTriangle, Edit, History, Settings, Eye, DollarSign, X } from 'lucide-react';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import MovimientoInventarioModal from '@/components/MovimientoInventarioModal';
 import DetalleProductoModal from '@/components/DetalleProductoModal';
@@ -30,12 +29,12 @@ function InventarioContent() {
   const [inventario, setInventario] = useState<Inventario[]>([]);
   const [filteredInventario, setFilteredInventario] = useState<Inventario[]>([]);
   const [alertas, setAlertas] = useState<AlertaInventario[]>([]);
-  const [historial, setHistorial] = useState<MovimientoInventario[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [stockFilter, setStockFilter] = useState<string>('TODOS');
   const [categoriaFilter, setCategoriaFilter] = useState<string>('TODOS');
-  const [showHistorial, setShowHistorial] = useState(false);
+  // Las alertas de stock bajo están ocultas: se despliegan con el botón "Alertas de stock".
+  const [showAlertas, setShowAlertas] = useState(false);
   const [fallosCarga, setFallosCarga] = useState<string[]>([]);
   
   // Modales
@@ -62,7 +61,7 @@ function InventarioContent() {
       setSearchTerm('');
       setStockFilter('TODOS');
       setCategoriaFilter('TODOS');
-      setShowHistorial(false);
+      setShowAlertas(false);
     };
     window.addEventListener('inventario:reset-filtros', resetearFiltros);
     return () => window.removeEventListener('inventario:reset-filtros', resetearFiltros);
@@ -71,25 +70,22 @@ function InventarioContent() {
   const loadData = async () => {
     try {
       setLoading(true);
-      // allSettled y no all: si se cae el endpoint de alertas o el de últimos
-      // ajustes, igual queremos mostrar el inventario, que es lo principal.
-      const [rInventario, rAlertas, rHistorial] = await Promise.allSettled([
+      // allSettled y no all: si se cae el endpoint de alertas, igual queremos
+      // mostrar el inventario, que es lo principal.
+      const [rInventario, rAlertas] = await Promise.allSettled([
         getAllInventario(),
         getAlertasPendientes(),
-        getUltimosAjustes()
       ]);
 
       const { tomar, fallos } = crearRecolector();
       const inventarioData = tomar(rInventario, 'el inventario', [] as Inventario[]);
       const alertasData = tomar(rAlertas, 'las alertas de stock', [] as AlertaInventario[]);
-      const historialData = tomar(rHistorial, 'los últimos ajustes', [] as MovimientoInventario[]);
 
       // Lo más nuevo arriba: por ID, de mayor a menor.
       const inventarioOrdenado = [...inventarioData].sort((a, b) => Number(b.id) - Number(a.id));
       setInventario(inventarioOrdenado);
       setFilteredInventario(inventarioOrdenado);
       setAlertas(alertasData);
-      setHistorial([...historialData].sort((a, b) => Number(b.id) - Number(a.id)));
       setFallosCarga(fallos);
     } catch (error: any) {
       showMessage('error', mensajeError(error, 'No se pudo cargar el inventario.'));
@@ -209,14 +205,8 @@ function InventarioContent() {
   );
 
   // Arrastrar la tabla desde el encabezado, como si fuera una barra de
-  // scroll horizontal. Ver hooks/useDragScrollTable.ts. Dos instancias
-  // porque hay dos tablas (historial e inventario) que nunca están
-  // montadas a la vez, así que no interfieren entre sí. showHistorial va en
-  // las dependencias de las dos: es lo que monta y desmonta cada tabla, así
-  // que sin esto el chequeo de desborde corre antes de que el contenedor
-  // exista en el DOM y hasOverflow se queda pegado en false para siempre.
-  const inventarioDrag = useDragScrollTable([loading, filteredInventario, showHistorial]);
-  const historialDrag = useDragScrollTable([loading, historial, showHistorial]);
+  // scroll horizontal. Ver hooks/useDragScrollTable.ts.
+  const inventarioDrag = useDragScrollTable([loading, filteredInventario]);
 
   return (
     <div className="max-w-full">
@@ -226,7 +216,7 @@ function InventarioContent() {
 
       {/* INDICADORES SUPERIORES - P4.1 */}
       {/* Cada tarjeta fija TODOS los filtros (búsqueda, categoría, stock,
-          historial), nunca solo el que le importa — mismo criterio que
+          alertas), nunca solo el que le importa — mismo criterio que
           Ventas: si dejás algún filtro con lo que quedó de un click
           anterior, la tabla no coincide con lo que la tarjeta dice. */}
       <div className={`grid grid-cols-1 gap-4 mb-6 ${user?.role === 'ADMIN' ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
@@ -239,7 +229,6 @@ function InventarioContent() {
             setStockFilter('TODOS');
             setCategoriaFilter('TODOS');
             setSearchTerm('');
-            setShowHistorial(false);
           }}
         />
 
@@ -251,7 +240,6 @@ function InventarioContent() {
             setStockFilter('STOCK_BAJO');
             setCategoriaFilter('TODOS');
             setSearchTerm('');
-            setShowHistorial(false);
           }}
           loading={loading}
         />
@@ -351,18 +339,20 @@ function InventarioContent() {
             pantalla y en el panel de inicio.
           */}
 
-          {/* Botón Historial */}
-          <button
-            onClick={() => setShowHistorial(!showHistorial)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-              showHistorial
-                ? 'bg-primary-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            <History size={20} />
-            <span className="hidden sm:inline">Historial</span>
-          </button>
+          {/* Alertas de stock: ocultas hasta que se pidan */}
+          {!loading && alertas.length > 0 && (
+            <button
+              onClick={() => setShowAlertas(!showAlertas)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                showAlertas
+                  ? 'bg-red-600 text-white'
+                  : 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100'
+              }`}
+            >
+              <AlertTriangle size={18} />
+              Alertas de stock ({alertas.length})
+            </button>
+          )}
         </div>
       </div>
 
@@ -390,7 +380,7 @@ function InventarioContent() {
       )}
 
       {/* Alertas de Stock Bajo */}
-      {!loading && alertas.length > 0 && !showHistorial && (
+      {!loading && alertas.length > 0 && showAlertas && (
         <div className="mb-6">
           <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
             <AlertTriangle className="text-red-600" size={22} />
@@ -443,89 +433,8 @@ function InventarioContent() {
         </div>
       )}
 
-      {/* Historial de Ajustes */}
-      {!loading && showHistorial && (
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden mb-6">
-          <div className="p-4 bg-gray-50 border-b border-gray-200">
-            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-              <History size={20} />
-              Historial de Ajustes (Últimos 50)
-            </h2>
-          </div>
-          <div className="overflow-x-auto" ref={historialDrag.scrollContainerRef}>
-            <table className="min-w-full divide-y divide-gray-200" ref={historialDrag.tableRef}>
-              <thead
-                ref={historialDrag.theadRef}
-                className={`bg-gray-50 ${historialDrag.hasOverflow ? 'cursor-grab select-none' : ''}`}
-                {...historialDrag.theadProps}
-              >
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">ID</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Fecha</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Producto</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Tipo</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Cantidad</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Stock Anterior</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Stock Nuevo</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Usuario</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Motivo</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {historial.map((ajuste) => (
-                  <tr key={ajuste.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{ajuste.id}</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {formatDate(ajuste.fecha)}
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{ajuste.nombreProducto}</div>
-                      <div className="text-xs text-gray-500">{ajuste.skuProducto}</div>
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap">
-                      <span className={`flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full w-fit ${
-                        ajuste.tipoMovimiento === 'ENTRADA' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {ajuste.tipoMovimiento === 'ENTRADA' ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                        {ajuste.tipoMovimiento}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm font-semibold">
-                      <span className={ajuste.tipoMovimiento === 'ENTRADA' ? 'text-green-600' : 'text-red-600'}>
-                        {ajuste.tipoMovimiento === 'ENTRADA' ? '+' : '-'}{Math.abs(ajuste.cantidad)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600 text-center">
-                      {ajuste.cantidadAnterior}
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 text-center">
-                      {ajuste.cantidadNueva}
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {ajuste.nombreUsuario}
-                    </td>
-                    <td className="px-4 py-4 text-sm text-gray-600 max-w-xs">
-                      <span className="line-clamp-2">{ajuste.motivo}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {historial.length === 0 && (
-              <div className="text-center py-12">
-                <History size={48} className="mx-auto text-gray-400 mb-4" />
-                <p className="text-gray-500">No hay ajustes registrados</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* Tabla de Inventario */}
-      {!loading && !showHistorial && (
+      {!loading && (
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto" ref={inventarioDrag.scrollContainerRef}>
             <table className="min-w-full divide-y divide-gray-200" ref={inventarioDrag.tableRef}>
