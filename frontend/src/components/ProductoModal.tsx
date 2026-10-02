@@ -8,7 +8,65 @@ import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 
 /** Medidas estándar de cama/colchón en Bolivia. */
 /** Sugerencias para el Material del Armazón; el campo acepta cualquier otro texto. */
-const MATERIALES_ARMAZON = ['Madera tajibo', 'Madera', 'Metal'];
+const MATERIALES_ARMAZON = ['Madera tajibo', 'Madera', 'Metal', 'MDF'];
+const COLORES = ['Blanco', 'Negro', 'Gris', 'Beige', 'Café', 'Roble', 'Cedro', 'Azul', 'Verde', 'Rojo'];
+
+const OTRO = '__otro__';
+
+/**
+ * Selector con una salida: elegís de la lista, o "Otro…" para escribir un valor que no está.
+ * Un valor ya guardado que no está en la lista (producto viejo) se muestra directo como "Otro".
+ */
+function SelectorConOtro({
+  value,
+  opciones,
+  onChange,
+  placeholderOtro,
+  maxLength = 50,
+}: {
+  value: string;
+  opciones: string[];
+  onChange: (valor: string) => void;
+  placeholderOtro: string;
+  maxLength?: number;
+}) {
+  const [otroElegido, setOtroElegido] = useState(false);
+  const esOtro = otroElegido || (value !== '' && !opciones.includes(value));
+  return (
+    <>
+      <select
+        value={esOtro ? OTRO : value}
+        onChange={(e) => {
+          if (e.target.value === OTRO) {
+            setOtroElegido(true);
+            onChange('');
+          } else {
+            setOtroElegido(false);
+            onChange(e.target.value);
+          }
+        }}
+        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-2 py-1.5 bg-white"
+      >
+        <option value="">Seleccionar…</option>
+        {opciones.map((o) => (
+          <option key={o} value={o}>{o}</option>
+        ))}
+        <option value={OTRO}>Otro…</option>
+      </select>
+      {esOtro && (
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          maxLength={maxLength}
+          placeholder={placeholderOtro}
+          autoFocus={otroElegido}
+          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-2 py-1.5"
+        />
+      )}
+    </>
+  );
+}
 
 const MEDIDAS_ESTANDAR = [
   { value: '1_PLAZA', label: '1 Plaza', ancho: 90, largo: 190 },
@@ -205,7 +263,6 @@ export default function ProductoModal({
     dimensionesParseadas ? productoParaEditar?.dimensiones ?? '' : ''
   );
   const [listaMedidasAbierta, setListaMedidasAbierta] = useState(false);
-  const [listaArmazonAbierta, setListaArmazonAbierta] = useState(false);
   // Solo al crear: al editar el stock se cambia desde Inventario.
   const [stockInicial, setStockInicial] = useState('0');
 
@@ -542,57 +599,25 @@ export default function ProductoModal({
 
               {/* ✅ CAMPOS CONDICIONALES - CAMA */}
               {formData.tipoProducto === 'CAMA' && (
-                <div className="relative">
+                <div>
                   <label className="block text-sm font-medium text-gray-700">Material del Armazón</label>
-                  <div className="mt-1 flex border border-gray-300 rounded-md shadow-sm bg-white">
-                    <input
-                      type="text"
-                      name="materialArmazon"
-                      value={formData.materialArmazon || ''}
-                      onChange={handleChange}
-                      placeholder="Ej: Madera tajibo"
-                      maxLength={50}
-                      className="min-w-0 flex-1 px-2 py-1.5 rounded-l-md focus:outline-none"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setListaArmazonAbierta((v) => !v)}
-                      aria-label="Ver materiales sugeridos"
-                      className="px-2 border-l border-gray-300 text-gray-500 hover:bg-gray-50 rounded-r-md"
-                    >
-                      <ChevronDown size={16} />
-                    </button>
-                  </div>
-
-                  {listaArmazonAbierta && (
-                    <>
-                      <div className="fixed inset-0 z-10" onClick={() => setListaArmazonAbierta(false)} />
-                      <ul className="absolute left-0 right-0 z-20 mt-1 bg-white border border-gray-200 rounded-md shadow-lg">
-                        {MATERIALES_ARMAZON.map((material) => (
-                          <li key={material}>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setFormData((prev) => ({ ...prev, materialArmazon: material }));
-                                setListaArmazonAbierta(false);
-                              }}
-                              className="w-full text-left px-2 py-1.5 text-sm text-gray-700 hover:bg-primary-50"
-                            >
-                              {material}
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    </>
-                  )}
+                  <SelectorConOtro
+                    value={formData.materialArmazon || ''}
+                    opciones={MATERIALES_ARMAZON}
+                    onChange={(valor) => setFormData((prev) => ({ ...prev, materialArmazon: valor }))}
+                    placeholderOtro="Escribí el material"
+                  />
                 </div>
               )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700">Color</label>
-                <input type="text" name="color" value={formData.color || ''} onChange={handleChange}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-2 py-1.5"
-                  placeholder={placeholderColor} />
+                <SelectorConOtro
+                  value={formData.color || ''}
+                  opciones={COLORES}
+                  onChange={(valor) => setFormData((prev) => ({ ...prev, color: valor }))}
+                  placeholderOtro={placeholderColor}
+                />
               </div>
 
               {/* Al crear no se pide: el costo entra con la primera compra (módulo Compras). */}
