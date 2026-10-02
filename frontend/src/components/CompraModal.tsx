@@ -539,6 +539,7 @@ export default function CompraModal({
             onReemplazarImagen={imagenesDeProductoNuevo.reemplazar}
             onEliminarImagen={imagenesDeProductoNuevo.eliminar}
             loadingImages={false}
+            stockActualBloqueado
             onClose={() => setNuevoProductoAbierto(false)}
             onSuccess={alCrearProducto}
           />

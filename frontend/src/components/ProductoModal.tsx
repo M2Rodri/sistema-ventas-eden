@@ -124,6 +124,8 @@ interface ProductoModalProps {
    * el siguiente SKU de la serie, mirando los que ya existen. */
   productos: Producto[];
   onClose: () => void;
+  /** Abierto desde una compra: el stock actual se ve pero queda en 0 y no se edita; el stock entra con la compra. */
+  stockActualBloqueado?: boolean;
   /** Al crear, recibe el producto nuevo (Compras lo agrega a la compra en curso). */
   onSuccess: (productoCreado?: Producto) => void;
 }
@@ -140,6 +142,7 @@ export default function ProductoModal({
   categorias,
   productos,
   onClose,
+  stockActualBloqueado = false,
   onSuccess
 }: ProductoModalProps) {
 
@@ -630,9 +633,10 @@ export default function ProductoModal({
               {!isEditing && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Stock actual *</label>
-                  <input type="number" min={0} step={1} value={stockInicial}
+                  <input type="number" min={0} step={1} value={stockActualBloqueado ? '0' : stockInicial}
                     onChange={(e) => setStockInicial(e.target.value)}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-2 py-1.5"
+                    disabled={stockActualBloqueado}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-2 py-1.5 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                     required />
                 </div>
               )}
