@@ -33,7 +33,6 @@ class RecursoInexistenteApiTest {
 
     private static final String CATEGORIA = "{\"nombre\":\"Camas\",\"tipoProducto\":\"CAMA\"}";
     private static final String CLIENTE = "{\"nombre\":\"Juan\",\"telefono\":\"70000000\"}";
-    private static final String COMPRA = "{\"idProveedor\":1,\"items\":[{\"idProducto\":1,\"cantidad\":1,\"precioUnitario\":10}]}";
     private static final String INVENTARIO = "{\"idProducto\":1,\"cantidadDisponible\":1}";
     private static final String PRODUCTO = "{\"sku\":\"X-1\",\"nombre\":\"Cama\",\"idCategoria\":1,\"precioVenta\":10,"
             + "\"tipoProducto\":\"CAMA\",\"activo\":true}";
@@ -88,12 +87,9 @@ class RecursoInexistenteApiTest {
     }
 
     @Test
-    void compras_modificarlas_inexistente_es404() throws Exception {
+    void compras_pedirlasOAnularlas_inexistente_es404() throws Exception {
         noExiste(HttpMethod.GET, "/api/v1/compras/{id}", null, "COMPRA_NO_ENCONTRADA");
-        noExiste(HttpMethod.PUT, "/api/v1/compras/{id}", COMPRA, "COMPRA_NO_ENCONTRADA");
-        noExiste(HttpMethod.PATCH, "/api/v1/compras/{id}/recibir", null, "COMPRA_NO_ENCONTRADA");
         noExiste(HttpMethod.PATCH, "/api/v1/compras/{id}/cancelar", null, "COMPRA_NO_ENCONTRADA");
-        noExiste(HttpMethod.PATCH, "/api/v1/compras/{id}/estado?nuevoEstado=CONFIRMADA", null, "COMPRA_NO_ENCONTRADA");
     }
 
     @Test

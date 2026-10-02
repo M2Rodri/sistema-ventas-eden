@@ -67,7 +67,7 @@ public class Compra {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private EstadoCompra estado = EstadoCompra.POR_CONFIRMAR;
+    private EstadoCompra estado = EstadoCompra.CONFIRMADA;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_usuario")
@@ -91,7 +91,7 @@ public class Compra {
         this.descuento = BigDecimal.ZERO;
         this.montoTotal = montoTotal;
         this.usuario = usuario;
-        this.estado = EstadoCompra.POR_CONFIRMAR;
+        this.estado = EstadoCompra.CONFIRMADA;
     }
 
     /** Recalcula subtotal y total a partir de las líneas de la compra. */

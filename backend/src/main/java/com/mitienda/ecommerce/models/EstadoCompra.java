@@ -1,10 +1,10 @@
 package com.mitienda.ecommerce.models;
 
 /**
- * Enum para estados de compras
+ * Estados de una compra. Una compra es algo ya comprado: no hay estado previo ni edición;
+ * se registra o se anula.
  */
 public enum EstadoCompra {
-    POR_CONFIRMAR,  // Compra cargada, todavía se puede editar o cancelar
-    CONFIRMADA,     // Ya se aplicó al stock y al costo del producto
-    CANCELADA       // Compra cancelada
+    CONFIRMADA,     // Compra registrada: ya entró al inventario y actualizó el costo del producto
+    CANCELADA       // Compra anulada: la mercadería se descontó del inventario
 }

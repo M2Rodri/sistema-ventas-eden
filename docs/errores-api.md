@@ -28,7 +28,7 @@ que no existen. Todas las respuestas de error llevan las cabeceras CORS, para qu
 | 403 | La sesión no tiene el rol que pide la ruta |
 | 404 | El recurso (o la ruta) no existe; también al modificarlo con PUT, PATCH o DELETE |
 | 405 | El método HTTP no está permitido en esa ruta |
-| 409 | La operación choca con el estado actual (compra ya confirmada, venta ya cancelada, dato duplicado) |
+| 409 | La operación choca con el estado actual (compra ya anulada, venta ya cancelada, dato duplicado) |
 | 422 | La petición es válida pero viola una regla de negocio (stock insuficiente, pago mayor al saldo) |
 | 500 | Error interno: sin detalles internos ni traza (el detalle queda solo en el registro del servidor) |
 
@@ -77,7 +77,7 @@ que no existen. Todas las respuestas de error llevan las cabeceras CORS, para qu
 | 404 | `CATEGORIA_NO_ENCONTRADA` | Categoría inexistente | `Categoría no encontrada con ID: 999` |
 | 404 | `CLIENTE_NO_ENCONTRADO` | Cliente inexistente | `Cliente no encontrado con ID: 999` |
 | 404 | `PROVEEDOR_NO_ENCONTRADO` | Proveedor inexistente | `Proveedor no encontrado con ID: 999` |
-| 404 | `COMPRA_NO_ENCONTRADA` | Compra inexistente (consulta, edición, confirmación o cancelación) | `Compra no encontrada con ID: 999` |
+| 404 | `COMPRA_NO_ENCONTRADA` | Compra inexistente (consulta o anulación) | `Compra no encontrada con ID: 999` |
 | 404 | `INVENTARIO_NO_ENCONTRADO` | El producto no tiene inventario o el registro no existe | `No existe inventario para el producto con ID: 999` |
 | 404 | `IMAGEN_NO_ENCONTRADA` | Imagen inexistente o que no es del producto indicado | `Imagen no encontrada con ID: 999` |
 | 404 | `USUARIO_NO_ENCONTRADO` | Usuario inexistente | `Usuario no encontrado con ID: 999` |
@@ -86,10 +86,7 @@ que no existen. Todas las respuestas de error llevan las cabeceras CORS, para qu
 
 | HTTP | Código de error | Cuándo ocurre | Ejemplo de `mensaje` |
 |---|---|---|---|
-| 409 | `COMPRA_YA_CONFIRMADA` | Se confirma una compra que ya está confirmada | `Solo se puede confirmar una compra que esté sin confirmar. Estado actual: CONFIRMADA` |
-| 409 | `COMPRA_NO_CONFIRMABLE` | Se confirma una compra cancelada | `Solo se puede confirmar una compra que esté sin confirmar. Estado actual: CANCELADA` |
-| 409 | `COMPRA_NO_EDITABLE` | Se edita una compra que ya no está sin confirmar | `Solo se puede editar una compra que esté sin confirmar. Estado actual: CONFIRMADA` |
-| 409 | `COMPRA_NO_CANCELABLE` | Se cancela una compra que ya no está sin confirmar | `No se puede cancelar una compra en estado: CONFIRMADA` |
+| 409 | `COMPRA_YA_ANULADA` | Se anula una compra que ya está anulada | `Esta compra ya está anulada` |
 | 409 | `FACTURA_DUPLICADA` | Otra compra del mismo proveedor ya tiene ese número de factura | `Ya existe una compra con esa factura para este proveedor` |
 | 409 | `VENTA_YA_CANCELADA` | Se cancela una venta ya cancelada | `Esta venta ya está cancelada` |
 | 409 | `VENTA_CANCELADA` | Se entrega, se corrige o se cobra una venta cancelada | `No se puede entregar una venta cancelada` |
@@ -114,6 +111,7 @@ que no existen. Todas las respuestas de error llevan las cabeceras CORS, para qu
 | 422 | `PRODUCTO_NO_DISPONIBLE` | Se vende un producto dado de baja | `El producto 'Cama 2 plazas' no está disponible` |
 | 422 | `PRECIO_EXCEDE_CATALOGO` | Se vende por encima del precio de catálogo | `No se puede vender 'Cama 2 plazas' por encima del precio de catálogo (máximo Bs. 500.00)` |
 | 422 | `PRECIO_BAJO_COSTO` | Se vende por debajo del costo | `No se puede vender 'Cama 2 plazas' por debajo del costo (Bs. 300.00)` |
+| 422 | `COMPRA_STOCK_VENDIDO` | Se anula una compra cuya mercadería ya se vendió en parte: el stock no alcanza para devolverla | `No se puede anular: de 'Cama 2 plazas' esta compra trajo 5 y hoy quedan 2 en stock (el resto ya se vendió)` |
 | 422 | `PAGO_EXCEDE_TOTAL` | El monto pagado al registrar la venta supera el total | `El monto pagado no puede superar el total de la venta` |
 | 422 | `PAGO_EXCEDE_SALDO` | Un cobro posterior supera el saldo pendiente | `El monto supera el saldo pendiente de la venta (Bs. 100.00)` |
 | 422 | `VENTA_EN_TIENDA_SIN_ENTREGA` | Se corrigen o editan datos de entrega de una venta en tienda | `Una venta en tienda no tiene datos de entrega` |

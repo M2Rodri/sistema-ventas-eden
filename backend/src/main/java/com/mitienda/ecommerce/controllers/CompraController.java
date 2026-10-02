@@ -2,7 +2,6 @@ package com.mitienda.ecommerce.controllers;
 
 import com.mitienda.ecommerce.dto.CompraRequest;
 import com.mitienda.ecommerce.dto.CompraResponse;
-import com.mitienda.ecommerce.models.EstadoCompra;
 import com.mitienda.ecommerce.services.CompraService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -66,39 +65,8 @@ public class CompraController {
     }
 
     /**
-     * PUT /api/v1/compras/{id}
-     * Editar una compra pendiente (proveedor, factura, notas y productos)
-     */
-    @PutMapping("/{id}")
-    public ResponseEntity<?> updateCompra(@PathVariable Long id, @Valid @RequestBody CompraRequest request) {
-        CompraResponse updatedCompra = compraService.updateCompra(id, request);
-        return ResponseEntity.ok(updatedCompra);
-    }
-
-    /**
-     * PATCH /api/v1/compras/{id}/estado
-     * Cambiar estado de la compra
-     */
-    @PatchMapping("/{id}/estado")
-    public ResponseEntity<?> cambiarEstadoCompra(@PathVariable Long id, 
-                                                 @RequestParam EstadoCompra nuevoEstado) {
-        CompraResponse compra = compraService.cambiarEstadoCompra(id, nuevoEstado);
-        return ResponseEntity.ok(compra);
-    }
-
-    /**
-     * PATCH /api/v1/compras/{id}/recibir
-     * Marcar compra como recibida y actualizar inventario
-     */
-    @PatchMapping("/{id}/recibir")
-    public ResponseEntity<?> recibirCompra(@PathVariable Long id) {
-        CompraResponse compra = compraService.recibirCompra(id);
-        return ResponseEntity.ok(compra);
-    }
-
-    /**
      * PATCH /api/v1/compras/{id}/cancelar
-     * Cancelar compra
+     * Anular una compra: devuelve lo comprado al estado anterior del inventario
      */
     @PatchMapping("/{id}/cancelar")
     public ResponseEntity<?> cancelarCompra(@PathVariable Long id) {

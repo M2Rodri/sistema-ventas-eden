@@ -53,7 +53,7 @@ Todas las rutas responden los errores con el mismo formato, y la web y la app mu
 
 `campos` solo viene en los errores de validación de campos. Códigos HTTP: 400 petición mal formada o campo inválido,
 401 sin sesión, 403 rol sin permiso, 404 recurso inexistente (también en PUT, PATCH y DELETE), 409 choca con el estado
-actual (por ejemplo, confirmar una compra ya confirmada), 422 regla de negocio violada (stock insuficiente, pago mayor
+actual (por ejemplo, anular una compra ya anulada), 422 regla de negocio violada (stock insuficiente, pago mayor
 al saldo) y 500 error interno, sin detalles ni traza. Las respuestas de error llevan las cabeceras CORS.
 
 La tabla completa de códigos de error, cuándo ocurre cada uno y un ejemplo está en

@@ -2,6 +2,7 @@ package com.mitienda.ecommerce.services;
 
 import com.mitienda.ecommerce.exception.ConflictoEstadoException;
 import com.mitienda.ecommerce.exception.RecursoNoEncontradoException;
+import com.mitienda.ecommerce.exception.ReglaNegocioException;
 import com.mitienda.ecommerce.dto.CompraRequest;
 import com.mitienda.ecommerce.dto.CompraResponse;
 import com.mitienda.ecommerce.models.*;
@@ -91,7 +92,9 @@ public class CompraService {
     }
 
     /**
-     * Crear nueva compra
+     * Registrar una compra. Una compra es algo que ya se compró: al registrarla, la mercadería
+     * entra al inventario y el costo de cada producto se actualiza, en la misma operación.
+     * Para corregir un error se anula (ver cancelarCompra) y se registra de nuevo.
      */
     @Transactional
     public CompraResponse createCompra(CompraRequest request) {
@@ -117,7 +120,7 @@ public class CompraService {
         compra.setProveedor(proveedor);
         compra.setUsuario(usuario);
         compra.setNotas(request.getNotas());
-        compra.setEstado(EstadoCompra.POR_CONFIRMAR);
+        compra.setEstado(EstadoCompra.CONFIRMADA);
         compra.setSubtotal(BigDecimal.ZERO);
         compra.setDescuento(BigDecimal.ZERO);
         compra.setMontoTotal(BigDecimal.ZERO);
@@ -141,6 +144,8 @@ public class CompraService {
             detalle.calcularSubtotal();
 
             detalleCompraRepository.save(detalle);
+            savedCompra.getDetalles().add(detalle);
+            entrarAlInventario(savedCompra, detalle, usuario.getId());
 
             total = total.add(detalle.getSubtotal());
         }
@@ -158,162 +163,80 @@ public class CompraService {
         return new CompraResponse(finalCompra);
     }
 
-    /**
-     * Editar una compra que todavía no fue confirmada. Una vez CONFIRMADA ya
-     * actualizó stock y costo del producto, y CANCELADA es un callejón sin
-     * salida — en los dos casos, editar la desincronizaría de lo que ya
-     * pasó. Reemplaza proveedor, factura, notas y todos los productos.
-     */
-    @Transactional
-    public CompraResponse updateCompra(Long id, CompraRequest request) {
-        Compra compra = compraRepository.findById(id)
-                .orElseThrow(() -> new RecursoNoEncontradoException("COMPRA_NO_ENCONTRADA", "Compra no encontrada con ID: " + id));
+    /** Suma lo comprado al stock, lo deja como movimiento y actualiza el costo del producto. */
+    private void entrarAlInventario(Compra compra, DetalleCompra detalle, Long idUsuario) {
+        Long idProducto = detalle.getProducto().getId();
 
-        if (compra.getEstado() != EstadoCompra.POR_CONFIRMAR) {
-            throw new ConflictoEstadoException("COMPRA_NO_EDITABLE", "Solo se puede editar una compra que esté sin confirmar. Estado actual: " + compra.getEstado());
-        }
+        Integer cantidadAnterior = inventarioRepository.findByProductoId(idProducto)
+                .map(Inventario::getCantidadDisponible)
+                .orElse(0);
 
-        Proveedor proveedor = proveedorRepository.findById(request.getIdProveedor())
-                .orElseThrow(() -> new RecursoNoEncontradoException("PROVEEDOR_NO_ENCONTRADO", "Proveedor no encontrado con ID: " + request.getIdProveedor()));
+        inventarioService.aumentarStock(idProducto, detalle.getCantidad());
 
-        if (request.getNumeroFactura() != null && !request.getNumeroFactura().isBlank()
-                && compraRepository.existsByProveedorIdAndNumeroFacturaAndIdNot(
-                        request.getIdProveedor(), request.getNumeroFactura(), id)) {
-            throw new ConflictoEstadoException("FACTURA_DUPLICADA", "Ya existe una compra con esa factura para este proveedor");
-        }
+        // Cada entrada queda registrada como movimiento, igual que hace la venta con las
+        // salidas: si mañana el stock no cuadra, la entrada por compra es rastreable.
+        inventarioService.registrarAjusteAutomatico(
+                idProducto,
+                cantidadAnterior,
+                cantidadAnterior + detalle.getCantidad(),
+                "COMPRA",
+                "Compra #" + compra.getId()
+                        + (compra.getNumeroFactura() != null ? " - Factura " + compra.getNumeroFactura() : ""),
+                idUsuario
+        );
 
-        compra.setProveedor(proveedor);
-        compra.setNumeroFactura(request.getNumeroFactura());
-        compra.setNotas(request.getNotas());
-
-        // Se reemplazan los productos enteros: se borran los de antes y se
-        // cargan los nuevos, más simple y menos propenso a error que tratar
-        // de calcular qué línea cambió, cuál es nueva y cuál se borró.
-        // flush() fuerza el DELETE a la base ya, porque si no Hibernate lo
-        // deja para el final (después de los INSERT de abajo) y choca con la
-        // restricción de unicidad cuando un producto se mantiene en la lista.
-        detalleCompraRepository.deleteByCompraId(id);
-        detalleCompraRepository.flush();
-
-        BigDecimal total = BigDecimal.ZERO;
-        for (CompraRequest.ItemCompraRequest item : request.getItems()) {
-            Producto producto = productoRepository.findById(item.getIdProducto())
-                    .orElseThrow(() -> new RecursoNoEncontradoException("PRODUCTO_NO_ENCONTRADO", "Producto no encontrado con ID: " + item.getIdProducto()));
-
-            DetalleCompra detalle = new DetalleCompra();
-            detalle.setCompra(compra);
-            detalle.setProducto(producto);
-            detalle.setCantidad(item.getCantidad());
-            detalle.setPrecioUnitario(item.getPrecioUnitario());
-            detalle.calcularSubtotal();
-
-            detalleCompraRepository.save(detalle);
-            total = total.add(detalle.getSubtotal());
-        }
-
-        compra.setSubtotal(total);
-        compra.setMontoTotal(total);
-        Compra updatedCompra = compraRepository.save(compra);
-
-        registroAuditoria.registrar("EDITAR_COMPRA", "compras", updatedCompra.getId(),
-                "Edición de compra #" + updatedCompra.getId());
-
-        return new CompraResponse(updatedCompra);
+        // El costo del producto pasa a ser lo que realmente se pagó esta vez; sin esto, el
+        // valor del inventario y el costo que se ve en Productos quedarían con el precio viejo.
+        Producto producto = detalle.getProducto();
+        producto.setPrecioCompra(detalle.getPrecioUnitario());
+        productoRepository.save(producto);
     }
 
     /**
-     * Cambiar estado de la compra
-     */
-    @Transactional
-    public CompraResponse cambiarEstadoCompra(Long id, EstadoCompra nuevoEstado) {
-        Compra compra = compraRepository.findById(id)
-                .orElseThrow(() -> new RecursoNoEncontradoException("COMPRA_NO_ENCONTRADA", "Compra no encontrada con ID: " + id));
-
-        // Solo se puede confirmar una compra que sigue POR_CONFIRMAR. Sin este
-        // chequeo, una compra ya CANCELADA se podía "confirmar" igual: sumaba
-        // stock y pisaba el precio de compra con los datos de una compra
-        // que se suponía anulada. Confirmar de nuevo una ya CONFIRMADA tampoco
-        // tiene sentido (duplicaría el stock).
-        if (nuevoEstado == EstadoCompra.CONFIRMADA && compra.getEstado() != EstadoCompra.POR_CONFIRMAR) {
-            String codigo = compra.getEstado() == EstadoCompra.CONFIRMADA ? "COMPRA_YA_CONFIRMADA" : "COMPRA_NO_CONFIRMABLE";
-            throw new ConflictoEstadoException(codigo, "Solo se puede confirmar una compra que esté sin confirmar. Estado actual: " + compra.getEstado());
-        }
-
-        // Si el estado cambia a CONFIRMADA, la mercadería entra al inventario.
-        // Cada entrada queda registrada como movimiento, igual que hace la
-        // venta con las salidas: si mañana el stock no cuadra, la entrada por
-        // compra tiene que ser rastreable. Sin esto, el stock subía en silencio.
-        if (nuevoEstado == EstadoCompra.CONFIRMADA) {
-            Long idUsuario = compra.getUsuario() != null ? compra.getUsuario().getId() : null;
-
-            for (DetalleCompra detalle : compra.getDetalles()) {
-                Long idProducto = detalle.getProducto().getId();
-
-                Integer cantidadAnterior = inventarioRepository.findByProductoId(idProducto)
-                        .map(Inventario::getCantidadDisponible)
-                        .orElse(0);
-
-                inventarioService.aumentarStock(idProducto, detalle.getCantidad());
-
-                inventarioService.registrarAjusteAutomatico(
-                        idProducto,
-                        cantidadAnterior,
-                        cantidadAnterior + detalle.getCantidad(),
-                        "COMPRA",
-                        "Compra #" + compra.getId()
-                                + (compra.getNumeroFactura() != null
-                                        ? " - Factura " + compra.getNumeroFactura() : ""),
-                        idUsuario
-                );
-
-                // El precio de compra del producto se actualiza con lo que
-                // realmente se pagó esta vez. Sin esto, "Valor Total del
-                // Inventario" y el costo que se ve en Productos se quedan
-                // con el precio viejo para siempre, aunque el proveedor
-                // suba o baje sus precios y eso se registre acá.
-                Producto producto = detalle.getProducto();
-                producto.setPrecioCompra(detalle.getPrecioUnitario());
-                productoRepository.save(producto);
-            }
-        }
-
-        EstadoCompra estadoAnterior = compra.getEstado();
-        compra.setEstado(nuevoEstado);
-        Compra updatedCompra = compraRepository.save(compra);
-
-        // Interesa el cambio de estado y no solo el estado final, porque pasar a
-        // CONFIRMADA es lo que sube el stock: si manana el inventario no cuadra,
-        // aca queda quien lo confirmo y cuando.
-        registroAuditoria.registrar("CAMBIAR_ESTADO_COMPRA", "compras", updatedCompra.getId(),
-                "Compra #" + updatedCompra.getId() + ": " + estadoAnterior + " -> " + nuevoEstado);
-
-        return new CompraResponse(updatedCompra);
-    }
-
-    /**
-     * Confirmar compra y actualizar inventario
-     */
-    @Transactional
-    public CompraResponse recibirCompra(Long id) {
-        return cambiarEstadoCompra(id, EstadoCompra.CONFIRMADA);
-    }
-
-    /**
-     * Cancelar compra
+     * Anular una compra: la mercadería deja de contarse en el inventario. Si parte de lo
+     * comprado ya se vendió, el stock no alcanza para devolverlo y no se puede anular.
      */
     @Transactional
     public CompraResponse cancelarCompra(Long id) {
         Compra compra = compraRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("COMPRA_NO_ENCONTRADA", "Compra no encontrada con ID: " + id));
 
-        // Solo se puede cancelar si está POR_CONFIRMAR
-        if (compra.getEstado() != EstadoCompra.POR_CONFIRMAR) {
-            throw new ConflictoEstadoException("COMPRA_NO_CANCELABLE", "No se puede cancelar una compra en estado: " + compra.getEstado());
+        if (compra.getEstado() == EstadoCompra.CANCELADA) {
+            throw new ConflictoEstadoException("COMPRA_YA_ANULADA", "Esta compra ya está anulada");
+        }
+
+        for (DetalleCompra detalle : compra.getDetalles()) {
+            Producto producto = detalle.getProducto();
+            Integer disponible = inventarioRepository.findByProductoId(producto.getId())
+                    .map(Inventario::getCantidadDisponible)
+                    .orElse(0);
+            if (disponible < detalle.getCantidad()) {
+                throw new ReglaNegocioException("COMPRA_STOCK_VENDIDO", "No se puede anular: de '" + producto.getNombre()
+                        + "' esta compra trajo " + detalle.getCantidad() + " y hoy quedan " + disponible
+                        + " en stock (el resto ya se vendió)");
+            }
+        }
+
+        Long idUsuario = usuarioActualService.obtenerRequerido().getId();
+        for (DetalleCompra detalle : compra.getDetalles()) {
+            Long idProducto = detalle.getProducto().getId();
+            Integer cantidadAnterior = inventarioRepository.findByProductoId(idProducto)
+                    .map(Inventario::getCantidadDisponible)
+                    .orElse(0);
+
+            inventarioService.reducirStock(idProducto, detalle.getCantidad());
+            inventarioService.registrarAjusteAutomatico(idProducto, cantidadAnterior,
+                    cantidadAnterior - detalle.getCantidad(), "SALIDA",
+                    "Anulación de Compra #" + compra.getId(), idUsuario);
         }
 
         compra.setEstado(EstadoCompra.CANCELADA);
-        Compra updatedCompra = compraRepository.save(compra);
-        return new CompraResponse(updatedCompra);
+        Compra anulada = compraRepository.save(compra);
+
+        registroAuditoria.registrar("ANULAR_COMPRA", "compras", anulada.getId(),
+                "Anulación de compra #" + anulada.getId() + " por Bs " + anulada.getMontoTotal());
+
+        return new CompraResponse(anulada);
     }
 
 }

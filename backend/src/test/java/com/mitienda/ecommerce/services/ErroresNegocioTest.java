@@ -153,11 +153,9 @@ class ErroresNegocioTest {
     }
 
     @Test
-    void compraInexistente_es404_alCancelarYConfirmar() {
+    void compraInexistente_es404_alAnular() {
         when(compraRepository.findById(99L)).thenReturn(Optional.empty());
         esperar(HttpStatus.NOT_FOUND, "COMPRA_NO_ENCONTRADA", () -> compras.cancelarCompra(99L));
-        esperar(HttpStatus.NOT_FOUND, "COMPRA_NO_ENCONTRADA",
-                () -> compras.cambiarEstadoCompra(99L, EstadoCompra.CONFIRMADA));
     }
 
     @Test
@@ -198,24 +196,11 @@ class ErroresNegocioTest {
     }
 
     @Test
-    void confirmarUnaCompraYaConfirmada_es409() {
-        Compra compra = new Compra();
-        compra.setEstado(EstadoCompra.CONFIRMADA);
-        when(compraRepository.findById(1L)).thenReturn(Optional.of(compra));
-        esperar(HttpStatus.CONFLICT, "COMPRA_YA_CONFIRMADA",
-                () -> compras.cambiarEstadoCompra(1L, EstadoCompra.CONFIRMADA));
-    }
-
-    @Test
-    void confirmarUnaCompraCancelada_o_cancelarUnaConfirmada_es409() {
+    void anularUnaCompraYaAnulada_es409() {
         Compra compra = new Compra();
         compra.setEstado(EstadoCompra.CANCELADA);
         when(compraRepository.findById(1L)).thenReturn(Optional.of(compra));
-        esperar(HttpStatus.CONFLICT, "COMPRA_NO_CONFIRMABLE",
-                () -> compras.cambiarEstadoCompra(1L, EstadoCompra.CONFIRMADA));
-
-        compra.setEstado(EstadoCompra.CONFIRMADA);
-        esperar(HttpStatus.CONFLICT, "COMPRA_NO_CANCELABLE", () -> compras.cancelarCompra(1L));
+        esperar(HttpStatus.CONFLICT, "COMPRA_YA_ANULADA", () -> compras.cancelarCompra(1L));
     }
 
     // ---------- 422: regla de negocio ----------
