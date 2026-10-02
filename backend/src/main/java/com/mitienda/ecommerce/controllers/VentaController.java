@@ -25,7 +25,7 @@ import java.util.Map;
  * Controlador REST para gestión de ventas
  */
 @RestController
-@RequestMapping("/api/ventas")
+@RequestMapping("/api/v1/ventas")
 @CrossOrigin(origins = "http://localhost:3000")
 @PreAuthorize("hasAnyRole('ADMIN', 'EMPLEADO')")
 public class VentaController {
@@ -48,7 +48,7 @@ public class VentaController {
 
 
     /**
-     * GET /api/ventas
+     * GET /api/v1/ventas
      * Listar todas las ventas
      */
     @GetMapping
@@ -58,7 +58,7 @@ public class VentaController {
     }
 
     /**
-     * GET /api/ventas/{id}
+     * GET /api/v1/ventas/{id}
      * Obtener venta por ID
      */
     @GetMapping("/{id}")
@@ -73,7 +73,7 @@ public class VentaController {
     }
 
     /**
-     * POST /api/ventas
+     * POST /api/v1/ventas
      * Crear venta directa
      */
     @PostMapping
@@ -105,7 +105,7 @@ public class VentaController {
     }
 
     /**
-     * PATCH /api/ventas/{id}/cancelar
+     * PATCH /api/v1/ventas/{id}/cancelar
      * Cancelar venta
      */
     @PatchMapping("/{id}/cancelar")
@@ -121,7 +121,7 @@ public class VentaController {
     }
 
     /**
-     * PATCH /api/ventas/{id}/entregar
+     * PATCH /api/v1/ventas/{id}/entregar
      * Marcar la entrega de una venta como completada (ADMIN y EMPLEADO).
      */
     @PatchMapping("/{id}/entregar")
@@ -136,7 +136,7 @@ public class VentaController {
     }
 
     /**
-     * PATCH /api/ventas/{id}/deshacer-entrega
+     * PATCH /api/v1/ventas/{id}/deshacer-entrega
      * Corregir una entrega marcada por error: ENTREGADO -> PENDIENTE (solo ADMIN).
      */
     @PatchMapping("/{id}/deshacer-entrega")
@@ -152,7 +152,7 @@ public class VentaController {
     }
 
     /**
-     * PATCH /api/ventas/{id}/datos-entrega
+     * PATCH /api/v1/ventas/{id}/datos-entrega
      * Completar o corregir la dirección, la transportadora y la guía (solo ADMIN).
      */
     @PatchMapping("/{id}/datos-entrega")
@@ -169,7 +169,7 @@ public class VentaController {
     }
 
     /**
-     * GET /api/ventas/cliente/{clienteId}
+     * GET /api/v1/ventas/cliente/{clienteId}
      * Listar ventas de un cliente
      */
     @GetMapping("/cliente/{clienteId}")
@@ -179,7 +179,7 @@ public class VentaController {
     }
 
     /**
-     * GET /api/ventas/estado/{estado}
+     * GET /api/v1/ventas/estado/{estado}
      * Filtrar ventas por estado
      */
     @GetMapping("/estado/{estado}")
@@ -195,7 +195,7 @@ public class VentaController {
     }
 
     /**
-     * GET /api/ventas/del-dia
+     * GET /api/v1/ventas/del-dia
      * Ventas del día actual
      */
     @GetMapping("/del-dia")
@@ -205,7 +205,7 @@ public class VentaController {
     }
 
     /**
-     * GET /api/ventas/ultimas
+     * GET /api/v1/ventas/ultimas
      * Últimas 10 ventas
      */
     @GetMapping("/ultimas")
@@ -215,7 +215,7 @@ public class VentaController {
     }
 
     /**
-     * GET /api/ventas/fechas?inicio=...&fin=...
+     * GET /api/v1/ventas/fechas?inicio=...&fin=...
      * Ventas entre fechas
      */
     @GetMapping("/fechas")
@@ -227,7 +227,7 @@ public class VentaController {
     }
 
     /**
-     * GET /api/ventas/total-fechas?inicio=...&fin=...
+     * GET /api/v1/ventas/total-fechas?inicio=...&fin=...
      * Total de ventas en un rango de fechas
      */
     @GetMapping("/total-fechas")
@@ -239,7 +239,7 @@ public class VentaController {
     }
 
     /**
-     * GET /api/ventas/estadisticas
+     * GET /api/v1/ventas/estadisticas
      * Obtener estadísticas de ventas (ADMIN)
      */
     @GetMapping("/estadisticas")

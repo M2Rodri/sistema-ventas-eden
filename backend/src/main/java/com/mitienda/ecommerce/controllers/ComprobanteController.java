@@ -19,7 +19,7 @@ import java.util.Map;
  * Controlador REST para gestión de comprobantes
  */
 @RestController
-@RequestMapping("/api/comprobantes")
+@RequestMapping("/api/v1/comprobantes")
 @CrossOrigin(origins = "http://localhost:3000")
 @PreAuthorize("hasAnyRole('ADMIN', 'EMPLEADO')")
 public class ComprobanteController {
@@ -39,7 +39,7 @@ public class ComprobanteController {
 
 
     /**
-     * GET /api/comprobantes
+     * GET /api/v1/comprobantes
      * Listar todos los comprobantes
      */
     @GetMapping
@@ -49,7 +49,7 @@ public class ComprobanteController {
     }
 
     /**
-     * GET /api/comprobantes/{id}
+     * GET /api/v1/comprobantes/{id}
      * Obtener comprobante por ID
      */
     @GetMapping("/{id}")
@@ -64,7 +64,7 @@ public class ComprobanteController {
     }
 
     /**
-     * GET /api/comprobantes/numero/{numeroComprobante}
+     * GET /api/v1/comprobantes/numero/{numeroComprobante}
      * Obtener comprobante por número
      */
     @GetMapping("/numero/{numeroComprobante}")
@@ -79,7 +79,7 @@ public class ComprobanteController {
     }
 
     /**
-     * GET /api/comprobantes/venta/{idVenta}
+     * GET /api/v1/comprobantes/venta/{idVenta}
      * Obtener comprobante por venta
      */
     @GetMapping("/venta/{idVenta}")
@@ -94,7 +94,7 @@ public class ComprobanteController {
     }
 
     /**
-     * POST /api/comprobantes
+     * POST /api/v1/comprobantes
      * Crear comprobante
      */
     @PostMapping
@@ -109,7 +109,7 @@ public class ComprobanteController {
     }
 
     /**
-     * PATCH /api/comprobantes/{id}/anular
+     * PATCH /api/v1/comprobantes/{id}/anular
      * Anular comprobante
      */
     @PatchMapping("/{id}/anular")
@@ -126,7 +126,7 @@ public class ComprobanteController {
     }
 
     /**
-     * GET /api/comprobantes/activos
+     * GET /api/v1/comprobantes/activos
      * Comprobantes no anulados
      */
     @GetMapping("/activos")
@@ -136,7 +136,7 @@ public class ComprobanteController {
     }
 
     /**
-     * GET /api/comprobantes/anulados
+     * GET /api/v1/comprobantes/anulados
      * Comprobantes anulados
      */
     @GetMapping("/anulados")
@@ -146,7 +146,7 @@ public class ComprobanteController {
     }
 
     /**
-     * GET /api/comprobantes/tipo/{tipo}
+     * GET /api/v1/comprobantes/tipo/{tipo}
      * Comprobantes por tipo
      */
     @GetMapping("/tipo/{tipo}")
@@ -162,7 +162,7 @@ public class ComprobanteController {
     }
 
     /**
-     * GET /api/comprobantes/fechas?inicio=...&fin=...
+     * GET /api/v1/comprobantes/fechas?inicio=...&fin=...
      * Comprobantes entre fechas
      */
     @GetMapping("/fechas")
@@ -174,7 +174,7 @@ public class ComprobanteController {
     }
 
     /**
-     * GET /api/comprobantes/ultimos
+     * GET /api/v1/comprobantes/ultimos
      * Últimos 20 comprobantes
      */
     @GetMapping("/ultimos")
@@ -184,7 +184,7 @@ public class ComprobanteController {
     }
 
     /**
-     * GET /api/comprobantes/estadisticas
+     * GET /api/v1/comprobantes/estadisticas
      * Obtener estadísticas de comprobantes (ADMIN)
      */
     @GetMapping("/estadisticas")

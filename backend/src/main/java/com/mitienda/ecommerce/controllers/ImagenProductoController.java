@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 
 @CrossOrigin(origins = "http://localhost:3000")
 @RestController
-@RequestMapping("/api/imagenes-producto")
+@RequestMapping("/api/v1/imagenes-producto")
 public class ImagenProductoController {
 
     private final ImagenProductoService imagenProductoService;

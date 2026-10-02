@@ -14,7 +14,7 @@ import java.time.LocalDate;
  * Controlador REST para el dashboard con estadísticas
  */
 @RestController
-@RequestMapping("/api/dashboard")
+@RequestMapping("/api/v1/dashboard")
 @CrossOrigin(origins = "http://localhost:3000")
 @PreAuthorize("hasAnyRole('ADMIN', 'EMPLEADO')")
 public class DashboardController {
@@ -34,7 +34,7 @@ public class DashboardController {
 
 
     /**
-     * GET /api/dashboard/estadisticas
+     * GET /api/v1/dashboard/estadisticas
      * Obtener todas las estadísticas del dashboard
      */
     @GetMapping("/estadisticas")
@@ -44,7 +44,7 @@ public class DashboardController {
     }
 
     /**
-     * GET /api/dashboard/ventas-semanal?fecha=2026-09-28
+     * GET /api/v1/dashboard/ventas-semanal?fecha=2026-09-28
      * Ventas de la semana calendario (lunes a domingo) que contiene a la fecha;
      * sin parámetro, la semana en curso.
      */

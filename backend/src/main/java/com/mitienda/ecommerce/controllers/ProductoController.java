@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/productos")
+@RequestMapping("/api/v1/productos")
 @CrossOrigin(origins = "http://localhost:3000")
 public class ProductoController {
 
@@ -103,7 +103,7 @@ public class ProductoController {
     }
 
     /**
-     * PATCH /api/productos/{id}/stock-minimo
+     * PATCH /api/v1/productos/{id}/stock-minimo
      * Cambia el umbral que dispara las alertas de stock bajo.
      */
     @PatchMapping("/{id}/stock-minimo")

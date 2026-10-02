@@ -13,10 +13,10 @@ import org.springframework.web.bind.annotation.*;
 
 /**
  * Controlador REST para autenticación
- * Endpoints: /api/auth/register y /api/auth/login
+ * Endpoints: /api/v1/auth/register y /api/v1/auth/login
  */
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/v1/auth")
 @CrossOrigin(origins = "http://localhost:3000")
 public class AuthController {
 
@@ -36,14 +36,14 @@ public class AuthController {
     }
 
 
-    // El endpoint POST /api/auth/register se eliminó a propósito.
+    // El endpoint POST /api/v1/auth/register se eliminó a propósito.
     // La tienda web no tiene inicio de sesión, así que los únicos usuarios son
     // el dueño y los vendedores. Las altas las hace el ADMIN desde
-    // /api/users. Dejarlo abierto permitía que cualquiera se creara una cuenta
+    // /api/v1/users. Dejarlo abierto permitía que cualquiera se creara una cuenta
     // contra la API sin pasar por el sistema.
 
     /**
-     * POST /api/auth/login
+     * POST /api/v1/auth/login
      * Login de usuario existente
      */
     @PostMapping("/login")
@@ -67,7 +67,7 @@ public class AuthController {
     }
 
     /**
-     * GET /api/auth/test
+     * GET /api/v1/auth/test
      * Endpoint de prueba (público)
      */
     @GetMapping("/test")

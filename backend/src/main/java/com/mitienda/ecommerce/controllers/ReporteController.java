@@ -19,7 +19,7 @@ import java.util.Map;
  * Controlador REST para generación de reportes
  */
 @RestController
-@RequestMapping("/api/reportes")
+@RequestMapping("/api/v1/reportes")
 @CrossOrigin(origins = "http://localhost:3000")
 @PreAuthorize("hasRole('ADMIN')")
 public class ReporteController {
@@ -39,7 +39,7 @@ public class ReporteController {
 
 
     /**
-     * GET /api/reportes/ventas?inicio=...&fin=...
+     * GET /api/v1/reportes/ventas?inicio=...&fin=...
      * Reporte de ventas por período
      */
     @GetMapping("/ventas")
@@ -51,7 +51,7 @@ public class ReporteController {
     }
 
     /**
-     * GET /api/reportes/productos-mas-vendidos?limite=10
+     * GET /api/v1/reportes/productos-mas-vendidos?limite=10
      * Reporte de productos más vendidos
      */
     @GetMapping("/productos-mas-vendidos")
@@ -62,7 +62,7 @@ public class ReporteController {
     }
 
     /**
-     * GET /api/reportes/clientes-frecuentes?limite=10
+     * GET /api/v1/reportes/clientes-frecuentes?limite=10
      * Reporte de clientes frecuentes
      */
     @GetMapping("/clientes-frecuentes")
@@ -73,7 +73,7 @@ public class ReporteController {
     }
 
     /**
-     * GET /api/reportes/inventario-valorizado
+     * GET /api/v1/reportes/inventario-valorizado
      * Reporte de inventario valorizado.
      */
     @GetMapping("/inventario-valorizado")
@@ -83,7 +83,7 @@ public class ReporteController {
     }
 
     /**
-     * GET /api/reportes/ventas-por-categoria?inicio=...&fin=...
+     * GET /api/v1/reportes/ventas-por-categoria?inicio=...&fin=...
      * Reporte de ventas por categoría
      */
     @GetMapping("/ventas-por-categoria")
@@ -95,7 +95,7 @@ public class ReporteController {
     }
 
     /**
-     * GET /api/reportes/ventas-por-metodo-pago?inicio=...&fin=...
+     * GET /api/v1/reportes/ventas-por-metodo-pago?inicio=...&fin=...
      * Reporte de ventas por método de pago
      */
     @GetMapping("/ventas-por-metodo-pago")
@@ -107,7 +107,7 @@ public class ReporteController {
     }
 
     /**
-     * GET /api/reportes/cuentas-por-cobrar
+     * GET /api/v1/reportes/cuentas-por-cobrar
      * Ventas con saldo pendiente de cobro, ordenadas por antigüedad
      */
     @GetMapping("/cuentas-por-cobrar")
@@ -117,7 +117,7 @@ public class ReporteController {
     }
 
     /**
-     * GET /api/reportes/financiero?inicio=...&fin=...
+     * GET /api/v1/reportes/financiero?inicio=...&fin=...
      * Reporte financiero: ganancia real de lo vendido, e ingresos/egresos
      * del periodo.
      */

@@ -21,7 +21,7 @@ import java.util.Map;
  * Cumple con CU6 - Gestionar Clientes
  */
 @RestController
-@RequestMapping("/api/clientes")
+@RequestMapping("/api/v1/clientes")
 @CrossOrigin(origins = "http://localhost:3000")
 public class ClienteController {
 
@@ -40,7 +40,7 @@ public class ClienteController {
 
 
     /**
-     * GET /api/clientes
+     * GET /api/v1/clientes
      * Listar todos los clientes (ADMIN/EMPLEADO)
      * Interfaz P6.1
      */
@@ -52,7 +52,7 @@ public class ClienteController {
     }
 
     /**
-     * GET /api/clientes/con-estadisticas
+     * GET /api/v1/clientes/con-estadisticas
      * Listar todos los clientes con número de compras, monto total y última
      * compra, para la tabla de Clientes (ADMIN/EMPLEADO).
      */
@@ -63,7 +63,7 @@ public class ClienteController {
     }
 
     /**
-     * GET /api/clientes/{id}
+     * GET /api/v1/clientes/{id}
      * Obtener cliente por ID (ADMIN/EMPLEADO)
      */
     @GetMapping("/{id}")
@@ -79,7 +79,7 @@ public class ClienteController {
     }
 
     /**
-     * POST /api/clientes
+     * POST /api/v1/clientes
      * Crear nuevo cliente (ADMIN/EMPLEADO).
      *
      * Sin @PreAuthorize propio, pero no es público: la tienda virtual quedó
@@ -100,7 +100,7 @@ public class ClienteController {
     }
 
     /**
-     * PUT /api/clientes/{id}
+     * PUT /api/v1/clientes/{id}
      * Actualizar cliente (ADMIN/EMPLEADO)
      * CU: Modificar Cliente - Interfaz P6.2
      */
@@ -118,7 +118,7 @@ public class ClienteController {
     }
 
     /**
-     * GET /api/clientes/buscar?q=...
+     * GET /api/v1/clientes/buscar?q=...
      * Buscar clientes por nombre, teléfono o NIT/CI (ADMIN/EMPLEADO)
      * CU: Buscar/Consultar Cliente - Interfaz P6.1
      */
@@ -130,7 +130,7 @@ public class ClienteController {
     }
 
     /**
-     * GET /api/clientes/{id}/historial-compras
+     * GET /api/v1/clientes/{id}/historial-compras
      * Obtener historial completo de compras de un cliente
      * CU: Ver Historial de Compras del Cliente - Interfaz P6.3
      */
@@ -147,7 +147,7 @@ public class ClienteController {
     }
 
     /**
-     * GET /api/clientes/{id}/historial-compras/filtrado?inicio=...&fin=...
+     * GET /api/v1/clientes/{id}/historial-compras/filtrado?inicio=...&fin=...
      * Obtener historial de compras filtrado por fechas
      * CU: Ver Historial de Compras del Cliente - Filtro de fechas
      */

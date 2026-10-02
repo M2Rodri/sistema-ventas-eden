@@ -17,7 +17,7 @@ import java.util.Map;
  * Solo accesible por usuarios con rol ADMIN
  */
 @RestController
-@RequestMapping("/api/usuarios")
+@RequestMapping("/api/v1/usuarios")
 @CrossOrigin(origins = "http://localhost:3000")
 @PreAuthorize("hasRole('ADMIN')")
 public class UsuarioController {
@@ -37,7 +37,7 @@ public class UsuarioController {
 
 
     /**
-     * GET /api/usuarios
+     * GET /api/v1/usuarios
      * Listar todos los usuarios
      */
     @GetMapping
@@ -47,7 +47,7 @@ public class UsuarioController {
     }
 
     /**
-     * GET /api/usuarios/{id}
+     * GET /api/v1/usuarios/{id}
      * Obtener usuario por ID
      */
     @GetMapping("/{id}")
@@ -62,7 +62,7 @@ public class UsuarioController {
     }
 
     /**
-     * POST /api/usuarios
+     * POST /api/v1/usuarios
      * Crear nuevo usuario
      */
     @PostMapping
@@ -77,7 +77,7 @@ public class UsuarioController {
     }
 
     /**
-     * PUT /api/usuarios/{id}
+     * PUT /api/v1/usuarios/{id}
      * Actualizar usuario existente
      */
     @PutMapping("/{id}")
@@ -93,7 +93,7 @@ public class UsuarioController {
     }
 
     /**
-     * DELETE /api/usuarios/{id}
+     * DELETE /api/v1/usuarios/{id}
      * Eliminar usuario (desactivar)
      */
     @DeleteMapping("/{id}")
@@ -108,7 +108,7 @@ public class UsuarioController {
     }
 
     /**
-     * PATCH /api/usuarios/{id}/toggle-status
+     * PATCH /api/v1/usuarios/{id}/toggle-status
      * Activar/Desactivar usuario
      */
     @PatchMapping("/{id}/toggle-status")
@@ -123,7 +123,7 @@ public class UsuarioController {
     }
 
     /**
-     * GET /api/usuarios/activos
+     * GET /api/v1/usuarios/activos
      * Listar solo usuarios activos
      */
     @GetMapping("/activos")
@@ -133,7 +133,7 @@ public class UsuarioController {
     }
 
     /**
-     * GET /api/usuarios/rol/{role}
+     * GET /api/v1/usuarios/rol/{role}
      * Filtrar usuarios por rol
      */
     @GetMapping("/rol/{role}")
@@ -146,7 +146,7 @@ public class UsuarioController {
     }
 
     /**
-     * GET /api/usuarios/estadisticas
+     * GET /api/v1/usuarios/estadisticas
      * Obtener estadísticas de usuarios
      */
     @GetMapping("/estadisticas")

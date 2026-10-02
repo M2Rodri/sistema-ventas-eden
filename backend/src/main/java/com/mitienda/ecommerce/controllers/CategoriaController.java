@@ -17,7 +17,7 @@ import java.util.Map;
  * Público para consultas, ADMIN para modificaciones
  */
 @RestController
-@RequestMapping("/api/categorias")
+@RequestMapping("/api/v1/categorias")
 @CrossOrigin(origins = "http://localhost:3000")
 public class CategoriaController {
 
@@ -36,7 +36,7 @@ public class CategoriaController {
 
 
     /**
-     * GET /api/categorias
+     * GET /api/v1/categorias
      * Listar todas las categorías (público)
      */
     @GetMapping
@@ -46,7 +46,7 @@ public class CategoriaController {
     }
 
     /**
-     * GET /api/categorias/activas
+     * GET /api/v1/categorias/activas
      * Listar solo categorías activas (público)
      */
     @GetMapping("/activas")
@@ -56,7 +56,7 @@ public class CategoriaController {
     }
 
     /**
-     * GET /api/categorias/{id}
+     * GET /api/v1/categorias/{id}
      * Obtener categoría por ID (público)
      */
     @GetMapping("/{id}")
@@ -71,7 +71,7 @@ public class CategoriaController {
     }
 
     /**
-     * POST /api/categorias
+     * POST /api/v1/categorias
      * Crear nueva categoría (ADMIN)
      */
     @PostMapping
@@ -87,7 +87,7 @@ public class CategoriaController {
     }
 
     /**
-     * PUT /api/categorias/{id}
+     * PUT /api/v1/categorias/{id}
      * Actualizar categoría (ADMIN)
      */
     @PutMapping("/{id}")
@@ -104,7 +104,7 @@ public class CategoriaController {
     }
 
     /**
-     * DELETE /api/categorias/{id}
+     * DELETE /api/v1/categorias/{id}
      * Eliminar categoría (ADMIN)
      */
     @DeleteMapping("/{id}")
@@ -120,7 +120,7 @@ public class CategoriaController {
     }
 
     /**
-     * PATCH /api/categorias/{id}/toggle-status
+     * PATCH /api/v1/categorias/{id}/toggle-status
      * Activar/Desactivar categoría (ADMIN)
      */
     @PatchMapping("/{id}/toggle-status")
@@ -136,7 +136,7 @@ public class CategoriaController {
     }
 
     /**
-     * GET /api/categorias/estadisticas
+     * GET /api/v1/categorias/estadisticas
      * Obtener estadísticas de categorías (ADMIN)
      */
     @GetMapping("/estadisticas")

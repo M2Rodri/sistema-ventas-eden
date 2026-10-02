@@ -17,7 +17,7 @@ import java.util.Map;
  * Controlador REST para gestión de compras
  */
 @RestController
-@RequestMapping("/api/compras")
+@RequestMapping("/api/v1/compras")
 @CrossOrigin(origins = "http://localhost:3000")
 @PreAuthorize("hasRole('ADMIN')")
 public class CompraController {
@@ -37,7 +37,7 @@ public class CompraController {
 
 
     /**
-     * GET /api/compras
+     * GET /api/v1/compras
      * Listar todas las compras
      */
     @GetMapping
@@ -47,7 +47,7 @@ public class CompraController {
     }
 
     /**
-     * GET /api/compras/{id}
+     * GET /api/v1/compras/{id}
      * Obtener compra por ID
      */
     @GetMapping("/{id}")
@@ -62,7 +62,7 @@ public class CompraController {
     }
 
     /**
-     * POST /api/compras
+     * POST /api/v1/compras
      * Crear nueva compra
      */
     @PostMapping
@@ -77,7 +77,7 @@ public class CompraController {
     }
 
     /**
-     * PUT /api/compras/{id}
+     * PUT /api/v1/compras/{id}
      * Editar una compra pendiente (proveedor, factura, notas y productos)
      */
     @PutMapping("/{id}")
@@ -92,7 +92,7 @@ public class CompraController {
     }
 
     /**
-     * PATCH /api/compras/{id}/estado
+     * PATCH /api/v1/compras/{id}/estado
      * Cambiar estado de la compra
      */
     @PatchMapping("/{id}/estado")
@@ -108,7 +108,7 @@ public class CompraController {
     }
 
     /**
-     * PATCH /api/compras/{id}/recibir
+     * PATCH /api/v1/compras/{id}/recibir
      * Marcar compra como recibida y actualizar inventario
      */
     @PatchMapping("/{id}/recibir")
@@ -123,7 +123,7 @@ public class CompraController {
     }
 
     /**
-     * PATCH /api/compras/{id}/cancelar
+     * PATCH /api/v1/compras/{id}/cancelar
      * Cancelar compra
      */
     @PatchMapping("/{id}/cancelar")

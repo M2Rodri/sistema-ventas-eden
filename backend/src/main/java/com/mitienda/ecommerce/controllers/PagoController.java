@@ -19,7 +19,7 @@ import java.util.Map;
  * Controlador REST para gestión de pagos
  */
 @RestController
-@RequestMapping("/api/pagos")
+@RequestMapping("/api/v1/pagos")
 @CrossOrigin(origins = "http://localhost:3000")
 @PreAuthorize("hasAnyRole('ADMIN', 'EMPLEADO')")
 public class PagoController {
@@ -39,7 +39,7 @@ public class PagoController {
 
 
     /**
-     * GET /api/pagos
+     * GET /api/v1/pagos
      * Listar todos los pagos
      */
     @GetMapping
@@ -49,7 +49,7 @@ public class PagoController {
     }
 
     /**
-     * GET /api/pagos/{id}
+     * GET /api/v1/pagos/{id}
      * Obtener pago por ID
      */
     @GetMapping("/{id}")
@@ -64,7 +64,7 @@ public class PagoController {
     }
 
     /**
-     * POST /api/pagos
+     * POST /api/v1/pagos
      * Registrar un nuevo pago
      */
     @PostMapping
@@ -79,7 +79,7 @@ public class PagoController {
     }
 
     /**
-     * POST /api/pagos/{id}/comprobante
+     * POST /api/v1/pagos/{id}/comprobante
      * Adjuntar (o reemplazar) la foto de comprobante de un pago ya registrado
      */
     @PostMapping("/{id}/comprobante")
@@ -102,7 +102,7 @@ public class PagoController {
     }
 
     /**
-     * GET /api/pagos/venta/{ventaId}
+     * GET /api/v1/pagos/venta/{ventaId}
      * Obtener pagos de una venta
      */
     @GetMapping("/venta/{ventaId}")
@@ -112,7 +112,7 @@ public class PagoController {
     }
 
     /**
-     * GET /api/pagos/estado/{estado}
+     * GET /api/v1/pagos/estado/{estado}
      * Filtrar pagos por estado
      */
     @GetMapping("/estado/{estado}")
@@ -128,7 +128,7 @@ public class PagoController {
     }
 
     /**
-     * GET /api/pagos/estadisticas
+     * GET /api/v1/pagos/estadisticas
      * Obtener estadísticas de pagos
      */
     @GetMapping("/estadisticas")

@@ -78,7 +78,7 @@ public class SecurityConfig {
                         // PÚBLICOS (sin autenticación)
                         // ========================================
                         .requestMatchers(
-                                "/api/auth/**",
+                                "/api/v1/auth/**",
                                 // Ruta de salud para el monitoreo de despliegue (Render, etc.):
                                 // tiene que responder sin login para que la plataforma pueda
                                 // confirmar que el servicio sigue vivo.
@@ -95,15 +95,14 @@ public class SecurityConfig {
                         .requestMatchers("/uploads/**").access(accesoUploads)
 
                         // ========================================
-                        // PROMOCIONES, IMÁGENES DE PRODUCTO, CATEGORÍAS
+                        // IMÁGENES DE PRODUCTO, CATEGORÍAS
                         // ========================================
                         // Antes tenían lectura pública para la tienda virtual. La tienda
                         // quedó fuera del alcance del proyecto: nada en el panel
                         // ADMIN/EMPLEADO ni en la app llama a estos endpoints sin sesión,
                         // así que ahora toda la ruta requiere ADMIN o EMPLEADO.
-                        .requestMatchers("/api/promociones/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_EMPLEADO")
-                        .requestMatchers("/api/imagenes-producto/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_EMPLEADO")
-                        .requestMatchers("/api/categorias/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_EMPLEADO")
+                        .requestMatchers("/api/v1/imagenes-producto/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_EMPLEADO")
+                        .requestMatchers("/api/v1/categorias/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_EMPLEADO")
 
                         // ========================================
                         // PRODUCTOS
@@ -111,29 +110,23 @@ public class SecurityConfig {
                         // Lectura pública era para la tienda virtual (fuera de alcance);
                         // el panel ADMIN/EMPLEADO siempre manda su token. EMPLEADO puede
                         // ver productos pero no crearlos/editarlos.
-                        .requestMatchers(HttpMethod.GET, "/api/productos/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_EMPLEADO")
-                        .requestMatchers("/api/productos/**").hasAuthority("ROLE_ADMIN") // Escritura solo ADMIN
+                        .requestMatchers(HttpMethod.GET, "/api/v1/productos/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_EMPLEADO")
+                        .requestMatchers("/api/v1/productos/**").hasAuthority("ROLE_ADMIN") // Escritura solo ADMIN
 
                         // ========================================
                         // INVENTARIO
                         // ========================================
-                        .requestMatchers(HttpMethod.GET, "/api/inventario").hasAnyAuthority("ROLE_ADMIN", "ROLE_EMPLEADO")
-                        .requestMatchers(HttpMethod.GET, "/api/inventario/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_EMPLEADO")
-                        .requestMatchers("/api/inventario/**").hasAuthority("ROLE_ADMIN") // Modificación solo ADMIN
-
-                        // ========================================
-                        // MULTIMEDIA PRODUCTOS
-                        // ========================================
-                        // Misma razón que productos: la lectura pública era para el visor
-                        // 3D de la tienda, que quedó fuera de alcance. Mismo nivel que
-                        // imágenes de producto: lectura ADMIN/EMPLEADO, escritura ADMIN.
-                        .requestMatchers(HttpMethod.GET, "/api/multimedia-productos/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_EMPLEADO")
-                        .requestMatchers("/api/multimedia-productos/**").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/inventario").hasAnyAuthority("ROLE_ADMIN", "ROLE_EMPLEADO")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/inventario/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_EMPLEADO")
+                        .requestMatchers("/api/v1/inventario/**").hasAuthority("ROLE_ADMIN") // Modificación solo ADMIN
 
                         // ========================================
                         // REPORTES
                         // ========================================
-                        .requestMatchers("/api/reportes/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_EMPLEADO")
+                        // Solo ADMIN, y no solo por @PreAuthorize en el controlador: la regla de acceso
+                        // por URL también lo exige, para que una ruta nueva de reportes no quede
+                        // abierta a EMPLEADO si alguien olvida la anotación.
+                        .requestMatchers("/api/v1/reportes/**").hasAuthority("ROLE_ADMIN")
                         
                         // ========================================
                         // TODO LO DEMÁS requiere autenticación

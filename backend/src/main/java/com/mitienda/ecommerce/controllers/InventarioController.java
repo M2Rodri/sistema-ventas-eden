@@ -20,7 +20,7 @@ import java.util.Map;
  * Controlador REST para gestión de inventario
  */
 @RestController
-@RequestMapping("/api/inventario")
+@RequestMapping("/api/v1/inventario")
 @CrossOrigin(origins = "http://localhost:3000")
 @PreAuthorize("hasAnyRole('ADMIN', 'EMPLEADO')")
 public class InventarioController {
@@ -40,7 +40,7 @@ public class InventarioController {
 
 
     /**
-     * GET /api/inventario
+     * GET /api/v1/inventario
      * Listar todo el inventario
      */
     @GetMapping
@@ -50,7 +50,7 @@ public class InventarioController {
     }
 
     /**
-     * GET /api/inventario/catalogo
+     * GET /api/v1/inventario/catalogo
      * Productos activos con precio y stock juntos, para la app móvil.
      * Catálogo lo pide sin filtros; Alertas de stock con soloBajoMinimo=true;
      * Nueva venta con nombre=... para buscar mientras se escribe.
@@ -63,7 +63,7 @@ public class InventarioController {
     }
 
     /**
-     * GET /api/inventario/{id}
+     * GET /api/v1/inventario/{id}
      * Obtener inventario por ID
      */
     @GetMapping("/{id}")
@@ -78,7 +78,7 @@ public class InventarioController {
     }
 
     /**
-     * GET /api/inventario/producto/{idProducto}
+     * GET /api/v1/inventario/producto/{idProducto}
      * Obtener inventario por producto
      */
     @GetMapping("/producto/{idProducto}")
@@ -93,7 +93,7 @@ public class InventarioController {
     }
 
     /**
-     * POST /api/inventario
+     * POST /api/v1/inventario
      * Crear inventario para un producto (ADMIN)
      */
     @PostMapping
@@ -109,7 +109,7 @@ public class InventarioController {
     }
 
     /**
-     * PUT /api/inventario/{id}
+     * PUT /api/v1/inventario/{id}
      * Actualizar inventario existente (ADMIN)
      */
     @PutMapping("/{id}")
@@ -126,7 +126,7 @@ public class InventarioController {
     }
 
     /**
-     * POST /api/inventario/ajustar
+     * POST /api/v1/inventario/ajustar
      * Ajustar inventario manualmente (entrada/salida) (ADMIN). Siempre queda
      * registrado en movimientos_inventario, con el usuario autenticado que
      * hizo el ajuste: no existe un camino de ajuste manual sin rastro.
@@ -149,7 +149,7 @@ public class InventarioController {
     }
 
     /**
-     * GET /api/inventario/producto/{idProducto}/historial
+     * GET /api/v1/inventario/producto/{idProducto}/historial
      * Historial de ajustes de un producto
      */
     @GetMapping("/producto/{idProducto}/historial")
@@ -159,7 +159,7 @@ public class InventarioController {
     }
 
     /**
-     * GET /api/inventario/ajustes/ultimos
+     * GET /api/v1/inventario/ajustes/ultimos
      * Últimos 50 ajustes de inventario
      */
     @GetMapping("/ajustes/ultimos")
@@ -169,7 +169,7 @@ public class InventarioController {
     }
 
     /**
-     * GET /api/inventario/stock-bajo
+     * GET /api/v1/inventario/stock-bajo
      * Productos con stock bajo
      */
     @GetMapping("/stock-bajo")
@@ -179,7 +179,7 @@ public class InventarioController {
     }
 
     /**
-     * GET /api/inventario/sin-stock
+     * GET /api/v1/inventario/sin-stock
      * Productos sin stock
      */
     @GetMapping("/sin-stock")
@@ -189,7 +189,7 @@ public class InventarioController {
     }
 
     /**
-     * GET /api/inventario/verificar-disponibilidad?idProducto=...&cantidad=...
+     * GET /api/v1/inventario/verificar-disponibilidad?idProducto=...&cantidad=...
      * Verificar disponibilidad de stock
      */
     @GetMapping("/verificar-disponibilidad")
@@ -209,7 +209,7 @@ public class InventarioController {
     }
 
     /**
-     * GET /api/inventario/alertas/pendientes
+     * GET /api/v1/inventario/alertas/pendientes
      * Listar alertas de inventario pendientes
      */
     @GetMapping("/alertas/pendientes")
@@ -219,7 +219,7 @@ public class InventarioController {
     }
 
     /**
-     * GET /api/inventario/estadisticas
+     * GET /api/v1/inventario/estadisticas
      * Obtener estadísticas de inventario (ADMIN)
      */
     @GetMapping("/estadisticas")

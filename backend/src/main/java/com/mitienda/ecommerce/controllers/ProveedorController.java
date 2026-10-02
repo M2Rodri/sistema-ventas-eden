@@ -16,7 +16,7 @@ import java.util.Map;
  * Controlador REST para gestión de proveedores
  */
 @RestController
-@RequestMapping("/api/proveedores")
+@RequestMapping("/api/v1/proveedores")
 @CrossOrigin(origins = "http://localhost:3000")
 @PreAuthorize("hasRole('ADMIN')")
 public class ProveedorController {
@@ -36,7 +36,7 @@ public class ProveedorController {
 
 
     /**
-     * GET /api/proveedores
+     * GET /api/v1/proveedores
      * Listar todos los proveedores
      */
     @GetMapping
@@ -46,7 +46,7 @@ public class ProveedorController {
     }
 
     /**
-     * GET /api/proveedores/activos
+     * GET /api/v1/proveedores/activos
      * Listar solo proveedores activos
      */
     @GetMapping("/activos")
@@ -56,7 +56,7 @@ public class ProveedorController {
     }
 
     /**
-     * GET /api/proveedores/{id}
+     * GET /api/v1/proveedores/{id}
      * Obtener proveedor por ID
      */
     @GetMapping("/{id}")
@@ -71,7 +71,7 @@ public class ProveedorController {
     }
 
     /**
-     * POST /api/proveedores
+     * POST /api/v1/proveedores
      * Crear nuevo proveedor
      */
     @PostMapping
@@ -86,7 +86,7 @@ public class ProveedorController {
     }
 
     /**
-     * PUT /api/proveedores/{id}
+     * PUT /api/v1/proveedores/{id}
      * Actualizar proveedor existente
      */
     @PutMapping("/{id}")
@@ -102,7 +102,7 @@ public class ProveedorController {
     }
 
     /**
-     * PATCH /api/proveedores/{id}/toggle-status
+     * PATCH /api/v1/proveedores/{id}/toggle-status
      * Activar/Desactivar proveedor
      */
     @PatchMapping("/{id}/toggle-status")
@@ -117,7 +117,7 @@ public class ProveedorController {
     }
 
     /**
-     * GET /api/proveedores/buscar?nombre=...
+     * GET /api/v1/proveedores/buscar?nombre=...
      * Buscar proveedores por nombre
      */
     @GetMapping("/buscar")
