@@ -1750,6 +1750,7 @@ import {
   ReporteInventarioValorizado,
   VentaPorCategoria,
   VentaPorMetodoPago,
+  VentaPorProductoFila,
   ReporteInventarioStockBajo,
   ReporteProveedores,
   ReporteTransportadoras,
@@ -1838,6 +1839,19 @@ export const getReporteVentasPorCategoria = async (fechaInicio: string, fechaFin
 };
 
 // Reporte de Ventas por Método de Pago
+export const getReporteVentasPorProducto = async (fechaInicio: string, fechaFin: string): Promise<VentaPorProductoFila[]> => {
+  const params = new URLSearchParams({ inicio: fechaInicio, fin: fechaFin });
+  const response = await fetch(`${API_URL}/reportes/ventas-por-producto?${params}`, {
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    throw await errorDeRespuesta(response, 'Error al obtener el reporte de ventas por producto');
+  }
+
+  return response.json();
+};
+
 export const getReporteVentasPorMetodoPago = async (fechaInicio: string, fechaFin: string): Promise<VentaPorMetodoPago[]> => {
   const response = await fetch(
     `${API_URL}/reportes/ventas-por-metodo-pago?inicio=${encodeURIComponent(fechaInicio)}&fin=${encodeURIComponent(fechaFin)}`,
@@ -1861,6 +1875,7 @@ export const getReporteInventarioStockBajo = async (): Promise<ReporteInventario
     idProducto: inv.idProducto,
     nombreProducto: inv.nombreProducto,
     skuProducto: inv.skuProducto,
+    categoria: inv.nombreCategoria ?? undefined,
     cantidadDisponible: inv.cantidadDisponible,
     stockMinimo: inv.stockMinimo,
     diferencia: inv.stockMinimo - inv.cantidadDisponible

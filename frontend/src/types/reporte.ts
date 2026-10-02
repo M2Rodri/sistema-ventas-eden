@@ -7,6 +7,7 @@ export type TipoReporte =
   | 'INVENTARIO_VALORIZADO'
   | 'VENTAS_POR_CATEGORIA'
   | 'VENTAS_POR_METODO_PAGO'
+  | 'VENTAS_POR_PRODUCTO'
   | 'INVENTARIO_STOCK_BAJO'
   | 'PROVEEDORES'
   | 'TRANSPORTADORAS'
@@ -87,6 +88,7 @@ export interface InventarioReporte {
   idProducto: number;
   nombreProducto: string;
   skuProducto: string;
+  categoria?: string;
   cantidadDisponible: number;
   precioUnitario: number;
   valorTotal: number;
@@ -117,12 +119,30 @@ export interface VentaPorMetodoPago {
 }
 
 // ============================================
+// REPORTE DE VENTAS POR PRODUCTO
+// ============================================
+/** Un producto vendido en una venta: de estas filas salen el resumen por producto y el detalle. */
+export interface VentaPorProductoFila {
+  idVenta: number;
+  fechaVenta: string;
+  nombreCliente: string;
+  idProducto: number;
+  nombreProducto: string;
+  skuProducto: string;
+  categoria: string;
+  cantidad: number;
+  precioUnitario: number;
+  subtotal: number;
+}
+
+// ============================================
 // REPORTE DE INVENTARIO STOCK BAJO
 // ============================================
 export interface ProductoStockBajo {
   idProducto: number;
   nombreProducto: string;
   skuProducto: string;
+  categoria?: string;
   cantidadDisponible: number;
   stockMinimo: number;
   diferencia: number;

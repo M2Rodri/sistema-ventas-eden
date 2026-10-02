@@ -30,12 +30,13 @@ export type CampoCriterio = keyof CriteriosReporte;
 /** Qué criterios se ofrecen para cada tipo de reporte, además de fechas y límite. */
 export const CAMPOS_POR_TIPO: Record<TipoReporte, CampoCriterio[]> = {
   VENTAS: ['estadoPago', 'metodoPago', 'cliente', 'montoMinimo', 'montoMaximo', 'orden'],
-  PRODUCTOS_MAS_VENDIDOS: ['categoria', 'producto', 'cantidadMinima'],
+  PRODUCTOS_MAS_VENDIDOS: ['categoria', 'cantidadMinima'],
   CLIENTES_FRECUENTES: ['cliente', 'minimoCompras', 'montoMinimo'],
-  INVENTARIO_VALORIZADO: ['producto', 'valorMinimo', 'orden'],
+  INVENTARIO_VALORIZADO: ['categoria', 'valorMinimo', 'orden'],
   VENTAS_POR_CATEGORIA: ['categoria'],
   VENTAS_POR_METODO_PAGO: ['metodoPago'],
-  INVENTARIO_STOCK_BAJO: ['producto'],
+  VENTAS_POR_PRODUCTO: ['producto', 'categoria'],
+  INVENTARIO_STOCK_BAJO: ['categoria'],
   PROVEEDORES: ['proveedor', 'soloActivos'],
   TRANSPORTADORAS: [],
   FINANCIERO: [],
@@ -158,7 +159,6 @@ export function aplicarCriterios(tipo: TipoReporte, data: any, c: CriteriosRepor
         .filter(
           (x: any) =>
             contiene(x.categoria, c.categoria) &&
-            (contiene(x.nombreProducto, c.producto) || contiene(x.skuProducto, c.producto)) &&
             (!v('cantidadMinima') || x.cantidadVendida >= (c.cantidadMinima ?? 0))
         )
         .slice(0, limite ?? undefined);
@@ -173,7 +173,7 @@ export function aplicarCriterios(tipo: TipoReporte, data: any, c: CriteriosRepor
     case 'INVENTARIO_VALORIZADO': {
       const inventarios = (data.inventarios ?? []).filter(
         (x: any) =>
-          (contiene(x.nombreProducto, c.producto) || contiene(x.skuProducto, c.producto)) &&
+          contiene(x.categoria, c.categoria) &&
           (!v('valorMinimo') || x.valorTotal >= (c.valorMinimo ?? 0))
       );
       if (c.orden === 'valor') inventarios.sort((p: any, q: any) => q.valorTotal - p.valorTotal);
@@ -185,13 +185,19 @@ export function aplicarCriterios(tipo: TipoReporte, data: any, c: CriteriosRepor
       };
     }
     case 'INVENTARIO_STOCK_BAJO': {
-      const productos = (data.productos ?? []).filter(
-        (x: any) => contiene(x.nombreProducto, c.producto) || contiene(x.skuProducto, c.producto)
-      );
+      const productos = (data.productos ?? []).filter((x: any) => contiene(x.categoria, c.categoria));
       return { ...data, productos, totalProductos: productos.length };
     }
     case 'VENTAS_POR_CATEGORIA':
       return Array.isArray(data) ? data.filter((x: any) => contiene(x.categoria, c.categoria)) : data;
+    case 'VENTAS_POR_PRODUCTO':
+      return Array.isArray(data)
+        ? data.filter(
+            (x: any) =>
+              (contiene(x.nombreProducto, c.producto) || contiene(x.skuProducto, c.producto)) &&
+              contiene(x.categoria, c.categoria)
+          )
+        : data;
     case 'VENTAS_POR_METODO_PAGO':
       return Array.isArray(data) ? data.filter((x: any) => !v('metodoPago') || x.metodoPago === c.metodoPago) : data;
     case 'PROVEEDORES': {

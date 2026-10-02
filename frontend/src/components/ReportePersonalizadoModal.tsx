@@ -14,7 +14,7 @@ import {
   CampoCriterio,
   criteriosVigentes,
 } from '@/lib/reporteCriterios';
-import { getAllClientes, getAllCategorias } from '@/lib/api';
+import { getAllClientes, getAllCategorias, getAllProductos } from '@/lib/api';
 import ReporteVistaPrevia from './ReporteVistaPrevia';
 
 /** Lo que se puede consultar, con las fechas y el límite que pide cada tipo. */
@@ -27,6 +27,7 @@ export const TIPOS_PERSONALIZABLES: {
 }[] = [
   { id: 'VENTAS', titulo: 'Ventas', descripcion: 'Cada venta del período, con sus totales', fechas: true, limite: false },
   { id: 'VENTAS_POR_CATEGORIA', titulo: 'Ventas por categoría', descripcion: 'Cuánto se vendió de cada categoría', fechas: true, limite: false },
+  { id: 'VENTAS_POR_PRODUCTO', titulo: 'Ventas por producto', descripcion: 'Cuánto se vendió de cada producto (o de uno solo) y a quién', fechas: true, limite: false },
   { id: 'VENTAS_POR_METODO_PAGO', titulo: 'Ventas por método de pago', descripcion: 'Efectivo, transferencia y QR', fechas: true, limite: false },
   { id: 'PRODUCTOS_MAS_VENDIDOS', titulo: 'Productos más vendidos', descripcion: 'Los productos que más salen', fechas: false, limite: true },
   { id: 'CLIENTES_FRECUENTES', titulo: 'Clientes frecuentes', descripcion: 'Quiénes compran más seguido', fechas: false, limite: true },
@@ -50,6 +51,13 @@ const sinTildes = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLo
  * Cuadro de texto que sugiere mientras se escribe: no es un selector, no muestra nada hasta que
  * hay texto, y sugiere los nombres cuyo nombre o apellido empieza con lo escrito ("rodr" → "Rodrigo Mamani").
  */
+interface Sugerencia {
+  /** Lo que se escribe en el campo al elegirla. */
+  valor: string;
+  /** Lo que se ve en la lista y contra lo que se compara lo escrito (por defecto, el valor). */
+  texto?: string;
+}
+
 function TextoConSugerencias({
   value,
   onChange,
@@ -58,15 +66,18 @@ function TextoConSugerencias({
 }: {
   value: string;
   onChange: (valor: string) => void;
-  sugerencias: string[];
+  sugerencias: Sugerencia[];
   placeholder: string;
 }) {
   const [abierto, setAbierto] = useState(false);
   const escrito = sinTildes(value.trim());
   const coincidencias = escrito
     ? sugerencias
-        .filter((n) => sinTildes(n).split(/s+/).some((palabra) => palabra.startsWith(escrito)) || sinTildes(n).startsWith(escrito))
-        .filter((n) => sinTildes(n) !== escrito)
+        .filter((s) => {
+          const base = sinTildes(s.texto ?? s.valor);
+          return base.split(/\s+/).some((palabra) => palabra.startsWith(escrito)) || base.startsWith(escrito);
+        })
+        .filter((s) => sinTildes(s.valor) !== escrito)
         .slice(0, 8)
     : [];
 
@@ -87,19 +98,19 @@ function TextoConSugerencias({
       />
       {abierto && coincidencias.length > 0 && (
         <ul className="absolute left-0 right-0 z-20 mt-1 max-h-56 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg">
-          {coincidencias.map((n) => (
-            <li key={n}>
+          {coincidencias.map((s) => (
+            <li key={s.valor}>
               <button
                 type="button"
                 // onMouseDown y no onClick: se dispara antes de que el campo pierda el foco y cierre la lista.
                 onMouseDown={(e) => {
                   e.preventDefault();
-                  onChange(n);
+                  onChange(s.valor);
                   setAbierto(false);
                 }}
                 className="w-full text-left px-3 py-1.5 text-sm text-gray-800 hover:bg-primary-50"
               >
-                {n}
+                {s.texto ?? s.valor}
               </button>
             </li>
           ))}
@@ -134,12 +145,22 @@ export default function ReportePersonalizadoModal({ reciente, onClose, onGenerad
   // Nombres de los clientes del sistema, para sugerirlos mientras se escribe en el criterio Cliente.
   const [nombresClientes, setNombresClientes] = useState<string[]>([]);
   const [nombresCategorias, setNombresCategorias] = useState<string[]>([]);
+  const [sugerenciasProductos, setSugerenciasProductos] = useState<Sugerencia[]>([]);
 
   useEffect(() => {
     getAllClientes()
       .then((clientes) =>
         setNombresClientes(
           Array.from(new Set(clientes.map((cl) => (cl.nombreCompleto || cl.nombre || '').trim()).filter(Boolean))).sort()
+        )
+      )
+      .catch(() => {});
+    getAllProductos()
+      .then((productos) =>
+        setSugerenciasProductos(
+          productos
+            .map((p) => ({ valor: p.nombre, texto: `${p.nombre} (${p.sku})` }))
+            .sort((a, b) => a.valor.localeCompare(b.valor))
         )
       )
       .catch(() => {});
@@ -260,8 +281,18 @@ export default function ReportePersonalizadoModal({ reciente, onClose, onGenerad
             <TextoConSugerencias
               value={criterios.cliente ?? ''}
               onChange={(valor) => poner(c, valor)}
-              sugerencias={nombresClientes}
+              sugerencias={nombresClientes.map((n) => ({ valor: n }))}
               placeholder="Escribí el nombre…"
+            />
+          );
+        }
+        if (c === 'producto') {
+          return (
+            <TextoConSugerencias
+              value={criterios.producto ?? ''}
+              onChange={(valor) => poner(c, valor)}
+              sugerencias={sugerenciasProductos}
+              placeholder="Todos los productos"
             />
           );
         }

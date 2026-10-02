@@ -9,6 +9,7 @@ import {
   getReporteInventarioValorizado,
   getReporteVentasPorCategoria,
   getReporteVentasPorMetodoPago,
+  getReporteVentasPorProducto,
   getReporteInventarioStockBajo,
   getReporteProveedores,
   getReporteTransportadoras,
@@ -115,6 +116,9 @@ export default function ReporteVistaPrevia({
           break;
         case 'VENTAS_POR_METODO_PAGO':
           resultado = await getReporteVentasPorMetodoPago(inicio, fin);
+          break;
+        case 'VENTAS_POR_PRODUCTO':
+          resultado = await getReporteVentasPorProducto(inicio, fin);
           break;
         case 'INVENTARIO_STOCK_BAJO':
           resultado = await getReporteInventarioStockBajo();
@@ -263,6 +267,118 @@ export default function ReporteVistaPrevia({
               </div>
             )}
           </>
+        )}
+
+        {/* REPORTE DE VENTAS POR PRODUCTO */}
+        {tipoReporte === 'VENTAS_POR_PRODUCTO' && data && (
+          data.length === 0 ? (
+            <SinDatosReporte />
+          ) : (
+            (() => {
+              // Resumen por producto: se arma sumando las filas (una por producto de cada venta).
+              const porProducto = new Map<number, any>();
+              for (const fila of data) {
+                const actual = porProducto.get(fila.idProducto) ?? {
+                  idProducto: fila.idProducto,
+                  nombreProducto: fila.nombreProducto,
+                  skuProducto: fila.skuProducto,
+                  categoria: fila.categoria,
+                  unidades: 0,
+                  monto: 0,
+                  ventas: new Set<number>(),
+                };
+                actual.unidades += fila.cantidad;
+                actual.monto += Number(fila.subtotal);
+                actual.ventas.add(fila.idVenta);
+                porProducto.set(fila.idProducto, actual);
+              }
+              const resumen = Array.from(porProducto.values()).sort((a, b) => b.monto - a.monto);
+              const totalUnidades = resumen.reduce((s, r) => s + r.unidades, 0);
+              const totalMonto = resumen.reduce((s, r) => s + r.monto, 0);
+              // Con un producto puntual interesa saber a quién se le vendió.
+              const mostrarDetalle = !!criterios?.producto;
+              return (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <p className="text-sm text-blue-700 mb-1">Productos vendidos</p>
+                      <p className="text-2xl font-bold text-blue-900">{resumen.length}</p>
+                    </div>
+                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                      <p className="text-sm text-purple-700 mb-1">Unidades vendidas</p>
+                      <p className="text-2xl font-bold text-purple-900">{totalUnidades}</p>
+                    </div>
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <p className="text-sm text-green-700 mb-1">Monto total</p>
+                      <p className="text-2xl font-bold text-green-900">{formatPrice(totalMonto)}</p>
+                    </div>
+                  </div>
+
+                  <div className="border border-gray-200 rounded-lg overflow-hidden">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoría</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Ventas</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Unidades</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Monto</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {resumen.map((r) => (
+                          <tr key={r.idProducto}>
+                            <td className="px-4 py-3 text-sm">
+                              <div className="font-medium text-gray-900">{r.nombreProducto}</div>
+                              <div className="text-xs text-gray-500">{r.skuProducto}</div>
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-700">{r.categoria}</td>
+                            <td className="px-4 py-3 text-sm text-right">{r.ventas.size}</td>
+                            <td className="px-4 py-3 text-sm text-right">{r.unidades}</td>
+                            <td className="px-4 py-3 text-sm text-right font-semibold">{formatPrice(r.monto)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {mostrarDetalle && (
+                    <div>
+                      <h3 className="text-base font-semibold text-gray-900 mb-2">A quién se vendió</h3>
+                      <div className="border border-gray-200 rounded-lg overflow-hidden">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Venta</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
+                              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Cantidad</th>
+                              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Precio</th>
+                              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Subtotal</th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {data.map((fila: any, i: number) => (
+                              <tr key={`${fila.idVenta}-${fila.idProducto}-${i}`}>
+                                <td className="px-4 py-3 text-sm">#{fila.idVenta}</td>
+                                <td className="px-4 py-3 text-sm">{formatDate(fila.fechaVenta)}</td>
+                                <td className="px-4 py-3 text-sm">{fila.nombreCliente}</td>
+                                <td className="px-4 py-3 text-sm">{fila.nombreProducto}</td>
+                                <td className="px-4 py-3 text-sm text-right">{fila.cantidad}</td>
+                                <td className="px-4 py-3 text-sm text-right">{formatPrice(fila.precioUnitario)}</td>
+                                <td className="px-4 py-3 text-sm text-right font-semibold">{formatPrice(fila.subtotal)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </>
+              );
+            })()
+          )
         )}
 
         {/* REPORTE DE PRODUCTOS MÁS VENDIDOS */}
@@ -790,6 +906,7 @@ export default function ReporteVistaPrevia({
           'INVENTARIO_VALORIZADO',
           'VENTAS_POR_CATEGORIA',
           'VENTAS_POR_METODO_PAGO',
+          'VENTAS_POR_PRODUCTO',
           'INVENTARIO_STOCK_BAJO',
           'PROVEEDORES',
           'TRANSPORTADORAS',
