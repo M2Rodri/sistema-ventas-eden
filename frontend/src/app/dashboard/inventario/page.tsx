@@ -6,6 +6,8 @@ import {
   getAllInventario,
   getProductosConStockBajo,
   getAlertasPendientes,
+  atenderAlertaStock,
+  reactivarAlertaStock,
 } from '@/lib/api';
 import { Inventario, AlertaInventario } from '@/types/inventario';
 import { Search, Package, AlertTriangle, Edit, History, Settings, Eye, DollarSign, X } from 'lucide-react';
@@ -15,6 +17,7 @@ import DetalleProductoModal from '@/components/DetalleProductoModal';
 import ConfigurarStockMinimoModal from '@/components/ConfigurarStockMinimoModal';
 import HistorialProductoModal from '@/components/HistorialProductoModal';
 import DesgloseValorInventarioModal from '@/components/DesgloseValorInventarioModal';
+import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 import AvisoCargaParcial from '@/components/AvisoCargaParcial';
 import { crearRecolector } from '@/lib/cargaParcial';
 import StatCard from '@/components/StatCard';
@@ -44,6 +47,8 @@ function InventarioContent() {
   const [isHistorialModalOpen, setIsHistorialModalOpen] = useState(false);
   const [isDesgloseValorOpen, setIsDesgloseValorOpen] = useState(false);
   const [selectedInventario, setSelectedInventario] = useState<Inventario | null>(null);
+  // Alerta que se está por marcar como atendida (pide confirmación antes).
+  const [alertaAAtender, setAlertaAAtender] = useState<AlertaInventario | null>(null);
 
   // Mensajes
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -173,9 +178,46 @@ function InventarioContent() {
     setIsHistorialModalOpen(true);
   };
 
+  const handleAtenderAlerta = async (alerta: AlertaInventario) => {
+    try {
+      await atenderAlertaStock(alerta.id);
+      showMessage('success', `Alerta de ${alerta.nombreProducto} marcada como atendida.`);
+      loadData();
+    } catch (error: any) {
+      showMessage('error', mensajeError(error, 'No se pudo marcar la alerta como atendida.'));
+    } finally {
+      setAlertaAAtender(null);
+    }
+  };
+
+  const handleReactivarAlerta = async (item: Inventario) => {
+    try {
+      await reactivarAlertaStock(item.idProducto);
+      showMessage('success', `Se vuelve a avisar del stock de ${item.nombreProducto}.`);
+      loadData();
+    } catch (error: any) {
+      showMessage('error', mensajeError(error, 'No se pudo reactivar la alerta.'));
+    }
+  };
+
   const getStockBadge = (item: Inventario) => {
     if (item.cantidadDisponible === 0) {
       return <span className="px-3 py-1 bg-red-100 text-red-800 text-xs font-semibold rounded-full">Sin Stock</span>;
+    } else if (item.bajoStockMinimo && item.alertaAtendida) {
+      return (
+        <span className="inline-flex items-center gap-2">
+          <span className="px-3 py-1 bg-gray-100 text-gray-700 text-xs font-semibold rounded-full">Alerta atendida</span>
+          {user?.role === 'ADMIN' && (
+            <button
+              onClick={() => handleReactivarAlerta(item)}
+              className="text-xs text-primary-600 hover:text-primary-800 hover:underline"
+              title="Volver a avisar de este producto"
+            >
+              Reactivar
+            </button>
+          )}
+        </span>
+      );
     } else if (item.bajoStockMinimo) {
       return <span className="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded-full">Con Alerta</span>;
     } else {
@@ -426,6 +468,18 @@ function InventarioContent() {
                     <span>Stock mínimo:</span>
                     <span>{alerta.cantidadMinima}</span>
                   </div>
+                  {user?.role === 'ADMIN' && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setAlertaAAtender(alerta);
+                      }}
+                      className="mt-3 w-full px-3 py-1.5 bg-white border border-red-200 text-red-700 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
+                    >
+                      Marcar como atendida
+                    </button>
+                  )}
                 </div>
               );
             })}
@@ -573,6 +627,21 @@ function InventarioContent() {
         <HistorialProductoModal
           inventario={selectedInventario}
           onClose={() => setIsHistorialModalOpen(false)}
+        />
+      )}
+
+      {alertaAAtender && (
+        <DeleteConfirmModal
+          title="Marcar alerta como atendida"
+          message={
+            `¿Marcar como atendida la alerta de ${alertaAAtender.nombreProducto}?\n\n` +
+            `Tiene ${alertaAAtender.cantidadActual} unidades (mínimo ${alertaAAtender.cantidadMinima}). ` +
+            `No se te va a volver a avisar de este producto hasta que se reponga y vuelva a bajar. ` +
+            `No tenés que comprar nada.`
+          }
+          confirmLabel="Sí, marcar como atendida"
+          onConfirm={() => handleAtenderAlerta(alertaAAtender)}
+          onCancel={() => setAlertaAAtender(null)}
         />
       )}
 

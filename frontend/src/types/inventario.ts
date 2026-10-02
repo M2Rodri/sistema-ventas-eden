@@ -8,7 +8,7 @@ export type TipoMovimiento =
   | 'DEVOLUCION'
   | 'MERMA'
   | 'AJUSTE_INICIAL';
-export type EstadoAlerta = 'PENDIENTE' | 'ATENDIDA';
+export type EstadoAlerta = 'PENDIENTE' | 'ATENDIDA' | 'ATENDIDA_MANUAL';
 
 export interface Inventario {
   id: number;
@@ -24,6 +24,8 @@ export interface Inventario {
   cantidadDisponible: number;
   stockMinimo: number;
   bajoStockMinimo: boolean;
+  /** El dueño marcó como atendida la alerta de este producto: sigue bajo el mínimo pero no se avisa. */
+  alertaAtendida?: boolean;
   fechaActualizacion: string;
 }
 

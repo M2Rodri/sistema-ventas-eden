@@ -590,6 +590,30 @@ export const getHistorialAjustes = async (idProducto: number): Promise<Movimient
   return movimientos.map((m) => (m.tipoMovimiento === 'COMPRA' ? { ...m, tipoMovimiento: 'ENTRADA' } : m));
 };
 
+// Marcar una alerta de stock como atendida (solo ADMIN)
+export const atenderAlertaStock = async (idAlerta: number): Promise<void> => {
+  const response = await fetch(`${API_URL}/inventario/alertas/${idAlerta}/atender`, {
+    method: 'PATCH',
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    throw await errorDeRespuesta(response, 'No se pudo marcar la alerta como atendida');
+  }
+};
+
+// Volver a avisar de un producto con la alerta atendida (solo ADMIN)
+export const reactivarAlertaStock = async (idProducto: number): Promise<void> => {
+  const response = await fetch(`${API_URL}/inventario/producto/${idProducto}/reactivar-alerta`, {
+    method: 'PATCH',
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    throw await errorDeRespuesta(response, 'No se pudo reactivar la alerta');
+  }
+};
+
 // Obtener últimos 50 ajustes
 export const getUltimosAjustes = async (): Promise<MovimientoInventario[]> => {
   const response = await fetch(`${API_URL}/inventario/ajustes/ultimos`, {
