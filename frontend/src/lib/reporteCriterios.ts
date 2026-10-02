@@ -32,7 +32,7 @@ export const CAMPOS_POR_TIPO: Record<TipoReporte, CampoCriterio[]> = {
   VENTAS: ['estadoPago', 'metodoPago', 'cliente', 'montoMinimo', 'montoMaximo', 'orden'],
   PRODUCTOS_MAS_VENDIDOS: ['categoria', 'cantidadMinima'],
   CLIENTES_FRECUENTES: ['cliente', 'minimoCompras', 'montoMinimo'],
-  INVENTARIO_VALORIZADO: ['categoria', 'valorMinimo', 'orden'],
+  INVENTARIO_VALORIZADO: ['categoria', 'orden'],
   VENTAS_POR_CATEGORIA: ['categoria'],
   VENTAS_POR_METODO_PAGO: ['metodoPago'],
   VENTAS_POR_PRODUCTO: ['producto', 'categoria'],
