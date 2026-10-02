@@ -14,7 +14,7 @@ import {
   CampoCriterio,
   criteriosVigentes,
 } from '@/lib/reporteCriterios';
-import { getAllClientes, getAllCategorias, getAllProductos, getReporteCuentasPorCobrar } from '@/lib/api';
+import { getAllClientes, getAllCategorias, getAllProductos, getReporteCuentasPorCobrar, getAllProveedores } from '@/lib/api';
 import ReporteVistaPrevia from './ReporteVistaPrevia';
 
 /** Lo que se puede consultar, con las fechas y el límite que pide cada tipo. */
@@ -147,6 +147,7 @@ export default function ReportePersonalizadoModal({ reciente, onClose, onGenerad
   const [nombresCategorias, setNombresCategorias] = useState<string[]>([]);
   // Clientes que hoy tienen una venta con saldo pendiente: lo único que tiene sentido elegir en Cuentas por cobrar.
   const [nombresDeudores, setNombresDeudores] = useState<string[]>([]);
+  const [nombresProveedores, setNombresProveedores] = useState<string[]>([]);
   const [sugerenciasProductos, setSugerenciasProductos] = useState<Sugerencia[]>([]);
 
   useEffect(() => {
@@ -165,6 +166,9 @@ export default function ReportePersonalizadoModal({ reciente, onClose, onGenerad
             .sort((a, b) => a.valor.localeCompare(b.valor))
         )
       )
+      .catch(() => {});
+    getAllProveedores()
+      .then((proveedores) => setNombresProveedores(proveedores.map((p) => p.nombreEmpresa).sort()))
       .catch(() => {});
     getAllCategorias()
       .then((categorias) => setNombresCategorias(categorias.map((ca) => ca.nombre).sort()))
@@ -236,6 +240,15 @@ export default function ReportePersonalizadoModal({ reciente, onClose, onGenerad
       );
     }
     switch (c) {
+      case 'proveedor':
+        return (
+          <select className={inputClase} value={criterios.proveedor ?? ''} onChange={(e) => poner(c, e.target.value)}>
+            <option value="">Todos los proveedores</option>
+            {nombresProveedores.map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
+        );
       case 'categoria':
         return (
           <select className={inputClase} value={criterios.categoria ?? ''} onChange={(e) => poner(c, e.target.value)}>
