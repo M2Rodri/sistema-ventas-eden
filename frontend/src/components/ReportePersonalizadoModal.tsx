@@ -14,7 +14,7 @@ import {
   CampoCriterio,
   criteriosVigentes,
 } from '@/lib/reporteCriterios';
-import { getAllClientes } from '@/lib/api';
+import { getAllClientes, getAllCategorias } from '@/lib/api';
 import ReporteVistaPrevia from './ReporteVistaPrevia';
 
 /** Lo que se puede consultar, con las fechas y el límite que pide cada tipo. */
@@ -133,6 +133,7 @@ export default function ReportePersonalizadoModal({ reciente, onClose, onGenerad
   const [error, setError] = useState<string | null>(null);
   // Nombres de los clientes del sistema, para sugerirlos mientras se escribe en el criterio Cliente.
   const [nombresClientes, setNombresClientes] = useState<string[]>([]);
+  const [nombresCategorias, setNombresCategorias] = useState<string[]>([]);
 
   useEffect(() => {
     getAllClientes()
@@ -141,6 +142,9 @@ export default function ReportePersonalizadoModal({ reciente, onClose, onGenerad
           Array.from(new Set(clientes.map((cl) => (cl.nombreCompleto || cl.nombre || '').trim()).filter(Boolean))).sort()
         )
       )
+      .catch(() => {});
+    getAllCategorias()
+      .then((categorias) => setNombresCategorias(categorias.map((ca) => ca.nombre).sort()))
       .catch(() => {});
   }, []);
 
@@ -202,6 +206,15 @@ export default function ReportePersonalizadoModal({ reciente, onClose, onGenerad
       );
     }
     switch (c) {
+      case 'categoria':
+        return (
+          <select className={inputClase} value={criterios.categoria ?? ''} onChange={(e) => poner(c, e.target.value)}>
+            <option value="">Todas</option>
+            {nombresCategorias.map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
+        );
       case 'orden':
         return (
           <select className={inputClase} value={criterios.orden ?? ''} onChange={(e) => poner(c, e.target.value)}>
