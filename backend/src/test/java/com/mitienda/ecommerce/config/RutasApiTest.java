@@ -114,6 +114,11 @@ class RutasApiTest {
         }
     }
 
+    @Test
+    void laRutaDePruebaPublicaDeAuthYaNoExiste() throws Exception {
+        assertEquals(404, estado(HttpMethod.GET, "/api/v1/auth/test", null));
+    }
+
     // ---------- Públicas ----------
 
     @Test

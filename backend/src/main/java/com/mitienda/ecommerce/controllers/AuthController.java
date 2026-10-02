@@ -65,13 +65,4 @@ public class AuthController {
                     .body("Error interno al iniciar sesión: " + e.getMessage());
         }
     }
-
-    /**
-     * GET /api/v1/auth/test
-     * Endpoint de prueba (público)
-     */
-    @GetMapping("/test")
-    public ResponseEntity<String> test() {
-        return ResponseEntity.ok("✅ API funcionando correctamente");
-    }
 }
