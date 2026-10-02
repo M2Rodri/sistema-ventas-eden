@@ -1,12 +1,13 @@
 package com.mitienda.ecommerce.config;
 
+import com.mitienda.ecommerce.exception.RespuestaError;
 import com.mitienda.ecommerce.security.JwtAuthFilter;
 import com.mitienda.ecommerce.security.UserDetailsServiceImpl;
 import com.mitienda.ecommerce.storage.AlmacenArchivos;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
+import org.springframework.http.HttpStatus;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -26,7 +27,6 @@ import org.springframework.security.web.access.intercept.RequestAuthorizationCon
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
 
-import jakarta.servlet.http.HttpServletResponse;
 
 @Configuration
 @EnableWebSecurity
@@ -142,18 +142,12 @@ public class SecurityConfig {
                 // pidiendo algo de ADMIN. Separados: 401 es lo primero (te vas al
                 // login), 403 es lo segundo (esa pantalla no te muestra ese dato).
                 .exceptionHandling(ex -> ex
-                        .authenticationEntryPoint((request, response, authException) -> {
-                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                            response.setCharacterEncoding("UTF-8");
-                            response.getWriter().write("{\"error\":\"No autenticado o sesión inválida\"}");
-                        })
-                        .accessDeniedHandler((request, response, accessDeniedException) -> {
-                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                            response.setCharacterEncoding("UTF-8");
-                            response.getWriter().write("{\"error\":\"No tenés permiso para esta acción\"}");
-                        })
+                        .authenticationEntryPoint((request, response, authException) ->
+                                RespuestaError.escribir(response, HttpStatus.UNAUTHORIZED, "NO_AUTENTICADO",
+                                        "No autenticado o sesión inválida"))
+                        .accessDeniedHandler((request, response, accessDeniedException) ->
+                                RespuestaError.escribir(response, HttpStatus.FORBIDDEN, "SIN_PERMISO",
+                                        "No tenés permiso para esta acción"))
                 )
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
