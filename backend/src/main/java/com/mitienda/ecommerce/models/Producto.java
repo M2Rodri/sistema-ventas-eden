@@ -75,8 +75,7 @@ public class Producto {
 
     // Opcional a propósito: a veces se carga el producto rápido (compra por
     // mayor, costo todavía sin definir) y se completa después editando. Sin
-    // este dato, la validación de "no vender por debajo del costo" y el
-    // valor total del inventario simplemente lo dejan afuera del cálculo.
+    // este dato, el valor total del inventario simplemente lo dejan afuera del cálculo.
     @DecimalMin(value = "0.0", inclusive = false, message = "El precio de compra debe ser mayor a 0")
     @Column(precision = 10, scale = 2)
     private BigDecimal precioCompra;

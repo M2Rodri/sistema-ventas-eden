@@ -110,7 +110,6 @@ que no existen. Todas las respuestas de error llevan las cabeceras CORS, para qu
 | 422 | `STOCK_INSUFICIENTE` | Se vende, o se ajusta con una salida manual, más de lo que hay en inventario | `Stock insuficiente para el producto 'Cama 2 plazas'` (en el ajuste: `Stock insuficiente. Disponible: 5`) |
 | 422 | `PRODUCTO_NO_DISPONIBLE` | Se vende un producto dado de baja | `El producto 'Cama 2 plazas' no está disponible` |
 | 422 | `PRECIO_EXCEDE_CATALOGO` | Se vende por encima del precio de catálogo | `No se puede vender 'Cama 2 plazas' por encima del precio de catálogo (máximo Bs. 500.00)` |
-| 422 | `PRECIO_BAJO_COSTO` | Se vende por debajo del costo | `No se puede vender 'Cama 2 plazas' por debajo del costo (Bs. 300.00)` |
 | 422 | `COMPRA_STOCK_VENDIDO` | Se anula una compra cuya mercadería ya se vendió en parte: el stock no alcanza para devolverla | `No se puede anular: de 'Cama 2 plazas' esta compra trajo 5 y hoy quedan 2 en stock (el resto ya se vendió)` |
 | 422 | `PAGO_EXCEDE_TOTAL` | El monto pagado al registrar la venta supera el total | `El monto pagado no puede superar el total de la venta` |
 | 422 | `PAGO_EXCEDE_SALDO` | Un cobro posterior supera el saldo pendiente | `El monto supera el saldo pendiente de la venta (Bs. 100.00)` |

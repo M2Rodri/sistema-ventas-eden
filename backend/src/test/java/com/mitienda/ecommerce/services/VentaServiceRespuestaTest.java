@@ -141,4 +141,17 @@ class VentaServiceRespuestaTest {
         assertNotNull(respuesta.getDetalles());
         assertEquals(1, respuesta.getDetalles().size());
     }
+
+    @Test
+    void unaVentaConDescuentoPorDebajoDelCosto_seRegistraSinBloqueo() {
+        Producto producto = productoRepository.findById(7L).get();
+        producto.setPrecioCompra(new BigDecimal("120.00"));
+        VentaRequest pedido = pedido(MetodoPago.EFECTIVO);
+        pedido.getItems().get(0).setPrecioUnitarioConDescuento(new BigDecimal("100.00"));
+
+        VentaResponse respuesta = servicio.createVentaDirecta(pedido);
+
+        assertEquals(40L, respuesta.getId());
+        assertEquals(0, new BigDecimal("100.00").compareTo(respuesta.getMontoTotal()));
+    }
 }

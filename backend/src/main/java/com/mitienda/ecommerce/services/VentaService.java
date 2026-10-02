@@ -189,14 +189,8 @@ public class VentaService {
                     throw new ReglaNegocioException("PRECIO_EXCEDE_CATALOGO", "No se puede vender '" + producto.getNombre() +
                             "' por encima del precio de catálogo (máximo Bs. " + precioOriginal + ")");
                 }
+                // Vender por debajo del costo no se bloquea: es decisión del dueño.
                 precioFinal = item.getPrecioUnitarioConDescuento();
-                // Sin precio de compra cargado no hay con qué comparar: no
-                // se puede saber si se está vendiendo con pérdida.
-                if (producto.getPrecioCompra() != null
-                        && precioFinal.compareTo(producto.getPrecioCompra()) < 0) {
-                    throw new ReglaNegocioException("PRECIO_BAJO_COSTO", "No se puede vender '" + producto.getNombre() +
-                            "' por debajo del costo (Bs. " + producto.getPrecioCompra() + ")");
-                }
             } else {
                 precioFinal = precioOriginal;
             }
