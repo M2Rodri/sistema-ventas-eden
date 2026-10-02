@@ -68,7 +68,7 @@ export default function VentasPage() {
   const [filtroMetodoPago, setFiltroMetodoPago] = useState<MetodoPago | 'TODOS'>('TODOS');
   const [filtroPeriodo, setFiltroPeriodo] = useState<'HOY' | 'SEMANA' | 'MES' | 'TODOS'>('TODOS');
   const [filtroVendedor, setFiltroVendedor] = useState<string>('TODOS');
-  const [filtroEntrega, setFiltroEntrega] = useState<'TODOS' | 'POR_ENTREGAR' | 'PENDIENTE' | 'ENTREGADO'>('TODOS');
+  const [filtroEntrega, setFiltroEntrega] = useState<'TODOS' | 'PENDIENTE' | 'ENTREGADO'>('TODOS');
 
   useEffect(() => {
     loadVentas();
@@ -181,12 +181,8 @@ export default function VentasPage() {
       }
     }
 
-    // Filtro por entrega. "Por entregar" es la definición única del sistema
-    // (estado distinto de ENTREGADO y venta no cancelada); los otros tres
-    // filtran por un estado puntual.
-    if (filtroEntrega === 'POR_ENTREGAR') {
-      resultado = resultado.filter(esPorEntregar);
-    } else if (filtroEntrega === 'PENDIENTE') {
+    // Filtro por estado de entrega: Pendiente o Entregado.
+    if (filtroEntrega === 'PENDIENTE') {
       resultado = resultado.filter(v => v.estadoEntrega === EstadoEntrega.PENDIENTE);
     } else if (filtroEntrega === 'ENTREGADO') {
       resultado = resultado.filter(v => v.estadoEntrega === EstadoEntrega.ENTREGADO);
@@ -244,6 +240,9 @@ export default function VentasPage() {
     const totalItems = venta.detalles.reduce((sum, d) => sum + d.cantidad, 0);
     return `${primerProducto.nombreProducto} (x${primerProducto.cantidad}) +${venta.detalles.length - 1} más (${totalItems} items)`;
   };
+
+  /** Estado de pago como se lee en pantalla: Pendiente, Completada o Cancelada. */
+  const etiquetaEstadoPago = (estado: EstadoVenta) => (estado === EstadoVenta.PENDIENTE_PAGO ? 'Pendiente' : estado.charAt(0) + estado.slice(1).toLowerCase());
 
   const getEstadoBadgeColor = (estado: EstadoVenta) => {
     switch (estado) {
@@ -340,9 +339,9 @@ export default function VentasPage() {
             onChange={(e) => setFiltroEstado(e.target.value as any)}
             className="px-3 py-1.5 text-xs lg:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
           >
-            <option value="TODOS">Todos los estados</option>
+            <option value="TODOS">Estado de pago</option>
             {Object.values(EstadoVenta).map(estado => (
-              <option key={estado} value={estado}>{estado.replace('_', ' ')}</option>
+              <option key={estado} value={estado}>{etiquetaEstadoPago(estado)}</option>
             ))}
           </select>
 
@@ -351,8 +350,7 @@ export default function VentasPage() {
             onChange={(e) => setFiltroEntrega(e.target.value as any)}
             className="px-3 py-1.5 text-xs lg:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
           >
-            <option value="TODOS">Toda entrega</option>
-            <option value="POR_ENTREGAR">Por entregar</option>
+            <option value="TODOS">Estado de entrega</option>
             <option value="PENDIENTE">Pendiente</option>
             <option value="ENTREGADO">Entregado</option>
           </select>
@@ -434,7 +432,7 @@ export default function VentasPage() {
                   Total (Bs.)
                 </th>
                 <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  Estado
+                  Estado de pago
                 </th>
                 <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Entrega
@@ -480,10 +478,15 @@ export default function VentasPage() {
                       <span className="text-sm font-bold text-gray-900">
                         Bs. {venta.montoTotal.toFixed(2)}
                       </span>
+                      {venta.estado === EstadoVenta.PENDIENTE_PAGO && (venta.saldoPendiente ?? 0) > 0 && (
+                        <div className="text-xs text-gray-500">
+                          Cobrado Bs. {(venta.montoTotal - (venta.saldoPendiente ?? 0)).toFixed(2)}
+                        </div>
+                      )}
                     </td>
                     <td className="px-3 py-2.5 whitespace-nowrap text-center">
                       <span className={`px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full border ${getEstadoBadgeColor(venta.estado)}`}>
-                        {venta.estado.replace('_', ' ')}
+                        {etiquetaEstadoPago(venta.estado)}
                       </span>
                     </td>
                     <td className="px-3 py-2.5 whitespace-nowrap text-center">

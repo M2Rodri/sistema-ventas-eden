@@ -118,7 +118,7 @@ export default function DetalleVentaModal({
     };
     const labels = {
       COMPLETADA: 'Completada',
-      PENDIENTE_PAGO: 'Pendiente Pago',
+      PENDIENTE_PAGO: 'Pendiente',
       CANCELADA: 'Cancelada',
     };
     return { color: colors[venta.estado], label: labels[venta.estado] };
