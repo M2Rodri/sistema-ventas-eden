@@ -2,13 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { createCategoria, updateCategoria } from '@/lib/api';
-import { Categoria, TipoProducto } from '@/types/producto';
+import { Categoria } from '@/types/producto';
 import { X } from 'lucide-react';
 
 interface CategoriaModalProps {
   categoria: Categoria | null;
-  /** Todas las categorías existentes: para no ofrecer una que ya está creada. */
-  categorias: Categoria[];
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -16,46 +14,24 @@ interface CategoriaModalProps {
 interface CategoriaFormData {
   nombre: string;
   descripcion: string;
-  tipoProducto: TipoProducto | '';
   activo: boolean;
 }
 
-/** Las únicas categorías que existen (cinco): una por cada tipo de producto. */
-export const CATEGORIAS_FIJAS: { nombre: string; tipo: TipoProducto }[] = [
-  { nombre: 'Camas', tipo: 'CAMA' },
-  { nombre: 'Colchones', tipo: 'COLCHON' },
-  { nombre: 'Almohadas', tipo: 'ALMOHADA' },
-  { nombre: 'Accesorios', tipo: 'ACCESORIO' },
-  // Oculta por ahora (el código del tipo MUEBLE ya existe): quitar el // para mostrarla.
-  // { nombre: 'Muebles de dormitorio', tipo: 'MUEBLE' },
-];
-
-export default function CategoriaModal({ categoria, categorias, onClose, onSuccess }: CategoriaModalProps) {
+export default function CategoriaModal({ categoria, onClose, onSuccess }: CategoriaModalProps) {
   const [formData, setFormData] = useState<CategoriaFormData>({
     nombre: '',
     descripcion: '',
-    tipoProducto: '',
     activo: true,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
-  // Solo se ofrecen las categorías que todavía no existen (más la que se está
-  // editando). El tipo de producto sale de la categoría elegida.
-  const opciones = CATEGORIAS_FIJAS.filter(
-    (f) =>
-      f.nombre.toLowerCase() === categoria?.nombre.toLowerCase() ||
-      !categorias.some((c) => c.nombre.toLowerCase() === f.nombre.toLowerCase())
-  );
-  const tipoElegido = CATEGORIAS_FIJAS.find((f) => f.nombre === formData.nombre)?.tipo;
-
   useEffect(() => {
     if (categoria) {
       setFormData({
         nombre: categoria.nombre,
         descripcion: categoria.descripcion || '',
-        tipoProducto: categoria.tipoProducto,
         activo: categoria.activo,
       });
     }
@@ -85,8 +61,10 @@ export default function CategoriaModal({ categoria, categorias, onClose, onSucce
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!tipoElegido) {
-      newErrors.nombre = 'Elegí la categoría';
+    if (formData.nombre.trim().length < 2) {
+      newErrors.nombre = 'El nombre debe tener al menos 2 caracteres';
+    } else if (formData.nombre.length > 100) {
+      newErrors.nombre = 'El nombre no puede exceder 100 caracteres';
     }
 
     if (formData.descripcion && formData.descripcion.length > 500) {
@@ -102,10 +80,7 @@ export default function CategoriaModal({ categoria, categorias, onClose, onSucce
 
     if (!validate()) return;
 
-    const datosAEnviar = {
-      ...formData,
-      tipoProducto: tipoElegido as TipoProducto,
-    };
+    const datosAEnviar = { ...formData, nombre: formData.nombre.trim() };
 
     setLoading(true);
     try {
@@ -154,20 +129,17 @@ export default function CategoriaModal({ categoria, categorias, onClose, onSucce
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Nombre <span className="text-red-500">*</span>
             </label>
-            <select
+            <input
+              type="text"
               name="nombre"
               value={formData.nombre}
               onChange={handleChange}
-              className={`w-full px-2 py-1.5 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+              maxLength={100}
+              className={`w-full px-2 py-1.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
                 errors.nombre ? 'border-red-500' : 'border-gray-300'
               }`}
               disabled={loading}
-            >
-              <option value="" disabled hidden>Seleccioná…</option>
-              {opciones.map((f) => (
-                <option key={f.tipo} value={f.nombre}>{f.nombre}</option>
-              ))}
-            </select>
+            />
             {errors.nombre && <p className="text-red-500 text-xs mt-1">{errors.nombre}</p>}
           </div>
 

@@ -2,7 +2,6 @@ package com.mitienda.ecommerce.services;
 
 import com.mitienda.ecommerce.exception.ConflictoEstadoException;
 import com.mitienda.ecommerce.exception.RecursoNoEncontradoException;
-import com.mitienda.ecommerce.exception.ReglaNegocioException;
 import com.mitienda.ecommerce.dto.CategoriaRequest;
 import com.mitienda.ecommerce.dto.CategoriaResponse;
 import com.mitienda.ecommerce.models.Categoria;
@@ -28,7 +27,10 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class CategoriaService {
 
-    /** Las únicas categorías que existen: una por tipo de producto (son cinco). */
+    /**
+     * Nombres conocidos: si el nombre escrito coincide con uno, se guarda con esta forma y
+     * con su tipo de producto. Cualquier otro nombre es una categoría libre.
+     */
     private static final Map<TipoProducto, String> CATEGORIAS_FIJAS = new EnumMap<>(Map.of(
             TipoProducto.CAMA, "Camas",
             TipoProducto.COLCHON, "Colchones",
@@ -83,19 +85,23 @@ public class CategoriaService {
     }
 
     /**
-     * Solo se admiten las cuatro categorías fijas. El tipo de producto sale del
-     * nombre, y el nombre se guarda siempre con su forma canónica ("Camas").
+     * El nombre es libre. El tipo de producto no lo escribe el usuario: sale del nombre si es uno
+     * de los conocidos ("Camas", "Colchones"...); si no, una categoría nueva queda como ACCESORIO
+     * (sin medidas ni firmeza) y una existente conserva el tipo que ya tenía.
      */
-    private void normalizarCategoriaFija(CategoriaRequest request) {
+    private void resolverTipo(CategoriaRequest request, TipoProducto tipoActual) {
         String nombre = request.getNombre() == null ? "" : request.getNombre().trim();
-        for (Map.Entry<TipoProducto, String> fija : CATEGORIAS_FIJAS.entrySet()) {
-            if (fija.getValue().equalsIgnoreCase(nombre)) {
-                request.setNombre(fija.getValue());
-                request.setTipoProducto(fija.getKey());
+        request.setNombre(nombre);
+        for (Map.Entry<TipoProducto, String> conocida : CATEGORIAS_FIJAS.entrySet()) {
+            if (conocida.getValue().equalsIgnoreCase(nombre)) {
+                request.setNombre(conocida.getValue());
+                request.setTipoProducto(conocida.getKey());
                 return;
             }
         }
-        throw new ReglaNegocioException("CATEGORIA_NO_PERMITIDA", "Solo existen las categorías: Camas, Colchones, Almohadas, Accesorios y Muebles de dormitorio");
+        if (request.getTipoProducto() == null) {
+            request.setTipoProducto(tipoActual != null ? tipoActual : TipoProducto.ACCESORIO);
+        }
     }
 
     /**
@@ -103,7 +109,7 @@ public class CategoriaService {
      */
     @Transactional
     public CategoriaResponse createCategoria(CategoriaRequest request) {
-        normalizarCategoriaFija(request);
+        resolverTipo(request, null);
         // Validar que el nombre no exista
         if (categoriaRepository.existsByNombreIgnoreCase(request.getNombre().trim())) {
             throw new ConflictoEstadoException("CATEGORIA_DUPLICADA", "Ya existe una categoría con el nombre: " + request.getNombre());
@@ -127,7 +133,7 @@ public class CategoriaService {
         Categoria categoria = categoriaRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("CATEGORIA_NO_ENCONTRADA", "Categoría no encontrada con ID: " + id));
 
-        normalizarCategoriaFija(request);
+        resolverTipo(request, categoria.getTipoProducto());
 
         // Validar nombre único (si cambió)
         if (!categoria.getNombre().equalsIgnoreCase(request.getNombre().trim()) &&

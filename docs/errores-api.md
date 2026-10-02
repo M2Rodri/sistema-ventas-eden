@@ -118,7 +118,6 @@ que no existen. Todas las respuestas de error llevan las cabeceras CORS, para qu
 | 422 | `PAGO_EXCEDE_SALDO` | Un cobro posterior supera el saldo pendiente | `El monto supera el saldo pendiente de la venta (Bs. 100.00)` |
 | 422 | `VENTA_EN_TIENDA_SIN_ENTREGA` | Se corrigen o editan datos de entrega de una venta en tienda | `Una venta en tienda no tiene datos de entrega` |
 | 422 | `CATEGORIA_INACTIVA` | Se crea un producto en una categoría inactiva | `No se puede crear un producto en una categoría inactiva` |
-| 422 | `CATEGORIA_NO_PERMITIDA` | Se crea o renombra una categoría fuera de las cuatro fijas (más la oculta) | `Solo existen las categorías: Camas, Colchones, Almohadas, Accesorios y Muebles de dormitorio` |
 | 422 | `ULTIMO_ADMINISTRADOR` | Se desactiva al único administrador activo | `Es el único administrador activo. No se puede desactivar.` |
 
 ## Ejemplos completos

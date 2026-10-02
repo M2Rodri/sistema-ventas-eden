@@ -3,18 +3,15 @@
 import { useState, useEffect } from 'react';
 import { getAllCategorias, deleteCategoria, toggleCategoriaStatus } from '@/lib/api';
 import { Categoria } from '@/types/producto';
-import { Search, FolderOpen, Edit, Trash2, Power, Package } from 'lucide-react';
+import { FolderOpen, Edit, Trash2, Power, Package } from 'lucide-react';
 import Breadcrumbs from '@/components/Breadcrumbs';
-import CategoriaModal, { CATEGORIAS_FIJAS } from '@/components/CategoriaModal';
+import CategoriaModal from '@/components/CategoriaModal';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 import { useDragScrollTable } from '@/hooks/useDragScrollTable';
 
 export default function CategoriasPage() {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
-  const [filteredCategorias, setFilteredCategorias] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('TODOS');
   
   // Modals
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -36,35 +33,12 @@ export default function CategoriasPage() {
       const data = await getAllCategorias();
       // Orden por ID, de menor a mayor.
       setCategorias([...data].sort((a, b) => Number(a.id) - Number(b.id)));
-      setFilteredCategorias(data);
     } catch (error: any) {
       showMessage('error', error.message);
     } finally {
       setLoading(false);
     }
   };
-
-  // Filtrar categorías
-  useEffect(() => {
-    let filtered = categorias;
-
-    // Filtro por búsqueda
-    if (searchTerm) {
-      filtered = filtered.filter(categoria =>
-        categoria.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (categoria.descripcion && categoria.descripcion.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
-    }
-
-    // Filtro por estado
-    if (statusFilter === 'ACTIVOS') {
-      filtered = filtered.filter(categoria => categoria.activo);
-    } else if (statusFilter === 'INACTIVOS') {
-      filtered = filtered.filter(categoria => !categoria.activo);
-    }
-
-    setFilteredCategorias(filtered);
-  }, [searchTerm, statusFilter, categorias]);
 
   const showMessage = (type: 'success' | 'error', text: string) => {
     setMessage({ type, text });
@@ -128,7 +102,7 @@ export default function CategoriasPage() {
     theadRef,
     hasOverflow,
     theadProps,
-  } = useDragScrollTable([loading, filteredCategorias]);
+  } = useDragScrollTable([loading, categorias]);
 
   if (loading) {
     return (
@@ -153,39 +127,11 @@ export default function CategoriasPage() {
           <p className="text-gray-600 mt-1">Administra las categorías de productos</p>
         </div>
         
-        {/* Filtros en una línea */}
         <div className="flex flex-wrap items-center gap-3">
-          {/* Búsqueda */}
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-            <input
-              type="text"
-              placeholder="Buscar categoría..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-
-          {/* Filtro por estado */}
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
-          >
-            <option value="TODOS">Todos los estados</option>
-            <option value="ACTIVOS">Activos</option>
-            <option value="INACTIVOS">Inactivos</option>
-          </select>
-
           {/* Botón Nueva Categoría */}
           <button
             onClick={handleCreateCategoria}
-            disabled={CATEGORIAS_FIJAS.every((f) =>
-              categorias.some((c) => c.nombre.toLowerCase() === f.nombre.toLowerCase())
-            )}
-            title="Ya existen todas las categorías"
-            className="flex items-center justify-center gap-2 bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center justify-center gap-2 bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors font-medium whitespace-nowrap"
           >
             <FolderOpen size={20} />
             Nueva Categoría
@@ -220,7 +166,7 @@ export default function CategoriasPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredCategorias.map((categoria) => (
+              {categorias.map((categoria) => (
                 <tr key={categoria.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{categoria.id}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -275,7 +221,7 @@ export default function CategoriasPage() {
             </tbody>
           </table>
 
-          {filteredCategorias.length === 0 && (
+          {categorias.length === 0 && (
             <div className="text-center py-12">
               <FolderOpen size={48} className="mx-auto text-gray-400 mb-4" />
               <p className="text-gray-500">No se encontraron categorías</p>
@@ -288,7 +234,6 @@ export default function CategoriasPage() {
       {isModalOpen && (
         <CategoriaModal
           categoria={selectedCategoria}
-          categorias={categorias}
           onClose={() => setIsModalOpen(false)}
           onSuccess={() => {
             loadCategorias();
