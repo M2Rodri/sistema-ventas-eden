@@ -214,6 +214,37 @@ export default function ReportePersonalizadoModal({ reciente, onClose, onGenerad
 
   const campo = (c: CampoCriterio) => {
     const etiqueta = etiquetaDeCriterio(tipo, c);
+    if (c === 'minimoDias') {
+      return (
+        <div>
+          <input
+            type="number"
+            min={0}
+            className={inputClase}
+            value={criterios.minimoDias ?? ''}
+            onChange={(e) => poner(c, e.target.value === '' ? undefined : Number(e.target.value))}
+            placeholder="Sin mínimo"
+          />
+          <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+            {[7, 15, 30, 60].map((dias) => (
+              <button
+                key={dias}
+                type="button"
+                onClick={() => poner(c, criterios.minimoDias === dias ? undefined : dias)}
+                className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                  criterios.minimoDias === dias
+                    ? 'border-primary-500 bg-primary-50 text-primary-700'
+                    : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {dias} días
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-gray-500 mt-1">Ventas con saldo hechas hace esa cantidad de días o más.</p>
+        </div>
+      );
+    }
     if (CAMPOS_NUMERICOS.includes(c)) {
       return (
         <input
