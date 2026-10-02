@@ -14,7 +14,7 @@ import {
   CampoCriterio,
   criteriosVigentes,
 } from '@/lib/reporteCriterios';
-import { getAllClientes, getAllCategorias, getAllProductos } from '@/lib/api';
+import { getAllClientes, getAllCategorias, getAllProductos, getReporteCuentasPorCobrar } from '@/lib/api';
 import ReporteVistaPrevia from './ReporteVistaPrevia';
 
 /** Lo que se puede consultar, con las fechas y el límite que pide cada tipo. */
@@ -145,6 +145,8 @@ export default function ReportePersonalizadoModal({ reciente, onClose, onGenerad
   // Nombres de los clientes del sistema, para sugerirlos mientras se escribe en el criterio Cliente.
   const [nombresClientes, setNombresClientes] = useState<string[]>([]);
   const [nombresCategorias, setNombresCategorias] = useState<string[]>([]);
+  // Clientes que hoy tienen una venta con saldo pendiente: lo único que tiene sentido elegir en Cuentas por cobrar.
+  const [nombresDeudores, setNombresDeudores] = useState<string[]>([]);
   const [sugerenciasProductos, setSugerenciasProductos] = useState<Sugerencia[]>([]);
 
   useEffect(() => {
@@ -168,6 +170,13 @@ export default function ReportePersonalizadoModal({ reciente, onClose, onGenerad
       .then((categorias) => setNombresCategorias(categorias.map((ca) => ca.nombre).sort()))
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (tipo !== 'CUENTAS_POR_COBRAR') return;
+    getReporteCuentasPorCobrar()
+      .then((r) => setNombresDeudores(Array.from(new Set(r.ventas.map((v) => v.nombreCliente))).sort()))
+      .catch(() => {});
+  }, [tipo]);
 
   const config = TIPOS_PERSONALIZABLES.find((t) => t.id === tipo)!;
   const campos = CAMPOS_POR_TIPO[tipo];
@@ -276,6 +285,16 @@ export default function ReportePersonalizadoModal({ reciente, onClose, onGenerad
           </label>
         );
       default:
+        if (c === 'cliente' && tipo === 'CUENTAS_POR_COBRAR') {
+          return (
+            <select className={inputClase} value={criterios.cliente ?? ''} onChange={(e) => poner(c, e.target.value)}>
+              <option value="">Todos los que deben</option>
+              {nombresDeudores.map((n) => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
+          );
+        }
         if (c === 'cliente') {
           return (
             <TextoConSugerencias
