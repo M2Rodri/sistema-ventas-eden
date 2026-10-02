@@ -5,7 +5,10 @@ import { X, Eye, AlertCircle } from 'lucide-react';
 import { TipoReporte, ReporteReciente } from '@/types/reporte';
 import {
   CAMPOS_POR_TIPO,
-  ETIQUETA_CRITERIO,
+  CAMPOS_NUMERICOS,
+  ORDENES_POR_TIPO,
+  etiquetaDeCriterio,
+  resumenCriterios,
   ETIQUETA_ESTADO_PAGO,
   CriteriosReporte,
   CampoCriterio,
@@ -86,6 +89,10 @@ export default function ReportePersonalizadoModal({ reciente, onClose, onGenerad
       setError('La fecha de inicio no puede ser posterior a la fecha de fin.');
       return;
     }
+    if (config.limite && (!Number.isInteger(limite) || limite < 1 || limite > 200)) {
+      setError('La cantidad de resultados tiene que ser un número entre 1 y 200.');
+      return;
+    }
     setError(null);
     if (!reciente) {
       onGenerado({
@@ -103,8 +110,28 @@ export default function ReportePersonalizadoModal({ reciente, onClose, onGenerad
   };
 
   const campo = (c: CampoCriterio) => {
-    const etiqueta = ETIQUETA_CRITERIO[c];
+    const etiqueta = etiquetaDeCriterio(tipo, c);
+    if (CAMPOS_NUMERICOS.includes(c)) {
+      return (
+        <input
+          type="number"
+          min={0}
+          className={inputClase}
+          value={(criterios[c] as number | undefined) ?? ''}
+          onChange={(e) => poner(c, e.target.value === '' ? undefined : Number(e.target.value))}
+          placeholder="Sin límite"
+        />
+      );
+    }
     switch (c) {
+      case 'orden':
+        return (
+          <select className={inputClase} value={criterios.orden ?? ''} onChange={(e) => poner(c, e.target.value)}>
+            {(ORDENES_POR_TIPO[tipo] ?? []).map((o) => (
+              <option key={o.valor} value={o.valor}>{o.texto}</option>
+            ))}
+          </select>
+        );
       case 'estadoPago':
         return (
           <select className={inputClase} value={criterios.estadoPago ?? ''} onChange={(e) => poner(c, e.target.value)}>
@@ -123,18 +150,6 @@ export default function ReportePersonalizadoModal({ reciente, onClose, onGenerad
             <option value="QR">QR</option>
             <option value="VARIOS">Varios</option>
           </select>
-        );
-      case 'minimoCompras':
-      case 'minimoDias':
-        return (
-          <input
-            type="number"
-            min={0}
-            className={inputClase}
-            value={criterios[c] ?? ''}
-            onChange={(e) => poner(c, e.target.value === '' ? undefined : Number(e.target.value))}
-            placeholder="Sin mínimo"
-          />
         );
       case 'soloActivos':
         return (
@@ -166,7 +181,7 @@ export default function ReportePersonalizadoModal({ reciente, onClose, onGenerad
       <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-5 py-2.5 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100 shrink-0">
           <h2 className="text-base font-bold text-gray-900">
-            {verResultado ? `Reporte de ${config.titulo.toLowerCase()}` : 'Generar reporte personalizado'}
+            {verResultado ? `Reporte de ${config.titulo.toLowerCase()}` : 'Generar reporte'}
           </h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600" title="Cerrar">
             <X size={20} />
@@ -219,25 +234,33 @@ export default function ReportePersonalizadoModal({ reciente, onClose, onGenerad
                   )}
                   {config.limite && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Cantidad de resultados</label>
-                      <select className={inputClase} value={limite} onChange={(e) => setLimite(Number(e.target.value))}>
-                        <option value={5}>Los 5 primeros</option>
-                        <option value={10}>Los 10 primeros</option>
-                        <option value={20}>Los 20 primeros</option>
-                        <option value={50}>Los 50 primeros</option>
-                      </select>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Cantidad de resultados (1 a 200)</label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={200}
+                        className={inputClase}
+                        value={Number.isNaN(limite) ? '' : limite}
+                        onChange={(e) => setLimite(e.target.value === '' ? NaN : Number(e.target.value))}
+                      />
                     </div>
                   )}
                   {campos.map((c) => (
                     <div key={c}>
                       {c !== 'soloActivos' && (
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{ETIQUETA_CRITERIO[c]}</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{etiquetaDeCriterio(tipo, c)}</label>
                       )}
                       {campo(c)}
                     </div>
                   ))}
                 </div>
               )}
+              <div className="rounded-lg bg-primary-50 border border-primary-100 px-3 py-2 text-sm text-primary-900">
+                <span className="font-semibold">Vas a ver:</span> {config.titulo}
+                {config.fechas && fechaInicio && fechaFin && ` del ${fechaInicio.split('-').reverse().join('/')} al ${fechaFin.split('-').reverse().join('/')}`}
+                {config.limite && Number.isInteger(limite) && ` · los ${limite} primeros`}
+                {resumenCriterios(vigentes).map((r) => ` · ${r}`).join('')}
+              </div>
             </div>
           )}
         </div>

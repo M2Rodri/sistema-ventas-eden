@@ -99,14 +99,14 @@ export default function ReportesPage() {
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Reportes del negocio</h1>
-          <p className="text-gray-600 mt-1">Los reportes más usados, o armá el tuyo</p>
+          <p className="text-gray-600 mt-1">Los reportes más usados, o armá el que necesitás</p>
         </div>
         <button
           onClick={() => setGeneradorAbierto(true)}
           className="inline-flex items-center gap-2 bg-primary-600 text-white px-5 py-2.5 rounded-lg hover:bg-primary-700 transition-colors font-medium shadow-sm"
         >
           <SlidersHorizontal size={20} />
-          Generar reporte personalizado
+          Generar reporte
         </button>
       </div>
 
@@ -129,9 +129,9 @@ export default function ReportesPage() {
 
         {recientes.length === 0 ? (
           <div className="bg-white border border-dashed border-gray-300 rounded-lg p-8 text-center">
-            <p className="text-gray-600 font-medium">Todavía no generaste reportes personalizados</p>
+            <p className="text-gray-600 font-medium">Todavía no generaste reportes</p>
             <p className="text-sm text-gray-500 mt-1">
-              Los que armes con «Generar reporte personalizado» quedan acá para abrirlos de nuevo.
+              Los que armes con «Generar reporte» quedan acá para abrirlos de nuevo.
             </p>
           </div>
         ) : (

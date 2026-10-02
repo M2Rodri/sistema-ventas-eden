@@ -15,24 +15,37 @@ export interface CriteriosReporte {
   minimoDias?: number;
   proveedor?: string;
   soloActivos?: boolean;
+  /** Importes mínimo y máximo, en bolivianos (según el reporte: monto de la venta o total comprado). */
+  montoMinimo?: number;
+  montoMaximo?: number;
+  saldoMinimo?: number;
+  cantidadMinima?: number;
+  valorMinimo?: number;
+  /** Cómo se ordenan las filas; vacío es el orden normal del reporte. */
+  orden?: string;
 }
 
 export type CampoCriterio = keyof CriteriosReporte;
 
 /** Qué criterios se ofrecen para cada tipo de reporte, además de fechas y límite. */
 export const CAMPOS_POR_TIPO: Record<TipoReporte, CampoCriterio[]> = {
-  VENTAS: ['estadoPago', 'metodoPago', 'cliente'],
-  PRODUCTOS_MAS_VENDIDOS: ['categoria', 'producto'],
-  CLIENTES_FRECUENTES: ['cliente', 'minimoCompras'],
-  INVENTARIO_VALORIZADO: ['producto'],
+  VENTAS: ['estadoPago', 'metodoPago', 'cliente', 'montoMinimo', 'montoMaximo', 'orden'],
+  PRODUCTOS_MAS_VENDIDOS: ['categoria', 'producto', 'cantidadMinima'],
+  CLIENTES_FRECUENTES: ['cliente', 'minimoCompras', 'montoMinimo'],
+  INVENTARIO_VALORIZADO: ['producto', 'valorMinimo', 'orden'],
   VENTAS_POR_CATEGORIA: ['categoria'],
   VENTAS_POR_METODO_PAGO: ['metodoPago'],
   INVENTARIO_STOCK_BAJO: ['producto'],
   PROVEEDORES: ['proveedor', 'soloActivos'],
   TRANSPORTADORAS: [],
   FINANCIERO: [],
-  CUENTAS_POR_COBRAR: ['cliente', 'minimoDias'],
+  CUENTAS_POR_COBRAR: ['cliente', 'minimoDias', 'saldoMinimo', 'orden'],
 };
+
+/** Criterios que se escriben como número. */
+export const CAMPOS_NUMERICOS: CampoCriterio[] = [
+  'minimoCompras', 'minimoDias', 'montoMinimo', 'montoMaximo', 'saldoMinimo', 'cantidadMinima', 'valorMinimo',
+];
 
 export const ETIQUETA_CRITERIO: Record<CampoCriterio, string> = {
   estadoPago: 'Estado de pago',
@@ -44,6 +57,23 @@ export const ETIQUETA_CRITERIO: Record<CampoCriterio, string> = {
   minimoDias: 'Días de atraso desde',
   proveedor: 'Proveedor',
   soloActivos: 'Solo proveedores activos',
+  montoMinimo: 'Monto desde (Bs)',
+  montoMaximo: 'Monto hasta (Bs)',
+  saldoMinimo: 'Saldo pendiente desde (Bs)',
+  cantidadMinima: 'Unidades vendidas desde',
+  valorMinimo: 'Valor en stock desde (Bs)',
+  orden: 'Ordenar por',
+};
+
+/** Etiqueta del criterio en un reporte puntual (el mismo campo significa cosas distintas según el reporte). */
+export const etiquetaDeCriterio = (tipo: TipoReporte, campo: CampoCriterio): string =>
+  tipo === 'CLIENTES_FRECUENTES' && campo === 'montoMinimo' ? 'Total comprado desde (Bs)' : ETIQUETA_CRITERIO[campo];
+
+/** Opciones de orden de cada reporte; la primera es el orden normal. */
+export const ORDENES_POR_TIPO: Partial<Record<TipoReporte, { valor: string; texto: string }[]>> = {
+  VENTAS: [{ valor: '', texto: 'Orden normal' }, { valor: 'monto', texto: 'Mayor monto primero' }],
+  INVENTARIO_VALORIZADO: [{ valor: '', texto: 'Orden normal' }, { valor: 'valor', texto: 'Mayor valor primero' }],
+  CUENTAS_POR_COBRAR: [{ valor: '', texto: 'Más antiguas primero' }, { valor: 'saldo', texto: 'Mayor saldo primero' }],
 };
 
 export const ETIQUETA_ESTADO_PAGO: Record<string, string> = {
@@ -81,6 +111,7 @@ export function resumenCriterios(c: CriteriosReporte): string[] {
     else if (campo === 'estadoPago') resumen.push(`Pago: ${ETIQUETA_ESTADO_PAGO[c.estadoPago!] ?? c.estadoPago}`);
     else if (campo === 'minimoCompras') resumen.push(`${c.minimoCompras}+ compras`);
     else if (campo === 'minimoDias') resumen.push(`${c.minimoDias}+ días`);
+    else if (campo === 'orden') resumen.push(c.orden === 'monto' ? 'Mayor monto primero' : c.orden === 'valor' ? 'Mayor valor primero' : 'Mayor saldo primero');
     else resumen.push(`${ETIQUETA_CRITERIO[campo]}: ${c[campo]}`);
   });
   return resumen;
@@ -108,8 +139,11 @@ export function aplicarCriterios(tipo: TipoReporte, data: any, c: CriteriosRepor
         (x: any) =>
           (!v('estadoPago') || x.estado === c.estadoPago) &&
           (!v('metodoPago') || x.metodoPago === c.metodoPago) &&
-          contiene(x.nombreCliente, c.cliente)
+          contiene(x.nombreCliente, c.cliente) &&
+          (!v('montoMinimo') || x.montoTotal >= (c.montoMinimo ?? 0)) &&
+          (!v('montoMaximo') || x.montoTotal <= (c.montoMaximo ?? 0))
       );
+      if (c.orden === 'monto') ventas.sort((p: any, q: any) => q.montoTotal - p.montoTotal);
       const monto = suma(ventas.map((x: any) => x.montoTotal));
       return {
         ...data,
@@ -124,21 +158,25 @@ export function aplicarCriterios(tipo: TipoReporte, data: any, c: CriteriosRepor
         .filter(
           (x: any) =>
             contiene(x.categoria, c.categoria) &&
-            (contiene(x.nombreProducto, c.producto) || contiene(x.skuProducto, c.producto))
+            (contiene(x.nombreProducto, c.producto) || contiene(x.skuProducto, c.producto)) &&
+            (!v('cantidadMinima') || x.cantidadVendida >= (c.cantidadMinima ?? 0))
         )
         .slice(0, limite ?? undefined);
       return { ...data, productos };
     }
     case 'CLIENTES_FRECUENTES': {
       const clientes = (data.clientes ?? [])
-        .filter((x: any) => contiene(x.nombreCliente, c.cliente) && (!v('minimoCompras') || x.cantidadCompras >= (c.minimoCompras ?? 0)))
+        .filter((x: any) => contiene(x.nombreCliente, c.cliente) && (!v('minimoCompras') || x.cantidadCompras >= (c.minimoCompras ?? 0)) && (!v('montoMinimo') || x.montoTotalCompras >= (c.montoMinimo ?? 0)))
         .slice(0, limite ?? undefined);
       return { ...data, clientes };
     }
     case 'INVENTARIO_VALORIZADO': {
       const inventarios = (data.inventarios ?? []).filter(
-        (x: any) => contiene(x.nombreProducto, c.producto) || contiene(x.skuProducto, c.producto)
+        (x: any) =>
+          (contiene(x.nombreProducto, c.producto) || contiene(x.skuProducto, c.producto)) &&
+          (!v('valorMinimo') || x.valorTotal >= (c.valorMinimo ?? 0))
       );
+      if (c.orden === 'valor') inventarios.sort((p: any, q: any) => q.valorTotal - p.valorTotal);
       return {
         ...data,
         inventarios,
@@ -170,8 +208,12 @@ export function aplicarCriterios(tipo: TipoReporte, data: any, c: CriteriosRepor
     }
     case 'CUENTAS_POR_COBRAR': {
       const ventas = (data.ventas ?? []).filter(
-        (x: any) => contiene(x.nombreCliente, c.cliente) && (!v('minimoDias') || x.diasTranscurridos >= (c.minimoDias ?? 0))
+        (x: any) =>
+          contiene(x.nombreCliente, c.cliente) &&
+          (!v('minimoDias') || x.diasTranscurridos >= (c.minimoDias ?? 0)) &&
+          (!v('saldoMinimo') || x.saldoPendiente >= (c.saldoMinimo ?? 0))
       );
+      if (c.orden === 'saldo') ventas.sort((p: any, q: any) => q.saldoPendiente - p.saldoPendiente);
       return {
         ...data,
         ventas,
