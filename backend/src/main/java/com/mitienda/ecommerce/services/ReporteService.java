@@ -300,6 +300,36 @@ public class ReporteService {
     }
 
     /**
+     * Ventas por producto: una fila por cada producto vendido en cada venta del período (sin las
+     * canceladas, que devolvieron el stock), de la más reciente a la más antigua. Con esto se arma
+     * tanto el resumen por producto como el detalle de a quién se le vendió.
+     */
+    public List<Map<String, Object>> getReporteVentasPorProducto(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
+        List<Map<String, Object>> filas = new ArrayList<>();
+        for (Venta venta : ventaRepository.findByFechaVentaBetweenOrderByFechaVentaDesc(fechaInicio, fechaFin)) {
+            if (venta.getEstado() == EstadoVenta.CANCELADA) {
+                continue;
+            }
+            for (DetalleVenta detalle : venta.getDetalles()) {
+                Producto producto = detalle.getProducto();
+                filas.add(Map.of(
+                        "idVenta", venta.getId(),
+                        "fechaVenta", venta.getFechaVenta(),
+                        "nombreCliente", venta.getNombreClienteCompleto(),
+                        "idProducto", producto.getId(),
+                        "nombreProducto", producto.getNombre(),
+                        "skuProducto", producto.getSku(),
+                        "categoria", producto.getCategoria() != null ? producto.getCategoria().getNombre() : "Sin categoría",
+                        "cantidad", detalle.getCantidad(),
+                        "precioUnitario", detalle.getPrecioUnitario(),
+                        "subtotal", detalle.getSubtotal()
+                ));
+            }
+        }
+        return filas;
+    }
+
+    /**
      * Reporte de cobros por método de pago.
      *
      * Se calcula sobre los pagos y no sobre las ventas. Antes cada venta tenía

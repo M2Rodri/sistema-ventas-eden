@@ -95,6 +95,17 @@ public class ReporteController {
     }
 
     /**
+     * GET /api/v1/reportes/ventas-por-producto?inicio=...&fin=...
+     * Cada producto vendido en cada venta del período (sin las canceladas)
+     */
+    @GetMapping("/ventas-por-producto")
+    public ResponseEntity<List<Map<String, Object>>> getReporteVentasPorProducto(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime inicio,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fin) {
+        return ResponseEntity.ok(reporteService.getReporteVentasPorProducto(inicio, fin));
+    }
+
+    /**
      * GET /api/v1/reportes/ventas-por-metodo-pago?inicio=...&fin=...
      * Reporte de ventas por método de pago
      */
