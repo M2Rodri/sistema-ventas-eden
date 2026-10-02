@@ -137,21 +137,24 @@ class ApiClient {
     }
   }
 
-  /// El backend a veces manda el error como JSON ({"error": "..."} o el
-  /// {"message": "..."} por defecto de Spring) y a veces como texto plano
-  /// (el 401 de login manda solo "Credenciales inválidas", sin comillas ni
-  /// llaves). Se intenta como JSON primero; si no es JSON válido, se usa el
-  /// texto tal cual.
-  String? _extraerMensaje(String cuerpo) {
-    if (cuerpo.isEmpty) return null;
-    try {
-      final datos = jsonDecode(cuerpo);
-      if (datos is Map<String, dynamic>) {
-        return datos['error'] as String? ?? datos['message'] as String?;
-      }
-      return cuerpo;
-    } on FormatException {
-      return cuerpo;
+  String? _extraerMensaje(String cuerpo) => extraerMensajeError(cuerpo);
+}
+
+/// Mensaje de un cuerpo de error de la API. Formato único:
+/// {"error": {"codigo": "...", "mensaje": "...", "campos": {...}}}. Mientras el
+/// backend publicado siga con el formato anterior ({"error": "texto"}) también
+/// se lee ese, igual que el {"message": "..."} de Spring y el texto plano.
+String? extraerMensajeError(String cuerpo) {
+  if (cuerpo.isEmpty) return null;
+  try {
+    final datos = jsonDecode(cuerpo);
+    if (datos is Map<String, dynamic>) {
+      final error = datos['error'];
+      if (error is Map<String, dynamic>) return error['mensaje'] as String?;
+      return error as String? ?? datos['message'] as String?;
     }
+    return cuerpo;
+  } on FormatException {
+    return cuerpo;
   }
 }
