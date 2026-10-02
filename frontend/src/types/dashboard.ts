@@ -15,7 +15,7 @@ export interface VentasStats {
   promedioVentaDiaria: number;
 }
 
-/** Ventas de una semana calendario (lunes a domingo): GET /api/dashboard/ventas-semanal. */
+/** Ventas de una semana calendario (lunes a domingo): GET /api/v1/dashboard/ventas-semanal. */
 export interface VentasSemanal {
   fechaInicio: string;
   fechaFin: string;

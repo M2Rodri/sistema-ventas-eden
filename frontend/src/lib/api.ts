@@ -3,7 +3,8 @@ import { ImagenProducto } from '@/types/imagenProducto';
 import { esPorEntregar } from '@/lib/entrega';
 export const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL ?? 'https://backend-sistema-ventas-production-d0a4.up.railway.app';
-const API_URL = `${BACKEND_URL}/api`;
+// Todas las rutas de la API van con la versión: /api/v1/...
+const API_URL = `${BACKEND_URL}/api/v1`;
 
 /**
  * URL con la que se muestra un archivo subido. Los archivos nuevos vienen con la
@@ -2524,36 +2525,6 @@ export interface ComprobanteRequest {
 }
 
 /**
- * Obtener todos los comprobantes
- */
-export const getAllComprobantes = async (): Promise<Comprobante[]> => {
-  const response = await fetch(`${API_URL}/comprobantes`, {
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    throw new Error('Error al obtener comprobantes');
-  }
-
-  return response.json();
-};
-
-/**
- * Obtener comprobante por ID
- */
-export const getComprobanteById = async (id: number): Promise<Comprobante> => {
-  const response = await fetch(`${API_URL}/comprobantes/${id}`, {
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    throw new Error('Comprobante no encontrado');
-  }
-
-  return response.json();
-};
-
-/**
  * Obtener comprobante por venta
  */
 export const getComprobanteByVenta = async (idVenta: number): Promise<Comprobante> => {
@@ -2585,54 +2556,6 @@ export const createComprobante = async (data: ComprobanteRequest): Promise<Compr
 
   return response.json();
 };
-
-/**
- * Anular comprobante (Solo ADMIN)
- */
-export const anularComprobante = async (id: number, motivo: string): Promise<Comprobante> => {
-  const response = await fetch(`${API_URL}/comprobantes/${id}/anular?motivo=${encodeURIComponent(motivo)}`, {
-    method: 'PATCH',
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Error al anular comprobante');
-  }
-
-  return response.json();
-};
-
-/**
- * Obtener comprobantes activos (no anulados)
- */
-export const getComprobantesActivos = async (): Promise<Comprobante[]> => {
-  const response = await fetch(`${API_URL}/comprobantes/activos`, {
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    throw new Error('Error al obtener comprobantes activos');
-  }
-
-  return response.json();
-};
-
-/**
- * Obtener últimos comprobantes
- */
-export const getUltimosComprobantes = async (): Promise<Comprobante[]> => {
-  const response = await fetch(`${API_URL}/comprobantes/ultimos`, {
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    throw new Error('Error al obtener últimos comprobantes');
-  }
-
-  return response.json();
-};
-
 
 // frontend/src/lib/api.ts (agregar al final de la sección de PRODUCTOS)
 

@@ -40,7 +40,7 @@ export default function SesionExpiradaWatcher() {
       // la sesión: cada pantalla se encarga de no mostrar lo que no le toca.
       const sesionRechazada = respuesta.status === 401;
       // El login rechazado no es una sesión vencida: lo maneja su propia pantalla.
-      const esLogin = url.includes('/api/auth/login');
+      const esLogin = url.includes('/api/v1/auth/login');
 
       if (esLlamadaAlBackend && sesionRechazada && !esLogin && !redirigiendo) {
         redirigiendo = true;

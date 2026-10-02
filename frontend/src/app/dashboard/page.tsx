@@ -25,7 +25,7 @@ import { useDragScrollTable } from '@/hooks/useDragScrollTable';
 /**
  * Panel de inicio.
  *
- * Todas las cifras salen de /api/dashboard/estadisticas. Antes esta pantalla
+ * Todas las cifras salen de /api/v1/dashboard/estadisticas. Antes esta pantalla
  * mostraba valores fijos escritos en el código ($250.000 en ventas, 1.200
  * productos, 350 usuarios, 4.8/5 en reseñas y tres productos destacados
  * inventados), que no correspondían a ningún dato del sistema.
