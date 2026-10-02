@@ -245,6 +245,8 @@ public class ReporteService {
                     item.put("idProducto", inv.getProducto().getId());
                     item.put("nombreProducto", inv.getProducto().getNombre());
                     item.put("skuProducto", inv.getProducto().getSku());
+                    item.put("categoria", inv.getProducto().getCategoria() != null
+                            ? inv.getProducto().getCategoria().getNombre() : "Sin categoría");
                     item.put("cantidadDisponible", inv.getCantidadDisponible());
                     item.put("precioUnitario", precioCompra);
                     item.put("valorTotal", valorItem);
