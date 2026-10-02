@@ -7,9 +7,16 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpMethod;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
+import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
+
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 
@@ -26,6 +33,9 @@ class RutasApiTest {
 
     @Autowired
     private MockMvc mvc;
+
+    @Autowired
+    private RequestMappingHandlerMapping rutas;
 
     private static final RequestPostProcessor ADMIN = user("admin").roles("ADMIN");
     private static final RequestPostProcessor EMPLEADO = user("empleado").roles("EMPLEADO");
@@ -117,6 +127,32 @@ class RutasApiTest {
     @Test
     void laRutaDePruebaPublicaDeAuthYaNoExiste() throws Exception {
         assertEquals(404, estado(HttpMethod.GET, "/api/v1/auth/test", null));
+    }
+
+    @Test
+    void deLosComprobantesDeVentaSoloQuedanLasDosRutasQueUsaLaWeb() {
+        Set<String> comprobantes = rutas.getHandlerMethods().keySet().stream()
+                .flatMap(info -> info.getMethodsCondition().getMethods().stream()
+                        .flatMap(metodo -> info.getPathPatternsCondition().getPatternValues().stream()
+                                .filter(ruta -> ruta.startsWith("/api/v1/comprobantes"))
+                                .map(ruta -> metodo + " " + ruta)))
+                .collect(Collectors.toCollection(TreeSet::new));
+
+        assertEquals(Set.of("GET /api/v1/comprobantes/venta/{idVenta}", "POST /api/v1/comprobantes"), comprobantes);
+    }
+
+    @Test
+    void lasRutasEliminadasDeComprobantesNoResponden() throws Exception {
+        for (String ruta : new String[]{"/api/v1/comprobantes/activos", "/api/v1/comprobantes/anulados",
+                "/api/v1/comprobantes/ultimos", "/api/v1/comprobantes/estadisticas", "/api/v1/comprobantes/fechas",
+                "/api/v1/comprobantes/tipo/RECIBO", "/api/v1/comprobantes/numero/REC-2026-00001", "/api/v1/comprobantes/1"}) {
+            int estado = estado(HttpMethod.GET, ruta, ADMIN);
+            assertTrue(estado == 404 || estado == 405, ruta + " respondió " + estado);
+        }
+        // Listar todos (GET sin nada más) tampoco: la ruta base solo admite POST.
+        int listar = estado(HttpMethod.GET, "/api/v1/comprobantes", ADMIN);
+        assertTrue(listar == 404 || listar == 405, "listar respondió " + listar);
+        assertEquals(404, estado(HttpMethod.PATCH, "/api/v1/comprobantes/1/anular", ADMIN));
     }
 
     // ---------- Públicas ----------
