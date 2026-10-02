@@ -1,5 +1,7 @@
 package com.mitienda.ecommerce.services;
 
+import com.mitienda.ecommerce.exception.ConflictoEstadoException;
+import com.mitienda.ecommerce.exception.RecursoNoEncontradoException;
 import com.mitienda.ecommerce.dto.CompraRequest;
 import com.mitienda.ecommerce.dto.CompraResponse;
 import com.mitienda.ecommerce.models.*;
@@ -84,7 +86,7 @@ public class CompraService {
      */
     public CompraResponse getCompraById(Long id) {
         Compra compra = compraRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Compra no encontrada con ID: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("COMPRA_NO_ENCONTRADA", "Compra no encontrada con ID: " + id));
         return new CompraResponse(compra);
     }
 
@@ -95,7 +97,7 @@ public class CompraService {
     public CompraResponse createCompra(CompraRequest request) {
         // Validar proveedor
         Proveedor proveedor = proveedorRepository.findById(request.getIdProveedor())
-                .orElseThrow(() -> new RuntimeException("Proveedor no encontrado con ID: " + request.getIdProveedor()));
+                .orElseThrow(() -> new RecursoNoEncontradoException("PROVEEDOR_NO_ENCONTRADO", "Proveedor no encontrado con ID: " + request.getIdProveedor()));
 
         // La base bloquea repetir número de factura para el mismo proveedor
         // (uq_compras_proveedor_factura); se avisa antes para no mostrar el
@@ -103,7 +105,7 @@ public class CompraService {
         if (request.getNumeroFactura() != null && !request.getNumeroFactura().isBlank()
                 && compraRepository.existsByProveedorIdAndNumeroFactura(
                         request.getIdProveedor(), request.getNumeroFactura())) {
-            throw new RuntimeException("Ya existe una compra con esa factura para este proveedor");
+            throw new ConflictoEstadoException("FACTURA_DUPLICADA", "Ya existe una compra con esa factura para este proveedor");
         }
 
         // El usuario sale del token, no de lo que mande el cliente: ver
@@ -128,7 +130,7 @@ public class CompraService {
         BigDecimal total = BigDecimal.ZERO;
         for (CompraRequest.ItemCompraRequest item : request.getItems()) {
             Producto producto = productoRepository.findById(item.getIdProducto())
-                    .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + item.getIdProducto()));
+                    .orElseThrow(() -> new RecursoNoEncontradoException("PRODUCTO_NO_ENCONTRADO", "Producto no encontrado con ID: " + item.getIdProducto()));
 
             // Crear detalle
             DetalleCompra detalle = new DetalleCompra();
@@ -165,19 +167,19 @@ public class CompraService {
     @Transactional
     public CompraResponse updateCompra(Long id, CompraRequest request) {
         Compra compra = compraRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Compra no encontrada con ID: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("COMPRA_NO_ENCONTRADA", "Compra no encontrada con ID: " + id));
 
         if (compra.getEstado() != EstadoCompra.POR_CONFIRMAR) {
-            throw new RuntimeException("Solo se puede editar una compra que esté sin confirmar. Estado actual: " + compra.getEstado());
+            throw new ConflictoEstadoException("COMPRA_NO_EDITABLE", "Solo se puede editar una compra que esté sin confirmar. Estado actual: " + compra.getEstado());
         }
 
         Proveedor proveedor = proveedorRepository.findById(request.getIdProveedor())
-                .orElseThrow(() -> new RuntimeException("Proveedor no encontrado con ID: " + request.getIdProveedor()));
+                .orElseThrow(() -> new RecursoNoEncontradoException("PROVEEDOR_NO_ENCONTRADO", "Proveedor no encontrado con ID: " + request.getIdProveedor()));
 
         if (request.getNumeroFactura() != null && !request.getNumeroFactura().isBlank()
                 && compraRepository.existsByProveedorIdAndNumeroFacturaAndIdNot(
                         request.getIdProveedor(), request.getNumeroFactura(), id)) {
-            throw new RuntimeException("Ya existe una compra con esa factura para este proveedor");
+            throw new ConflictoEstadoException("FACTURA_DUPLICADA", "Ya existe una compra con esa factura para este proveedor");
         }
 
         compra.setProveedor(proveedor);
@@ -196,7 +198,7 @@ public class CompraService {
         BigDecimal total = BigDecimal.ZERO;
         for (CompraRequest.ItemCompraRequest item : request.getItems()) {
             Producto producto = productoRepository.findById(item.getIdProducto())
-                    .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + item.getIdProducto()));
+                    .orElseThrow(() -> new RecursoNoEncontradoException("PRODUCTO_NO_ENCONTRADO", "Producto no encontrado con ID: " + item.getIdProducto()));
 
             DetalleCompra detalle = new DetalleCompra();
             detalle.setCompra(compra);
@@ -225,7 +227,7 @@ public class CompraService {
     @Transactional
     public CompraResponse cambiarEstadoCompra(Long id, EstadoCompra nuevoEstado) {
         Compra compra = compraRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Compra no encontrada con ID: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("COMPRA_NO_ENCONTRADA", "Compra no encontrada con ID: " + id));
 
         // Solo se puede confirmar una compra que sigue POR_CONFIRMAR. Sin este
         // chequeo, una compra ya CANCELADA se podía "confirmar" igual: sumaba
@@ -233,7 +235,8 @@ public class CompraService {
         // que se suponía anulada. Confirmar de nuevo una ya CONFIRMADA tampoco
         // tiene sentido (duplicaría el stock).
         if (nuevoEstado == EstadoCompra.CONFIRMADA && compra.getEstado() != EstadoCompra.POR_CONFIRMAR) {
-            throw new RuntimeException("Solo se puede confirmar una compra que esté sin confirmar. Estado actual: " + compra.getEstado());
+            String codigo = compra.getEstado() == EstadoCompra.CONFIRMADA ? "COMPRA_YA_CONFIRMADA" : "COMPRA_NO_CONFIRMABLE";
+            throw new ConflictoEstadoException(codigo, "Solo se puede confirmar una compra que esté sin confirmar. Estado actual: " + compra.getEstado());
         }
 
         // Si el estado cambia a CONFIRMADA, la mercadería entra al inventario.
@@ -301,11 +304,11 @@ public class CompraService {
     @Transactional
     public CompraResponse cancelarCompra(Long id) {
         Compra compra = compraRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Compra no encontrada con ID: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("COMPRA_NO_ENCONTRADA", "Compra no encontrada con ID: " + id));
 
         // Solo se puede cancelar si está POR_CONFIRMAR
         if (compra.getEstado() != EstadoCompra.POR_CONFIRMAR) {
-            throw new RuntimeException("No se puede cancelar una compra en estado: " + compra.getEstado());
+            throw new ConflictoEstadoException("COMPRA_NO_CANCELABLE", "No se puede cancelar una compra en estado: " + compra.getEstado());
         }
 
         compra.setEstado(EstadoCompra.CANCELADA);

@@ -11,7 +11,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Controlador REST para gestión de compras
@@ -52,13 +51,8 @@ public class CompraController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<?> getCompraById(@PathVariable Long id) {
-        try {
-            CompraResponse compra = compraService.getCompraById(id);
-            return ResponseEntity.ok(compra);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        CompraResponse compra = compraService.getCompraById(id);
+        return ResponseEntity.ok(compra);
     }
 
     /**
@@ -67,13 +61,8 @@ public class CompraController {
      */
     @PostMapping
     public ResponseEntity<?> createCompra(@Valid @RequestBody CompraRequest request) {
-        try {
-            CompraResponse createdCompra = compraService.createCompra(request);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdCompra);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        CompraResponse createdCompra = compraService.createCompra(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdCompra);
     }
 
     /**
@@ -82,13 +71,8 @@ public class CompraController {
      */
     @PutMapping("/{id}")
     public ResponseEntity<?> updateCompra(@PathVariable Long id, @Valid @RequestBody CompraRequest request) {
-        try {
-            CompraResponse updatedCompra = compraService.updateCompra(id, request);
-            return ResponseEntity.ok(updatedCompra);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        CompraResponse updatedCompra = compraService.updateCompra(id, request);
+        return ResponseEntity.ok(updatedCompra);
     }
 
     /**
@@ -98,13 +82,8 @@ public class CompraController {
     @PatchMapping("/{id}/estado")
     public ResponseEntity<?> cambiarEstadoCompra(@PathVariable Long id, 
                                                  @RequestParam EstadoCompra nuevoEstado) {
-        try {
-            CompraResponse compra = compraService.cambiarEstadoCompra(id, nuevoEstado);
-            return ResponseEntity.ok(compra);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        CompraResponse compra = compraService.cambiarEstadoCompra(id, nuevoEstado);
+        return ResponseEntity.ok(compra);
     }
 
     /**
@@ -113,13 +92,8 @@ public class CompraController {
      */
     @PatchMapping("/{id}/recibir")
     public ResponseEntity<?> recibirCompra(@PathVariable Long id) {
-        try {
-            CompraResponse compra = compraService.recibirCompra(id);
-            return ResponseEntity.ok(compra);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        CompraResponse compra = compraService.recibirCompra(id);
+        return ResponseEntity.ok(compra);
     }
 
     /**
@@ -128,13 +102,8 @@ public class CompraController {
      */
     @PatchMapping("/{id}/cancelar")
     public ResponseEntity<?> cancelarCompra(@PathVariable Long id) {
-        try {
-            CompraResponse compra = compraService.cancelarCompra(id);
-            return ResponseEntity.ok(compra);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        CompraResponse compra = compraService.cancelarCompra(id);
+        return ResponseEntity.ok(compra);
     }
 
 }

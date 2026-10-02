@@ -10,7 +10,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Controlador REST para gestión de proveedores
@@ -61,13 +60,8 @@ public class ProveedorController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<?> getProveedorById(@PathVariable Long id) {
-        try {
-            ProveedorResponse proveedor = proveedorService.getProveedorById(id);
-            return ResponseEntity.ok(proveedor);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        ProveedorResponse proveedor = proveedorService.getProveedorById(id);
+        return ResponseEntity.ok(proveedor);
     }
 
     /**
@@ -76,13 +70,8 @@ public class ProveedorController {
      */
     @PostMapping
     public ResponseEntity<?> createProveedor(@Valid @RequestBody ProveedorRequest request) {
-        try {
-            ProveedorResponse createdProveedor = proveedorService.createProveedor(request);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdProveedor);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        ProveedorResponse createdProveedor = proveedorService.createProveedor(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdProveedor);
     }
 
     /**
@@ -92,13 +81,8 @@ public class ProveedorController {
     @PutMapping("/{id}")
     public ResponseEntity<?> updateProveedor(@PathVariable Long id, 
                                             @Valid @RequestBody ProveedorRequest request) {
-        try {
-            ProveedorResponse updatedProveedor = proveedorService.updateProveedor(id, request);
-            return ResponseEntity.ok(updatedProveedor);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        ProveedorResponse updatedProveedor = proveedorService.updateProveedor(id, request);
+        return ResponseEntity.ok(updatedProveedor);
     }
 
     /**
@@ -107,13 +91,8 @@ public class ProveedorController {
      */
     @PatchMapping("/{id}/toggle-status")
     public ResponseEntity<?> toggleProveedorStatus(@PathVariable Long id) {
-        try {
-            ProveedorResponse proveedor = proveedorService.toggleProveedorStatus(id);
-            return ResponseEntity.ok(proveedor);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
-        }
+        ProveedorResponse proveedor = proveedorService.toggleProveedorStatus(id);
+        return ResponseEntity.ok(proveedor);
     }
 
     /**

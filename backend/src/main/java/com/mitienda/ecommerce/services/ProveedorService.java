@@ -1,5 +1,7 @@
 package com.mitienda.ecommerce.services;
 
+import com.mitienda.ecommerce.exception.ConflictoEstadoException;
+import com.mitienda.ecommerce.exception.RecursoNoEncontradoException;
 import com.mitienda.ecommerce.dto.ProveedorRequest;
 import com.mitienda.ecommerce.dto.ProveedorResponse;
 import com.mitienda.ecommerce.models.Proveedor;
@@ -64,7 +66,7 @@ public class ProveedorService {
      */
     public ProveedorResponse getProveedorById(Long id) {
         Proveedor proveedor = proveedorRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Proveedor no encontrado con ID: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("PROVEEDOR_NO_ENCONTRADO", "Proveedor no encontrado con ID: " + id));
         return new ProveedorResponse(proveedor);
     }
 
@@ -75,7 +77,7 @@ public class ProveedorService {
     public ProveedorResponse createProveedor(ProveedorRequest request) {
         // Validar que el NIT no exista
         if (proveedorRepository.existsByNit(request.getNit())) {
-            throw new RuntimeException("Ya existe un proveedor con el NIT: " + request.getNit());
+            throw new ConflictoEstadoException("NIT_DUPLICADO", "Ya existe un proveedor con el NIT: " + request.getNit());
         }
 
         Proveedor proveedor = new Proveedor();
@@ -101,12 +103,12 @@ public class ProveedorService {
     @Transactional
     public ProveedorResponse updateProveedor(Long id, ProveedorRequest request) {
         Proveedor proveedor = proveedorRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Proveedor no encontrado con ID: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("PROVEEDOR_NO_ENCONTRADO", "Proveedor no encontrado con ID: " + id));
 
         // Validar NIT único (si cambió)
         if (!proveedor.getNit().equals(request.getNit()) && 
             proveedorRepository.existsByNit(request.getNit())) {
-            throw new RuntimeException("Ya existe un proveedor con el NIT: " + request.getNit());
+            throw new ConflictoEstadoException("NIT_DUPLICADO", "Ya existe un proveedor con el NIT: " + request.getNit());
         }
 
         proveedor.setNombreEmpresa(request.getNombreEmpresa());
@@ -133,7 +135,7 @@ public class ProveedorService {
     @Transactional
     public ProveedorResponse toggleProveedorStatus(Long id) {
         Proveedor proveedor = proveedorRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Proveedor no encontrado con ID: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("PROVEEDOR_NO_ENCONTRADO", "Proveedor no encontrado con ID: " + id));
 
         proveedor.setActivo(!proveedor.getActivo());
         Proveedor updatedProveedor = proveedorRepository.save(proveedor);
