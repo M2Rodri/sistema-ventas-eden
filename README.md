@@ -20,6 +20,29 @@ Render: si nadie lo usó en los últimos 15 minutos, el servicio se apaga solo y
 la primera petición después de eso tarda alrededor de un minuto en volver a
 levantarlo.
 
+## Versionado de la API
+
+Todas las rutas de la API van con el prefijo **`/api/v1`**, por ejemplo
+`/api/v1/productos`, `/api/v1/ventas/{id}` o `/api/v1/auth/login`. Una ruta que
+empiece con `/api/` pero sin la versión **no existe y responde 404**, con o sin sesión.
+
+- **En alcance y versionadas:** auth, usuarios, productos, categorías, imágenes de producto,
+  inventario, ventas, pagos, clientes, compras, proveedores, dashboard, reportes y
+  comprobantes de venta (solo `GET /comprobantes/venta/{idVenta}` y `POST /comprobantes`).
+- **Fuera de alcance (apagadas, responden 404):** envíos, transportadoras, promociones,
+  configuración, consulta de auditorías, mensajes de contacto y multimedia 3D. Su código sigue
+  en el repositorio hasta que se eliminen. El registro interno de auditoría (quién hizo cada
+  venta, compra, pago y ajuste) sigue funcionando: solo se apagó su ruta de consulta.
+- **Acceso por rol:** se define en `SecurityConfig` y se verifica con pruebas automáticas
+  (`RutasApiTest`): sin sesión, 401; con un rol sin permiso, 403 (por ejemplo, el EMPLEADO frente
+  a `/api/v1/reportes/**`).
+- **Ruta de salud:** `/api/v1/salud`, pública.
+
+La lista completa, con la ruta anterior, la nueva y el estado de cada una, está en
+[`docs/rutas-api-v1.md`](docs/rutas-api-v1.md). La web y la app móvil usan solo rutas `/api/v1`
+(la web, desde una única constante en `frontend/src/lib/api.ts`; la app, en `app/lib/data/`).
+No hay colección de Postman en el repositorio.
+
 ## Qué incluye
 
 | Parte | Carpeta | Tecnología | Para qué |
