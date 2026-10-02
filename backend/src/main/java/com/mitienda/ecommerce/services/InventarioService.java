@@ -19,7 +19,10 @@ import com.mitienda.ecommerce.repositories.UsuarioRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional; // Importar esta anotación
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -89,9 +92,15 @@ public class InventarioService {
      */
     @Transactional(readOnly = true) // <--- AÑADIDO ESTA ANOTACIÓN
     public List<InventarioResponse> getAllInventario() {
+        Set<Long> conAlertaAtendida = new HashSet<>(
+                alertaInventarioRepository.findIdsProductoPorEstado(EstadoAlerta.ATENDIDA_MANUAL));
         return inventarioRepository.findAll()
                 .stream()
-                .map(i -> ocultarCostoSiNoEsAdmin(new InventarioResponse(i)))
+                .map(i -> {
+                    InventarioResponse response = ocultarCostoSiNoEsAdmin(new InventarioResponse(i));
+                    response.setAlertaAtendida(conAlertaAtendida.contains(i.getProducto().getId()));
+                    return response;
+                })
                 .collect(Collectors.toList());
     }
 
@@ -362,6 +371,39 @@ public class InventarioService {
     }
 
     /**
+     * Marcar una alerta como atendida: deja de aparecer (lista y campana) y no vuelve a avisar de
+     * ese producto mientras siga bajo el mínimo. No obliga a comprar nada.
+     */
+    @Transactional
+    public void marcarAlertaAtendida(Long idAlerta) {
+        AlertaInventario alerta = alertaInventarioRepository.findById(idAlerta)
+                .orElseThrow(() -> new RecursoNoEncontradoException("ALERTA_NO_ENCONTRADA", "Alerta no encontrada con ID: " + idAlerta));
+        if (alerta.getEstado() != EstadoAlerta.PENDIENTE) {
+            throw new ConflictoEstadoException("ALERTA_YA_ATENDIDA", "Esta alerta ya fue atendida");
+        }
+        alerta.setEstado(EstadoAlerta.ATENDIDA_MANUAL);
+        alertaInventarioRepository.save(alerta);
+        registroAuditoria.registrar("ATENDER_ALERTA_STOCK", "alertas_inventario", alerta.getId(),
+                "Alerta de stock de " + alerta.getProducto().getSku() + " marcada como atendida");
+    }
+
+    /**
+     * Volver a avisar de un producto cuya alerta se había marcado como atendida. Si ya no está bajo
+     * el mínimo no hay nada que reactivar: la alerta se cierra sola.
+     */
+    @Transactional
+    public void reactivarAlerta(Long idProducto) {
+        List<AlertaInventario> atendidas = alertaInventarioRepository
+                .findByProductoIdAndEstado(idProducto, EstadoAlerta.ATENDIDA_MANUAL);
+        if (atendidas.isEmpty()) {
+            throw new RecursoNoEncontradoException("ALERTA_NO_ENCONTRADA", "Este producto no tiene una alerta atendida para reactivar");
+        }
+        atendidas.forEach(a -> a.setEstado(EstadoAlerta.PENDIENTE));
+        alertaInventarioRepository.saveAll(atendidas);
+        sincronizarAlerta(idProducto);
+    }
+
+    /**
      * La alerta guarda cantidadActual/cantidadMinima congelados desde que se
      * creó. Con la desduplicación (ver verificarYCrearAlerta) una alerta
      * puede seguir PENDIENTE mientras el producto sigue vendiéndose, así que
@@ -388,8 +430,14 @@ public class InventarioService {
         if (!inventario.estaBajoStockMinimo()) {
             // El stock se repuso: si había alertas pendientes de cuando
             // estaba bajo, ya no tiene sentido que sigan ahí esperando que
-            // alguien las marque a mano.
+            // alguien las marque a mano. Y una que el dueño había marcado como
+            // atendida se da por cerrada, para que avise de nuevo si vuelve a bajar.
             resolverAlertasPendientes(inventario);
+            return;
+        }
+        // Marcada como atendida por el dueño y todavía sin reponer: no se vuelve a avisar.
+        if (alertaInventarioRepository.existsByProductoIdAndEstado(
+                inventario.getProducto().getId(), EstadoAlerta.ATENDIDA_MANUAL)) {
             return;
         }
         // Sin este chequeo, cada venta o ajuste que deja al producto igual
@@ -429,8 +477,10 @@ public class InventarioService {
      * volvió a estar por encima del mínimo.
      */
     private void resolverAlertasPendientes(Inventario inventario) {
-        List<AlertaInventario> pendientes = alertaInventarioRepository
-                .findByProductoIdAndEstado(inventario.getProducto().getId(), EstadoAlerta.PENDIENTE);
+        List<AlertaInventario> pendientes = new ArrayList<>(alertaInventarioRepository
+                .findByProductoIdAndEstado(inventario.getProducto().getId(), EstadoAlerta.PENDIENTE));
+        pendientes.addAll(alertaInventarioRepository
+                .findByProductoIdAndEstado(inventario.getProducto().getId(), EstadoAlerta.ATENDIDA_MANUAL));
         if (pendientes.isEmpty()) {
             return;
         }

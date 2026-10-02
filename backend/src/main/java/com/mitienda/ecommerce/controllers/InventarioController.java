@@ -189,6 +189,27 @@ public class InventarioController {
     }
 
     /**
+     * PATCH /api/v1/inventario/alertas/{id}/atender
+     * Marcar una alerta de stock como atendida (ADMIN): no vuelve a avisar hasta que el producto
+     * se reponga y vuelva a bajar.
+     */
+    @PatchMapping("/alertas/{id}/atender")
+    public ResponseEntity<?> atenderAlerta(@PathVariable Long id) {
+        inventarioService.marcarAlertaAtendida(id);
+        return ResponseEntity.ok(Map.of("message", "Alerta marcada como atendida"));
+    }
+
+    /**
+     * PATCH /api/v1/inventario/producto/{idProducto}/reactivar-alerta
+     * Volver a avisar de un producto con alerta atendida (ADMIN)
+     */
+    @PatchMapping("/producto/{idProducto}/reactivar-alerta")
+    public ResponseEntity<?> reactivarAlerta(@PathVariable Long idProducto) {
+        inventarioService.reactivarAlerta(idProducto);
+        return ResponseEntity.ok(Map.of("message", "Alerta reactivada"));
+    }
+
+    /**
      * GET /api/v1/inventario/estadisticas
      * Obtener estadísticas de inventario (ADMIN)
      */

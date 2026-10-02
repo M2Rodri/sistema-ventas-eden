@@ -80,6 +80,7 @@ que no existen. Todas las respuestas de error llevan las cabeceras CORS, para qu
 | 404 | `COMPRA_NO_ENCONTRADA` | Compra inexistente (consulta o anulación) | `Compra no encontrada con ID: 999` |
 | 404 | `INVENTARIO_NO_ENCONTRADO` | El producto no tiene inventario o el registro no existe | `No existe inventario para el producto con ID: 999` |
 | 404 | `IMAGEN_NO_ENCONTRADA` | Imagen inexistente o que no es del producto indicado | `Imagen no encontrada con ID: 999` |
+| 404 | `ALERTA_NO_ENCONTRADA` | Se marca o reactiva una alerta de stock que no existe, o un producto sin alerta atendida | `Alerta no encontrada con ID: 999` |
 | 404 | `USUARIO_NO_ENCONTRADO` | Usuario inexistente | `Usuario no encontrado con ID: 999` |
 
 ### 409: choca con el estado actual
@@ -94,6 +95,7 @@ que no existen. Todas las respuestas de error llevan las cabeceras CORS, para qu
 | 409 | `VENTA_ENTREGA_PENDIENTE` | Se corrige la entrega de una venta que todavía está pendiente | `No hay nada que corregir: la venta está pendiente de entrega` |
 | 409 | `COMPROBANTE_YA_EXISTE` | La venta ya tiene comprobante | `Esta venta ya tiene un comprobante asociado` |
 | 409 | `COMPROBANTE_YA_ANULADO` | Se anula un comprobante ya anulado | `Este comprobante ya está anulado` |
+| 409 | `ALERTA_YA_ATENDIDA` | Se marca como atendida una alerta que ya no está pendiente | `Esta alerta ya fue atendida` |
 | 409 | `SKU_DUPLICADO` | Otro producto ya usa ese SKU | `Ya existe un producto con el SKU: CAM-001` |
 | 409 | `CATEGORIA_DUPLICADA` | Otra categoría ya tiene ese nombre | `Ya existe una categoría con el nombre: Camas` |
 | 409 | `CATEGORIA_CON_PRODUCTOS` | Se elimina una categoría que tiene productos | `No se puede eliminar una categoría con productos asociados` |

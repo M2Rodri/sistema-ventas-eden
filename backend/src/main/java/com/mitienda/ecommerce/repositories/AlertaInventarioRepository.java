@@ -41,4 +41,8 @@ public interface AlertaInventarioRepository extends JpaRepository<AlertaInventar
      * stock ya se repuso (ver InventarioService#resolverAlertasPendientes).
      */
     List<AlertaInventario> findByProductoIdAndEstado(Long idProducto, EstadoAlerta estado);
+
+    /** Ids de los productos que tienen alguna alerta en ese estado (una sola consulta para toda la tabla). */
+    @Query("SELECT DISTINCT a.producto.id FROM AlertaInventario a WHERE a.estado = :estado")
+    List<Long> findIdsProductoPorEstado(@org.springframework.data.repository.query.Param("estado") EstadoAlerta estado);
 }

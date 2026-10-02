@@ -35,6 +35,8 @@ public class InventarioResponse {
     private Integer cantidadDisponible;
     private Integer stockMinimo;
     private Boolean bajoStockMinimo;
+    /** El dueño marcó como atendida la alerta de este producto (sigue bajo el mínimo, pero no se avisa). */
+    private Boolean alertaAtendida = false;
     private LocalDateTime fechaActualizacion;
 
     // Constructor desde entidad
