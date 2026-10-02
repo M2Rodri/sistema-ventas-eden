@@ -43,6 +43,22 @@ La lista completa, con la ruta anterior, la nueva y el estado de cada una, está
 (la web, desde una única constante en `frontend/src/lib/api.ts`; la app, en `app/lib/data/`).
 No hay colección de Postman en el repositorio.
 
+## Errores de la API
+
+Todas las rutas responden los errores con el mismo formato, y la web y la app muestran `error.mensaje`:
+
+```json
+{ "error": { "codigo": "VENTA_NO_ENCONTRADA", "mensaje": "Venta no encontrada con ID: 999", "campos": { "campo": "detalle" } } }
+```
+
+`campos` solo viene en los errores de validación de campos. Códigos HTTP: 400 petición mal formada o campo inválido,
+401 sin sesión, 403 rol sin permiso, 404 recurso inexistente (también en PUT, PATCH y DELETE), 409 choca con el estado
+actual (por ejemplo, confirmar una compra ya confirmada), 422 regla de negocio violada (stock insuficiente, pago mayor
+al saldo) y 500 error interno, sin detalles ni traza. Las respuestas de error llevan las cabeceras CORS.
+
+La tabla completa de códigos de error, cuándo ocurre cada uno y un ejemplo está en
+[`docs/errores-api.md`](docs/errores-api.md).
+
 ## Qué incluye
 
 | Parte | Carpeta | Tecnología | Para qué |
