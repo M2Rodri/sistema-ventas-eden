@@ -95,7 +95,7 @@ public class ComprobanteService {
         }
 
         // Generar número de comprobante
-        String numeroComprobante = generarNumeroComprobante(request.getTipoComprobante());
+        String numeroComprobante = generarNumeroComprobante(request.getTipoComprobante(), venta.getFechaVenta());
 
         // Crear comprobante
         Comprobante comprobante = new Comprobante();
@@ -195,10 +195,16 @@ public class ComprobanteService {
      * cuenta, etc.). Eso generaba números repetidos y el INSERT fallaba
      * por la restricción de unicidad. Ahora se calcula a partir del último
      * número real con ese mismo prefijo (tipo + año).
+     *
+     * El año es el de la FECHA DE LA VENTA, no el del día en que se genera el
+     * comprobante: así una venta del 31 de diciembre no recibe un número del
+     * año siguiente si el comprobante se crea después de la medianoche. Solo si
+     * la venta no tuviera fecha se usa la de hoy.
      */
-    private String generarNumeroComprobante(TipoComprobante tipo) {
+    private String generarNumeroComprobante(TipoComprobante tipo, LocalDateTime fechaVenta) {
         String prefijo = obtenerPrefijoTipo(tipo);
-        String año = String.valueOf(LocalDateTime.now().getYear());
+        LocalDateTime referencia = fechaVenta != null ? fechaVenta : LocalDateTime.now();
+        String año = String.valueOf(referencia.getYear());
         String prefijoCompleto = prefijo + "-" + año + "-";
 
         int siguiente = comprobanteRepository.findUltimoNumeroConPrefijo(prefijoCompleto)
