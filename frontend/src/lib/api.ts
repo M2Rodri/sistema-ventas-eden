@@ -1287,36 +1287,7 @@ export const createCompra = async (data: CompraRequest): Promise<Compra> => {
   return response.json();
 };
 
-// Editar compra (solo mientras está pendiente)
-export const updateCompra = async (id: number, data: CompraRequest): Promise<Compra> => {
-  const response = await fetch(`${API_URL}/compras/${id}`, {
-    method: 'PUT',
-    headers: getAuthHeaders(),
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
-    throw await errorDeRespuesta(response, 'Error al editar compra');
-  }
-
-  return response.json();
-};
-
-// Recibir compra
-export const recibirCompra = async (id: number): Promise<Compra> => {
-  const response = await fetch(`${API_URL}/compras/${id}/recibir`, {
-    method: 'PATCH',
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    throw await errorDeRespuesta(response, 'Error al recibir compra');
-  }
-
-  return response.json();
-};
-
-// Cancelar compra
+// Anular compra: descuenta del inventario lo que trajo, si todavía está en stock
 export const cancelarCompra = async (id: number): Promise<Compra> => {
   const response = await fetch(`${API_URL}/compras/${id}/cancelar`, {
     method: 'PATCH',
@@ -1324,7 +1295,7 @@ export const cancelarCompra = async (id: number): Promise<Compra> => {
   });
 
   if (!response.ok) {
-    throw await errorDeRespuesta(response, 'Error al cancelar compra');
+    throw await errorDeRespuesta(response, 'Error al anular la compra');
   }
 
   return response.json();

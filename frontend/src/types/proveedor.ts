@@ -1,6 +1,7 @@
 // types/proveedor.ts
 
-export type EstadoCompra = 'POR_CONFIRMAR' | 'CONFIRMADA' | 'CANCELADA';
+/** Una compra registrada entra al inventario en el acto (CONFIRMADA); anularla la deja CANCELADA. */
+export type EstadoCompra = 'CONFIRMADA' | 'CANCELADA';
 
 export interface Proveedor {
   id: number;

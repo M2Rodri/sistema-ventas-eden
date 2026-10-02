@@ -2,19 +2,19 @@
 
 import { useState, useEffect } from 'react';
 import { X, AlertCircle, Search, Trash2, Package, Plus, Check } from 'lucide-react';
-import { createCompra, updateCompra, getActiveProductos, getActiveProveedores } from '@/lib/api';
-import { Compra, CompraRequest, Proveedor } from '@/types/proveedor';
-import { Producto, TipoProducto } from '@/types/producto';
+import {
+  createCompra, getActiveProductos, getAllProductos, getActiveProveedores, getAllCategorias, getAllInventario,
+  addImagenProducto, deleteImagenProducto,
+} from '@/lib/api';
+import { CompraRequest, Proveedor } from '@/types/proveedor';
+import { Categoria, Producto, TipoProducto } from '@/types/producto';
+import ProductoModal from '@/components/ProductoModal';
+import ProductoDetalleModal from '@/components/ProductoDetalleModal';
 
 interface CompraModalProps {
-  /** Si viene, el proveedor queda fijo (se abre desde su ficha). Se ignora
-   * en modo edición: ahí el proveedor sale de la compra que se edita. */
+  /** Si viene, el proveedor queda fijo (se abre desde su ficha). */
   idProveedor?: number;
   nombreProveedor?: string;
-  /** Si viene, el modal edita esta compra en vez de crear una nueva.
-   * Nunca se abre así si la compra no está POR_CONFIRMAR (lo controla quien
-   * abre el modal). */
-  compra?: Compra;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -52,25 +52,23 @@ const normalizar = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toL
 export default function CompraModal({
   idProveedor,
   nombreProveedor,
-  compra,
   onClose,
   onSuccess,
 }: CompraModalProps) {
-  const editando = !!compra;
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [productos, setProductos] = useState<Producto[]>([]);
+  /** Todos los productos (activos e inactivos): solo para sugerir el siguiente SKU al crear uno. */
+  const [todosLosProductos, setTodosLosProductos] = useState<Producto[]>([]);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [stockPorProducto, setStockPorProducto] = useState<Map<number, number>>(new Map());
+  const [productoVer, setProductoVer] = useState<Producto | null>(null);
+  const [nuevoProductoAbierto, setNuevoProductoAbierto] = useState(false);
   const [proveedorSeleccionado, setProveedorSeleccionado] = useState<number>(
-    compra?.idProveedor ?? idProveedor ?? 0
+    idProveedor ?? 0
   );
-  const [numeroFactura, setNumeroFactura] = useState(compra?.numeroFactura ?? '');
-  const [notas, setNotas] = useState(compra?.notas ?? '');
-  const [lineas, setLineas] = useState<LineaCompra[]>(
-    compra?.detalles.map((d) => ({
-      idProducto: d.idProducto,
-      cantidad: d.cantidad,
-      precioUnitario: d.precioUnitario,
-    })) ?? []
-  );
+  const [numeroFactura, setNumeroFactura] = useState('');
+  const [notas, setNotas] = useState('');
+  const [lineas, setLineas] = useState<LineaCompra[]>([]);
   const [loading, setLoading] = useState(false);
   const [cargandoDatos, setCargandoDatos] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -81,17 +79,54 @@ export default function CompraModal({
   const [tipoPickerActivo, setTipoPickerActivo] = useState<TipoProducto | null>('CAMA');
   const [seleccionados, setSeleccionados] = useState<Set<number>>(new Set());
 
+  const cargarDatos = async () => {
+    const [prods, todos, provs, cats, inv] = await Promise.allSettled([
+      getActiveProductos(),
+      getAllProductos(),
+      getActiveProveedores(),
+      getAllCategorias(),
+      getAllInventario(),
+    ]);
+    if (prods.status === 'fulfilled') setProductos(prods.value);
+    if (todos.status === 'fulfilled') setTodosLosProductos(todos.value);
+    if (provs.status === 'fulfilled') setProveedores(provs.value);
+    if (cats.status === 'fulfilled') setCategorias(cats.value);
+    if (inv.status === 'fulfilled') {
+      setStockPorProducto(new Map(inv.value.map((i) => [i.idProducto, i.cantidadDisponible])));
+    }
+    setCargandoDatos(false);
+  };
+
   useEffect(() => {
-    (async () => {
-      const [prods, provs] = await Promise.allSettled([
-        getActiveProductos(),
-        getActiveProveedores(),
-      ]);
-      if (prods.status === 'fulfilled') setProductos(prods.value);
-      if (provs.status === 'fulfilled') setProveedores(provs.value);
-      setCargandoDatos(false);
-    })();
+    cargarDatos();
   }, []);
+
+  /** Lo que distingue a un producto de otro parecido: color, medida, material y marca. */
+  const detalleCorto = (p: Producto) =>
+    [p.color, p.dimensiones, p.materialArmazon || p.materialNucleo, p.marca].filter(Boolean).join(' · ');
+
+  const imagenesDeProductoNuevo = {
+    agregar: async (idProducto: number, file: File) => {
+      await addImagenProducto(idProducto, file, true);
+    },
+    reemplazar: async (idImagenVieja: number, idProducto: number, file: File) => {
+      await deleteImagenProducto(idImagenVieja);
+      await addImagenProducto(idProducto, file, true);
+    },
+    eliminar: async (idImagen: number) => {
+      await deleteImagenProducto(idImagen);
+    },
+  };
+
+  /** Producto recién creado: queda agregado a la compra y se vuelve a ella. */
+  const alCrearProducto = async (nuevo?: Producto) => {
+    setNuevoProductoAbierto(false);
+    setPickerAbierto(false);
+    if (nuevo) {
+      setLineas((actuales) => [...actuales, { idProducto: nuevo.id, cantidad: 1, precioUnitario: 0 }]);
+    }
+    await cargarDatos();
+  };
 
   const idsUsados = new Set(lineas.map((l) => l.idProducto));
 
@@ -126,7 +161,8 @@ export default function CompraModal({
     if (tipoPickerActivo && p.tipoProducto !== tipoPickerActivo) return false;
     const texto = normalizar(busquedaPicker.trim());
     if (!texto) return true;
-    return normalizar(p.nombre).includes(texto) || normalizar(p.sku).includes(texto);
+    return [p.nombre, p.sku, p.nombreCategoria, p.color, p.dimensiones, p.materialArmazon, p.materialNucleo, p.marca, p.modelo]
+      .some((campo) => campo && normalizar(campo).includes(texto));
   });
 
   const actualizarLinea = (indice: number, cambios: Partial<LineaCompra>) => {
@@ -168,11 +204,7 @@ export default function CompraModal({
         notas: notas.trim() || undefined,
         items: lineas,
       };
-      if (editando && compra) {
-        await updateCompra(compra.id, datos);
-      } else {
-        await createCompra(datos);
-      }
+      await createCompra(datos);
       onSuccess();
     } catch (err: any) {
       setError(err.message);
@@ -188,8 +220,8 @@ export default function CompraModal({
       <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-5 py-2 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100 shrink-0">
           <h2 className="text-base font-bold text-gray-900">
-            {editando ? `Editar compra #${compra!.id}` : 'Registrar compra'}
-            {!editando && nombreProveedor && (
+            Registrar compra
+            {nombreProveedor && (
               <span className="font-normal text-gray-600"> · Proveedor: <strong>{nombreProveedor}</strong></span>
             )}
           </h2>
@@ -272,7 +304,7 @@ export default function CompraModal({
                 <Package size={32} className="mx-auto text-gray-400 mb-2" />
                 <p className="text-sm text-gray-600">Todavía no agregaste productos</p>
                 <p className="text-xs text-gray-500 mt-1">
-                  Usá el botón de arriba para elegirlos. Al recibir la compra, estas cantidades se suman al inventario.
+                  Usá el botón de arriba para elegirlos. Al registrar la compra, estas cantidades se suman al inventario.
                 </p>
               </div>
             ) : (
@@ -284,7 +316,12 @@ export default function CompraModal({
                       <div className="flex justify-between items-start mb-2">
                         <div>
                           <p className="font-medium text-sm text-gray-900">{producto?.nombre ?? `Producto #${linea.idProducto}`}</p>
-                          <p className="text-xs text-gray-500">SKU: {producto?.sku ?? '—'}</p>
+                          <p className="text-xs text-gray-500">SKU: {producto?.sku ?? '—'}{producto && detalleCorto(producto) ? ` · ${detalleCorto(producto)}` : ''}</p>
+                          {producto && (
+                            <button type="button" onClick={() => setProductoVer(producto)} className="text-xs text-primary-600 hover:underline">
+                              Ver detalle del producto
+                            </button>
+                          )}
                         </div>
                         <button
                           type="button"
@@ -354,8 +391,8 @@ export default function CompraModal({
               className="px-4 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium disabled:opacity-50"
             >
               {loading
-                ? (editando ? 'Guardando…' : 'Registrando…')
-                : (editando ? 'Guardar cambios' : 'Registrar compra')}
+                ? 'Registrando…'
+                : 'Registrar compra'}
             </button>
           </div>
         </form>
@@ -367,6 +404,15 @@ export default function CompraModal({
           <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col">
             <div className="flex items-center justify-between p-5 border-b border-gray-200">
               <h3 className="text-base font-bold text-gray-900">Elegir productos</h3>
+              <button
+                type="button"
+                onClick={() => setNuevoProductoAbierto(true)}
+                className="ml-auto mr-3 inline-flex items-center gap-1 text-sm px-2.5 py-1 border border-primary-300 text-primary-700 rounded-lg hover:bg-primary-50"
+                title="Si el producto todavía no existe, créalo y vuelve a esta compra"
+              >
+                <Plus size={14} />
+                Nuevo producto
+              </button>
               <button type="button" onClick={() => setPickerAbierto(false)} className="text-gray-400 hover:text-gray-600">
                 <X size={20} />
               </button>
@@ -381,7 +427,7 @@ export default function CompraModal({
                   value={busquedaPicker}
                   onChange={(e) => setBusquedaPicker(e.target.value)}
                   className="w-full outline-none text-sm"
-                  placeholder="Buscar por nombre o SKU…"
+                  placeholder="Buscar por nombre, SKU, color, medida o material…"
                 />
               </div>
               <div className="flex flex-wrap gap-2">
@@ -405,7 +451,7 @@ export default function CompraModal({
             <div className="flex-1 overflow-y-auto p-2">
               {productosDelPicker.length === 0 ? (
                 <p className="text-sm text-gray-400 text-center py-8">
-                  No se encontraron productos, o ya están todos agregados.
+                  No se encontraron productos, o ya están todos agregados. Si no existe, usá «Nuevo producto».
                 </p>
               ) : (
                 productosDelPicker.map((p) => {
@@ -430,9 +476,22 @@ export default function CompraModal({
                         onChange={() => toggleSeleccion(p.id)}
                         className="sr-only"
                       />
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-900">{p.nombre}</p>
-                        <p className="text-xs text-gray-500">SKU: {p.sku}</p>
+                        <p className="text-xs text-gray-500">
+                          SKU: {p.sku}{p.nombreCategoria ? ` · ${p.nombreCategoria}` : ''}
+                        </p>
+                        {detalleCorto(p) && <p className="text-xs text-gray-600">{detalleCorto(p)}</p>}
+                      </div>
+                      <div className="flex-shrink-0 text-right">
+                        <p className="text-xs text-gray-500">Stock: <span className="font-semibold text-gray-800">{stockPorProducto.get(p.id) ?? 0}</span></p>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setProductoVer(p); }}
+                          className="text-xs text-primary-600 hover:underline"
+                        >
+                          Ver detalle
+                        </button>
                       </div>
                     </label>
                   );
@@ -463,6 +522,26 @@ export default function CompraModal({
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {productoVer && <ProductoDetalleModal producto={productoVer} onClose={() => setProductoVer(null)} />}
+
+      {nuevoProductoAbierto && (
+        <div className="relative z-[80]">
+          <ProductoModal
+            producto={null}
+            productoParaEditar={null}
+            productos={todosLosProductos}
+            categorias={categorias}
+            imagenesActuales={[]}
+            onAgregarImagen={imagenesDeProductoNuevo.agregar}
+            onReemplazarImagen={imagenesDeProductoNuevo.reemplazar}
+            onEliminarImagen={imagenesDeProductoNuevo.eliminar}
+            loadingImages={false}
+            onClose={() => setNuevoProductoAbierto(false)}
+            onSuccess={alCrearProducto}
+          />
         </div>
       )}
     </div>

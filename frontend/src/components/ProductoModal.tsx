@@ -124,7 +124,8 @@ interface ProductoModalProps {
    * el siguiente SKU de la serie, mirando los que ya existen. */
   productos: Producto[];
   onClose: () => void;
-  onSuccess: () => void;
+  /** Al crear, recibe el producto nuevo (Compras lo agrega a la compra en curso). */
+  onSuccess: (productoCreado?: Producto) => void;
 }
 
 export default function ProductoModal({
@@ -331,6 +332,8 @@ export default function ProductoModal({
         if (archivoImagenPendiente) {
           await onAgregarImagen(nuevo.id, archivoImagenPendiente);
         }
+        onSuccess(nuevo);
+        return;
       }
       onSuccess();
     } catch (err: any) {

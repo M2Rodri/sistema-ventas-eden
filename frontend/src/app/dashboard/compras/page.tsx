@@ -4,12 +4,12 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useDragScrollTable } from '@/hooks/useDragScrollTable';
 import {
-  Plus, Search, Eye, Edit, PackageCheck, XCircle, ShoppingCart, X, AlertCircle,
+  Plus, Search, Eye, XCircle, ShoppingCart, X, AlertCircle,
 } from 'lucide-react';
 import {
-  getAllCompras, recibirCompra, cancelarCompra,
+  getAllCompras, cancelarCompra,
 } from '@/lib/api';
-import { Compra, EstadoCompra } from '@/types/proveedor';
+import { Compra } from '@/types/proveedor';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import CompraModal from '@/components/CompraModal';
 import DetalleCompraModal from '@/components/DetalleCompraModal';
@@ -56,14 +56,11 @@ function ComprasContent() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState('');
-  const [estadoFiltro, setEstadoFiltro] = useState<string>('TODOS');
   const [mensaje, setMensaje] = useState<{ tipo: 'success' | 'error'; texto: string } | null>(null);
 
   const [modalNuevaAbierto, setModalNuevaAbierto] = useState(false);
   const [compraDetalle, setCompraDetalle] = useState<Compra | null>(null);
-  const [compraAEditar, setCompraAEditar] = useState<Compra | null>(null);
-  const [compraARecibir, setCompraARecibir] = useState<Compra | null>(null);
-  const [compraACancelar, setCompraACancelar] = useState<Compra | null>(null);
+  const [compraAAnular, setCompraAAnular] = useState<Compra | null>(null);
 
   const cargar = async () => {
     try {
@@ -86,7 +83,6 @@ function ComprasContent() {
   useEffect(() => {
     const resetearFiltros = () => {
       setBusqueda('');
-      setEstadoFiltro('TODOS');
       suprimirFiltroProveedor();
     };
     window.addEventListener('compras:reset-filtros', resetearFiltros);
@@ -107,45 +103,15 @@ function ComprasContent() {
 
   const fecha = (f?: string) => (f ? new Date(f).toLocaleDateString('es-BO') : '—');
 
-  const badge = (estado: EstadoCompra | string) => {
-    const estilos: Record<string, string> = {
-      POR_CONFIRMAR: 'bg-amber-100 text-amber-800',
-      CONFIRMADA: 'bg-green-100 text-green-800',
-      CANCELADA: 'bg-red-100 text-red-800',
-    };
-    return estilos[estado] ?? 'bg-gray-100 text-gray-800';
-  };
-
-  const etiquetaEstado = (estado: EstadoCompra | string) => {
-    const etiquetas: Record<string, string> = {
-      POR_CONFIRMAR: 'Por confirmar',
-      CONFIRMADA: 'Confirmada',
-      CANCELADA: 'Cancelada',
-    };
-    return etiquetas[estado] ?? String(estado);
-  };
-
-  const handleRecibir = async (compra: Compra) => {
-    try {
-      await recibirCompra(compra.id);
-      avisar('success', `Compra #${compra.id} confirmada. El stock fue actualizado.`);
-      cargar();
-    } catch (error: any) {
-      avisar('error', mensajeError(error));
-    } finally {
-      setCompraARecibir(null);
-    }
-  };
-
-  const handleCancelar = async (compra: Compra) => {
+  const handleAnular = async (compra: Compra) => {
     try {
       await cancelarCompra(compra.id);
-      avisar('success', `Compra #${compra.id} cancelada`);
+      avisar('success', `Compra #${compra.id} anulada. Lo que trajo se descontó del inventario.`);
       cargar();
     } catch (error: any) {
       avisar('error', mensajeError(error));
     } finally {
-      setCompraACancelar(null);
+      setCompraAAnular(null);
     }
   };
 
@@ -156,9 +122,8 @@ function ComprasContent() {
       c.nombreProveedor?.toLowerCase().includes(texto) ||
       (c.numeroFactura ?? '').toLowerCase().includes(texto) ||
       String(c.id).includes(texto);
-    const coincideEstado = estadoFiltro === 'TODOS' || c.estado === estadoFiltro;
     const coincideProveedor = !proveedorFiltroId || c.idProveedor === Number(proveedorFiltroId);
-    return coincide && coincideEstado && coincideProveedor;
+    return coincide && coincideProveedor;
   });
 
   const nombreProveedorFiltrado = proveedorFiltroId
@@ -174,7 +139,7 @@ function ComprasContent() {
     theadRef,
     hasOverflow,
     theadProps,
-  } = useDragScrollTable([loading, compras, busqueda, estadoFiltro, proveedorFiltroId]);
+  } = useDragScrollTable([loading, compras, busqueda, proveedorFiltroId]);
 
   return (
     <>
@@ -185,7 +150,7 @@ function ComprasContent() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Compras a proveedores</h1>
           <p className="text-gray-600 mt-1">
-            Registrá compras ya realizadas. Confirmalas para actualizar el stock.
+            Registrá las compras ya realizadas: lo que compraste entra al inventario al guardarla.
           </p>
         </div>
 
@@ -221,16 +186,6 @@ function ComprasContent() {
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
         </div>
-        <select
-          value={estadoFiltro}
-          onChange={(e) => setEstadoFiltro(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-        >
-          <option value="TODOS">Todos los estados</option>
-          <option value="POR_CONFIRMAR">Por confirmar</option>
-          <option value="CONFIRMADA">Confirmadas</option>
-          <option value="CANCELADA">Canceladas</option>
-        </select>
         {proveedorFiltroId && (
           <span className="inline-flex items-center gap-2 px-3 py-2 bg-primary-50 text-primary-700 rounded-lg text-sm font-medium">
             Proveedor: {nombreProveedorFiltrado ?? `#${proveedorFiltroId}`}
@@ -289,14 +244,18 @@ function ComprasContent() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Factura</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Acciones</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filtradas.map((compra) => (
                   <tr key={compra.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{compra.id}</td>
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                      {compra.id}
+                      {compra.estado === 'CANCELADA' && (
+                        <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Anulada</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 text-sm text-gray-900">
                       {compra.nombreProveedor}
                       <span className="block text-xs text-gray-500">NIT: {compra.nitProveedor || '—'}</span>
@@ -305,11 +264,6 @@ function ComprasContent() {
                     <td className="px-6 py-4 text-sm text-gray-700">{fecha(compra.fechaCompra)}</td>
                     <td className="px-6 py-4 text-sm text-right font-semibold text-gray-900">
                       {bs(compra.montoTotal)}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${badge(compra.estado)}`}>
-                        {etiquetaEstado(compra.estado)}
-                      </span>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-center gap-0.5">
@@ -321,31 +275,11 @@ function ComprasContent() {
                           <Eye size={18} />
                         </button>
 
-                        {compra.estado === 'POR_CONFIRMAR' && (
+                        {compra.estado !== 'CANCELADA' && (
                           <button
-                            onClick={() => setCompraAEditar(compra)}
-                            className="text-blue-600 hover:text-blue-800 p-1.5"
-                            title="Editar compra"
-                          >
-                            <Edit size={18} />
-                          </button>
-                        )}
-
-                        {compra.estado !== 'CONFIRMADA' && compra.estado !== 'CANCELADA' && (
-                          <button
-                            onClick={() => setCompraARecibir(compra)}
-                            className="text-green-600 hover:text-green-800 p-1.5"
-                            title="Confirmar compra y sumar al stock"
-                          >
-                            <PackageCheck size={18} />
-                          </button>
-                        )}
-
-                        {compra.estado === 'POR_CONFIRMAR' && (
-                          <button
-                            onClick={() => setCompraACancelar(compra)}
+                            onClick={() => setCompraAAnular(compra)}
                             className="text-red-600 hover:text-red-800 p-1.5"
-                            title="Cancelar compra"
+                            title="Anular compra"
                           >
                             <XCircle size={18} />
                           </button>
@@ -364,27 +298,18 @@ function ComprasContent() {
         <DetalleCompraModal compra={compraDetalle} onClose={() => setCompraDetalle(null)} />
       )}
 
-      {compraARecibir && (
+      {compraAAnular && (
         <DeleteConfirmModal
-          title="Confirmar compra"
+          title="Anular compra"
           message={
-            `¿Confirmás los datos de la compra #${compraARecibir.id}?\n\n` +
-            `Las cantidades se van a sumar al inventario y queda registrado el movimiento. ` +
-            `Esta acción no se deshace.`
-          }
-          confirmLabel="Confirmar compra"
-          onConfirm={() => handleRecibir(compraARecibir)}
-          onCancel={() => setCompraARecibir(null)}
-        />
-      )}
+            `¿Anular la compra #${compraAAnular.id}?
 
-      {compraACancelar && (
-        <DeleteConfirmModal
-          title="Cancelar compra"
-          message={`¿Cancelar la compra #${compraACancelar.id}?`}
-          confirmLabel="Cancelar compra"
-          onConfirm={() => handleCancelar(compraACancelar)}
-          onCancel={() => setCompraACancelar(null)}
+` +
+            `Lo que trajo se descuenta del inventario. Si parte de esa mercadería ya se vendió, no se puede anular.`
+          }
+          confirmLabel="Anular compra"
+          onConfirm={() => handleAnular(compraAAnular)}
+          onCancel={() => setCompraAAnular(null)}
         />
       )}
     </div>
@@ -394,23 +319,12 @@ function ComprasContent() {
           onClose={() => setModalNuevaAbierto(false)}
           onSuccess={() => {
             setModalNuevaAbierto(false);
-            avisar('success', 'Compra registrada. Confirmala para actualizar el stock.');
+            avisar('success', 'Compra registrada. El stock fue actualizado.');
             cargar();
           }}
         />
       )}
 
-      {compraAEditar && (
-        <CompraModal
-          compra={compraAEditar}
-          onClose={() => setCompraAEditar(null)}
-          onSuccess={() => {
-            setCompraAEditar(null);
-            avisar('success', `Compra #${compraAEditar.id} actualizada.`);
-            cargar();
-          }}
-        />
-      )}
     </>
   );
 }

@@ -3,6 +3,9 @@
 import { useRef, useState } from 'react';
 import { X, Building2, Calendar, DollarSign, Package, FileText, User, Printer, Share2 } from 'lucide-react';
 import { Compra } from '@/types/proveedor';
+import { Producto } from '@/types/producto';
+import { getProductoById } from '@/lib/api';
+import ProductoDetalleModal from '@/components/ProductoDetalleModal';
 
 interface DetalleCompraModalProps {
   compra: Compra;
@@ -19,6 +22,15 @@ export default function DetalleCompraModal({ compra, onClose }: DetalleCompraMod
   const printRef = useRef<HTMLDivElement>(null);
   const [compartiendo, setCompartiendo] = useState(false);
   const [avisoCompartir, setAvisoCompartir] = useState<string | null>(null);
+  const [productoVer, setProductoVer] = useState<Producto | null>(null);
+
+  const verProducto = async (idProducto: number) => {
+    try {
+      setProductoVer(await getProductoById(idProducto));
+    } catch {
+      setAvisoCompartir('No se pudo abrir el detalle del producto.');
+    }
+  };
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-BO', {
@@ -37,24 +49,6 @@ export default function DetalleCompraModal({ compra, onClose }: DetalleCompraMod
     });
   };
 
-  const getEstadoBadge = () => {
-    const colors: Record<string, string> = {
-      POR_CONFIRMAR: 'bg-yellow-100 text-yellow-800',
-      CONFIRMADA: 'bg-green-100 text-green-800',
-      CANCELADA: 'bg-red-100 text-red-800',
-    };
-    const labels: Record<string, string> = {
-      POR_CONFIRMAR: 'Por confirmar',
-      CONFIRMADA: 'Confirmada',
-      CANCELADA: 'Cancelada',
-    };
-    return {
-      color: colors[compra.estado] || 'bg-gray-100 text-gray-800',
-      label: labels[compra.estado] || compra.estado
-    };
-  };
-
-  const estadoBadge = getEstadoBadge();
 
   // Misma mecánica que el comprobante de venta: .area-impresion (definida en
   // globals.css) oculta todo lo demás de la pantalla al imprimir, así que
@@ -221,18 +215,14 @@ export default function DetalleCompraModal({ compra, onClose }: DetalleCompraMod
             </div>
           </div>
 
-          {/* Estado: dato del flujo interno del sistema, no algo que
-              aparezca en la factura del proveedor. Solo en pantalla. */}
-          <div className="px-6 pb-6 print:hidden">
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">Estado de la Compra:</span>
-                <span className={`px-4 py-1.5 rounded-full text-sm font-semibold ${estadoBadge.color}`}>
-                  {estadoBadge.label}
-                </span>
+          {/* Una compra no tiene estado: solo se avisa si fue anulada. */}
+          {compra.estado === 'CANCELADA' && (
+            <div className="px-6 pb-6 print:hidden">
+              <div className="bg-red-50 border border-red-200 p-3 rounded-lg text-sm font-semibold text-red-800">
+                Compra anulada: lo que trajo se descontó del inventario.
               </div>
             </div>
-          </div>
+          )}
 
           {/* Detalle de Productos */}
           <div className="px-6 pb-6">
@@ -256,6 +246,13 @@ export default function DetalleCompraModal({ compra, onClose }: DetalleCompraMod
                       <td className="px-4 py-3">
                         <div className="text-sm font-medium text-gray-900">{detalle.nombreProducto}</div>
                         <div className="text-xs text-gray-500">{detalle.skuProducto}</div>
+                        <button
+                          type="button"
+                          onClick={() => verProducto(detalle.idProducto)}
+                          className="text-xs text-primary-600 hover:text-primary-800 hover:underline print:hidden"
+                        >
+                          Ver detalle del producto
+                        </button>
                       </td>
                       <td className="px-4 py-3 text-center text-sm text-gray-900">{detalle.cantidad}</td>
                       <td className="px-4 py-3 text-right text-sm text-gray-900">{formatPrice(detalle.precioUnitario)}</td>
@@ -313,6 +310,7 @@ export default function DetalleCompraModal({ compra, onClose }: DetalleCompraMod
           </button>
         </div>
       </div>
+      {productoVer && <ProductoDetalleModal producto={productoVer} onClose={() => setProductoVer(null)} />}
     </div>
   );
 }
