@@ -1,6 +1,5 @@
 package com.mitienda.ecommerce.dto;
 
-import com.mitienda.ecommerce.models.TipoCliente;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -40,8 +39,6 @@ public class ClienteRequest {
     private String email;
 
     
-
-    private TipoCliente tipoCliente = TipoCliente.REGISTRADO;
 
     private Boolean activo = true;
 }

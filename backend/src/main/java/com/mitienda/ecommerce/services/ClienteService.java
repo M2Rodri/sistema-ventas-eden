@@ -133,7 +133,6 @@ public class ClienteService {
         cliente.setNitCi(request.getNitCi());
         cliente.setTelefono(request.getTelefono());
         cliente.setEmail(request.getEmail());
-        cliente.setTipoCliente(request.getTipoCliente());
         cliente.setActivo(request.getActivo());
 
         Cliente savedCliente = clienteRepository.save(cliente);
@@ -175,7 +174,6 @@ public class ClienteService {
         cliente.setNitCi(request.getNitCi());
         cliente.setTelefono(request.getTelefono());
         cliente.setEmail(request.getEmail());
-        cliente.setTipoCliente(request.getTipoCliente());
         cliente.setActivo(request.getActivo());
 
         Cliente updatedCliente = clienteRepository.save(cliente);

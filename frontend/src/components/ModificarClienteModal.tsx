@@ -28,7 +28,6 @@ export default function ModificarClienteModal({
     telefono: '',
     nitCi: '',
     email: '',
-    tipoCliente: cliente.tipoCliente,
     activo: cliente.activo,
   });
 
@@ -48,7 +47,6 @@ export default function ModificarClienteModal({
         telefono: cliente.telefono,
         nitCi: cliente.nitCi || '',
         email: cliente.email || '',
-        tipoCliente: cliente.tipoCliente,
         activo: cliente.activo,
       });
       setError(null);
@@ -288,18 +286,6 @@ export default function ModificarClienteModal({
               <div>
                 <span className="font-medium">Fecha de Registro:</span>{' '}
                 {new Date(cliente.fechaRegistro).toLocaleDateString('es-BO')}
-              </div>
-              <div>
-                <span className="font-medium">Tipo:</span>{' '}
-                <span
-                  className={`px-2 py-0.5 rounded-full ${
-                    cliente.tipoCliente === 'REGISTRADO'
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-gray-100 text-gray-700'
-                  }`}
-                >
-                  {cliente.tipoCliente}
-                </span>
               </div>
             </div>
           </div>

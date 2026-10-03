@@ -119,26 +119,6 @@ public class ComprobanteService {
     }
 
     /**
-     * Anular comprobante
-     */
-    @Transactional
-    public ComprobanteResponse anularComprobante(Long id, String motivo) {
-        Comprobante comprobante = comprobanteRepository.findById(id)
-                .orElseThrow(() -> new RecursoNoEncontradoException("COMPROBANTE_NO_ENCONTRADO", "Comprobante no encontrado con ID: " + id));
-
-        if (comprobante.getAnulado()) {
-            throw new ConflictoEstadoException("COMPROBANTE_YA_ANULADO", "Este comprobante ya está anulado");
-        }
-
-        comprobante.setAnulado(true);
-        comprobante.setFechaAnulacion(LocalDateTime.now());
-        comprobante.setMotivoAnulacion(motivo);
-
-        Comprobante updatedComprobante = comprobanteRepository.save(comprobante);
-        return new ComprobanteResponse(updatedComprobante);
-    }
-
-    /**
      * Comprobantes activos (no anulados)
      */
     public List<ComprobanteResponse> getComprobantesActivos() {

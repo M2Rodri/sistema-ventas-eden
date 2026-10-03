@@ -65,16 +65,6 @@ public class Cliente {
     @Column(length = 100)
     private String email;
 
-    /**
-     * El sistema ya no distingue INVITADO de REGISTRADO (decisión del
-     * negocio: no tenía sentido mostrarle esa diferencia a nadie). El campo
-     * se deja porque sigue siendo parte del modelo de datos, pero todo
-     * cliente nuevo queda REGISTRADO por igual.
-     */
-    @Enumerated(EnumType.STRING)
-    @Column(name = "tipo_cliente", length = 20)
-    private TipoCliente tipoCliente = TipoCliente.REGISTRADO;
-
     @Column(nullable = false)
     private Boolean activo = true;
 
@@ -99,7 +89,6 @@ public class Cliente {
         this.apellido = apellido;
         this.telefono = telefono;
         this.email = email;
-        this.tipoCliente = TipoCliente.REGISTRADO;
         this.activo = true;
     }
 

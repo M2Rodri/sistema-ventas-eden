@@ -32,7 +32,6 @@ public class VentaResponse {
     private BigDecimal saldoPendiente;
 
     private EstadoVenta estado;
-    private Boolean requiereEnvio;
 
     private ModalidadEntrega modalidadEntrega;
     private EstadoEntrega estadoEntrega;
@@ -81,7 +80,6 @@ public class VentaResponse {
         this.montoTotal = venta.getMontoTotal();
         this.saldoPendiente = venta.getSaldoPendiente();
         this.estado = venta.getEstado();
-        this.requiereEnvio = venta.getRequiereEnvio();
 
         this.modalidadEntrega = venta.getModalidadEntrega();
         this.estadoEntrega = venta.getEstadoEntrega();

@@ -120,7 +120,6 @@ export interface Venta {
   saldoPendiente?: number;
 
   estado: EstadoVenta;
-  requiereEnvio?: boolean;
 
   modalidadEntrega?: ModalidadEntrega;
   estadoEntrega?: EstadoEntrega;

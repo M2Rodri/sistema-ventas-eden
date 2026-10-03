@@ -135,18 +135,6 @@ export default function HistorialComprasModal({
                       </div>
                     )}
                     <div>
-                      <span className="font-medium">Tipo:</span>{' '}
-                      <span
-                        className={`px-2 py-0.5 rounded-full ${
-                          cliente.tipoCliente === 'REGISTRADO'
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-gray-100 text-gray-700'
-                        }`}
-                      >
-                        {cliente.tipoCliente}
-                      </span>
-                    </div>
-                    <div>
                       <span className="font-medium">Registro:</span>{' '}
                       {formatFecha(cliente.fechaRegistro)}
                     </div>

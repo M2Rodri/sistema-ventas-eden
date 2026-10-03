@@ -2471,8 +2471,6 @@ export interface Comprobante {
   observaciones?: string;
   fechaEmision: string;
   anulado: boolean;
-  fechaAnulacion?: string;
-  motivoAnulacion?: string;
 }
 
 export interface ComprobanteRequest {

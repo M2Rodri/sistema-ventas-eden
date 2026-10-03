@@ -85,10 +85,6 @@ public class Venta {
     @Column(length = 20)
     private EstadoVenta estado = EstadoVenta.PENDIENTE_PAGO;
 
-    /** Si es true, la venta genera un registro en envios. */
-    @Column(name = "requiere_envio")
-    private Boolean requiereEnvio = false;
-
     /** Cómo llega el mueble al cliente: retiro en tienda, domicilio o transportadora. */
     @Enumerated(EnumType.STRING)
     @Column(name = "modalidad_entrega", nullable = false, length = 20)

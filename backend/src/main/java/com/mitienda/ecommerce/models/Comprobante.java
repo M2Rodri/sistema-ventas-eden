@@ -60,12 +60,6 @@ public class Comprobante {
     @Column(nullable = false)
     private Boolean anulado = false;
 
-    @Column
-    private LocalDateTime fechaAnulacion;
-
-    @Column(length = 200)
-    private String motivoAnulacion;
-
     // Constructor personalizado
     public Comprobante(Venta venta, String numeroComprobante, TipoComprobante tipoComprobante) {
         this.venta = venta;

@@ -1,7 +1,6 @@
 package com.mitienda.ecommerce.dto;
 
 import com.mitienda.ecommerce.models.Cliente;
-import com.mitienda.ecommerce.models.TipoCliente;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -23,7 +22,6 @@ public class ClienteResponse {
     private String nitCi;
     private String telefono;
     private String email;
-    private TipoCliente tipoCliente;
     private Boolean activo;
     private LocalDateTime fechaRegistro;
     private LocalDateTime fechaActualizacion;
@@ -37,7 +35,6 @@ public class ClienteResponse {
         this.nitCi = cliente.getNitCi();
         this.telefono = cliente.getTelefono();
         this.email = cliente.getEmail();
-        this.tipoCliente = cliente.getTipoCliente();
         this.activo = cliente.getActivo();
         this.fechaRegistro = cliente.getFechaRegistro();
         this.fechaActualizacion = cliente.getFechaActualizacion();

@@ -132,17 +132,13 @@ public class VentaService {
             // la venta, se crea un cliente. Así hay un solo mecanismo para
             // identificar al comprador y el dato queda disponible para el
             // resto del sistema (comprobante, envío, historial).
-            // Antes esto se marcaba TipoCliente.INVITADO y el sistema lo
-            // distinguía con una etiqueta "Rápido" en varias pantallas y en
-            // el comprobante; se sacó esa distinción por decisión del
-            // negocio, así que queda como cualquier otro cliente.
+            // Queda como cualquier otro cliente: no se distingue de los demás.
             Cliente invitado = new Cliente();
             invitado.setNombre(request.getNombreClienteInvitado().trim());
             invitado.setTelefono(request.getTelefonoClienteInvitado() != null
                     ? request.getTelefonoClienteInvitado().trim() : null);
             invitado.setNitCi(request.getCiClienteInvitado() != null
                     ? request.getCiClienteInvitado().trim() : null);
-            invitado.setTipoCliente(TipoCliente.REGISTRADO);
             invitado.setActivo(true);
             venta.setCliente(clienteRepository.save(invitado));
         }

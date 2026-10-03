@@ -26,8 +26,6 @@ public class ComprobanteResponse {
     private String observaciones;
     private LocalDateTime fechaEmision;
     private Boolean anulado;
-    private LocalDateTime fechaAnulacion;
-    private String motivoAnulacion;
 
     // Constructor desde entidad
     public ComprobanteResponse(Comprobante comprobante) {
@@ -40,7 +38,5 @@ public class ComprobanteResponse {
         this.observaciones = comprobante.getObservaciones();
         this.fechaEmision = comprobante.getFechaEmision();
         this.anulado = comprobante.getAnulado();
-        this.fechaAnulacion = comprobante.getFechaAnulacion();
-        this.motivoAnulacion = comprobante.getMotivoAnulacion();
     }
 }

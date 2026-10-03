@@ -1,10 +1,5 @@
 // types/cliente.ts
 
-export enum TipoCliente {
-  REGISTRADO = 'REGISTRADO',
-  INVITADO = 'INVITADO'
-}
-
 export interface ClienteRequest {
   nombre: string;
   /** Opcional: una empresa no tiene apellido. */
@@ -12,7 +7,6 @@ export interface ClienteRequest {
   nitCi?: string;
   telefono?: string;
   email?: string;
-  tipoCliente?: TipoCliente;
   activo?: boolean;
 }
 
@@ -24,7 +18,6 @@ export interface ClienteResponse {
   nitCi?: string;
   telefono?: string;
   email?: string;
-  tipoCliente: TipoCliente;
   activo: boolean;
   fechaRegistro: string;
   fechaActualizacion: string;
