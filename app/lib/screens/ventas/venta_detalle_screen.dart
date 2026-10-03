@@ -348,7 +348,7 @@ class _Contenido extends StatelessWidget {
                 const _Badge(texto: 'Anulada', color: AppColors.error),
               ] else ...<Widget>[
                 const SizedBox(height: 6),
-                const _Badge(texto: 'Pagada', color: AppColors.verdeOscuro),
+                const _Badge(texto: 'Completada', color: AppColors.verdeOscuro),
               ],
             ],
           ),
