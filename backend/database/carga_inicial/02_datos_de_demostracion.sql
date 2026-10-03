@@ -209,6 +209,29 @@ WHERE p.sku = 'ALM-002' AND i.cantidad_disponible <= p.stock_minimo;
 
 SELECT sincronizar_contadores_id();
 
+-- Las tablas que el backend numera con la secuencia de PostgreSQL (por ejemplo
+-- detalle_venta y detalle_compra) tambien se insertaron con ID fijo: sin esto,
+-- la proxima venta recibe un ID ya usado y la API responde 409 CONFLICTO_DATOS.
+DO $$
+DECLARE
+    fila RECORD;
+    secuencia TEXT;
+    mayor BIGINT;
+BEGIN
+    FOR fila IN
+        SELECT t.table_name AS tabla
+        FROM information_schema.tables t
+        WHERE t.table_schema = 'public' AND t.table_type = 'BASE TABLE'
+          AND EXISTS (SELECT 1 FROM information_schema.columns c
+                      WHERE c.table_schema = 'public' AND c.table_name = t.table_name AND c.column_name = 'id')
+    LOOP
+        secuencia := pg_get_serial_sequence(format('public.%I', fila.tabla), 'id');
+        CONTINUE WHEN secuencia IS NULL;
+        EXECUTE format('SELECT COALESCE(MAX(id), 0) FROM public.%I', fila.tabla) INTO mayor;
+        IF mayor > 0 THEN PERFORM setval(secuencia, mayor, true); END IF;
+    END LOOP;
+END $$;
+
 -- ---------------------------------------------------------------------
 --  Verificacion: si algo no cuadra, se cancela todo
 -- ---------------------------------------------------------------------
