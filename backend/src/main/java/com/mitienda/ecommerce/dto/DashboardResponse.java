@@ -19,9 +19,6 @@ public class DashboardResponse {
     // Estadísticas de Ventas
     private VentasStats ventasStats;
 
-    // Estadísticas de Pedidos
-    private PedidosStats pedidosStats;
-
     // Estadísticas de Productos
     private ProductosStats productosStats;
 
@@ -33,9 +30,6 @@ public class DashboardResponse {
 
     // Estadísticas de Pagos/Cuotas
     private PagosStats pagosStats;
-
-    // Alertas y Notificaciones
-    private AlertasStats alertasStats;
 
     // Productos más vendidos
     private List<ProductoMasVendidoDTO> productosMasVendidos;
@@ -63,20 +57,6 @@ public class DashboardResponse {
         private Long totalVentasAño;
         private BigDecimal montoVentasAño;
         private BigDecimal promedioVentaDiaria;
-    }
-
-    /**
-     * Clase interna para estadísticas de pedidos
-     */
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class PedidosStats {
-        private Long pedidosPendientes;
-        private Long pedidosConfirmados;
-        private Long pedidosEnviados;
-        private Long pedidosEntregados;
-        private Long pedidosHoy;
     }
 
     /**
@@ -125,23 +105,7 @@ public class DashboardResponse {
     @AllArgsConstructor
     public static class PagosStats {
         private Long cuotasPendientes;
-        private Long cuotasVencidas;
         private BigDecimal montoCuotasPendientes;
-        private BigDecimal montoCuotasVencidas;
-    }
-
-    /**
-     * Clase interna para alertas
-     */
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class AlertasStats {
-        private Long pedidosPendientes;
-        private Long inventarioBajo;
-        private Long cuotasVencidas;
-        private Long resenasPendientes;
-        private Long totalAlertas;
     }
 
     /**

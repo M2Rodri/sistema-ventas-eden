@@ -45,14 +45,6 @@ export interface ClientesStats {
   clientesActivos: number;
 }
 
-export interface AlertasStats {
-  pedidosPendientes: number;
-  inventarioBajo: number;
-  cuotasVencidas: number;
-  resenasPendientes: number;
-  totalAlertas: number;
-}
-
 export interface ProductoMasVendido {
   idProducto: number;
   nombreProducto: string;
@@ -72,7 +64,6 @@ export interface DashboardEstadisticas {
   productosStats: ProductosStats;
   inventarioStats: InventarioStats;
   clientesStats: ClientesStats;
-  alertasStats: AlertasStats;
   productosMasVendidos: ProductoMasVendido[];
   ventasUltimosDias: VentaPorDia[];
 }

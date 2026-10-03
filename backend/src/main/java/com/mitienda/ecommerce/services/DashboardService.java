@@ -76,7 +76,6 @@ public class DashboardService {
         dashboard.setInventarioStats(getInventarioStats());
         dashboard.setClientesStats(getClientesStats());
         dashboard.setPagosStats(getPagosStats());
-        dashboard.setAlertasStats(getAlertasStats());
         dashboard.setProductosMasVendidos(getProductosMasVendidos(10));
         dashboard.setVentasUltimosDias(getVentasUltimosDias(7));
         dashboard.setVentasPorEntregar(ventaRepository.countVentasPorEntregar());
@@ -190,34 +189,13 @@ public class DashboardService {
      * de cuotas: lo que hay es saldoPendiente por venta. Por cobrar = ventas
      * con saldo o que nunca se marcaron como completadas.
      *
-     * No hay fecha de vencimiento en 'ventas', asi que "vencidas" no tiene con
-     * que calcularse hoy y queda en cero.
+     * No hay fecha de vencimiento en 'ventas', asi que no existe "vencidas".
      */
     private DashboardResponse.PagosStats getPagosStats() {
         Long cuotasPendientes = ventaRepository.countVentasPorCobrar();
         BigDecimal montoCuotasPendientes = ventaRepository.sumSaldoPendientePorCobrar();
 
-        Long cuotasVencidas = 0L;
-        BigDecimal montoCuotasVencidas = BigDecimal.ZERO;
-
-        return new DashboardResponse.PagosStats(
-                cuotasPendientes, cuotasVencidas,
-                montoCuotasPendientes, montoCuotasVencidas
-        );
-    }
-
-    private DashboardResponse.AlertasStats getAlertasStats() {
-        Long inventarioBajo = inventarioRepository.countProductosConStockBajo();
-        Long cuotasVencidas = 0L;
-        Long reseniasPendientes = 0L;
-
-        Long totalAlertas = inventarioBajo + cuotasVencidas + reseniasPendientes;
-
-        return new DashboardResponse.AlertasStats(
-                0L, inventarioBajo,
-                cuotasVencidas, reseniasPendientes,
-                totalAlertas
-        );
+        return new DashboardResponse.PagosStats(cuotasPendientes, montoCuotasPendientes);
     }
 
     /**
