@@ -128,9 +128,9 @@ export default function DetalleVentaModal({
       CANCELADA: 'bg-red-100 text-red-800',
     };
     const labels = {
-      COMPLETADA: 'Completada',
-      PENDIENTE_PAGO: 'Pendiente',
-      CANCELADA: 'Cancelada',
+      COMPLETADA: 'Pagada',
+      PENDIENTE_PAGO: 'Pago pendiente',
+      CANCELADA: 'Anulada',
     };
     return { color: colors[venta.estado], label: labels[venta.estado] };
   };
@@ -242,7 +242,7 @@ export default function DetalleVentaModal({
           <div className="px-5 pb-6">
             <div className="bg-gray-50 p-3 rounded-lg">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">Estado de la Venta:</span>
+                <span className="text-sm font-medium text-gray-700">Estado de pago:</span>
                 <span className={`px-4 py-1.5 rounded-full text-sm font-semibold ${estadoBadge.color}`}>
                   {estadoBadge.label}
                 </span>

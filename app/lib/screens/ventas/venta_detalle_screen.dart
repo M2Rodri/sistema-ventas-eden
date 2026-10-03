@@ -345,7 +345,7 @@ class _Contenido extends StatelessWidget {
                 ),
               ] else if (cancelada) ...<Widget>[
                 const SizedBox(height: 6),
-                const _Badge(texto: 'Cancelada', color: AppColors.error),
+                const _Badge(texto: 'Anulada', color: AppColors.error),
               ] else ...<Widget>[
                 const SizedBox(height: 6),
                 const _Badge(texto: 'Pagada', color: AppColors.verdeOscuro),
