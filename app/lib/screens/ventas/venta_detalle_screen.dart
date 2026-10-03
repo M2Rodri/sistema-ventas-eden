@@ -317,6 +317,20 @@ class _Contenido extends StatelessWidget {
                   Text(formatoMoneda.format(venta.montoTotal), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: AppColors.verdeOscuro)),
                 ],
               ),
+              const SizedBox(height: 4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
+                  Text(
+                    cancelada ? 'Pagado antes de anular' : 'Total pagado',
+                    style: const TextStyle(color: AppColors.textoSecundario),
+                  ),
+                  Text(
+                    formatoMoneda.format(_totalPagado(venta, cancelada)),
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ),
               if (venta.tieneSaldoPendiente) ...<Widget>[
                 const SizedBox(height: 4),
                 Row(
@@ -477,6 +491,15 @@ class _Contenido extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Lo que ya se cobró. En una venta anulada el saldo queda en 0, así que no
+/// sirve restarlo: se suman los pagos registrados (no se sabe si se devolvió).
+double _totalPagado(Venta venta, bool cancelada) {
+  final total = cancelada
+      ? venta.pagos.fold<double>(0, (suma, pago) => suma + pago.monto)
+      : venta.montoTotal - venta.saldoPendiente;
+  return (total * 100).round() / 100;
 }
 
 class _Seccion extends StatelessWidget {

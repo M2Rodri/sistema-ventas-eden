@@ -55,6 +55,17 @@ export default function DetalleVentaModal({
 
   const tienePagosSinRespaldo = pagosState.some((p) => p.sinRespaldo);
 
+  // Total pagado: lo que ya se cobró. En una venta anulada el saldo queda en 0,
+  // así que no sirve restarlo: se suman los pagos registrados. No se sabe si el
+  // dinero se devolvió, por eso en ese caso la fila dice "antes de anular".
+  const esAnulada = venta.estado === 'CANCELADA';
+  const totalPagado = Math.round(
+    (esAnulada
+      ? pagosState.filter((p) => p.estado !== 'RECHAZADO').reduce((acc, p) => acc + p.monto, 0)
+      : venta.montoTotal - (venta.saldoPendiente ?? 0)) * 100,
+  ) / 100;
+  const hayDeuda = venta.estado === 'PENDIENTE_PAGO' && (venta.saldoPendiente ?? 0) > 0;
+
   const handleAdjuntarComprobante = async (idPago: number, file: File) => {
     setUploadError(null);
     setSubiendoId(idPago);
@@ -236,14 +247,6 @@ export default function DetalleVentaModal({
                   {estadoBadge.label}
                 </span>
               </div>
-              {venta.estado === 'PENDIENTE_PAGO' && (venta.saldoPendiente ?? 0) > 0 && (
-                <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-200">
-                  <span className="text-sm font-medium text-gray-700">Saldo pendiente:</span>
-                  <span className="text-lg font-bold text-red-600">
-                    {formatPrice(venta.saldoPendiente ?? 0)}
-                  </span>
-                </div>
-              )}
             </div>
           </div>
 
@@ -415,6 +418,18 @@ export default function DetalleVentaModal({
                 <span className="text-lg font-bold text-gray-900">TOTAL:</span>
                 <span className="text-2xl font-bold text-blue-600">{formatPrice(venta.montoTotal)}</span>
               </div>
+              <div className="flex justify-between items-center mt-2 pt-2 border-t border-blue-200">
+                <span className="text-sm font-medium text-gray-700">
+                  {esAnulada ? 'Pagado antes de anular:' : 'Total pagado:'}
+                </span>
+                <span className="text-base font-semibold text-gray-900">{formatPrice(totalPagado)}</span>
+              </div>
+              {hayDeuda && (
+                <div className="flex justify-between items-center mt-1">
+                  <span className="text-sm font-medium text-gray-700">Saldo pendiente:</span>
+                  <span className="text-base font-bold text-red-600">{formatPrice(venta.saldoPendiente ?? 0)}</span>
+                </div>
+              )}
             </div>
           </div>
 
