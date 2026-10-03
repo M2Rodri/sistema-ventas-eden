@@ -699,7 +699,7 @@ export default function RegistrarVentaModal({
                   { valor: "COLCHON", etiqueta: "Colchones" },
                   { valor: "ALMOHADA", etiqueta: "Almohadas" },
                   { valor: "ACCESORIO", etiqueta: "Accesorios" },
-                  { valor: "MUEBLE", etiqueta: "Muebles" },
+                  { valor: "MUEBLE", etiqueta: "Otros muebles" },
                 ].map((tipo) => (
                   <button
                     key={tipo.valor}
