@@ -58,6 +58,14 @@ class CategoriaServiceTest {
     }
 
     @Test
+    void veladoresTocadoresRoperosYZapateros_sonMuebles() {
+        for (String nombre : new String[]{"veladores", "Tocadores", "ROPEROS", "zapateros"}) {
+            CategoriaResponse creada = servicio.createCategoria(pedido(nombre));
+            assertEquals(TipoProducto.MUEBLE, creada.getTipoProducto(), nombre);
+        }
+    }
+
+    @Test
     void alEditarUnNombreLibre_conservaElTipoQueTenia() {
         Categoria existente = new Categoria();
         existente.setNombre("Camas");

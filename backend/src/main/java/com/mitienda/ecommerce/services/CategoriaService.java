@@ -10,7 +10,6 @@ import com.mitienda.ecommerce.repositories.CategoriaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional; // Importar esta anotación
 
-import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -31,12 +30,16 @@ public class CategoriaService {
      * Nombres conocidos: si el nombre escrito coincide con uno, se guarda con esta forma y
      * con su tipo de producto. Cualquier otro nombre es una categoría libre.
      */
-    private static final Map<TipoProducto, String> CATEGORIAS_FIJAS = new EnumMap<>(Map.of(
-            TipoProducto.CAMA, "Camas",
-            TipoProducto.COLCHON, "Colchones",
-            TipoProducto.ALMOHADA, "Almohadas",
-            TipoProducto.ACCESORIO, "Accesorios",
-            TipoProducto.MUEBLE, "Muebles de dormitorio"));
+    private static final Map<String, TipoProducto> CATEGORIAS_CONOCIDAS = Map.ofEntries(
+            Map.entry("Camas", TipoProducto.CAMA),
+            Map.entry("Colchones", TipoProducto.COLCHON),
+            Map.entry("Almohadas", TipoProducto.ALMOHADA),
+            Map.entry("Accesorios", TipoProducto.ACCESORIO),
+            Map.entry("Muebles de dormitorio", TipoProducto.MUEBLE),
+            Map.entry("Veladores", TipoProducto.MUEBLE),
+            Map.entry("Tocadores", TipoProducto.MUEBLE),
+            Map.entry("Roperos", TipoProducto.MUEBLE),
+            Map.entry("Zapateros", TipoProducto.MUEBLE));
 
     private final CategoriaRepository categoriaRepository;
 
@@ -92,10 +95,10 @@ public class CategoriaService {
     private void resolverTipo(CategoriaRequest request, TipoProducto tipoActual) {
         String nombre = request.getNombre() == null ? "" : request.getNombre().trim();
         request.setNombre(nombre);
-        for (Map.Entry<TipoProducto, String> conocida : CATEGORIAS_FIJAS.entrySet()) {
-            if (conocida.getValue().equalsIgnoreCase(nombre)) {
-                request.setNombre(conocida.getValue());
-                request.setTipoProducto(conocida.getKey());
+        for (Map.Entry<String, TipoProducto> conocida : CATEGORIAS_CONOCIDAS.entrySet()) {
+            if (conocida.getKey().equalsIgnoreCase(nombre)) {
+                request.setNombre(conocida.getKey());
+                request.setTipoProducto(conocida.getValue());
                 return;
             }
         }

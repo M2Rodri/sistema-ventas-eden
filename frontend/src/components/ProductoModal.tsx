@@ -76,17 +76,17 @@ const MEDIDAS_ESTANDAR = [
   { value: 'KING', label: 'King Size', ancho: 180, largo: 200 },
 ] as const;
 
-/** Mismo prefijo de 3 letras que ya se usaba a mano en los SKU cargados
- * antes (ALM-001, CAM-002, COL-001...). Sale del Tipo de Producto, no del
- * nombre de la categoría, para que funcione igual sin importar cómo se
- * llame la categoría. */
-const PREFIJOS_SKU: Record<TipoProducto, string> = {
-  CAMA: 'CAM',
-  COLCHON: 'COL',
-  ALMOHADA: 'ALM',
-  ACCESORIO: 'ACC',
-  MUEBLE: 'MUE',
-};
+/** El prefijo del SKU son las tres primeras letras de la categoría, en mayúscula
+ * (Camas → CAM, Veladores → VEL, Roperos → ROP). Así cada categoría tiene su propia
+ * serie, también las que crea el dueño. */
+function prefijoDeSku(nombreCategoria: string): string {
+  const letras = nombreCategoria
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^A-Za-z]/g, '')
+    .toUpperCase();
+  return letras.slice(0, 3).padEnd(3, 'X');
+}
 
 /**
  * Propone el siguiente número de la serie mirando TODOS los productos que
@@ -94,8 +94,8 @@ const PREFIJOS_SKU: Record<TipoProducto, string> = {
  * sigue siendo suyo, así que no hay que repetirlo). No hay endpoint nuevo:
  * usa la misma lista que ya está cargada en la pantalla de Productos.
  */
-function sugerirSiguienteSku(tipo: TipoProducto, productos: Producto[]): string {
-  const prefijo = PREFIJOS_SKU[tipo];
+function sugerirSiguienteSku(nombreCategoria: string, productos: Producto[]): string {
+  const prefijo = prefijoDeSku(nombreCategoria);
   const regex = new RegExp(`^${prefijo}-(\\d+)$`);
   let maxNumero = 0;
   for (const p of productos) {
@@ -156,8 +156,10 @@ function leerMedidaEscrita(texto: string) {
 
 /** Arma el texto que se guarda. Si ancho y largo coinciden con una medida
  * estándar se guarda con su nombre; si no, como "Medida especial". */
-function componerDimensiones(ancho: string, largo: string, alto: string): string {
-  const estandar = MEDIDAS_ESTANDAR.find((m) => String(m.ancho) === ancho && String(m.largo) === largo);
+function componerDimensiones(ancho: string, largo: string, alto: string, usaEstandar = true): string {
+  const estandar = usaEstandar
+    ? MEDIDAS_ESTANDAR.find((m) => String(m.ancho) === ancho && String(m.largo) === largo)
+    : undefined;
   const etiqueta = estandar ? estandar.label : 'Medida especial';
   const medidas = `${ancho}x${largo}${alto ? 'x' + alto : ''} cm`;
   return `${etiqueta} (${medidas})`;
@@ -210,6 +212,8 @@ export default function ProductoModal({
   const idCategoriaInicial = productoParaEditar?.idCategoria || categorias[0]?.id || 0;
   const tipoDeCategoria = (idCategoria: number) =>
     categorias.find((c) => c.id === idCategoria)?.tipoProducto;
+  const nombreDeCategoria = (idCategoria: number) =>
+    categorias.find((c) => c.id === idCategoria)?.nombre ?? '';
   const tipoInicial = tipoDeCategoria(idCategoriaInicial) || productoParaEditar?.tipoProducto || 'CAMA';
   // El SKU se sugiere solo al crear, y solo mientras el usuario no haya
   // escrito el suyo a mano (acá arranca en true porque al editar el campo
@@ -217,7 +221,7 @@ export default function ProductoModal({
   const [skuTocado, setSkuTocado] = useState(!!productoParaEditar);
 
   const [formData, setFormData] = useState<ProductoRequest>({
-    sku: productoParaEditar?.sku || sugerirSiguienteSku(tipoInicial, productos),
+    sku: productoParaEditar?.sku || sugerirSiguienteSku(nombreDeCategoria(idCategoriaInicial), productos),
     nombre: productoParaEditar?.nombre || '',
     descripcion: productoParaEditar?.descripcion || '',
     marca: productoParaEditar?.marca || '',
@@ -288,7 +292,10 @@ export default function ProductoModal({
   const mostrarRecuadroVacio = !urlImagenMostrada || reemplazandoImagen;
   // Dimensiones solo tiene sentido para Cama y Colchón: una almohada o un
   // accesorio no se describen por su medida de la misma forma.
-  const tipoTieneDimensiones = formData.tipoProducto === 'CAMA' || formData.tipoProducto === 'COLCHON';
+  const tipoTieneDimensiones =
+    formData.tipoProducto === 'CAMA' || formData.tipoProducto === 'COLCHON' || formData.tipoProducto === 'MUEBLE';
+  // Las medidas estándar (1 Plaza, Queen...) son de camas y colchones; un mueble se mide a mano.
+  const tipoUsaMedidasDeCama = formData.tipoProducto === 'CAMA' || formData.tipoProducto === 'COLCHON';
 
   // Ejemplos de los placeholders según el tipo elegido: no tiene sentido
   // sugerir "Colchones del Oriente" como ejemplo de Marca cuando la
@@ -333,7 +340,7 @@ export default function ProductoModal({
         ...prev,
         idCategoria: Number(val),
         tipoProducto: nuevoTipo,
-        sku: skuTocado ? prev.sku : sugerirSiguienteSku(nuevoTipo, productos),
+        sku: skuTocado ? prev.sku : sugerirSiguienteSku(nombreDeCategoria(Number(val)), productos),
         firmeza: undefined,
         materialNucleo: undefined,
         materialArmazon: undefined,
@@ -363,7 +370,7 @@ export default function ProductoModal({
       delete dataToSend.materialArmazon;
     }
     dataToSend.dimensiones = tipoTieneDimensiones && medidaLeida
-      ? componerDimensiones(medidaLeida.ancho, medidaLeida.largo, medidaLeida.alto)
+      ? componerDimensiones(medidaLeida.ancho, medidaLeida.largo, medidaLeida.alto, tipoUsaMedidasDeCama)
       : '';
 
     try {
@@ -522,19 +529,21 @@ export default function ProductoModal({
                       onChange={(e) => setMedida(e.target.value)}
                       placeholder="Ej: ancho x largo"
                       required
-                      className="min-w-0 flex-1 px-2 py-1.5 rounded-l-md focus:outline-none"
+                      className={`min-w-0 flex-1 px-2 py-1.5 focus:outline-none ${tipoUsaMedidasDeCama ? 'rounded-l-md' : 'rounded-md'}`}
                     />
-                    <button
-                      type="button"
-                      onClick={() => setListaMedidasAbierta((v) => !v)}
-                      aria-label="Ver medidas estándar"
-                      className="px-2 border-l border-gray-300 text-gray-500 hover:bg-gray-50 rounded-r-md"
-                    >
-                      <ChevronDown size={16} />
-                    </button>
+                    {tipoUsaMedidasDeCama && (
+                      <button
+                        type="button"
+                        onClick={() => setListaMedidasAbierta((v) => !v)}
+                        aria-label="Ver medidas estándar"
+                        className="px-2 border-l border-gray-300 text-gray-500 hover:bg-gray-50 rounded-r-md"
+                      >
+                        <ChevronDown size={16} />
+                      </button>
+                    )}
                   </div>
 
-                  {listaMedidasAbierta && (
+                  {tipoUsaMedidasDeCama && listaMedidasAbierta && (
                     <>
                       <div className="fixed inset-0 z-10" onClick={() => setListaMedidasAbierta(false)} />
                       <ul className="absolute left-0 right-0 z-20 mt-1 bg-white border border-gray-200 rounded-md shadow-lg">
