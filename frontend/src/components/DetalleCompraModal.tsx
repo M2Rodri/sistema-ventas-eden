@@ -213,6 +213,21 @@ export default function DetalleCompraModal({ compra, onClose }: DetalleCompraMod
               </div>
               <p className="text-2xl font-bold text-secondary-600">{formatPrice(compra.montoTotal)}</p>
             </div>
+
+            {/* Estado: lo que dice la base (CONFIRMADA o CANCELADA). */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="flex items-center gap-2 mb-3">
+                <FileText className="text-secondary-600" size={20} />
+                <h3 className="font-semibold text-gray-900">Estado</h3>
+              </div>
+              <span
+                className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
+                  compra.estado === 'CANCELADA' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                }`}
+              >
+                {compra.estado === 'CANCELADA' ? 'Anulada' : 'Confirmada'}
+              </span>
+            </div>
           </div>
 
           {/* Una compra no tiene estado: solo se avisa si fue anulada. */}
