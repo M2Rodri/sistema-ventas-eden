@@ -17,14 +17,22 @@ import java.util.UUID;
  * declarado, se miran los primeros bytes del archivo (JPEG, PNG o WebP). El
  * nombre con el que se guarda lo elige el servidor (un UUID), así que el nombre
  * original nunca llega a la ruta.
+ *
+ * Los comprobantes de pago aceptan además .jfif (es un JPEG) y PDF; las fotos de
+ * producto, no.
  */
 public final class ValidadorImagen {
 
     public static final long MAXIMO_FOTO_PRODUCTO = 5L * 1024 * 1024;
     public static final long MAXIMO_COMPROBANTE = 10L * 1024 * 1024;
 
-    private static final Set<String> EXTENSIONES = Set.of(".jpg", ".jpeg", ".png", ".webp");
-    private static final Set<String> TIPOS_DECLARADOS = Set.of("image/jpeg", "image/jpg", "image/png", "image/webp");
+    private static final Set<String> EXTENSIONES = Set.of(".jpg", ".jpeg", ".jfif", ".png", ".webp");
+    private static final Set<String> TIPOS_DECLARADOS =
+            Set.of("image/jpeg", "image/jpg", "image/pjpeg", "image/png", "image/webp");
+
+    private static final String PDF = "application/pdf";
+    private static final String MENSAJE_IMAGEN = "Solo se aceptan imágenes JPG, PNG o WebP";
+    private static final String MENSAJE_COMPROBANTE = "Solo se aceptan archivos JPG, JPEG, JFIF, PNG, WebP o PDF";
 
     /** Imagen ya revisada: su contenido, el tipo real y el nombre con el que se guarda. */
     public record ImagenValida(byte[] contenido, String tipoContenido, String nombreObjeto) {
@@ -34,6 +42,16 @@ public final class ValidadorImagen {
     }
 
     public static ImagenValida validar(MultipartFile archivo, long maximoBytes) throws IOException {
+        return validar(archivo, maximoBytes, false);
+    }
+
+    /** Comprobante de pago: imagen (JPG, JFIF, PNG, WebP) o PDF. */
+    public static ImagenValida validarComprobante(MultipartFile archivo, long maximoBytes) throws IOException {
+        return validar(archivo, maximoBytes, true);
+    }
+
+    private static ImagenValida validar(MultipartFile archivo, long maximoBytes, boolean permitirPdf) throws IOException {
+        String mensaje = permitirPdf ? MENSAJE_COMPROBANTE : MENSAJE_IMAGEN;
         if (archivo == null || archivo.isEmpty()) {
             throw new PeticionInvalidaException("ARCHIVO_VACIO", "El archivo no puede estar vacío");
         }
@@ -43,22 +61,25 @@ public final class ValidadorImagen {
         }
 
         String extension = extensionDe(archivo.getOriginalFilename());
-        if (!EXTENSIONES.contains(extension)) {
-            throw new PeticionInvalidaException("IMAGEN_INVALIDA",
-                    "Tipo de archivo no permitido. Solo se aceptan imágenes JPG, PNG o WebP");
+        boolean esPdf = permitirPdf && extension.equals(".pdf");
+        if (!esPdf && !EXTENSIONES.contains(extension)) {
+            throw new PeticionInvalidaException("IMAGEN_INVALIDA", "Tipo de archivo no permitido. " + mensaje);
         }
 
         String declarado = archivo.getContentType();
-        if (declarado != null && !declarado.isBlank()
-                && !TIPOS_DECLARADOS.contains(declarado.toLowerCase(Locale.ROOT))) {
-            throw new PeticionInvalidaException("IMAGEN_INVALIDA",
-                    "Tipo de archivo no permitido. Solo se aceptan imágenes JPG, PNG o WebP");
+        if (declarado != null && !declarado.isBlank()) {
+            String tipo = declarado.toLowerCase(Locale.ROOT);
+            boolean permitido = TIPOS_DECLARADOS.contains(tipo) || (permitirPdf && tipo.equals(PDF));
+            if (!permitido) {
+                throw new PeticionInvalidaException("IMAGEN_INVALIDA", "Tipo de archivo no permitido. " + mensaje);
+            }
         }
 
         byte[] contenido = archivo.getBytes();
-        String tipoReal = tipoSegunContenido(contenido);
+        String tipoReal = tipoSegunContenido(contenido, permitirPdf);
         if (tipoReal == null) {
-            throw new PeticionInvalidaException("IMAGEN_INVALIDA", "El contenido del archivo no es una imagen JPG, PNG o WebP válida");
+            throw new PeticionInvalidaException("IMAGEN_INVALIDA",
+                    "El contenido del archivo no es válido. " + mensaje);
         }
         if (!extensionCoincide(extension, tipoReal)) {
             throw new PeticionInvalidaException("IMAGEN_INVALIDA", "La extensión del archivo no corresponde a su contenido");
@@ -73,6 +94,14 @@ public final class ValidadorImagen {
         }
         int punto = nombre.lastIndexOf('.');
         return punto < 0 ? "" : nombre.substring(punto).toLowerCase(Locale.ROOT);
+    }
+
+    /** Tipo real según los primeros bytes, o null si no es JPEG, PNG, WebP ni (si se permite) PDF. */
+    static String tipoSegunContenido(byte[] b, boolean permitirPdf) {
+        if (permitirPdf && b.length >= 5 && b[0] == '%' && b[1] == 'P' && b[2] == 'D' && b[3] == 'F' && b[4] == '-') {
+            return PDF;
+        }
+        return tipoSegunContenido(b);
     }
 
     /** Tipo real según los primeros bytes, o null si no es JPEG, PNG ni WebP. */
@@ -93,7 +122,8 @@ public final class ValidadorImagen {
 
     private static boolean extensionCoincide(String extension, String tipo) {
         return switch (tipo) {
-            case "image/jpeg" -> extension.equals(".jpg") || extension.equals(".jpeg");
+            case "image/jpeg" -> extension.equals(".jpg") || extension.equals(".jpeg") || extension.equals(".jfif");
+            case PDF -> extension.equals(".pdf");
             case "image/png" -> extension.equals(".png");
             case "image/webp" -> extension.equals(".webp");
             default -> false;
@@ -104,6 +134,7 @@ public final class ValidadorImagen {
         return switch (tipo) {
             case "image/png" -> ".png";
             case "image/webp" -> ".webp";
+            case PDF -> ".pdf";
             default -> ".jpg";
         };
     }

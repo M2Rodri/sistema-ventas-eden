@@ -75,4 +75,29 @@ class ValidadorImagenTest {
         assertThrows(PeticionInvalidaException.class,
                 () -> ValidadorImagen.validar(archivo("a.png", "image/png", JPEG), 1024));
     }
+
+    private static final byte[] PDF = "%PDF-1.7 contenido de prueba".getBytes();
+
+    @Test
+    void elComprobanteAceptaJfifYPdfPeroLaFotoDeProductoNo() throws IOException {
+        var jfif = ValidadorImagen.validarComprobante(archivo("recibo.jfif", "image/jpeg", JPEG), 1024);
+        var pdf = ValidadorImagen.validarComprobante(archivo("recibo.pdf", "application/pdf", PDF), 1024);
+
+        assertEquals("image/jpeg", jfif.tipoContenido());
+        assertTrue(jfif.nombreObjeto().endsWith(".jpg"));
+        assertEquals("application/pdf", pdf.tipoContenido());
+        assertTrue(pdf.nombreObjeto().endsWith(".pdf"));
+
+        assertThrows(PeticionInvalidaException.class,
+                () -> ValidadorImagen.validar(archivo("recibo.pdf", "application/pdf", PDF), 1024));
+    }
+
+    @Test
+    void elComprobanteRechazaUnPdfFalsoYLoQueNoEsImagenNiPdf() {
+        assertThrows(PeticionInvalidaException.class,
+                () -> ValidadorImagen.validarComprobante(archivo("a.pdf", "application/pdf", "hola".getBytes()), 1024));
+        PeticionInvalidaException error = assertThrows(PeticionInvalidaException.class,
+                () -> ValidadorImagen.validarComprobante(archivo("a.docx", "application/msword", PNG), 1024));
+        assertTrue(error.getMessage().contains("JPG, JPEG, JFIF, PNG, WebP o PDF"));
+    }
 }

@@ -131,8 +131,8 @@ public class PagoService {
         Pago pago = pagoRepository.findById(idPago)
                 .orElseThrow(() -> new RecursoNoEncontradoException("PAGO_NO_ENCONTRADO", "Pago no encontrado con ID: " + idPago));
 
-        // Se valida antes de tocar el almacenamiento: tipo real, contenido y tamaño.
-        ValidadorImagen.ImagenValida imagen = ValidadorImagen.validar(file, ValidadorImagen.MAXIMO_COMPROBANTE);
+        // Se valida antes de tocar el almacenamiento: tipo real, contenido y tamaño (imagen o PDF).
+        ValidadorImagen.ImagenValida imagen = ValidadorImagen.validarComprobante(file, ValidadorImagen.MAXIMO_COMPROBANTE);
 
         String urlAnterior = pago.getUrlComprobante();
 

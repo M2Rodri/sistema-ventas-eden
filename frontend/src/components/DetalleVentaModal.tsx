@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { X, User, Calendar, CreditCard, Package, AlertCircle, FileText, Upload, Image as ImageIcon, Banknote, Truck } from 'lucide-react';
 import { Venta, Pago, EstadoEntrega, EstadoVenta, ModalidadEntrega } from '@/types/venta';
 import { adjuntarComprobantePago, marcarVentaEntregada, urlArchivo } from '@/lib/api';
+import { ACCEPT_COMPROBANTE, archivoDeEventoSoltar, errorDeComprobante, imagenDelPortapapeles, TEXTO_FORMATOS_COMPROBANTE, urlEsPdf } from '@/lib/comprobanteImagen';
 import {
   CORREGIR_ENTREGA_ACTIVO,
   claseBadgeEstadoEntrega,
@@ -53,6 +54,21 @@ export default function DetalleVentaModal({
     setPagosState(venta.pagos);
   }, [venta.pagos]);
 
+  // Botón "Pegar imagen": toma la imagen copiada y la sube como comprobante de ese pago.
+  const handlePegarComprobante = async (idPago: number) => {
+    setUploadError(null);
+    try {
+      const imagen = await imagenDelPortapapeles();
+      if (!imagen) {
+        setUploadError('No hay una imagen copiada. Copiá la captura o la imagen del comprobante y volvé a intentar.');
+        return;
+      }
+      await handleAdjuntarComprobante(idPago, imagen);
+    } catch (err: any) {
+      setUploadError(err?.message || 'No se pudo pegar la imagen. Probá con "Adjuntar comprobante".');
+    }
+  };
+
   const tienePagosSinRespaldo = pagosState.some((p) => p.sinRespaldo);
 
   // Total pagado: lo que ya se cobró. En una venta anulada el saldo queda en 0,
@@ -68,6 +84,11 @@ export default function DetalleVentaModal({
 
   const handleAdjuntarComprobante = async (idPago: number, file: File) => {
     setUploadError(null);
+    const motivo = errorDeComprobante(file);
+    if (motivo) {
+      setUploadError(motivo);
+      return;
+    }
     setSubiendoId(idPago);
     try {
       const actualizado = await adjuntarComprobantePago(idPago, file);
@@ -480,7 +501,15 @@ export default function DetalleVentaModal({
                       </span>
                     </div>
 
-                    <div className="mt-2 pt-2 border-t border-green-200 flex items-center gap-3">
+                    <div
+                      className="mt-2 pt-2 border-t border-green-200 flex items-center gap-3"
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        const soltado = archivoDeEventoSoltar(e);
+                        if (soltado) handleAdjuntarComprobante(pago.id, soltado);
+                      }}
+                    >
                       {pago.urlComprobante ? (
                         <a
                           href={urlArchivo(pago.urlComprobante)}
@@ -488,13 +517,32 @@ export default function DetalleVentaModal({
                           rel="noopener noreferrer"
                           className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
                         >
+                          {urlEsPdf(pago.urlComprobante) ? (
+                            <FileText size={14} />
+                          ) : (
+                            <img
+                              src={urlArchivo(pago.urlComprobante)}
+                              alt="Comprobante"
+                              className="h-10 w-10 rounded border border-gray-200 object-cover"
+                            />
+                          )}
                           <ImageIcon size={14} /> Ver comprobante
                         </a>
                       ) : (
-                        <p className="text-xs text-gray-400">Sin comprobante adjunto</p>
+                        <p className="text-xs text-gray-400">Sin comprobante adjunto (podés arrastrar el archivo acá)</p>
                       )}
 
-                      <label className="flex items-center gap-1 text-xs text-gray-600 hover:text-gray-900 cursor-pointer ml-auto">
+                      <button
+                        type="button"
+                        onClick={() => handlePegarComprobante(pago.id)}
+                        disabled={subiendoId === pago.id}
+                        title={`Pegar la imagen copiada (${TEXTO_FORMATOS_COMPROBANTE})`}
+                        className="flex items-center gap-1 text-xs text-gray-600 hover:text-gray-900 ml-auto disabled:opacity-50"
+                      >
+                        <ImageIcon size={14} /> Pegar imagen
+                      </button>
+
+                      <label className="flex items-center gap-1 text-xs text-gray-600 hover:text-gray-900 cursor-pointer">
                         <Upload size={14} />
                         {subiendoId === pago.id
                           ? 'Subiendo...'
@@ -503,7 +551,7 @@ export default function DetalleVentaModal({
                             : 'Adjuntar comprobante'}
                         <input
                           type="file"
-                          accept=".jpg,.jpeg,.png,.webp"
+                          accept={ACCEPT_COMPROBANTE}
                           className="hidden"
                           disabled={subiendoId === pago.id}
                           onChange={(e) => {

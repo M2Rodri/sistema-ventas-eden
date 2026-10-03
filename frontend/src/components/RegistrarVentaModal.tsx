@@ -29,6 +29,14 @@ import {
   updateProducto,
 } from "@/lib/api";
 import { ErrorApi } from "@/lib/errores";
+import {
+  ACCEPT_COMPROBANTE,
+  archivoDeEventoSoltar,
+  errorDeComprobante,
+  esPdf,
+  imagenDeEventoPegar,
+  TEXTO_FORMATOS_COMPROBANTE,
+} from "@/lib/comprobanteImagen";
 
 // Redondea a centavos apenas se calcula un monto, para que dos totales que
 // deberían coincidir (venta vs. pagado) no queden desalineados por un
@@ -110,6 +118,40 @@ export default function RegistrarVentaModal({
     { metodo: MetodoPago; monto: number; referencia: string }[]
   >([{ metodo: MetodoPago.EFECTIVO, monto: 0, referencia: "" }]);
   const [comprobanteFile, setComprobanteFile] = useState<File | null>(null);
+  const [comprobanteError, setComprobanteError] = useState<string | null>(null);
+  const [comprobanteVista, setComprobanteVista] = useState<string | null>(null);
+
+  // Vista previa del comprobante elegido o pegado.
+  useEffect(() => {
+    if (!comprobanteFile) {
+      setComprobanteVista(null);
+      return;
+    }
+    const url = URL.createObjectURL(comprobanteFile);
+    setComprobanteVista(url);
+    return () => URL.revokeObjectURL(url);
+  }, [comprobanteFile]);
+
+  const elegirComprobante = (archivo: File | null) => {
+    if (!archivo) return;
+    const motivo = errorDeComprobante(archivo);
+    setComprobanteError(motivo);
+    if (!motivo) setComprobanteFile(archivo);
+  };
+
+  // Ctrl+V con el formulario abierto: si lo pegado es una imagen, es el comprobante.
+  const pidePegarComprobante = isOpen && pagos[0]?.metodo !== MetodoPago.EFECTIVO;
+  useEffect(() => {
+    if (!pidePegarComprobante) return;
+    const alPegar = (evento: ClipboardEvent) => {
+      const imagen = imagenDeEventoPegar(evento);
+      if (!imagen) return;
+      evento.preventDefault();
+      elegirComprobante(imagen);
+    };
+    document.addEventListener("paste", alPegar);
+    return () => document.removeEventListener("paste", alPegar);
+  }, [pidePegarComprobante]);
   const [saldoPendienteHabilitado, setSaldoPendienteHabilitado] = useState(false);
   const [clientes, setClientes] = useState<any[]>([]);
 
@@ -541,6 +583,7 @@ export default function RegistrarVentaModal({
     setMostrarListaProductos(false);
     setMostrarListaClientes(false);
     setComprobanteFile(null);
+    setComprobanteError(null);
     setSaldoPendienteHabilitado(false);
     setModalidadEntrega(ModalidadEntrega.RETIRO);
     setEstadoEntrega(EstadoEntrega.PENDIENTE);
@@ -1101,7 +1144,14 @@ export default function RegistrarVentaModal({
                 opcional siempre, y también se puede adjuntar después desde
                 el detalle de la venta si acá no se sube. */}
             {pagos[0].metodo !== MetodoPago.EFECTIVO && (
-              <div className="mb-2 p-3 border border-dashed border-gray-300 rounded-lg">
+              <div
+                className="mb-2 p-3 border border-dashed border-gray-300 rounded-lg"
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  elegirComprobante(archivoDeEventoSoltar(e));
+                }}
+              >
                 <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
                   <Upload size={16} className="text-gray-500" />
                   {comprobanteFile
@@ -1109,17 +1159,38 @@ export default function RegistrarVentaModal({
                     : "Adjuntar foto del comprobante (opcional)"}
                   <input
                     type="file"
-                    accept=".jpg,.jpeg,.png,.webp"
+                    accept={ACCEPT_COMPROBANTE}
                     className="hidden"
-                    onChange={(e) =>
-                      setComprobanteFile(e.target.files?.[0] ?? null)
-                    }
+                    onChange={(e) => {
+                      elegirComprobante(e.target.files?.[0] ?? null);
+                      e.target.value = "";
+                    }}
                   />
                 </label>
+                <p className="text-xs text-gray-500 mt-1">
+                  También podés arrastrar el archivo hasta acá o pegar una imagen con
+                  Ctrl+V. Se aceptan {TEXTO_FORMATOS_COMPROBANTE}.
+                </p>
+                {comprobanteError && (
+                  <p className="text-xs text-red-600 mt-1">{comprobanteError}</p>
+                )}
+                {comprobanteVista && comprobanteFile && esPdf(comprobanteFile) && (
+                  <p className="mt-2 text-xs text-gray-600">Archivo PDF listo para subir.</p>
+                )}
+                {comprobanteVista && comprobanteFile && !esPdf(comprobanteFile) && (
+                  <img
+                    src={comprobanteVista}
+                    alt="Vista previa del comprobante"
+                    className="mt-2 max-h-40 rounded border border-gray-200 object-contain"
+                  />
+                )}
                 {comprobanteFile && (
                   <button
                     type="button"
-                    onClick={() => setComprobanteFile(null)}
+                    onClick={() => {
+                      setComprobanteFile(null);
+                      setComprobanteError(null);
+                    }}
                     className="text-xs text-red-500 hover:text-red-700 mt-1"
                   >
                     Quitar
