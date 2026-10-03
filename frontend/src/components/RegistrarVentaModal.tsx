@@ -84,10 +84,10 @@ export default function RegistrarVentaModal({
     ModalidadEntrega.RETIRO,
   );
   // Estado con el que se registra la entrega. En tienda siempre nace
-  // entregada; en domicilio y transportadora arranca Entregado (lo normal es
-  // cargar la venta cuando todo terminó) y se puede cambiar a Pendiente.
+  // entregada; en domicilio y transportadora arranca Pendiente (todavía hay que
+  // llevarla) y se puede cambiar a Entregado.
   const [estadoEntrega, setEstadoEntrega] = useState<EstadoEntrega>(
-    EstadoEntrega.ENTREGADO,
+    EstadoEntrega.PENDIENTE,
   );
   const [direccionDestino, setDireccionDestino] = useState("");
   const [ciudad, setCiudad] = useState("");
@@ -482,7 +482,7 @@ export default function RegistrarVentaModal({
     setComprobanteFile(null);
     setSaldoPendienteHabilitado(false);
     setModalidadEntrega(ModalidadEntrega.RETIRO);
-    setEstadoEntrega(EstadoEntrega.ENTREGADO);
+    setEstadoEntrega(EstadoEntrega.PENDIENTE);
     setDireccionDestino("");
     setCiudad("");
     setTransportadora("");
