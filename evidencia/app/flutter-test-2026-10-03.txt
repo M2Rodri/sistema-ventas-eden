@@ -1,0 +1,46 @@
+00:00 +0: loading D:/ProyectoFinal/sistema-ventas-eden/app/test/actualizacion_test.dart
+00:00 +0: D:/ProyectoFinal/sistema-ventas-eden/app/test/actualizacion_test.dart: version.json se lee con sus datos
+00:00 +1: D:/ProyectoFinal/sistema-ventas-eden/app/test/actualizacion_test.dart: version.json sin versionCode o sin apkUrl no sirve
+00:00 +2: D:/ProyectoFinal/sistema-ventas-eden/app/test/actualizacion_test.dart: comparaciones solo una versión mayor es nueva
+00:00 +3: D:/ProyectoFinal/sistema-ventas-eden/app/test/actualizacion_test.dart: comparaciones la huella del APK tiene que coincidir si se publicó
+00:00 +4: D:/ProyectoFinal/sistema-ventas-eden/app/test/actualizacion_test.dart: buscar hay una versión más nueva
+00:00 +5: D:/ProyectoFinal/sistema-ventas-eden/app/test/actualizacion_test.dart: buscar la publicada es la misma que la instalada: está al día
+00:00 +6: D:/ProyectoFinal/sistema-ventas-eden/app/test/actualizacion_test.dart: buscar la publicada es más vieja: está al día
+00:00 +7: D:/ProyectoFinal/sistema-ventas-eden/app/test/actualizacion_test.dart: buscar si el archivo no existe, no molesta
+00:00 +8: D:/ProyectoFinal/sistema-ventas-eden/app/test/actualizacion_test.dart: buscar si el archivo está roto, no molesta
+00:00 +9: D:/ProyectoFinal/sistema-ventas-eden/app/test/actualizacion_test.dart: buscar sin internet, no molesta
+00:00 +10: D:/ProyectoFinal/sistema-ventas-eden/app/test/entrega_venta_test.dart: estado de entrega reconoce los dos valores del backend
+00:00 +11: D:/ProyectoFinal/sistema-ventas-eden/app/test/entrega_venta_test.dart: estado de entrega un valor desconocido se trata como pendiente
+00:00 +12: D:/ProyectoFinal/sistema-ventas-eden/app/test/entrega_venta_test.dart: estado de entrega los valores de la API coinciden con los del backend
+00:00 +13: D:/ProyectoFinal/sistema-ventas-eden/app/test/entrega_venta_test.dart: por entregar (definición única) pendiente cuenta
+00:00 +14: D:/ProyectoFinal/sistema-ventas-eden/app/test/entrega_venta_test.dart: por entregar (definición única) entregada no cuenta
+00:00 +15: D:/ProyectoFinal/sistema-ventas-eden/app/test/entrega_venta_test.dart: por entregar (definición única) una venta cancelada no cuenta
+00:00 +16: D:/ProyectoFinal/sistema-ventas-eden/app/test/entrega_venta_test.dart: por entregar (definición única) en tienda no cuenta porque nace entregada
+00:00 +17: D:/ProyectoFinal/sistema-ventas-eden/app/test/entrega_venta_test.dart: falta completar transportadora sin nombre o sin guía
+00:00 +18: D:/ProyectoFinal/sistema-ventas-eden/app/test/entrega_venta_test.dart: falta completar transportadora con nombre y guía está completa
+00:00 +19: D:/ProyectoFinal/sistema-ventas-eden/app/test/entrega_venta_test.dart: falta completar un espacio en blanco cuenta como vacío
+00:00 +20: D:/ProyectoFinal/sistema-ventas-eden/app/test/entrega_venta_test.dart: falta completar domicilio y en tienda no lo necesitan
+00:00 +21: D:/ProyectoFinal/sistema-ventas-eden/app/test/entrega_venta_test.dart: falta completar una venta cancelada no avisa
+00:00 +22: D:/ProyectoFinal/sistema-ventas-eden/app/test/entrega_venta_test.dart: lo que viaja al backend al registrar en tienda no manda datos de entrega ni estado
+00:00 +23: D:/ProyectoFinal/sistema-ventas-eden/app/test/entrega_venta_test.dart: lo que viaja al backend al registrar domicilio manda la dirección si la hay y nunca la ciudad
+00:01 +24: D:/ProyectoFinal/sistema-ventas-eden/app/test/entrega_venta_test.dart: lo que viaja al backend al registrar se puede registrar ya entregada
+00:01 +25: D:/ProyectoFinal/sistema-ventas-eden/app/test/entrega_venta_test.dart: lo que viaja al backend al registrar transportadora manda la ciudad y solo los opcionales que se llenaron
+00:05 +26: D:/ProyectoFinal/sistema-ventas-eden/app/test/error_api_test.dart: lee error.mensaje del formato único de la API
+00:05 +27: D:/ProyectoFinal/sistema-ventas-eden/app/test/error_api_test.dart: con errores de validación lee el mensaje y no falla por "campos"
+00:05 +28: D:/ProyectoFinal/sistema-ventas-eden/app/test/error_api_test.dart: sigue leyendo el formato anterior, el de Spring y el texto plano
+00:07 +29: D:/ProyectoFinal/sistema-ventas-eden/app/test/imagen_producto_url_test.dart: URL de la foto del producto una foto nueva viene con la URL completa de Supabase y se usa tal cual
+00:07 +30: D:/ProyectoFinal/sistema-ventas-eden/app/test/imagen_producto_url_test.dart: URL de la foto del producto una foto vieja viene relativa al backend y se le antepone la URL base
+00:07 +31: D:/ProyectoFinal/sistema-ventas-eden/app/test/imagen_producto_url_test.dart: URL de la foto del producto sin fotos no hay URL
+00:08 +32: D:/ProyectoFinal/sistema-ventas-eden/app/test/precio_venta_test.dart: sin precio escrito no se manda precio: vale el de catálogo
+00:09 +33: D:/ProyectoFinal/sistema-ventas-eden/app/test/precio_venta_test.dart: un precio menor se manda con su descuento
+00:09 +34: D:/ProyectoFinal/sistema-ventas-eden/app/test/precio_venta_test.dart: un precio mayor se manda igual, para que el servidor lo rechace
+00:09 +35: D:/ProyectoFinal/sistema-ventas-eden/app/test/precio_venta_test.dart: lee el código de negocio del error de la API
+00:09 +36: D:/ProyectoFinal/sistema-ventas-eden/app/test/rutas_api_test.dart: ninguna ruta de la app usa /api/ sin la versión /api/v1
+00:09 +37: D:/ProyectoFinal/sistema-ventas-eden/app/test/rutas_api_test.dart: la app usa las rutas versionadas que existen en el servidor
+00:12 +38: D:/ProyectoFinal/sistema-ventas-eden/app/test/sesion_vencida_test.dart: un 401 con token avisa una vez y sigue lanzando el error
+00:13 +39: D:/ProyectoFinal/sistema-ventas-eden/app/test/sesion_vencida_test.dart: varios 401 juntos avisan una sola vez, y de nuevo después de iniciar sesión
+00:13 +40: D:/ProyectoFinal/sistema-ventas-eden/app/test/sesion_vencida_test.dart: el 401 del login (credenciales incorrectas) no cierra nada
+00:13 +41: D:/ProyectoFinal/sistema-ventas-eden/app/test/sesion_vencida_test.dart: una petición sin token no tenía sesión que perder
+00:13 +42: D:/ProyectoFinal/sistema-ventas-eden/app/test/sesion_vencida_test.dart: un 403 no cierra la sesión
+00:13 +43: D:/ProyectoFinal/sistema-ventas-eden/app/test/widget_test.dart: La app arranca mostrando el indicador de carga inicial
+00:16 +44: All tests passed!

@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.mitienda.ecommerce.services.ImagenProductoServiceTest
+-------------------------------------------------------------------------------
+Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.354 s -- in com.mitienda.ecommerce.services.ImagenProductoServiceTest
