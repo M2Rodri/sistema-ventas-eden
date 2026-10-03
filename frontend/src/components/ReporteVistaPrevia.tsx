@@ -451,8 +451,8 @@ export default function ReporteVistaPrevia({
                   <tr key={cliente.idCliente}>
                     <td className="px-4 py-3 text-sm font-medium">{cliente.nombreCliente}</td>
                     <td className="px-4 py-3 text-sm">
-                      <div>{cliente.celular}</div>
-                      <div className="text-xs text-gray-500">{cliente.correo}</div>
+                      <div>{cliente.telefono}</div>
+                      <div className="text-xs text-gray-500">{cliente.email}</div>
                     </td>
                     <td className="px-4 py-3 text-sm font-semibold text-primary-600">{cliente.cantidadCompras}</td>
                     <td className="px-4 py-3 text-sm font-semibold">{formatPrice(cliente.montoTotalCompras)}</td>
@@ -488,7 +488,7 @@ export default function ReporteVistaPrevia({
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cantidad</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Precio Unit.</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Precio de compra</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Valor Total</th>
                     </tr>
                   </thead>
@@ -498,7 +498,7 @@ export default function ReporteVistaPrevia({
                         <td className="px-4 py-3 text-sm font-medium">{item.nombreProducto}</td>
                         <td className="px-4 py-3 text-sm font-mono">{item.skuProducto}</td>
                         <td className="px-4 py-3 text-sm">{item.cantidadDisponible}</td>
-                        <td className="px-4 py-3 text-sm">{formatPrice(item.precioUnitario)}</td>
+                        <td className="px-4 py-3 text-sm">{formatPrice(item.precioCompra)}</td>
                         <td className="px-4 py-3 text-sm font-semibold text-primary-600">{formatPrice(item.valorTotal)}</td>
                       </tr>
                     ))}
@@ -626,8 +626,8 @@ export default function ReporteVistaPrevia({
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock Actual</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock Mínimo</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock actual</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock mínimo</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Faltante</th>
                 </tr>
               </thead>

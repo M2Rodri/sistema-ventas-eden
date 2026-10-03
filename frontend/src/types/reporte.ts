@@ -69,8 +69,8 @@ export interface ReporteProductos {
 export interface ClienteReporte {
   idCliente: number;
   nombreCliente: string;
-  celular: string;
-  correo: string;
+  telefono: string;
+  email: string;
   cantidadCompras: number;
   montoTotalCompras: number;
   promedioCompra: number;
@@ -90,7 +90,7 @@ export interface InventarioReporte {
   skuProducto: string;
   categoria?: string;
   cantidadDisponible: number;
-  precioUnitario: number;
+  precioCompra: number;
   valorTotal: number;
 }
 
