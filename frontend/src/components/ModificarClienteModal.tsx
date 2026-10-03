@@ -228,7 +228,7 @@ export default function ModificarClienteModal({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
                 <Phone size={16} />
-                Número de Teléfono <span className="text-red-500">*</span>
+                Teléfono <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -247,7 +247,7 @@ export default function ModificarClienteModal({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
                 <CreditCard size={16} />
-                CI
+                NIT / CI
               </label>
               <input
                 type="text"
@@ -265,7 +265,7 @@ export default function ModificarClienteModal({
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
                 <Mail size={16} />
-                Correo Electrónico (opcional)
+                Correo electrónico
               </label>
               <input
                 type="email"

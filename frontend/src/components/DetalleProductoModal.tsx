@@ -95,11 +95,11 @@ export default function DetalleProductoModal({ inventario, onClose }: DetallePro
             <h3 className="text-base font-semibold text-gray-900 mb-2">Stock e Inventario</h3>
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-green-50 border border-green-200 p-3 rounded-lg text-center">
-                <p className="text-xs text-gray-600 mb-1">Stock Actual</p>
+                <p className="text-xs text-gray-600 mb-1">Stock actual</p>
                 <p className="text-2xl font-bold text-green-600">{inventario.cantidadDisponible}</p>
               </div>
               <div className="bg-orange-50 border border-orange-200 p-3 rounded-lg text-center">
-                <p className="text-xs text-gray-600 mb-1">Stock Mínimo</p>
+                <p className="text-xs text-gray-600 mb-1">Stock mínimo</p>
                 <p className="text-2xl font-bold text-orange-600">{inventario.stockMinimo}</p>
               </div>
               <div className={`border p-3 rounded-lg text-center ${
@@ -162,7 +162,7 @@ export default function DetalleProductoModal({ inventario, onClose }: DetallePro
                     <th className="px-3.5 py-1.5 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
                     <th className="px-3.5 py-1.5 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
                     <th className="px-3.5 py-1.5 text-left text-xs font-medium text-gray-500 uppercase">Cantidad</th>
-                    <th className="px-3.5 py-1.5 text-left text-xs font-medium text-gray-500 uppercase">Usuario</th>
+                    <th className="px-3.5 py-1.5 text-left text-xs font-medium text-gray-500 uppercase">Responsable</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">

@@ -165,7 +165,7 @@ export default function PagoDetalleModal({ pago, venta, onClose }: PagoDetalleMo
                 </div>
                 <div className="flex items-center gap-2">
                   <Phone size={16} className="text-gray-400" />
-                  <span className="text-sm text-gray-600">Celular:</span>
+                  <span className="text-sm text-gray-600">Teléfono:</span>
                   <span className="text-sm font-medium text-gray-900">{venta.telefonoCliente}</span>
                 </div>
               </div>

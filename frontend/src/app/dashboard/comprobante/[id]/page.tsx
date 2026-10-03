@@ -175,7 +175,7 @@ function ComprobanteContent() {
               <h3 className="font-bold text-gray-700 mb-3 text-lg border-b pb-2">Datos del Cliente:</h3>
               <p className="mb-1"><span className="font-semibold">Nombre:</span> {venta.nombreCliente}</p>
               {venta.telefonoCliente && (
-                <p className="mb-1"><span className="font-semibold">Celular:</span> {venta.telefonoCliente}</p>
+                <p className="mb-1"><span className="font-semibold">Teléfono:</span> {venta.telefonoCliente}</p>
               )}
             </div>
             <div className="text-right">

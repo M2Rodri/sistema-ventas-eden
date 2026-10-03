@@ -364,7 +364,7 @@ export default function CompraModal({
                           />
                         </div>
                         <div>
-                          <label className="block text-xs text-gray-500 mb-1">Costo unitario</label>
+                          <label className="block text-xs text-gray-500 mb-1">Precio de compra</label>
                           <input
                             type="number"
                             min={0}

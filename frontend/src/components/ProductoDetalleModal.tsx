@@ -42,7 +42,7 @@ export default function ProductoDetalleModal({ producto, onClose }: ProductoDeta
     ['Material del armazón', producto.materialArmazon],
     ['Medida', producto.dimensiones],
     ['Precio de venta', bs(producto.precioVenta)],
-    ['Último costo de compra', producto.precioCompra != null ? bs(producto.precioCompra) : undefined],
+    ['Precio de compra', producto.precioCompra != null ? bs(producto.precioCompra) : undefined],
     ['Stock actual', stock != null ? String(stock) : undefined],
   ];
 

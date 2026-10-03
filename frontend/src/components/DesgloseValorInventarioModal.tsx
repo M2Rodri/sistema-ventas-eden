@@ -59,7 +59,7 @@ export default function DesgloseValorInventarioModal({ inventario, onClose }: De
                   <tr>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Producto</th>
                     <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Cantidad</th>
-                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Precio compra</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Precio de compra</th>
                     <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Subtotal</th>
                   </tr>
                 </thead>

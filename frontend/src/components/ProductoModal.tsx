@@ -619,7 +619,7 @@ export default function ProductoModal({
               {/* Al crear no se pide: el costo entra con la primera compra (módulo Compras). */}
               {isEditing && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Precio de Compra</label>
+                  <label className="block text-sm font-medium text-gray-700">Precio de compra</label>
                   {productoParaEditar?.tieneComprasConfirmadas ? (
                     <p className="mt-1 px-2 py-2 text-gray-700">
                       {formData.precioCompra != null
@@ -636,7 +636,7 @@ export default function ProductoModal({
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Precio de Venta *</label>
+                <label className="block text-sm font-medium text-gray-700">Precio de venta *</label>
                 <input type="number" step="0.01" name="precioVenta" value={formData.precioVenta} onChange={handleChange}
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-2 py-1.5" required />
               </div>

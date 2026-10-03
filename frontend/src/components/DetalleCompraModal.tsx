@@ -209,7 +209,7 @@ export default function DetalleCompraModal({ compra, onClose }: DetalleCompraMod
             <div className="bg-gray-50 p-4 rounded-lg">
               <div className="flex items-center gap-2 mb-3">
                 <DollarSign className="text-secondary-600" size={20} />
-                <h3 className="font-semibold text-gray-900">Costo Total</h3>
+                <h3 className="font-semibold text-gray-900">Total</h3>
               </div>
               <p className="text-2xl font-bold text-secondary-600">{formatPrice(compra.montoTotal)}</p>
             </div>
@@ -236,7 +236,7 @@ export default function DetalleCompraModal({ compra, onClose }: DetalleCompraMod
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Cantidad</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Precio Unit.</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Precio de compra</th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Subtotal</th>
                   </tr>
                 </thead>
@@ -270,7 +270,7 @@ export default function DetalleCompraModal({ compra, onClose }: DetalleCompraMod
           <div className="px-6 pb-6">
             <div className="bg-secondary-50 border-2 border-secondary-200 p-4 rounded-lg">
               <div className="flex justify-between items-center">
-                <span className="text-lg font-bold text-gray-900">COSTO TOTAL:</span>
+                <span className="text-lg font-bold text-gray-900">TOTAL:</span>
                 <span className="text-3xl font-bold text-secondary-600">{formatPrice(compra.montoTotal)}</span>
               </div>
             </div>

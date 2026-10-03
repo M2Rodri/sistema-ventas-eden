@@ -634,7 +634,7 @@ export default function RegistrarVentaModal({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Celular
+                    Teléfono
                   </label>
                   <input
                     type="text"
@@ -647,7 +647,7 @@ export default function RegistrarVentaModal({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    CI
+                    NIT / CI
                   </label>
                   <input
                     type="text"
