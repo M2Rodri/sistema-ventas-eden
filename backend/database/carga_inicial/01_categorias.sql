@@ -36,6 +36,10 @@ FROM (VALUES
      ) AS v(orden, nombre, tipo)
 WHERE NOT EXISTS (SELECT 1 FROM categorias c WHERE LOWER(c.nombre) = LOWER(v.nombre));
 
+-- Descripciones de prueba que traian las categorias viejas: se dejan vacias.
+UPDATE categorias SET descripcion = NULL
+WHERE descripcion IN ('productos nuevos', 'colchones nuevos', 'Almohadas y accesorios de descanso');
+
 SELECT sincronizar_contadores_id();
 
 COMMIT;

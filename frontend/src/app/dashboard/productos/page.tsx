@@ -283,7 +283,7 @@ export default function ProductosPage() {
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
         <div className="flex-shrink-0">
           <h1 className="text-2xl font-bold text-gray-900">Gestión de Productos</h1>
-          <p className="text-gray-600 mt-1">Administra el catálogo de camas, colchones y almohadas</p>
+          <p className="text-gray-600 mt-1">Administra el catálogo de productos</p>
         </div>
         
         <div className="flex flex-wrap items-center gap-3">
