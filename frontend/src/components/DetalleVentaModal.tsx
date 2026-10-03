@@ -128,7 +128,7 @@ export default function DetalleVentaModal({
       CANCELADA: 'bg-red-100 text-red-800',
     };
     const labels = {
-      COMPLETADA: 'Pagada',
+      COMPLETADA: 'Completada',
       PENDIENTE_PAGO: 'Pago pendiente',
       CANCELADA: 'Anulada',
     };
