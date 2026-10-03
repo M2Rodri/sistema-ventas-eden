@@ -1,0 +1,52 @@
+{
+  "requisito": "RNF-01: respuesta de las consultas en menos de 2 segundos",
+  "herramienta": "Script Node v24.15.0 (fetch y performance.now), 10 mediciones secuenciales por ruta, con un calentamiento previo que no cuenta",
+  "servidor": "https://sistema-ventas-eden.onrender.com",
+  "fecha": "2026-10-03",
+  "hora": "16:32:20",
+  "umbralMs": 2000,
+  "resultados": [
+    {
+      "url": "/api/v1/productos",
+      "mediciones": [
+        2396,
+        2577,
+        2561,
+        2818,
+        2490,
+        2840,
+        2577,
+        2862,
+        2312,
+        2233
+      ],
+      "estadoHttp": 200,
+      "bytesRespuesta": 8998,
+      "promedioMs": 2567,
+      "maximoMs": 2862,
+      "minimoMs": 2233,
+      "cumple2s": false
+    },
+    {
+      "url": "/api/v1/inventario/catalogo",
+      "mediciones": [
+        680,
+        507,
+        642,
+        652,
+        542,
+        681,
+        595,
+        817,
+        604,
+        603
+      ],
+      "estadoHttp": 200,
+      "bytesRespuesta": 3409,
+      "promedioMs": 632,
+      "maximoMs": 817,
+      "minimoMs": 507,
+      "cumple2s": true
+    }
+  ]
+}
