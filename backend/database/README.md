@@ -38,6 +38,10 @@ Del 01 al 10 se aplicaron sobre la base local. Del 11 al 15 nacieron al migrar
 a Supabase, y el 15 además hay que correrlo sobre la base local para dejar las
 dos iguales.
 
+Del 24 en adelante (ver cada cabecera): 25 y 26 tipos y estados de producto y venta, 27 compras sin estado previo,
+28 alerta de stock atendida, 29 compra sin proveedor, 30 limpiar los datos de prueba (borra todo, pide confirmación)
+y 31 numeración sin huecos (contadores de ID; hay que correrlo antes de publicar el backend que lo usa).
+
 ## Respaldos
 
 `respaldo_supabase_20260913/` tiene el contenido en CSV de las tablas que

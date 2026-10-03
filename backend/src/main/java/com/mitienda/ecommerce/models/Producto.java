@@ -1,5 +1,8 @@
 package com.mitienda.ecommerce.models;
 
+import com.mitienda.ecommerce.config.GeneradorIdSinHuecos;
+import org.hibernate.annotations.GenericGenerator;
+import org.hibernate.annotations.Parameter;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
@@ -27,7 +30,9 @@ import java.util.List;
 public class Producto {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(generator = "id_productos")
+    @GenericGenerator(name = "id_productos", type = GeneradorIdSinHuecos.class,
+            parameters = @Parameter(name = "tabla", value = "productos"))
     private Long id;
 
     @NotBlank(message = "El SKU es obligatorio")

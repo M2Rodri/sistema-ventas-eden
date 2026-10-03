@@ -59,6 +59,20 @@ al saldo) y 500 error interno, sin detalles ni traza. Las respuestas de error ll
 La tabla completa de códigos de error, cuándo ocurre cada uno y un ejemplo está en
 [`docs/errores-api.md`](docs/errores-api.md).
 
+## Numeración sin huecos
+
+Los números (ID) de ventas, compras, productos, clientes, proveedores, categorías, inventario, pagos,
+comprobantes, movimientos y usuarios salen de un contador propio (tabla `contadores_id`) que se actualiza
+**dentro de la misma operación** que guarda el registro. Si la operación falla y se revierte (por ejemplo,
+una venta sin stock), el contador también, y el número no se pierde: la numeración sigue 1, 2, 3, 4, sin huecos.
+El sistema no borra ventas ni compras: las cancela, y la fila conserva su número. Está en
+`config/GeneradorIdSinHuecos.java` y se prueba en `IdsSinHuecosTest`.
+
+- Hay que correr el script `31_ids_sin_huecos.sql` **antes** de publicar el backend que lo usa.
+- Después de cualquier carga masiva por SQL (como la carga inicial de productos), llamar a
+  `SELECT sincronizar_contadores_id();` para que el contador quede en el ID más alto.
+- `30_limpiar_datos_de_prueba.sql` borra los datos de prueba y reinicia todo en 1 (pide confirmación explícita).
+
 ## Qué incluye
 
 | Parte | Carpeta | Tecnología | Para qué |

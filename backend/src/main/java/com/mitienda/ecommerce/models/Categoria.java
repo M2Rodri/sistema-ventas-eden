@@ -1,5 +1,8 @@
 package com.mitienda.ecommerce.models;
 
+import com.mitienda.ecommerce.config.GeneradorIdSinHuecos;
+import org.hibernate.annotations.GenericGenerator;
+import org.hibernate.annotations.Parameter;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -24,7 +27,9 @@ import java.util.List;
 public class Categoria {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(generator = "id_categorias")
+    @GenericGenerator(name = "id_categorias", type = GeneradorIdSinHuecos.class,
+            parameters = @Parameter(name = "tabla", value = "categorias"))
     private Long id;
 
     @NotBlank(message = "El nombre es obligatorio")

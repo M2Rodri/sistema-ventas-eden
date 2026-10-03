@@ -1,5 +1,8 @@
 package com.mitienda.ecommerce.models;
 
+import com.mitienda.ecommerce.config.GeneradorIdSinHuecos;
+import org.hibernate.annotations.GenericGenerator;
+import org.hibernate.annotations.Parameter;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
@@ -42,7 +45,9 @@ import java.util.List;
 public class Venta {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(generator = "id_ventas")
+    @GenericGenerator(name = "id_ventas", type = GeneradorIdSinHuecos.class,
+            parameters = @Parameter(name = "tabla", value = "ventas"))
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)

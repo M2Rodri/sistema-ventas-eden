@@ -1,5 +1,8 @@
 package com.mitienda.ecommerce.models;
 
+import com.mitienda.ecommerce.config.GeneradorIdSinHuecos;
+import org.hibernate.annotations.GenericGenerator;
+import org.hibernate.annotations.Parameter;
 import com.mitienda.ecommerce.exception.ReglaNegocioException;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
@@ -22,7 +25,9 @@ import java.time.LocalDateTime;
 public class Inventario {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(generator = "id_inventario")
+    @GenericGenerator(name = "id_inventario", type = GeneradorIdSinHuecos.class,
+            parameters = @Parameter(name = "tabla", value = "inventario"))
     private Long id;
 
     @NotNull(message = "El producto es obligatorio")

@@ -1,5 +1,8 @@
 package com.mitienda.ecommerce.models;
 
+import com.mitienda.ecommerce.config.GeneradorIdSinHuecos;
+import org.hibernate.annotations.GenericGenerator;
+import org.hibernate.annotations.Parameter;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -24,7 +27,9 @@ import java.util.List;
 public class Compra {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(generator = "id_compras")
+    @GenericGenerator(name = "id_compras", type = GeneradorIdSinHuecos.class,
+            parameters = @Parameter(name = "tabla", value = "compras"))
     private Long id;
 
     /** Puede faltar: a veces se compra sin un proveedor formal. */

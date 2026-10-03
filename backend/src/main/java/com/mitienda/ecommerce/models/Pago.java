@@ -1,5 +1,8 @@
 package com.mitienda.ecommerce.models;
 
+import com.mitienda.ecommerce.config.GeneradorIdSinHuecos;
+import org.hibernate.annotations.GenericGenerator;
+import org.hibernate.annotations.Parameter;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
@@ -22,7 +25,9 @@ import java.time.LocalDateTime;
 public class Pago {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(generator = "id_pagos")
+    @GenericGenerator(name = "id_pagos", type = GeneradorIdSinHuecos.class,
+            parameters = @Parameter(name = "tabla", value = "pagos"))
     private Long id;
 
     @NotNull(message = "La venta es obligatoria")
