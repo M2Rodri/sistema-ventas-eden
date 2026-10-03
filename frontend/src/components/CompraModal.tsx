@@ -29,8 +29,8 @@ const TIPOS: { valor: TipoProducto; etiqueta: string }[] = [
   { valor: 'CAMA', etiqueta: 'Camas' },
   { valor: 'COLCHON', etiqueta: 'Colchones' },
   { valor: 'ALMOHADA', etiqueta: 'Almohadas' },
-  { valor: 'ACCESORIO', etiqueta: 'Accesorios' },
   { valor: 'MUEBLE', etiqueta: 'Muebles de dormitorio' },
+  { valor: 'ACCESORIO', etiqueta: 'Accesorios' },
 ];
 
 const normalizar = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
