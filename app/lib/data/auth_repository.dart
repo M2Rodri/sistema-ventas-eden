@@ -24,6 +24,7 @@ class AuthRepository {
     });
     final sesion = Sesion.fromLoginResponse(json);
     await _storage.guardarSesion(sesion);
+    ApiClient.sesionIniciada();
     return sesion;
   }
 

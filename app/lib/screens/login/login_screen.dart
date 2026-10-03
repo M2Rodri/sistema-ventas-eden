@@ -12,11 +12,14 @@ import '../../theme/app_colors.dart';
 /// esta pantalla es específicamente el formulario para cuando hace falta
 /// loguearse.
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key, required this.onSesionIniciada});
+  const LoginScreen({super.key, required this.onSesionIniciada, this.aviso});
 
   /// Se llama con la sesión recién creada. Quien use LoginScreen decide a
   /// dónde navegar desde ahí.
   final ValueChanged<Sesion> onSesionIniciada;
+
+  /// Mensaje que se muestra al abrir el login (por ejemplo, "Tu sesión venció").
+  final String? aviso;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -31,6 +34,12 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _cargando = false;
   bool _ocultarPassword = true;
   String? _errorMensaje;
+
+  @override
+  void initState() {
+    super.initState();
+    _errorMensaje = widget.aviso;
+  }
 
   @override
   void dispose() {

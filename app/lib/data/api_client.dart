@@ -14,6 +14,16 @@ import 'api_exception.dart';
 class ApiClient {
   const ApiClient();
 
+  /// Qué hacer cuando una petición que llevaba sesión recibe 401 (token vencido
+  /// o inválido). Lo define la app al arrancar (main.dart): borra la sesión y
+  /// lleva al login. Un 403 no pasa por acá: es falta de permiso, no sesión vencida.
+  static void Function()? alVencerSesion;
+
+  static bool _sesionVencidaAvisada = false;
+
+  /// Se llama al iniciar sesión: desde ahí, un nuevo 401 vuelve a contar.
+  static void sesionIniciada() => _sesionVencidaAvisada = false;
+
   Uri _uri(String path) => Uri.parse('${ApiConfig.baseUrl}$path');
 
   Map<String, String> _headers(String? token) => <String, String>{
@@ -29,7 +39,7 @@ class ApiClient {
     final respuesta = await _enviar(
       () => http.post(_uri(path), headers: _headers(token), body: jsonEncode(body)),
     );
-    return _decodificar(respuesta);
+    return _decodificar(respuesta, path, token);
   }
 
   Future<Map<String, dynamic>> put(
@@ -40,7 +50,7 @@ class ApiClient {
     final respuesta = await _enviar(
       () => http.put(_uri(path), headers: _headers(token), body: jsonEncode(body)),
     );
-    return _decodificar(respuesta);
+    return _decodificar(respuesta, path, token);
   }
 
   /// PATCH sin body: alcanza para las acciones de estado que expone el
@@ -50,7 +60,7 @@ class ApiClient {
     final respuesta = await _enviar(
       () => http.patch(_uri(path), headers: _headers(token)),
     );
-    return _decodificar(respuesta);
+    return _decodificar(respuesta, path, token);
   }
 
   /// PATCH con body, para las acciones que llevan datos (por ejemplo,
@@ -63,7 +73,7 @@ class ApiClient {
     final respuesta = await _enviar(
       () => http.patch(_uri(path), headers: _headers(token), body: jsonEncode(body)),
     );
-    return _decodificar(respuesta);
+    return _decodificar(respuesta, path, token);
   }
 
   /// Sube un único archivo como multipart/form-data, en el campo "file" (el
@@ -80,14 +90,14 @@ class ApiClient {
       final streamed = await request.send();
       return http.Response.fromStream(streamed);
     });
-    return _decodificar(respuesta);
+    return _decodificar(respuesta, path, token);
   }
 
   Future<Map<String, dynamic>> get(String path, {required String token}) async {
     final respuesta = await _enviar(
       () => http.get(_uri(path), headers: _headers(token)),
     );
-    return _decodificar(respuesta);
+    return _decodificar(respuesta, path, token);
   }
 
   /// Igual que [get], pero para endpoints que devuelven un array JSON
@@ -97,7 +107,7 @@ class ApiClient {
     final respuesta = await _enviar(
       () => http.get(_uri(path), headers: _headers(token)),
     );
-    return _decodificarLista(respuesta);
+    return _decodificarLista(respuesta, path, token);
   }
 
   Future<http.Response> _enviar(Future<http.Response> Function() accion) async {
@@ -112,14 +122,14 @@ class ApiClient {
     }
   }
 
-  Map<String, dynamic> _decodificar(http.Response respuesta) {
-    _verificarError(respuesta);
+  Map<String, dynamic> _decodificar(http.Response respuesta, String path, String? token) {
+    _verificarError(respuesta, path, token);
     if (respuesta.body.isEmpty) return <String, dynamic>{};
     return jsonDecode(respuesta.body) as Map<String, dynamic>;
   }
 
-  List<dynamic> _decodificarLista(http.Response respuesta) {
-    _verificarError(respuesta);
+  List<dynamic> _decodificarLista(http.Response respuesta, String path, String? token) {
+    _verificarError(respuesta, path, token);
     if (respuesta.body.isEmpty) return <dynamic>[];
     return jsonDecode(respuesta.body) as List<dynamic>;
   }
@@ -127,8 +137,9 @@ class ApiClient {
   /// Traduce un status HTTP de error a ApiException. No devuelve nada: si la
   /// respuesta está bien, simplemente vuelve y quien llamó sigue con el
   /// decodificado (de objeto o de lista) que corresponda.
-  void _verificarError(http.Response respuesta) {
+  void _verificarError(http.Response respuesta, String path, String? token) {
     if (respuesta.statusCode == 401) {
+      _avisarSiVencioLaSesion(path, token);
       throw ApiException(
         _extraerMensaje(respuesta.body) ?? 'Credenciales inválidas',
         ApiErrorTipo.credencialesInvalidas,
@@ -147,6 +158,17 @@ class ApiClient {
         codigo: extraerCodigoError(respuesta.body),
       );
     }
+  }
+
+  /// El 401 del login es "credenciales incorrectas", no una sesión vencida, y una
+  /// petición sin token tampoco tenía sesión que perder. Se avisa una sola vez,
+  /// aunque lleguen varios 401 juntos.
+  void _avisarSiVencioLaSesion(String path, String? token) {
+    final llevabaSesion = token != null;
+    final esLogin = path.endsWith('/auth/login');
+    if (!llevabaSesion || esLogin || _sesionVencidaAvisada) return;
+    _sesionVencidaAvisada = true;
+    alVencerSesion?.call();
   }
 
   String? _extraerMensaje(String cuerpo) => extraerMensajeError(cuerpo);

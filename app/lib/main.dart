@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import 'data/api_client.dart';
 import 'data/auth_repository.dart';
 import 'screens/bloqueo/bloqueo_biometrico.dart';
 import 'screens/home/home_screen.dart';
+import 'screens/login/login_navegacion.dart';
 import 'screens/login/login_screen.dart';
 import 'theme/app_colors.dart';
 import 'theme/app_theme.dart';
@@ -12,7 +14,18 @@ import 'theme/app_theme.dart';
 final navigatorKey = GlobalKey<NavigatorState>();
 
 void main() {
+  ApiClient.alVencerSesion = _alVencerLaSesion;
   runApp(const MuebleriaEdenApp());
+}
+
+/// Una petición con sesión recibió 401: se borra la sesión guardada y se lleva
+/// al login con un aviso, sacando todas las pantallas anteriores.
+Future<void> _alVencerLaSesion() async {
+  await AuthRepository().cerrarSesion();
+  final navigator = navigatorKey.currentState;
+  if (navigator != null) {
+    irAlLogin(navigator, aviso: 'Tu sesión venció. Inicia sesión de nuevo.');
+  }
 }
 
 class MuebleriaEdenApp extends StatelessWidget {

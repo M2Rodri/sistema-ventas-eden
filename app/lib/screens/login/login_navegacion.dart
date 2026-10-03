@@ -11,10 +11,14 @@ import 'login_screen.dart';
 /// inválido para cuando el usuario inicia sesión (es async, tarda). Se usa el
 /// "routeContext" del propio builder, que es el de la pantalla de login recién
 /// creada y sigue vivo en ese momento.
-void irAlLogin(NavigatorState navigator) {
+///
+/// Con [aviso], el login lo muestra arriba del formulario (por ejemplo, cuando
+/// la sesión venció).
+void irAlLogin(NavigatorState navigator, {String? aviso}) {
   navigator.pushAndRemoveUntil(
     MaterialPageRoute<void>(
       builder: (routeContext) => LoginScreen(
+        aviso: aviso,
         onSesionIniciada: (sesion) {
           Navigator.of(routeContext).pushReplacement(
             MaterialPageRoute<void>(builder: (_) => HomeScreen(sesion: sesion)),
