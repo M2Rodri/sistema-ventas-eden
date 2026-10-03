@@ -133,3 +133,6 @@ key.properties
 # Resumen de continuidad entre sesiones de Claude Code -- tiene credenciales
 # reales de producción a propósito, nunca se sube.
 RESUMEN.md
+
+# Documentos de entrega que no se suben
+docs/Tarea_E2_VerticalFuncional.docx
