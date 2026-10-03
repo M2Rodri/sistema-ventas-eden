@@ -245,7 +245,7 @@ Todas las rutas de la API van con el prefijo `/api/v1`. Una ruta con `/api/` sin
 
 | Método | Ruta anterior | Ruta nueva | Estado |
 |---|---|---|---|
-| GET | `/api/v1/salud` | `/api/v1/salud` | sin cambio |
+| GET | `/api/v1/salud` | `/api/v1/salud` | sin cambio de ruta; ahora también consulta la base de datos y responde 503 `BASE_NO_DISPONIBLE` si no contesta |
 
 ## Transportadora
 

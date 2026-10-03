@@ -31,6 +31,7 @@ que no existen. Todas las respuestas de error llevan las cabeceras CORS, para qu
 | 409 | La operación choca con el estado actual (compra ya anulada, venta ya cancelada, dato duplicado) |
 | 422 | La petición es válida pero viola una regla de negocio (stock insuficiente, pago mayor al saldo) |
 | 500 | Error interno: sin detalles internos ni traza (el detalle queda solo en el registro del servidor) |
+| 503 | La base de datos no responde (solo lo devuelve `/api/v1/salud`) |
 
 ## Tabla de errores
 
@@ -48,6 +49,7 @@ que no existen. Todas las respuestas de error llevan las cabeceras CORS, para qu
 | 409 | `CONFLICTO_DATOS` | La base rechaza el dato por un duplicado o porque está en uso y ninguna regla lo detectó antes | `La operación choca con datos que ya existen o están en uso` |
 | 415 | `TIPO_NO_SOPORTADO` | El cuerpo no es JSON (o el tipo de contenido no corresponde) | `El tipo de contenido enviado no está soportado` |
 | 500 | `ERROR_INTERNO` | Cualquier falla no prevista | `Ocurrió un error inesperado. Intentá de nuevo en un momento.` |
+| 503 | `BASE_NO_DISPONIBLE` | `GET /api/v1/salud` no logra consultar la base de datos (`SELECT 1`) | `La base de datos no está disponible` |
 
 ### 400: dato inválido que no es de campo
 
@@ -59,10 +61,10 @@ que no existen. Todas las respuestas de error llevan las cabeceras CORS, para qu
 | 400 | `ESTADO_INVALIDO` | Filtro por un estado de venta o de pago que no existe | `Estado de venta inválido: XYZ` |
 | 400 | `ARCHIVO_VACIO` | Se sube una imagen o comprobante sin contenido | `El archivo de imagen no puede estar vacío.` |
 | 400 | `ARCHIVO_MUY_GRANDE` | La imagen supera el tamaño máximo | `El archivo excede el tamaño máximo permitido de N MB` |
-| 400 | `IMAGEN_INVALIDA` | El archivo no es una imagen JPG, PNG o WebP real | `Tipo de archivo no permitido. Solo se aceptan imágenes JPG, PNG o WebP` |
+| 400 | `IMAGEN_INVALIDA` | El archivo no es del tipo permitido. Fotos de producto: JPG, PNG o WebP. Comprobante de pago: JPG, JPEG, JFIF, PNG, WebP o PDF. Se revisa el contenido real, no solo la extensión | `Tipo de archivo no permitido. Solo se aceptan archivos JPG, JPEG, JFIF, PNG, WebP o PDF` |
 | 400 | `STOCK_MINIMO_INVALIDO` | Stock mínimo negativo | `El stock mínimo no puede ser negativo` |
 | 400 | `MOVIMIENTO_INVALIDO` | Tipo de movimiento de inventario que no es ENTRADA ni SALIDA | `Tipo de movimiento inválido. Use 'ENTRADA' o 'SALIDA'` |
-| 400 | `ROL_REQUERIDO` | Usuario sin rol | `El rol es obligatorio` |
+| 400 | `ROL_REQUERIDO` | Edición de un usuario sin rol. Al crear un usuario sin rol no hay error: queda como EMPLEADO | `El rol es obligatorio` |
 | 400 | `ROL_INVALIDO` | Rol que no existe | `Rol no válido: SUPERVISOR` |
 | 400 | `PASSWORD_REQUERIDA` | Alta de usuario sin contraseña | `La contraseña es obligatoria al crear un usuario` |
 
@@ -94,7 +96,6 @@ que no existen. Todas las respuestas de error llevan las cabeceras CORS, para qu
 | 409 | `VENTA_YA_ENTREGADA` | Se marca como entregada una venta ya entregada | `Esta venta ya está marcada como entregada` |
 | 409 | `VENTA_ENTREGA_PENDIENTE` | Se corrige la entrega de una venta que todavía está pendiente | `No hay nada que corregir: la venta está pendiente de entrega` |
 | 409 | `COMPROBANTE_YA_EXISTE` | La venta ya tiene comprobante | `Esta venta ya tiene un comprobante asociado` |
-| 409 | `COMPROBANTE_YA_ANULADO` | Se anula un comprobante ya anulado | `Este comprobante ya está anulado` |
 | 409 | `ALERTA_YA_ATENDIDA` | Se marca como atendida una alerta que ya no está pendiente | `Esta alerta ya fue atendida` |
 | 409 | `SKU_DUPLICADO` | Otro producto ya usa ese SKU | `Ya existe un producto con el SKU: CAM-001` |
 | 409 | `CATEGORIA_DUPLICADA` | Otra categoría ya tiene ese nombre | `Ya existe una categoría con el nombre: Camas` |
