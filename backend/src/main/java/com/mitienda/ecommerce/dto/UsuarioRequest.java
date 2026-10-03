@@ -39,8 +39,10 @@ public class UsuarioRequest {
     @Size(max = 200, message = "La dirección no puede exceder 200 caracteres")
     private String direccion;
 
-    /** Nombre del rol que envía el frontend: "ADMIN" o "EMPLEADO". */
-    @NotBlank(message = "El rol es obligatorio")
+    /**
+     * Nombre del rol: "ADMIN" o "EMPLEADO". Al crear, si no se envía, el usuario
+     * queda como EMPLEADO. Al editar sigue siendo obligatorio (lo exige el servicio).
+     */
     private String role;
 
     @NotNull(message = "El estado es obligatorio")

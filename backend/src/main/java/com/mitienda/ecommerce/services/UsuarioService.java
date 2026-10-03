@@ -139,7 +139,10 @@ public class UsuarioService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setTelefono(request.getTelefono());
         user.setDireccion(request.getDireccion());
-        user.setRol(resolverRol(request.getRole()));
+        // Sin rol en el pedido, el usuario nuevo es EMPLEADO: el rol con menos permisos.
+        String rolPedido = request.getRole() == null || request.getRole().isBlank()
+                ? "EMPLEADO" : request.getRole();
+        user.setRol(resolverRol(rolPedido));
         user.setActivo(request.getActivo());
 
         Usuario savedUser = usuarioRepository.save(user);
