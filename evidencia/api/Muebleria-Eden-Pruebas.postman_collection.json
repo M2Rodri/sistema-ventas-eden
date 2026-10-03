@@ -1,0 +1,2156 @@
+{
+  "info": {
+    "name": "Mueblería Edén: pruebas de la API",
+    "description": "Casos CP-02 a CP-28 del apartado 2.8 Pruebas. Las credenciales NO están en este archivo: el ejecutor (ejecutar.mjs) las toma de las variables de entorno ADMIN_USER, ADMIN_PASS, EMP_USER y EMP_PASS. Crea datos con nombre \"Prueba\" y al final los anula (no borra datos reales).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sistema-ventas-eden.onrender.com"
+    }
+  ],
+  "item": [
+    {
+      "name": "00 Preparación",
+      "item": [
+        {
+          "name": "Login ADMIN",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"usuario\": \"{{adminUser}}\", \"password\": \"{{adminPass}}\" }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('Preparación: login de ADMIN (HTTP 200 con token)', () => { pm.response.to.have.status(200); pm.expect(cuerpo.token).to.be.a('string'); });",
+                  "vars.set('adminToken', cuerpo.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login EMPLEADO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"usuario\": \"{{empUser}}\", \"password\": \"{{empPass}}\" }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('Preparación: login de EMPLEADO (HTTP 200 con token)', () => { pm.response.to.have.status(200); pm.expect(cuerpo.token).to.be.a('string'); });",
+                  "vars.set('empToken', cuerpo.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Categoría activa que no sea de muebles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/categorias/activas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "categorias",
+                "activas"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('Preparación: hay una categoría activa para los productos de prueba', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const c = cuerpo.find((x) => x.tipoProducto !== 'MUEBLE') || cuerpo[0];",
+                  "  pm.expect(c).to.exist;",
+                  "  vars.set('categoriaId', c.id);",
+                  "  vars.set('categoriaTipo', c.tipoProducto);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear Producto Prueba A (stock 0)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/productos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "productos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"sku\": \"PRUEBA-A-{{$timestamp}}\", \"nombre\": \"Producto Prueba A\", \"descripcion\": \"Producto de prueba automática\", \"idCategoria\": {{categoriaId}}, \"precioCompra\": 60, \"precioVenta\": 100, \"dimensiones\": \"140x190 cm\", \"stockMinimo\": 5, \"stockInicial\": 0, \"tipoProducto\": \"{{categoriaTipo}}\", \"activo\": true }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('Preparación: producto de prueba A creado (HTTP 201)', () => { pm.response.to.have.status(201); pm.expect(cuerpo.id).to.exist; });",
+                  "vars.set('productoAId', cuerpo.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear Producto Prueba B (stock 2, mínimo 5)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/productos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "productos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"sku\": \"PRUEBA-B-{{$timestamp}}\", \"nombre\": \"Producto Prueba B\", \"descripcion\": \"Producto de prueba automática\", \"idCategoria\": {{categoriaId}}, \"precioCompra\": 50, \"precioVenta\": 80, \"dimensiones\": \"100x190 cm\", \"stockMinimo\": 5, \"stockInicial\": 2, \"tipoProducto\": \"{{categoriaTipo}}\", \"activo\": true }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('Preparación: producto de prueba B creado (HTTP 201)', () => { pm.response.to.have.status(201); pm.expect(cuerpo.id).to.exist; });",
+                  "vars.set('productoBId', cuerpo.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear Cliente Prueba A",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/clientes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "clientes"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"nombre\": \"Cliente\", \"apellido\": \"Prueba A\", \"nitCi\": \"{{nitA}}\", \"telefono\": \"70000001\", \"activo\": true }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('nitA', 'PRB' + (Date.now() % 1000000000)); pm.collectionVariables.set('nitB', 'PRC' + (Date.now() % 1000000000));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('Preparación: cliente de prueba A creado (HTTP 201)', () => { pm.response.to.have.status(201); pm.expect(cuerpo.id).to.exist; });",
+                  "vars.set('clienteAId', cuerpo.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear Cliente Prueba B",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/clientes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "clientes"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"nombre\": \"Cliente\", \"apellido\": \"Prueba B\", \"nitCi\": \"{{nitB}}\", \"telefono\": \"70000002\", \"activo\": true }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('Preparación: cliente de prueba B creado (HTTP 201)', () => { pm.response.to.have.status(201); pm.expect(cuerpo.id).to.exist; });",
+                  "vars.set('clienteBId', cuerpo.id);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 Casos de prueba",
+      "item": [
+        {
+          "name": "CP-02 Login con contraseña incorrecta",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"usuario\": \"{{adminUser}}\", \"password\": \"{{claveMala}}\" }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('claveMala', 'x' + Math.random().toString(36).slice(2) + 'Zz9');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-02: responde HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('CP-02: código de error CREDENCIALES_INVALIDAS', () => pm.expect(codigoError).to.eql('CREDENCIALES_INVALIDAS'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-04 Producto con nombre vacío y precio 0",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/productos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "productos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"sku\": \"PRUEBA-X\", \"nombre\": \"\", \"idCategoria\": {{categoriaId}}, \"precioVenta\": 0, \"stockMinimo\": 1, \"tipoProducto\": \"{{categoriaTipo}}\", \"activo\": true }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-04: responde HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('CP-04: código de error VALIDACION', () => pm.expect(codigoError).to.eql('VALIDACION'));",
+                  "",
+                  "pm.test('CP-04: indica los campos con error (nombre y precioVenta)', () => { pm.expect(cuerpo.error.campos).to.have.property('nombre'); pm.expect(cuerpo.error.campos).to.have.property('precioVenta'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-05 (antes) Stock del producto A",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/inventario/catalogo?nombre=Producto%20Prueba%20A",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "inventario",
+                "catalogo"
+              ],
+              "query": [
+                {
+                  "key": "nombre",
+                  "value": "Producto%20Prueba%20A"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "const p = cuerpo.find((x) => x.id == vars.get('productoAId'));",
+                  "pm.test('CP-05: el producto de prueba A está en el catálogo', () => pm.expect(p).to.exist);",
+                  "vars.set('stockAntes', p ? p.cantidadDisponible : -1);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-05 Compra de 10 unidades del producto A",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/compras",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "compras"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"numeroFactura\": \"PRUEBA-{{$timestamp}}\", \"notas\": \"Compra de prueba automática\", \"items\": [ { \"idProducto\": {{productoAId}}, \"cantidad\": 10, \"precioUnitario\": 60 } ] }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-05: la compra se registra (HTTP 201)', () => { pm.response.to.have.status(201); pm.expect(cuerpo.id).to.exist; });",
+                  "vars.set('compraId', cuerpo.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-05 (después) Stock del producto A",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/inventario/catalogo?nombre=Producto%20Prueba%20A",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "inventario",
+                "catalogo"
+              ],
+              "query": [
+                {
+                  "key": "nombre",
+                  "value": "Producto%20Prueba%20A"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "const p = cuerpo.find((x) => x.id == vars.get('productoAId'));",
+                  "const antes = Number(vars.get('stockAntes'));",
+                  "const ahora = p ? p.cantidadDisponible : -1;",
+                  "pm.test('CP-05: el stock subió en 10 (antes ' + antes + ', ahora ' + ahora + ')', () => pm.expect(ahora).to.eql(antes + 10));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-06 Compra sin productos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/compras",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "compras"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"notas\": \"Compra de prueba sin productos\", \"items\": [] }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-06: responde HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('CP-06: código de error VALIDACION', () => pm.expect(codigoError).to.eql('VALIDACION'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-08 Venta con precio mayor al de catálogo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ventas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ventas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idCliente\": {{clienteAId}},\n  \"metodoPago\": \"EFECTIVO\",\n  \"items\": [\n    {\n      \"idProducto\": {{productoAId}},\n      \"cantidad\": 1,\n      \"precioUnitarioConDescuento\": 150\n    }\n  ],\n  \"modalidadEntrega\": \"RETIRO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-08: responde HTTP 422', () => pm.response.to.have.status(422));",
+                  "pm.test('CP-08: código de error PRECIO_EXCEDE_CATALOGO', () => pm.expect(codigoError).to.eql('PRECIO_EXCEDE_CATALOGO'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-09 Venta a domicilio pendiente (pagada completa)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ventas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ventas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idCliente\": {{clienteAId}},\n  \"metodoPago\": \"EFECTIVO\",\n  \"items\": [\n    {\n      \"idProducto\": {{productoAId}},\n      \"cantidad\": 1\n    }\n  ],\n  \"montoPagado\": 100,\n  \"modalidadEntrega\": \"DOMICILIO\",\n  \"estadoEntrega\": \"PENDIENTE\",\n  \"direccionDestino\": \"Dirección de Prueba 123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-09: la venta a domicilio nace pendiente de entrega (HTTP 201)', () => { pm.response.to.have.status(201); pm.expect(cuerpo.estadoEntrega).to.eql('PENDIENTE'); });",
+                  "vars.set('ventaEntregaId', cuerpo.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-09 Marcar como entregada",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ventas/{{ventaEntregaId}}/entregar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ventas",
+                "{{ventaEntregaId}}",
+                "entregar"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-09: marcar entregada responde HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('CP-09: el estado de entrega queda ENTREGADO', () => pm.expect(cuerpo.estadoEntrega).to.eql('ENTREGADO'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-10 Venta por transportadora sin ciudad",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ventas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ventas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idCliente\": {{clienteAId}},\n  \"metodoPago\": \"EFECTIVO\",\n  \"items\": [\n    {\n      \"idProducto\": {{productoAId}},\n      \"cantidad\": 1\n    }\n  ],\n  \"montoPagado\": 100,\n  \"modalidadEntrega\": \"TRANSPORTADORA\",\n  \"estadoEntrega\": \"PENDIENTE\",\n  \"transportadora\": \"Transportadora de Prueba\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-10: responde HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('CP-10: código de error CIUDAD_REQUERIDA', () => pm.expect(codigoError).to.eql('CIUDAD_REQUERIDA'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-11 Venta a domicilio con saldo (pagó 40 de 100)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ventas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ventas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idCliente\": {{clienteAId}},\n  \"metodoPago\": \"EFECTIVO\",\n  \"items\": [\n    {\n      \"idProducto\": {{productoAId}},\n      \"cantidad\": 1\n    }\n  ],\n  \"montoPagado\": 40,\n  \"modalidadEntrega\": \"DOMICILIO\",\n  \"estadoEntrega\": \"PENDIENTE\",\n  \"direccionDestino\": \"Dirección de Prueba 456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-11: la venta queda con saldo pendiente 60 (HTTP 201)', () => { pm.response.to.have.status(201); pm.expect(Number(cuerpo.saldoPendiente)).to.eql(60); });",
+                  "vars.set('ventaSaldoEntregadaId', cuerpo.id);",
+                  "vars.set('saldoAntesDeEntregar', cuerpo.saldoPendiente);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-11 Marcar como entregada una venta con saldo",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ventas/{{ventaSaldoEntregadaId}}/entregar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ventas",
+                "{{ventaSaldoEntregadaId}}",
+                "entregar"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-11: entregar con saldo responde HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('CP-11: el estado de entrega queda ENTREGADO', () => pm.expect(cuerpo.estadoEntrega).to.eql('ENTREGADO'));",
+                  "pm.test('CP-11: el saldo no cambia (antes ' + vars.get('saldoAntesDeEntregar') + ', ahora ' + cuerpo.saldoPendiente + ')', () => pm.expect(Number(cuerpo.saldoPendiente)).to.eql(Number(vars.get('saldoAntesDeEntregar'))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-12 Pago que cubre el saldo de la venta entregada",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pagos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pagos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"idVenta\": {{ventaSaldoEntregadaId}}, \"monto\": 60, \"metodoPago\": \"EFECTIVO\", \"observacion\": \"Pago de prueba\" }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-12: el pago se registra (HTTP 201)', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-12 Venta después del pago",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ventas/{{ventaSaldoEntregadaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ventas",
+                "{{ventaSaldoEntregadaId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-12: el saldo queda en 0', () => pm.expect(Number(cuerpo.saldoPendiente)).to.eql(0));",
+                  "pm.test('CP-12: el estado de la venta queda COMPLETADA', () => pm.expect(cuerpo.estado).to.eql('COMPLETADA'));",
+                  "pm.test('CP-12: la entrega sigue ENTREGADO (sin cambios)', () => pm.expect(cuerpo.estadoEntrega).to.eql('ENTREGADO'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-13 Reporte financiero como ADMIN",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reportes/financiero?inicio={{inicio}}&fin={{fin}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reportes",
+                "financiero"
+              ],
+              "query": [
+                {
+                  "key": "inicio",
+                  "value": "{{inicio}}"
+                },
+                {
+                  "key": "fin",
+                  "value": "{{fin}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const pad = (n) => String(n).padStart(2, '0');",
+                  "const f = (d) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());",
+                  "const ahora = new Date();",
+                  "pm.collectionVariables.set('inicio', f(new Date(ahora.getFullYear(), ahora.getMonth(), 1, 0, 0, 0)));",
+                  "pm.collectionVariables.set('fin', f(new Date(ahora.getTime() + 24 * 3600 * 1000)));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-13: responde HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('CP-13: devuelve los campos del reporte (' + Object.keys(cuerpo).join(', ') + ')', () => {",
+                  "  ['fechaInicio', 'fechaFin', 'gananciaVentas', 'ingresosTotales', 'gastosTotales', 'saldoPeriodo', 'detalleIngresos', 'detalleGastos'].forEach((c) => pm.expect(cuerpo).to.have.property(c));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-14 Reporte financiero con token de EMPLEADO",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{empToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reportes/financiero?inicio={{inicio}}&fin={{fin}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reportes",
+                "financiero"
+              ],
+              "query": [
+                {
+                  "key": "inicio",
+                  "value": "{{inicio}}"
+                },
+                {
+                  "key": "fin",
+                  "value": "{{fin}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-14: responde HTTP 403', () => pm.response.to.have.status(403));",
+                  "pm.test('CP-14: código de error SIN_PERMISO', () => pm.expect(codigoError).to.eql('SIN_PERMISO'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-15 GET productos sin token",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/productos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "productos"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-15: responde HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('CP-15: código de error NO_AUTENTICADO', () => pm.expect(codigoError).to.eql('NO_AUTENTICADO'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-16 GET usuarios con token de EMPLEADO",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{empToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/usuarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "usuarios"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-16: responde HTTP 403', () => pm.response.to.have.status(403));",
+                  "pm.test('CP-16: código de error SIN_PERMISO', () => pm.expect(codigoError).to.eql('SIN_PERMISO'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-17 PUT de un producto inexistente",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/productos/999999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "productos",
+                "999999999"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"sku\": \"PRUEBA-NO-EXISTE\", \"nombre\": \"Producto Prueba Inexistente\", \"idCategoria\": {{categoriaId}}, \"precioVenta\": 100, \"stockMinimo\": 1, \"tipoProducto\": \"{{categoriaTipo}}\", \"activo\": true }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-17: responde HTTP 404', () => pm.response.to.have.status(404));",
+                  "pm.test('CP-17: código de error PRODUCTO_NO_ENCONTRADO', () => pm.expect(codigoError).to.eql('PRODUCTO_NO_ENCONTRADO'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-19 (preparación) Venta con saldo para el pago excedido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ventas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ventas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idCliente\": {{clienteAId}},\n  \"metodoPago\": \"EFECTIVO\",\n  \"items\": [\n    {\n      \"idProducto\": {{productoAId}},\n      \"cantidad\": 1\n    }\n  ],\n  \"montoPagado\": 40,\n  \"modalidadEntrega\": \"RETIRO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-19: venta de preparación con saldo 60 (HTTP 201)', () => { pm.response.to.have.status(201); pm.expect(Number(cuerpo.saldoPendiente)).to.eql(60); });",
+                  "vars.set('ventaSaldoId', cuerpo.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-19 Pago mayor que el saldo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pagos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pagos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"idVenta\": {{ventaSaldoId}}, \"monto\": 1000, \"metodoPago\": \"EFECTIVO\", \"observacion\": \"Pago de prueba excedido\" }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-19: responde HTTP 422', () => pm.response.to.have.status(422));",
+                  "pm.test('CP-19: código de error PAGO_EXCEDE_SALDO', () => pm.expect(codigoError).to.eql('PAGO_EXCEDE_SALDO'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-18 (preparación) Cancelar la venta",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ventas/{{ventaSaldoId}}/cancelar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ventas",
+                "{{ventaSaldoId}}",
+                "cancelar"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "pm.test('CP-18: la primera cancelación responde HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-18 Cancelar una venta ya cancelada",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ventas/{{ventaSaldoId}}/cancelar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ventas",
+                "{{ventaSaldoId}}",
+                "cancelar"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-18: responde HTTP 409', () => pm.response.to.have.status(409));",
+                  "pm.test('CP-18: código de error VENTA_YA_CANCELADA', () => pm.expect(codigoError).to.eql('VENTA_YA_CANCELADA'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-20 Ajuste de salida mayor que el stock",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/inventario/ajustar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "inventario",
+                "ajustar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"idProducto\": {{productoAId}}, \"cantidad\": 1000000, \"tipoMovimiento\": \"SALIDA\", \"motivo\": \"Prueba de salida mayor al stock\" }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-20: responde HTTP 422', () => pm.response.to.have.status(422));",
+                  "pm.test('CP-20: código de error STOCK_INSUFICIENTE', () => pm.expect(codigoError).to.eql('STOCK_INSUFICIENTE'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-21 Ruta sin versión /api/productos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/productos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "productos"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-21: responde HTTP 404', () => pm.response.to.have.status(404));",
+                  "pm.test('CP-21: código de error RUTA_NO_ENCONTRADA', () => pm.expect(codigoError).to.eql('RUTA_NO_ENCONTRADA'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-23 (control) El ADMIN ve el precio de compra",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/productos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "productos"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "const a = cuerpo.find((x) => x.id == vars.get('productoAId'));",
+                  "pm.test('CP-23: el ADMIN sí ve el precio de compra (control)', () => { pm.response.to.have.status(200); pm.expect(a).to.exist; pm.expect(a.precioCompra).to.not.be.oneOf([null, undefined]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-23 GET productos con token de EMPLEADO",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{empToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/productos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "productos"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "const conCosto = Array.isArray(cuerpo) ? cuerpo.filter((x) => x.precioCompra !== null && x.precioCompra !== undefined).length : -1;",
+                  "pm.test('CP-23: responde HTTP 200 con lista de productos (' + (Array.isArray(cuerpo) ? cuerpo.length : 0) + ')', () => { pm.response.to.have.status(200); pm.expect(cuerpo).to.be.an('array'); });",
+                  "pm.test('CP-23: ningún producto trae precio de compra (con costo: ' + conCosto + ')', () => pm.expect(conCosto).to.eql(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-25 Dashboard: estadísticas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/dashboard/estadisticas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "dashboard",
+                "estadisticas"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-25: responde HTTP 200', () => pm.response.to.have.status(200));",
+                  "const v = cuerpo.ventasStats || {};",
+                  "pm.test('CP-25: trae ventas del día (' + v.totalVentasHoy + ' ventas, Bs ' + v.montoVentasHoy + ') y del mes (' + v.totalVentasMes + ' ventas, Bs ' + v.montoVentasMes + ')', () => {",
+                  "  ['totalVentasHoy', 'montoVentasHoy', 'totalVentasMes', 'montoVentasMes'].forEach((c) => pm.expect(v).to.have.property(c));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-26 Producto bajo su stock mínimo en stock-bajo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/inventario/stock-bajo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "inventario",
+                "stock-bajo"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-26: responde HTTP 200', () => pm.response.to.have.status(200));",
+                  "const b = Array.isArray(cuerpo) ? cuerpo.find((x) => x.idProducto == vars.get('productoBId')) : undefined;",
+                  "pm.test('CP-26: el producto de prueba B (stock 2, mínimo 5) aparece en la lista', () => pm.expect(b).to.exist);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-27 Alta de usuario con nombre ya usado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/usuarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "usuarios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"nombre\": \"Usuario\", \"apellido\": \"Prueba\", \"usuario\": \"{{empUser}}\", \"password\": \"{{claveNueva}}\", \"role\": \"EMPLEADO\", \"activo\": true }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('claveNueva', 'x' + Math.random().toString(36).slice(2) + 'Qq7');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-27: responde HTTP 409', () => pm.response.to.have.status(409));",
+                  "pm.test('CP-27: código de error USUARIO_DUPLICADO', () => pm.expect(codigoError).to.eql('USUARIO_DUPLICADO'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-28 Editar un cliente con el NIT/CI de otro",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/clientes/{{clienteBId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "clientes",
+                "{{clienteBId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"nombre\": \"Cliente\", \"apellido\": \"Prueba B\", \"nitCi\": \"{{nitA}}\", \"telefono\": \"70000002\", \"activo\": true }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-28: responde HTTP 409', () => pm.response.to.have.status(409));",
+                  "pm.test('CP-28: código de error NIT_CI_DUPLICADO', () => pm.expect(codigoError).to.eql('NIT_CI_DUPLICADO'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 Limpieza de los datos de prueba",
+      "item": [
+        {
+          "name": "Anular venta CP-09",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ventas/{{ventaEntregaId}}/cancelar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ventas",
+                "{{ventaEntregaId}}",
+                "cancelar"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "pm.test('Limpieza: venta anulada (HTTP 200)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Anular venta CP-11/12",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ventas/{{ventaSaldoEntregadaId}}/cancelar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ventas",
+                "{{ventaSaldoEntregadaId}}",
+                "cancelar"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "pm.test('Limpieza: venta anulada (HTTP 200)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Anular la compra de prueba",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/compras/{{compraId}}/cancelar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "compras",
+                "{{compraId}}",
+                "cancelar"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "pm.test('Limpieza: compra anulada (HTTP 200)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dar de baja el producto A",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/productos/{{productoAId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "productos",
+                "{{productoAId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "pm.test('Limpieza: producto A dado de baja (HTTP 200)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dar de baja el producto B",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/productos/{{productoBId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "productos",
+                "{{productoBId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "pm.test('Limpieza: producto B dado de baja (HTTP 200)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

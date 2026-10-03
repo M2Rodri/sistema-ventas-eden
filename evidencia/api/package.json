@@ -1,0 +1,14 @@
+{
+  "name": "muebleria-eden-pruebas-api",
+  "private": true,
+  "type": "module",
+  "description": "Colección de Postman y ejecutor (Newman) de las pruebas de la API, más la medición de rendimiento RNF-01",
+  "scripts": {
+    "todo": "node ejecutar.mjs",
+    "api": "node ejecutar.mjs --api",
+    "rendimiento": "node ejecutar.mjs --rendimiento"
+  },
+  "devDependencies": {
+    "newman": "^6.2.1"
+  }
+}
