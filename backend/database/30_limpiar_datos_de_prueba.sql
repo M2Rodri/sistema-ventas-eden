@@ -62,11 +62,11 @@ SELECT setval(pg_get_serial_sequence('usuarios', 'id'), (SELECT COALESCE(MAX(id)
 SELECT setval(pg_get_serial_sequence('categorias', 'id'), (SELECT COALESCE(MAX(id), 1) FROM categorias));
 
 -- Los contadores de IDs (script 31) vuelven a 0 en las tablas vaciadas.
-DO $
+DO $$
 BEGIN
     IF to_regproc('sincronizar_contadores_id') IS NOT NULL THEN
         PERFORM sincronizar_contadores_id();
     END IF;
-END $;
+END $$;
 
 COMMIT;
