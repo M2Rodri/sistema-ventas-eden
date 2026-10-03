@@ -5,9 +5,8 @@ import { X, Eye, AlertCircle } from 'lucide-react';
 import { TipoReporte, ReporteReciente } from '@/types/reporte';
 import {
   CAMPOS_POR_TIPO,
-  CAMPOS_NUMERICOS,
+  ETIQUETA_CRITERIO,
   ORDENES_POR_TIPO,
-  etiquetaDeCriterio,
   resumenCriterios,
   ETIQUETA_ESTADO_PAGO,
   CriteriosReporte,
@@ -226,19 +225,7 @@ export default function ReportePersonalizadoModal({ reciente, onClose, onGenerad
   };
 
   const campo = (c: CampoCriterio) => {
-    const etiqueta = etiquetaDeCriterio(tipo, c);
-    if (CAMPOS_NUMERICOS.includes(c)) {
-      return (
-        <input
-          type="number"
-          min={0}
-          className={inputClase}
-          value={(criterios[c] as number | undefined) ?? ''}
-          onChange={(e) => poner(c, e.target.value === '' ? undefined : Number(e.target.value))}
-          placeholder="Sin límite"
-        />
-      );
-    }
+    const etiqueta = ETIQUETA_CRITERIO[c];
     switch (c) {
       case 'proveedor':
         return (
@@ -412,7 +399,7 @@ export default function ReportePersonalizadoModal({ reciente, onClose, onGenerad
                   {campos.map((c) => (
                     <div key={c}>
                       {c !== 'soloActivos' && (
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{etiquetaDeCriterio(tipo, c)}</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{ETIQUETA_CRITERIO[c]}</label>
                       )}
                       {campo(c)}
                     </div>
