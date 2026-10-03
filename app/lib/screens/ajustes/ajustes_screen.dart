@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
+import '../../data/actualizacion_repository.dart';
 import '../../data/biometria_service.dart';
 import '../../models/usuario.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/dialogo_actualizacion.dart';
 
 /// Ajustes: la cuenta, la seguridad y, al final, cerrar sesión.
 class AjustesScreen extends StatefulWidget {
@@ -18,13 +21,45 @@ class AjustesScreen extends StatefulWidget {
 class _AjustesScreenState extends State<AjustesScreen> {
   final _biometria = BiometriaService();
 
+  final _actualizacion = ActualizacionRepository();
+
   bool _disponible = false;
   bool _cargando = true;
+  bool _buscandoActualizacion = false;
+  String _versionInstalada = '';
 
   @override
   void initState() {
     super.initState();
     _cargar();
+    _cargarVersion();
+  }
+
+  Future<void> _cargarVersion() async {
+    final info = await PackageInfo.fromPlatform();
+    if (!mounted) return;
+    setState(() => _versionInstalada = info.version);
+  }
+
+  /// Busca a pedido de la persona y, a diferencia de la revisión automática, le
+  /// cuenta siempre qué pasó: hay una nueva, ya está al día o no hay conexión.
+  Future<void> _buscarActualizacion() async {
+    setState(() => _buscandoActualizacion = true);
+    final respuesta = await _actualizacion.buscar();
+    if (!mounted) return;
+    setState(() => _buscandoActualizacion = false);
+
+    if (respuesta.resultado == ResultadoBusqueda.hayNueva && respuesta.version != null) {
+      await mostrarDialogoActualizacion(context, _actualizacion, respuesta.version!);
+      return;
+    }
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: Text(respuesta.resultado == ResultadoBusqueda.alDia
+            ? 'Ya tienes la última versión.'
+            : 'No se pudo buscar actualizaciones. Revisa tu conexión.'),
+      ));
   }
 
   Future<void> _cargar() async {
@@ -105,6 +140,25 @@ class _AjustesScreenState extends State<AjustesScreen> {
                   onChanged: _cargando || (!_disponible && !activa) ? null : _cambiar,
                 );
               },
+            ),
+          ),
+          const SizedBox(height: 24),
+          const _TituloSeccion('ACTUALIZACIONES'),
+          _Bloque(
+            child: ListTile(
+              leading: const Icon(Icons.system_update_alt_rounded, color: AppColors.verdeOscuro),
+              title: const Text(
+                'Buscar actualización',
+                style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.textoPrincipal),
+              ),
+              subtitle: Text(
+                _versionInstalada.isEmpty ? 'Versión de la app' : 'Versión instalada: $_versionInstalada',
+                style: const TextStyle(color: AppColors.textoSecundario),
+              ),
+              trailing: _buscandoActualizacion
+                  ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5))
+                  : const Icon(Icons.chevron_right_rounded),
+              onTap: _buscandoActualizacion ? null : _buscarActualizacion,
             ),
           ),
           const SizedBox(height: 32),

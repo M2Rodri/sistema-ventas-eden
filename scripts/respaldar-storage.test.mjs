@@ -1,5 +1,5 @@
 // Prueba del script de respaldo contra un servidor falso que imita Supabase Storage.
-// Se corre con:  node --test scripts/
+// Se corre con:  node --test scripts/*.test.mjs
 
 import assert from 'node:assert/strict';
 import { mkdtemp, readFile, rm, writeFile, mkdir } from 'node:fs/promises';

@@ -14,6 +14,7 @@ import '../../models/ventas_semanal.dart';
 import '../../theme/app_colors.dart';
 import '../acerca/acerca_screen.dart';
 import '../ajustes/ajustes_screen.dart';
+import '../../widgets/dialogo_actualizacion.dart';
 import '../catalogo/catalogo_screen.dart';
 import '../login/login_navegacion.dart';
 import '../ventas/estado_entrega_ui.dart';
@@ -58,6 +59,10 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _cargarResumen();
+    // Al abrir la app, avisa si hay una versión nueva (sin molestar si no hay internet).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) revisarActualizacionAlAbrir(context);
+    });
   }
 
   Future<void> _cargarResumen() async {

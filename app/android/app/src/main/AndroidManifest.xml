@@ -1,5 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Para abrir el instalador de Android con el APK de una actualizacion descargada. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <!-- Huella o rostro para desbloquear la app (Ajustes > Seguridad). -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <!-- Foto del comprobante de pago (Nueva venta), sacada en el momento. -->

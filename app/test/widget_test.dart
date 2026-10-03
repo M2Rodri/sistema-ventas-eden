@@ -11,6 +11,10 @@ void main() {
     // sin explotar y muestra el indicador mientras decide a qué pantalla ir.
     await tester.pumpWidget(const MuebleriaEdenApp());
 
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    // Hay mas de una rueda a la vez: la de _Arranque y la del candado de huella
+    // (BloqueoBiometrico), que se dibuja encima con el mismo color y en el mismo
+    // lugar, asi que a la vista es una sola. Lo que se comprueba es que haya
+    // alguna mientras la app decide a que pantalla ir.
+    expect(find.byType(CircularProgressIndicator), findsWidgets);
   });
 }

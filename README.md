@@ -73,8 +73,59 @@ El sistema no borra ventas ni compras: las cancela, y la fila conserva su númer
   `SELECT sincronizar_contadores_id();` para que el contador quede en el ID más alto.
 - `30_limpiar_datos_de_prueba.sql` borra los datos de prueba y reinicia todo en 1 (pide confirmación explícita).
 
-## Qué incluye
+## Actualizaciones de la app móvil
 
+La app se actualiza sola, sin tienda: al abrirse (y en Ajustes, "Buscar actualización") lee un archivo
+`version.json` publicado en un bucket público de Supabase Storage (`app`). Si la compilación publicada es mayor
+que la instalada, avisa, descarga el APK con barra de avance, comprueba su huella (SHA-256) y abre el instalador
+de Android, donde se toca "Instalar" (Android no deja instalar sin esa confirmación). Los datos y la sesión se
+conservan. Sin internet o con el archivo roto no muestra nada. Solo Android.
+
+**Publicar una versión nueva**
+1. En `app/pubspec.yaml` subir la versión y el número de compilación: `version: 1.1.0+2` (el número después del
+   `+` siempre tiene que crecer).
+2. Compilar firmado: `cd app && flutter build apk --release --dart-define=API_URL=https://sistema-ventas-eden.onrender.com`.
+3. Publicar: `node scripts/publicar-apk.mjs --notas "Qué cambió"` (usa SUPABASE_URL y SUPABASE_SERVICE_KEY; crea el
+   bucket la primera vez y se niega a publicar una compilación que no sea mayor que la ya publicada).
+
+**La llave de firma.** Una actualización solo se instala sobre la app ya instalada si está firmada con la **misma
+llave**. La llave está en `D:/ProyectoFinal/claves-firma/muebleria-eden-release.jks` y sus claves en
+`app/android/key.properties`. Ninguno de los dos va a git (están en `.gitignore`): hay que guardarlos con copia
+fuera de esta computadora. Si se pierden, hay que desinstalar la app de cada teléfono e instalar de nuevo.
+El APK no se sube a git (pesa 54 MB): va al bucket. Pruebas: `node --test scripts/*.test.mjs` y `flutter test`.
+
+## Actualizaciones de la app móvil
+
+La app se actualiza sola, sin tienda: al abrirse (y en Ajustes, "Buscar actualización") lee un archivo
+ publicado en un bucket público de Supabase Storage (). Si la compilación publicada es mayor
+que la instalada, avisa, descarga el APK con barra de avance, comprueba su huella (SHA-256) y abre el instalador
+de Android, donde se toca "Instalar" (Android no deja instalar sin esa confirmación). Los datos y la sesión se
+conservan. Sin internet o con el archivo roto no muestra nada. Solo Android.
+
+**Publicar una versión nueva**
+1. En  subir la versión y el número de compilación:  (el número después del
+    siempre tiene que crecer).
+2. Compilar firmado: Running Gradle task 'assembleRelease'...                        
+Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 8380 bytes (99.5% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
+Running Gradle task 'assembleRelease'...                          828,0s
+✓ Built buildappoutputslutter-apkapp-release.apk (51.7MB).
+3. Publicar:  (usa SUPABASE_URL y SUPABASE_SERVICE_KEY; crea el
+   bucket la primera vez y se niega a publicar una compilación que no sea mayor que la ya publicada).
+
+**La llave de firma.** Una actualización solo se instala sobre la app ya instalada si está firmada con la **misma
+llave**. La llave está en  y sus claves en
+. Ninguno de los dos va a git (están en ): hay que guardarlos con copia
+fuera de esta computadora. Si se pierden, hay que desinstalar la app de cada teléfono e instalar de nuevo.
+El APK no se sube a git (pesa 54 MB): va al bucket. Pruebas: ℹ tests 0
+ℹ suites 0
+ℹ pass 0
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 78.0865 y .
+
+## Qué incluye
 | Parte | Carpeta | Tecnología | Para qué |
 |---|---|---|---|
 | **Backend** | `backend/` | Java 17 · Spring Boot 3.5 · PostgreSQL | API REST: ventas, inventario, compras, envíos, usuarios, auditoría |
