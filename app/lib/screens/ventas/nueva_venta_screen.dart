@@ -293,13 +293,65 @@ class _NuevaVentaScreenState extends State<NuevaVentaScreen> {
 
       if (mounted) Navigator.of(context).pop(true);
     } on ApiException catch (error) {
+      final excedido = error.codigo == 'PRECIO_EXCEDE_CATALOGO'
+          ? _carrito.where((i) => i.precioFinal > i.precioOriginal).firstOrNull
+          : null;
+      setState(() {
+        _errorEnvio = excedido == null ? error.mensaje : null;
+        _enviando = false;
+      });
+      if (excedido != null) await _avisarPrecioExcedido(excedido);
+    } catch (_) {
+      setState(() {
+        _errorEnvio = 'No se pudo registrar la venta.';
+        _enviando = false;
+      });
+    }
+  }
+
+  /// El servidor rechazó un precio por encima del de catálogo. El ADMIN puede
+  /// subir el precio de catálogo y seguir con la venta; el EMPLEADO solo recibe
+  /// el aviso. El carrito no se toca en ningún caso.
+  Future<void> _avisarPrecioExcedido(ItemCarrito item) async {
+    final actualizar = await showDialog<bool>(
+      context: context,
+      builder: (contexto) => AlertDialog(
+        title: Text('El precio supera el de catálogo (${item.precioOriginal.toStringAsFixed(2)} Bs)'),
+        content: Text(
+          '${item.nombre}: precio escrito Bs. ${item.precioFinal.toStringAsFixed(2)}.'
+          '${widget.esAdmin ? '' : '\n\nSolo el administrador puede cambiar el precio de venta.'}',
+        ),
+        actions: widget.esAdmin
+            ? <Widget>[
+                TextButton(onPressed: () => Navigator.of(contexto).pop(false), child: const Text('Cancelar')),
+                FilledButton(onPressed: () => Navigator.of(contexto).pop(true), child: const Text('Actualizar precio')),
+              ]
+            : <Widget>[
+                FilledButton(onPressed: () => Navigator.of(contexto).pop(false), child: const Text('Entendido')),
+              ],
+      ),
+    );
+    if (actualizar != true || !mounted) return;
+
+    setState(() => _enviando = true);
+    try {
+      await _catalogoRepository.actualizarPrecioVenta(item.idProducto, item.precioFinal, widget.token);
+      if (!mounted) return;
+      setState(() {
+        final i = _carrito.indexWhere((x) => x.idProducto == item.idProducto);
+        if (i != -1) _carrito[i] = _carrito[i].copyWith(precioOriginal: item.precioFinal);
+        _enviando = false;
+      });
+    } on ApiException catch (error) {
+      if (!mounted) return;
       setState(() {
         _errorEnvio = error.mensaje;
         _enviando = false;
       });
     } catch (_) {
+      if (!mounted) return;
       setState(() {
-        _errorEnvio = 'No se pudo registrar la venta.';
+        _errorEnvio = 'No se pudo actualizar el precio del producto.';
         _enviando = false;
       });
     }
@@ -345,8 +397,9 @@ class _NuevaVentaScreenState extends State<NuevaVentaScreen> {
             onCambiarPrecio: (id, precio) {
               final i = _carrito.indexWhere((item) => item.idProducto == id);
               if (i == -1) return;
-              final tope = _carrito[i].precioOriginal;
-              setState(() => _carrito[i] = _carrito[i].copyWith(precioFinal: precio > tope ? tope : precio));
+              // Sin tope: si el precio supera el de catálogo, el servidor lo
+              // rechaza y se muestra el aviso (_avisarPrecioExcedido).
+              setState(() => _carrito[i] = _carrito[i].copyWith(precioFinal: precio));
             },
             metodo: _metodo,
             onCambiarMetodo: (m) => setState(() => _metodo = m),
@@ -965,11 +1018,14 @@ class _FilaCarrito extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: TextFormField(
+                  // La clave incluye el precio de catálogo: si el admin lo
+                  // actualiza, el campo se redibuja con el valor vigente.
+                  key: ValueKey<String>('precio-${item.idProducto}-${item.precioOriginal}'),
                   initialValue: item.precioFinal.toStringAsFixed(2),
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   style: const TextStyle(fontSize: 13),
                   decoration: const InputDecoration(isDense: true, labelText: 'Precio'),
-                  onFieldSubmitted: (valor) {
+                  onChanged: (valor) {
                     final precio = double.tryParse(valor.replaceAll(',', '.'));
                     if (precio != null && precio >= 0) onCambiarPrecio(precio);
                   },
@@ -979,17 +1035,33 @@ class _FilaCarrito extends StatelessWidget {
               Text(formatoMoneda.format(item.subtotal), style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.verdeOscuro)),
             ],
           ),
-          if (item.descuentoPorcentaje > 0) ...<Widget>[
-            const SizedBox(height: 2),
-            Text(
-              '-${item.descuentoPorcentaje.toStringAsFixed(1)}% sobre Bs. ${item.precioOriginal.toStringAsFixed(2)}',
-              style: const TextStyle(fontSize: 11, color: Color(0xFFD97706), fontWeight: FontWeight.w700),
+          const SizedBox(height: 2),
+          Text(
+            _textoCatalogo(item),
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: item.precioFinal > item.precioOriginal
+                  ? AppColors.error
+                  : item.precioFinal < item.precioOriginal
+                      ? const Color(0xFFD97706)
+                      : Colors.grey.shade600,
             ),
-          ],
+          ),
         ],
       ),
     );
   }
+}
+
+/// El precio de catálogo siempre se ve; si el precio escrito es distinto se
+/// agrega la diferencia con signo (−x% o +x%).
+String _textoCatalogo(ItemCarrito item) {
+  final catalogo = 'Catálogo Bs. ${item.precioOriginal.toStringAsFixed(2)}';
+  if (item.precioOriginal <= 0 || item.precioFinal == item.precioOriginal) return catalogo;
+  final porcentaje = ((item.precioFinal - item.precioOriginal) / item.precioOriginal) * 100;
+  final signo = porcentaje < 0 ? '−' : '+';
+  return '$catalogo  ($signo${porcentaje.abs().toStringAsFixed(1)}%)';
 }
 
 class _BotonPaso extends StatelessWidget {

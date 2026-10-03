@@ -190,12 +190,12 @@ class ItemCarrito {
     return ((precioOriginal - precioFinal) / precioOriginal) * 100;
   }
 
-  ItemCarrito copyWith({double? precioFinal, int? cantidad}) {
+  ItemCarrito copyWith({double? precioOriginal, double? precioFinal, int? cantidad}) {
     return ItemCarrito(
       idProducto: idProducto,
       nombre: nombre,
       skuProducto: skuProducto,
-      precioOriginal: precioOriginal,
+      precioOriginal: precioOriginal ?? this.precioOriginal,
       precioFinal: precioFinal ?? this.precioFinal,
       cantidad: cantidad ?? this.cantidad,
       stockDisponible: stockDisponible,
@@ -248,7 +248,9 @@ class NuevaVentaRequest {
           .map((item) => <String, dynamic>{
                 'idProducto': item.idProducto,
                 'cantidad': item.cantidad,
-                if (item.descuentoPorcentaje > 0) 'precioUnitarioConDescuento': item.precioFinal,
+                // Si el precio escrito difiere del de catálogo se manda tal cual
+                // (también si es mayor: el servidor lo rechaza con 422).
+                if (item.precioFinal != item.precioOriginal) 'precioUnitarioConDescuento': item.precioFinal,
                 if (item.descuentoPorcentaje > 0) 'descuentoPorcentaje': item.descuentoPorcentaje,
               })
           .toList(),

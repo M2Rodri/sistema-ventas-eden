@@ -26,7 +26,9 @@ import {
   getAllInventario,
   getAllClientes,
   adjuntarComprobantePago,
+  updateProducto,
 } from "@/lib/api";
+import { ErrorApi } from "@/lib/errores";
 
 // Redondea a centavos apenas se calcula un monto, para que dos totales que
 // deberían coincidir (venta vs. pagado) no queden desalineados por un
@@ -43,6 +45,15 @@ interface ProductoCarrito {
   stock: number;
   descuentoPorcentaje: number;
   subtotal: number;
+}
+
+// Aviso que se muestra cuando el servidor rechaza un precio por encima del
+// de catálogo (422 PRECIO_EXCEDE_CATALOGO).
+interface AvisoPrecio {
+  idProducto: number;
+  nombre: string;
+  precioCatalogo: number;
+  precioPedido: number;
 }
 
 interface RegistrarVentaModalProps {
@@ -105,6 +116,8 @@ export default function RegistrarVentaModal({
   // Estado
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [avisoPrecio, setAvisoPrecio] = useState<AvisoPrecio | null>(null);
+  const [actualizandoPrecio, setActualizandoPrecio] = useState(false);
   const [paso, setPaso] = useState(1);
 
   useEffect(() => {
@@ -305,24 +318,59 @@ export default function RegistrarVentaModal({
     );
   };
 
-  // Al salir del campo: si quedó vacío, se redibuja con el último precio
-  // válido. El precio de venta nunca puede superar el catálogo: el backend
-  // hoy solo acepta precios menores (para el descuento), y uno mayor lo
-  // ignora en silencio y cobra igual el de catálogo. Hasta que eso se
-  // resuelva del lado del backend, un precio por encima se recorta acá.
-  const confirmarPrecioAcordado = (idProducto: number) => {
-    setCarrito((prev) =>
-      prev.map((i) =>
-        i.idProducto === idProducto && i.precioFinal > i.precioOriginal
-          ? {
-              ...i,
-              precioFinal: i.precioOriginal,
-              descuentoPorcentaje: 0,
-              subtotal: redondear(i.cantidad * i.precioOriginal),
-            }
-          : { ...i },
-      ),
-    );
+  // El precio acordado puede quedar por encima del de catálogo: no se recorta.
+  // Es el servidor quien lo rechaza (PRECIO_EXCEDE_CATALOGO) y entonces se
+  // muestra el aviso. Solo el ADMIN puede subir el precio de catálogo.
+  const actualizarPrecioDeCatalogo = async () => {
+    if (!avisoPrecio) return;
+    const producto = productos.find((p) => p.id === avisoPrecio.idProducto);
+    if (!producto) {
+      setAvisoPrecio(null);
+      return;
+    }
+    setActualizandoPrecio(true);
+    try {
+      await updateProducto(producto.id, {
+        sku: producto.sku,
+        nombre: producto.nombre,
+        descripcion: producto.descripcion,
+        marca: producto.marca,
+        modelo: producto.modelo,
+        idCategoria: producto.idCategoria,
+        calidad: producto.calidad,
+        precioCompra: producto.precioCompra,
+        precioVenta: avisoPrecio.precioPedido,
+        dimensiones: producto.dimensiones,
+        stockMinimo: producto.stockMinimo,
+        tipoProducto: producto.tipoProducto,
+        activo: producto.activo,
+        firmeza: producto.firmeza,
+        materialNucleo: producto.materialNucleo,
+        color: producto.color,
+        materialArmazon: producto.materialArmazon,
+      });
+      const nuevoPrecio = avisoPrecio.precioPedido;
+      setProductos((prev) =>
+        prev.map((p) =>
+          p.id === producto.id ? { ...p, precioVenta: nuevoPrecio } : p,
+        ),
+      );
+      // El carrito se conserva: solo cambia el precio de catálogo del producto.
+      setCarrito((prev) =>
+        prev.map((i) =>
+          i.idProducto === producto.id
+            ? { ...i, precioOriginal: nuevoPrecio, descuentoPorcentaje: 0 }
+            : i,
+        ),
+      );
+      setAvisoPrecio(null);
+      setError(null);
+    } catch (err: any) {
+      setAvisoPrecio(null);
+      setError(err.message || "No se pudo actualizar el precio del producto");
+    } finally {
+      setActualizandoPrecio(false);
+    }
   };
 
   const eliminarDelCarrito = (idProducto: number) => {
@@ -396,7 +444,7 @@ export default function RegistrarVentaModal({
         idProducto: item.idProducto,
         cantidad: item.cantidad,
         precioUnitarioConDescuento:
-          item.descuentoPorcentaje > 0 ? item.precioFinal : undefined,
+          item.precioFinal !== item.precioOriginal ? item.precioFinal : undefined,
         descuentoPorcentaje:
           item.descuentoPorcentaje > 0 ? item.descuentoPorcentaje : undefined,
       }));
@@ -461,7 +509,20 @@ export default function RegistrarVentaModal({
       resetForm();
       onClose();
     } catch (err: any) {
-      setError(err.message || "Error al registrar la venta");
+      const excedido =
+        err instanceof ErrorApi && err.codigo === "PRECIO_EXCEDE_CATALOGO"
+          ? carrito.find((i) => i.precioFinal > i.precioOriginal)
+          : undefined;
+      if (excedido) {
+        setAvisoPrecio({
+          idProducto: excedido.idProducto,
+          nombre: excedido.nombre,
+          precioCatalogo: excedido.precioOriginal,
+          precioPedido: excedido.precioFinal,
+        });
+      } else {
+        setError(err.message || "Error al registrar la venta");
+      }
     } finally {
       setLoading(false);
     }
@@ -497,7 +558,58 @@ export default function RegistrarVentaModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="relative bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+        {avisoPrecio && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black bg-opacity-40 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-5 space-y-3">
+              <div className="flex items-start gap-2.5">
+                <AlertCircle className="text-red-600 flex-shrink-0" size={20} />
+                <div>
+                  <p className="text-sm font-bold text-gray-900">
+                    El precio supera el de catálogo (
+                    {avisoPrecio.precioCatalogo.toFixed(2)} Bs)
+                  </p>
+                  <p className="text-xs text-gray-600 mt-1">
+                    {avisoPrecio.nombre}: precio escrito Bs.{" "}
+                    {avisoPrecio.precioPedido.toFixed(2)}.
+                  </p>
+                  {userRole !== "ADMIN" && (
+                    <p className="text-xs text-gray-600 mt-1">
+                      Solo el administrador puede cambiar el precio de venta.
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                {userRole === "ADMIN" ? (
+                  <>
+                    <button
+                      onClick={() => setAvisoPrecio(null)}
+                      disabled={actualizandoPrecio}
+                      className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={actualizarPrecioDeCatalogo}
+                      disabled={actualizandoPrecio}
+                      className="px-3 py-1.5 text-sm rounded-lg bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50"
+                    >
+                      {actualizandoPrecio ? "Actualizando..." : "Actualizar precio"}
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => setAvisoPrecio(null)}
+                    className="px-3 py-1.5 text-sm rounded-lg bg-primary-600 text-white hover:bg-primary-700"
+                  >
+                    Entendido
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
         {/* Header */}
         <div className="flex justify-between items-center px-5 py-2 border-b bg-gradient-to-r from-primary-50 to-primary-100 shrink-0">
           <h2 className="text-base font-bold text-gray-900">
@@ -797,11 +909,9 @@ export default function RegistrarVentaModal({
                           Precio
                         </label>
                         <div className="flex items-center gap-2 flex-wrap">
-                          {item.descuentoPorcentaje > 0 && (
-                            <span className="text-xs text-gray-400 line-through">
-                              Bs. {item.precioOriginal.toFixed(2)}
-                            </span>
-                          )}
+                          <span className="text-xs text-gray-500">
+                            Catálogo Bs. {item.precioOriginal.toFixed(2)}
+                          </span>
                           <input
                             type="number"
                             min={0}
@@ -812,15 +922,17 @@ export default function RegistrarVentaModal({
                                 e.target.value,
                               )
                             }
-                            onBlur={() =>
-                              confirmarPrecioAcordado(item.idProducto)
-                            }
                             onWheel={evitarCambioPorRueda}
                             className="w-24 border border-gray-300 rounded px-2 py-1 text-sm"
                           />
-                          {item.descuentoPorcentaje > 0 && (
+                          {item.precioFinal < item.precioOriginal && (
                             <span className="text-xs font-medium text-orange-600">
-                              -{item.descuentoPorcentaje.toFixed(2)}%
+                              −{item.descuentoPorcentaje.toFixed(2)}%
+                            </span>
+                          )}
+                          {item.precioFinal > item.precioOriginal && (
+                            <span className="text-xs font-medium text-red-600">
+                              +{Math.abs(item.descuentoPorcentaje).toFixed(2)}%
                             </span>
                           )}
                         </div>

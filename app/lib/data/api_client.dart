@@ -32,6 +32,17 @@ class ApiClient {
     return _decodificar(respuesta);
   }
 
+  Future<Map<String, dynamic>> put(
+    String path,
+    Map<String, dynamic> body, {
+    required String token,
+  }) async {
+    final respuesta = await _enviar(
+      () => http.put(_uri(path), headers: _headers(token), body: jsonEncode(body)),
+    );
+    return _decodificar(respuesta);
+  }
+
   /// PATCH sin body: alcanza para las acciones de estado que expone el
   /// backend (marcar entregado, cancelar), que no reciben nada más que el id
   /// en la ruta.
@@ -133,11 +144,28 @@ class ApiClient {
       throw ApiException(
         _extraerMensaje(respuesta.body) ?? 'No se pudo completar la operación',
         ApiErrorTipo.desconocido,
+        codigo: extraerCodigoError(respuesta.body),
       );
     }
   }
 
   String? _extraerMensaje(String cuerpo) => extraerMensajeError(cuerpo);
+}
+
+/// Código de negocio de un cuerpo de error ({"error": {"codigo": "..."}}), o
+/// null si el cuerpo no lo trae.
+String? extraerCodigoError(String cuerpo) {
+  if (cuerpo.isEmpty) return null;
+  try {
+    final datos = jsonDecode(cuerpo);
+    if (datos is Map<String, dynamic>) {
+      final error = datos['error'];
+      if (error is Map<String, dynamic>) return error['codigo'] as String?;
+    }
+  } on FormatException {
+    // cuerpo que no es JSON
+  }
+  return null;
 }
 
 /// Mensaje de un cuerpo de error de la API. Formato único:

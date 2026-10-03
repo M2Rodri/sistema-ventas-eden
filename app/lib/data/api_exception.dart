@@ -4,10 +4,14 @@
 enum ApiErrorTipo { credencialesInvalidas, sinConexion, servidor, desconocido }
 
 class ApiException implements Exception {
-  const ApiException(this.mensaje, this.tipo);
+  const ApiException(this.mensaje, this.tipo, {this.codigo});
 
   final String mensaje;
   final ApiErrorTipo tipo;
+
+  /// Código de negocio de la API (por ejemplo PRECIO_EXCEDE_CATALOGO), si el
+  /// servidor lo mandó.
+  final String? codigo;
 
   @override
   String toString() => mensaje;
