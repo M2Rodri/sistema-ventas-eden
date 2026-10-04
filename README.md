@@ -81,6 +81,8 @@ que la instalada, avisa, descarga el APK con barra de avance, comprueba su huell
 de Android, donde se toca "Instalar" (Android no deja instalar sin esa confirmación). Los datos y la sesión se
 conservan. Sin internet o con el archivo roto no muestra nada. Solo Android.
 
+**Descarga:** https://github.com/M2Rodri/sistema-ventas-eden/releases/latest/download/muebleria-eden.apk — las siguientes versiones se instalan desde la propia app.
+
 **Publicar una versión nueva**
 1. En `app/pubspec.yaml` subir la versión y el número de compilación: `version: 1.1.0+2` (el número después del
    `+` siempre tiene que crecer).
