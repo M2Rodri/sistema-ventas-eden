@@ -19,7 +19,9 @@ import com.mitienda.ecommerce.repositories.ProductoRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -94,14 +96,31 @@ public class ProductoService {
 
 
     /**
+     * Convierte una lista de productos a respuesta sin consultas por fila.
+     * Quien hace la petición se resuelve una sola vez y las compras
+     * confirmadas se traen en una sola consulta (antes eran dos consultas
+     * por cada producto del listado).
+     */
+    private List<ProductoResponse> aResponses(List<Producto> productos) {
+        boolean esAdmin = usuarioActualService.esAdmin();
+        Set<Long> conCompraConfirmada = new HashSet<>(
+                detalleCompraRepository.findIdsProductoPorEstadoCompra(EstadoCompra.CONFIRMADA));
+        return productos.stream().map(p -> {
+            ProductoResponse response = new ProductoResponse(p);
+            response.setTieneComprasConfirmadas(conCompraConfirmada.contains(p.getId()));
+            if (!esAdmin) {
+                response.setPrecioCompra(null);
+            }
+            return response;
+        }).collect(Collectors.toList());
+    }
+
+    /**
      * Listar todos los productos
      */
     @Transactional(readOnly = true)
     public List<ProductoResponse> getAllProductos() {
-        return productoRepository.findAll()
-                .stream()
-                .map(p -> ocultarCostoSiNoEsAdmin(new ProductoResponse(p)))
-                .collect(Collectors.toList());
+        return aResponses(productoRepository.findAll());
     }
 
     /**
@@ -109,10 +128,7 @@ public class ProductoService {
      */
     @Transactional(readOnly = true)
     public List<ProductoResponse> getActiveProductos() {
-        return productoRepository.findByActivoTrue()
-                .stream()
-                .map(p -> ocultarCostoSiNoEsAdmin(new ProductoResponse(p)))
-                .collect(Collectors.toList());
+        return aResponses(productoRepository.findByActivoTrue());
     }
 
     /**
@@ -337,10 +353,7 @@ public class ProductoService {
      */
     @Transactional(readOnly = true)
     public List<ProductoResponse> getProductosByCategoria(Long categoriaId) {
-        return productoRepository.findByCategoriaId(categoriaId)
-                .stream()
-                .map(p -> ocultarCostoSiNoEsAdmin(new ProductoResponse(p)))
-                .collect(Collectors.toList());
+        return aResponses(productoRepository.findByCategoriaId(categoriaId));
     }
 
     /**
@@ -348,10 +361,7 @@ public class ProductoService {
      */
     @Transactional(readOnly = true)
     public List<ProductoResponse> searchProductos(String nombre) {
-        return productoRepository.searchByNombre(nombre)
-                .stream()
-                .map(p -> ocultarCostoSiNoEsAdmin(new ProductoResponse(p)))
-                .collect(Collectors.toList());
+        return aResponses(productoRepository.searchByNombre(nombre));
     }
 
     /**

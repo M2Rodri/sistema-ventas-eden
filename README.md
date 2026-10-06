@@ -11,8 +11,8 @@ Universidad Autónoma Juan Misael Saracho (Tarija).
 | Parte | URL |
 |---|---|
 | Frontend | https://sistema-ventas-eden.vercel.app |
-| API | https://sistema-ventas-eden.onrender.com |
-| Ruta de salud | https://sistema-ventas-eden.onrender.com/api/v1/salud |
+| API | https://sistema-ventas-eden-1.onrender.com |
+| Ruta de salud | https://sistema-ventas-eden-1.onrender.com/api/v1/salud |
 
 Backend en Render (Docker, ver `backend/Dockerfile`), base de datos en Supabase
 (perfil `prod`), frontend en Vercel. El backend está en el plan gratuito de
@@ -86,7 +86,7 @@ conservan. Sin internet o con el archivo roto no muestra nada. Solo Android.
 **Publicar una versión nueva**
 1. En `app/pubspec.yaml` subir la versión y el número de compilación: `version: 1.1.0+2` (el número después del
    `+` siempre tiene que crecer).
-2. Compilar firmado: `cd app && flutter build apk --release --dart-define=API_URL=https://sistema-ventas-eden.onrender.com`.
+2. Compilar firmado: `cd app && flutter build apk --release --dart-define=API_URL=https://sistema-ventas-eden-1.onrender.com`.
 3. Publicar: `node scripts/publicar-apk.mjs --notas "Qué cambió"` (usa SUPABASE_URL y SUPABASE_SERVICE_KEY; crea el
    bucket la primera vez y se niega a publicar una compilación que no sea mayor que la ya publicada).
 

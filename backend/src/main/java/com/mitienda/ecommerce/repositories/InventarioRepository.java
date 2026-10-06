@@ -49,6 +49,14 @@ public interface InventarioRepository extends JpaRepository<Inventario, Long> {
     @Query("SELECT i FROM Inventario i WHERE i.cantidadDisponible = 0")
     List<Inventario> findProductosSinStock();
 
+    /** Cantidad de productos sin stock, sin traer las filas. */
+    @Query("SELECT COUNT(i) FROM Inventario i WHERE i.cantidadDisponible = 0")
+    Long countProductosSinStock();
+
+    /** Valor del inventario a precio de compra; null si ningún producto tiene precio de compra. */
+    @Query("SELECT SUM(p.precioCompra * i.cantidadDisponible) FROM Inventario i JOIN i.producto p WHERE p.precioCompra IS NOT NULL")
+    java.math.BigDecimal sumValorInventarioPrecioCompra();
+
     /**
      * Contar productos con stock bajo
      */

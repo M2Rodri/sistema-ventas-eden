@@ -75,6 +75,13 @@ public interface VentaRepository extends JpaRepository<Venta, Long> {
     BigDecimal sumMontoTotalByFechaVentaBetween(@Param("inicio") LocalDateTime inicio, @Param("fin") LocalDateTime fin);
 
     /**
+     * Cantidad de ventas COMPLETADAS en un rango (inclusive). El panel de
+     * Inicio la usa en lugar de traer las ventas enteras solo para contarlas.
+     */
+    @Query("SELECT COUNT(v) FROM Venta v WHERE v.fechaVenta BETWEEN :inicio AND :fin AND v.estado = com.mitienda.ecommerce.models.EstadoVenta.COMPLETADA")
+    Long countCompletadasEntre(@Param("inicio") LocalDateTime inicio, @Param("fin") LocalDateTime fin);
+
+    /**
      * Cantidad de ventas, monto total y fecha de la última compra, agrupado
      * por cliente, en una sola consulta. Reemplaza el patrón anterior de
      * pedir el historial completo de cada cliente por separado (N+1) solo

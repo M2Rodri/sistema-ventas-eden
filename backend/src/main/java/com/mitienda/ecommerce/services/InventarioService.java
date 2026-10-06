@@ -80,7 +80,15 @@ public class InventarioService {
      * para no ver costos ni margenes.
      */
     private InventarioResponse ocultarCostoSiNoEsAdmin(InventarioResponse response) {
-        if (!usuarioActualService.esAdmin()) {
+        return ocultarCostoSiNoEsAdmin(response, usuarioActualService.esAdmin());
+    }
+
+    /**
+     * Versión para listados: quien llama resuelve esAdmin() una sola vez en
+     * lugar de una consulta de usuario por fila.
+     */
+    private InventarioResponse ocultarCostoSiNoEsAdmin(InventarioResponse response, boolean esAdmin) {
+        if (!esAdmin) {
             response.setPrecioCompra(null);
         }
         return response;
@@ -94,10 +102,11 @@ public class InventarioService {
     public List<InventarioResponse> getAllInventario() {
         Set<Long> conAlertaAtendida = new HashSet<>(
                 alertaInventarioRepository.findIdsProductoPorEstado(EstadoAlerta.ATENDIDA_MANUAL));
+        boolean esAdmin = usuarioActualService.esAdmin();
         return inventarioRepository.findAll()
                 .stream()
                 .map(i -> {
-                    InventarioResponse response = ocultarCostoSiNoEsAdmin(new InventarioResponse(i));
+                    InventarioResponse response = ocultarCostoSiNoEsAdmin(new InventarioResponse(i), esAdmin);
                     response.setAlertaAtendida(conAlertaAtendida.contains(i.getProducto().getId()));
                     return response;
                 })
@@ -320,9 +329,10 @@ public class InventarioService {
      */
     @Transactional(readOnly = true) // <--- AÑADIDO ESTA ANOTACIÓN
     public List<InventarioResponse> getProductosConStockBajo() {
+        boolean esAdmin = usuarioActualService.esAdmin();
         return inventarioRepository.findProductosConStockBajo()
                 .stream()
-                .map(i -> ocultarCostoSiNoEsAdmin(new InventarioResponse(i)))
+                .map(i -> ocultarCostoSiNoEsAdmin(new InventarioResponse(i), esAdmin))
                 .collect(Collectors.toList());
     }
 
@@ -332,9 +342,10 @@ public class InventarioService {
      */
     @Transactional(readOnly = true) // <--- AÑADIDO ESTA ANOTACIÓN
     public List<InventarioResponse> getProductosSinStock() {
+        boolean esAdmin = usuarioActualService.esAdmin();
         return inventarioRepository.findProductosSinStock()
                 .stream()
-                .map(i -> ocultarCostoSiNoEsAdmin(new InventarioResponse(i)))
+                .map(i -> ocultarCostoSiNoEsAdmin(new InventarioResponse(i), esAdmin))
                 .collect(Collectors.toList());
     }
 

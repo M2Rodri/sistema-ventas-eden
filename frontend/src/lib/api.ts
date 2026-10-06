@@ -8,6 +8,59 @@ export const BACKEND_URL =
 const API_URL = `${BACKEND_URL}/api/v1`;
 
 /**
+ * Caché corta de lecturas (GET) de la API.
+ *
+ * Cada pantalla pide sus listas al entrar, así que volver a un módulo
+ * repetía las mismas peticiones (y en producción cada una cuesta cientos de
+ * milisegundos). Aquí una lectura reciente se reutiliza durante unos segundos
+ * y las que se piden a la vez comparten una sola petición.
+ *
+ * Cualquier escritura (POST, PUT, PATCH, DELETE) vacía toda la caché, así
+ * que lo que el propio usuario guarda se ve de inmediato. La clave incluye el
+ * token: dos sesiones nunca comparten datos. Solo se guardan respuestas JSON
+ * correctas; los archivos (comprobantes, PDF) pasan sin tocarse.
+ *
+ * Este módulo usa esta función en lugar del fetch global (ver la constante
+ * `fetch` de abajo), por eso las funciones de más abajo no cambian.
+ */
+const CACHE_LECTURAS_MS = 20_000;
+const cacheLecturas = new Map<string, { vence: number; respuesta: Promise<Response> }>();
+
+export const vaciarCacheApi = (): void => cacheLecturas.clear();
+
+const fetch = (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+  const metodo = (init?.method ?? 'GET').toUpperCase();
+  const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+
+  if (metodo !== 'GET') {
+    return globalThis.fetch(input, init).finally(vaciarCacheApi);
+  }
+  if (!url.startsWith(API_URL)) {
+    return globalThis.fetch(input, init);
+  }
+
+  const headers = new Headers(init?.headers);
+  const clave = `${headers.get('Authorization') ?? ''}|${url}`;
+  const guardada = cacheLecturas.get(clave);
+  if (guardada && guardada.vence > Date.now()) {
+    return guardada.respuesta.then((r) => r.clone());
+  }
+
+  const respuesta = globalThis.fetch(input, init).then((r) => {
+    const esJson = (r.headers.get('content-type') ?? '').includes('json');
+    if (!r.ok || !esJson) {
+      cacheLecturas.delete(clave);
+    }
+    return r;
+  }, (error) => {
+    cacheLecturas.delete(clave);
+    throw error;
+  });
+  cacheLecturas.set(clave, { vence: Date.now() + CACHE_LECTURAS_MS, respuesta });
+  return respuesta.then((r) => r.clone());
+};
+
+/**
  * URL con la que se muestra un archivo subido. Los archivos nuevos vienen con la
  * URL completa (fotos públicas de Supabase, comprobantes con URL firmada); los
  * registros viejos traen una ruta relativa al backend (/uploads/...).

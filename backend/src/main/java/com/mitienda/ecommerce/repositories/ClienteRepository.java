@@ -42,4 +42,10 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long> {
      * Contar clientes activos. Usado por DashboardService para el panel de Inicio.
      */
     Long countByActivo(Boolean activo);
+
+    /** Clientes registrados después de la fecha (clientes nuevos del mes). */
+    Long countByFechaRegistroAfter(java.time.LocalDateTime desde);
+
+    /** Clientes registrados estrictamente entre las dos fechas (clientes nuevos de hoy). */
+    Long countByFechaRegistroAfterAndFechaRegistroBefore(java.time.LocalDateTime desde, java.time.LocalDateTime hasta);
 }

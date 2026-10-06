@@ -3,6 +3,8 @@ package com.mitienda.ecommerce.repositories;
 import com.mitienda.ecommerce.models.DetalleCompra;
 import com.mitienda.ecommerce.models.EstadoCompra;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
@@ -28,4 +30,12 @@ public interface DetalleCompraRepository extends JpaRepository<DetalleCompra, Lo
      * puede seguir corrigiendo desde ahí.
      */
     boolean existsByProducto_IdAndCompra_Estado(Long idProducto, EstadoCompra estado);
+
+    /**
+     * Ids de todos los productos que tienen al menos una compra en ese estado.
+     * Los listados la usan una sola vez en lugar de preguntar producto por
+     * producto con existsByProducto_IdAndCompra_Estado.
+     */
+    @Query("select distinct d.producto.id from DetalleCompra d where d.compra.estado = :estado")
+    List<Long> findIdsProductoPorEstadoCompra(@Param("estado") EstadoCompra estado);
 }

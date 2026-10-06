@@ -93,26 +93,23 @@ public class DashboardService {
         // antes el conteo incluía todos los estados y el monto solo las
         // completadas, y quedaba "3 ventas registradas" al lado de un monto
         // que en realidad era la suma de 2 — parecía que faltaba plata.
-        List<Venta> ventasHoy = ventaRepository.findByFechaVentaBetweenOrderByFechaVentaDesc(hoy, finHoy)
-                .stream().filter(v -> v.getEstado() == EstadoVenta.COMPLETADA).toList();
-        Long totalVentasHoy = (long) ventasHoy.size();
-        BigDecimal montoVentasHoy = ventasHoy.stream()
-                .map(Venta::getMontoTotal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        Long totalVentasHoy = ventaRepository.countCompletadasEntre(hoy, finHoy);
+        BigDecimal montoVentasHoy = ventaRepository.sumMontoTotalByFechaVentaBetween(hoy, finHoy);
+        if (montoVentasHoy == null) {
+            montoVentasHoy = BigDecimal.ZERO;
+        }
 
-        List<Venta> ventasMes = ventaRepository.findByFechaVentaBetweenOrderByFechaVentaDesc(inicioMes, LocalDateTime.now())
-                .stream().filter(v -> v.getEstado() == EstadoVenta.COMPLETADA).toList();
-        Long totalVentasMes = (long) ventasMes.size();
-        BigDecimal montoVentasMes = ventasMes.stream()
-                .map(Venta::getMontoTotal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        Long totalVentasMes = ventaRepository.countCompletadasEntre(inicioMes, LocalDateTime.now());
+        BigDecimal montoVentasMes = ventaRepository.sumMontoTotalByFechaVentaBetween(inicioMes, LocalDateTime.now());
+        if (montoVentasMes == null) {
+            montoVentasMes = BigDecimal.ZERO;
+        }
 
-        List<Venta> ventasAño = ventaRepository.findByFechaVentaBetweenOrderByFechaVentaDesc(inicioAño, LocalDateTime.now())
-                .stream().filter(v -> v.getEstado() == EstadoVenta.COMPLETADA).toList();
-        Long totalVentasAño = (long) ventasAño.size();
-        BigDecimal montoVentasAño = ventasAño.stream()
-                .map(Venta::getMontoTotal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        Long totalVentasAño = ventaRepository.countCompletadasEntre(inicioAño, LocalDateTime.now());
+        BigDecimal montoVentasAño = ventaRepository.sumMontoTotalByFechaVentaBetween(inicioAño, LocalDateTime.now());
+        if (montoVentasAño == null) {
+            montoVentasAño = BigDecimal.ZERO;
+        }
 
         BigDecimal promedioVentaDiaria = totalVentasMes > 0
                 ? montoVentasMes.divide(BigDecimal.valueOf(LocalDate.now().getDayOfMonth()), 2, RoundingMode.HALF_UP)
@@ -129,7 +126,7 @@ public class DashboardService {
     private DashboardResponse.ProductosStats getProductosStats() {
         Long totalProductos = productoRepository.count();
         Long productosActivos = productoRepository.countByActivo(true);
-        Long productosSinStock = (long) inventarioRepository.findProductosSinStock().size();
+        Long productosSinStock = inventarioRepository.countProductosSinStock();
         Long productosBajoStock = inventarioRepository.countProductosConStockBajo();
 
         return new DashboardResponse.ProductosStats(
@@ -146,14 +143,11 @@ public class DashboardService {
         // de calcularse.
         BigDecimal valorTotal = null;
         if (usuarioActualService.esAdmin()) {
-            List<Inventario> inventarios = inventarioRepository.findAll();
-            // Productos sin precio de compra cargado quedan afuera de la
-            // cuenta: no hay con qué valorizarlos todavía.
-            valorTotal = inventarios.stream()
-                    .filter(inv -> inv.getProducto().getPrecioCompra() != null)
-                    .map(inv -> inv.getProducto().getPrecioCompra()
-                            .multiply(BigDecimal.valueOf(inv.getCantidadDisponible())))
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            // Productos sin precio de compra quedan afuera de la cuenta.
+            valorTotal = inventarioRepository.sumValorInventarioPrecioCompra();
+            if (valorTotal == null) {
+                valorTotal = BigDecimal.ZERO;
+            }
         }
 
         Integer ajustesDelMes = 0;
@@ -169,14 +163,10 @@ public class DashboardService {
 
         LocalDateTime hoy = LocalDate.now().atStartOfDay();
         LocalDateTime finHoy = LocalDate.now().atTime(23, 59, 59);
-        Long clientesNuevosHoy = clienteRepository.findAll().stream()
-                .filter(c -> c.getFechaRegistro().isAfter(hoy) && c.getFechaRegistro().isBefore(finHoy))
-                .count();
+        Long clientesNuevosHoy = clienteRepository.countByFechaRegistroAfterAndFechaRegistroBefore(hoy, finHoy);
 
         LocalDateTime inicioMes = LocalDate.now().withDayOfMonth(1).atStartOfDay();
-        Long clientesNuevosMes = clienteRepository.findAll().stream()
-                .filter(c -> c.getFechaRegistro().isAfter(inicioMes))
-                .count();
+        Long clientesNuevosMes = clienteRepository.countByFechaRegistroAfter(inicioMes);
 
         return new DashboardResponse.ClientesStats(
                 totalClientes, clientesNuevosHoy,
