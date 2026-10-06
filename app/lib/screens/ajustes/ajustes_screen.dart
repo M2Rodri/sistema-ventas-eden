@@ -3,6 +3,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../data/actualizacion_repository.dart';
 import '../../data/biometria_service.dart';
+import '../../data/tema_service.dart';
 import '../../models/usuario.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/dialogo_actualizacion.dart';
@@ -20,7 +21,7 @@ class AjustesScreen extends StatefulWidget {
 
 class _AjustesScreenState extends State<AjustesScreen> {
   final _biometria = BiometriaService();
-
+  final _temaService = TemaService();
   final _actualizacion = ActualizacionRepository();
 
   bool _disponible = false;
@@ -97,6 +98,10 @@ class _AjustesScreenState extends State<AjustesScreen> {
   @override
   Widget build(BuildContext context) {
     final usuario = widget.usuario;
+    final esOscuro = Theme.of(context).brightness == Brightness.dark;
+    final colorTextoPrincipal = esOscuro ? Colors.white : AppColors.textoPrincipal;
+    final colorTextoSecundario = esOscuro ? Colors.white70 : AppColors.textoSecundario;
+    final colorIcono = esOscuro ? const Color(0xFF8FD1AC) : AppColors.verdeOscuro;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Ajustes')),
@@ -106,14 +111,14 @@ class _AjustesScreenState extends State<AjustesScreen> {
           const _TituloSeccion('CUENTA'),
           _Bloque(
             child: ListTile(
-              leading: const Icon(Icons.person_outline_rounded, color: AppColors.verdeOscuro),
+              leading: Icon(Icons.person_outline_rounded, color: colorIcono),
               title: Text(
                 usuario.nombreCompleto,
-                style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.textoPrincipal),
+                style: TextStyle(fontWeight: FontWeight.w700, color: colorTextoPrincipal),
               ),
               subtitle: Text(
                 usuario.role == 'ADMIN' ? 'Administrador' : 'Empleado',
-                style: const TextStyle(color: AppColors.textoSecundario),
+                style: TextStyle(color: colorTextoSecundario),
               ),
             ),
           ),
@@ -123,21 +128,55 @@ class _AjustesScreenState extends State<AjustesScreen> {
             child: ValueListenableBuilder<bool>(
               valueListenable: BiometriaService.activa,
               builder: (context, activa, _) {
-                return SwitchListTile(
-                  secondary: const Icon(Icons.fingerprint_rounded, color: AppColors.verdeOscuro),
-                  title: const Text(
+                return ListTile(
+                  leading: Icon(Icons.fingerprint_rounded, color: colorIcono),
+                  title: Text(
                     'Entrar con huella digital',
-                    style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.textoPrincipal),
+                    style: TextStyle(fontWeight: FontWeight.w700, color: colorTextoPrincipal),
                   ),
                   subtitle: Text(
                     _cargando || _disponible
                         ? 'Pide tu huella al abrir la app y al volver después de 1 minuto.'
                         : 'Este celular no tiene huella o rostro registrados.',
-                    style: const TextStyle(color: AppColors.textoSecundario),
+                    style: TextStyle(color: colorTextoSecundario),
                   ),
-                  value: activa,
-                  activeThumbColor: AppColors.verdeOscuro,
-                  onChanged: _cargando || (!_disponible && !activa) ? null : _cambiar,
+                  trailing: Switch(
+                    value: activa,
+                    activeThumbColor: AppColors.verdeOscuro,
+                    activeTrackColor: AppColors.verdeOscuro.withValues(alpha: 0.35),
+                    onChanged: _cargando || (!_disponible && !activa) ? null : _cambiar,
+                  ),
+                  onTap: _cargando || (!_disponible && !activa) ? null : () => _cambiar(!activa),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 24),
+          const _TituloSeccion('APARIENCIA'),
+          _Bloque(
+            child: ValueListenableBuilder<bool>(
+              valueListenable: TemaService.modoOscuro,
+              builder: (context, oscuro, _) {
+                return ListTile(
+                  leading: Icon(
+                    oscuro ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
+                    color: colorIcono,
+                  ),
+                  title: Text(
+                    oscuro ? 'Tema oscuro' : 'Tema claro',
+                    style: TextStyle(fontWeight: FontWeight.w700, color: colorTextoPrincipal),
+                  ),
+                  subtitle: Text(
+                    'Cambia entre claro y oscuro',
+                    style: TextStyle(color: colorTextoSecundario),
+                  ),
+                  trailing: Switch(
+                    value: oscuro,
+                    activeThumbColor: AppColors.verdeOscuro,
+                    activeTrackColor: AppColors.verdeOscuro.withValues(alpha: 0.35),
+                    onChanged: (valor) => _temaService.alternar(valor),
+                  ),
+                  onTap: () => _temaService.alternar(!oscuro),
                 );
               },
             ),
@@ -146,18 +185,18 @@ class _AjustesScreenState extends State<AjustesScreen> {
           const _TituloSeccion('ACTUALIZACIONES'),
           _Bloque(
             child: ListTile(
-              leading: const Icon(Icons.system_update_alt_rounded, color: AppColors.verdeOscuro),
-              title: const Text(
+              leading: Icon(Icons.system_update_alt_rounded, color: colorIcono),
+              title: Text(
                 'Buscar actualización',
-                style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.textoPrincipal),
+                style: TextStyle(fontWeight: FontWeight.w700, color: colorTextoPrincipal),
               ),
               subtitle: Text(
                 _versionInstalada.isEmpty ? 'Versión de la app' : 'Versión instalada: $_versionInstalada',
-                style: const TextStyle(color: AppColors.textoSecundario),
+                style: TextStyle(color: colorTextoSecundario),
               ),
               trailing: _buscandoActualizacion
                   ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5))
-                  : const Icon(Icons.chevron_right_rounded),
+                  : Icon(Icons.chevron_right_rounded, color: colorTextoSecundario),
               onTap: _buscandoActualizacion ? null : _buscarActualizacion,
             ),
           ),
@@ -185,15 +224,16 @@ class _TituloSeccion extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final esOscuro = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
       child: Text(
         texto,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w800,
           letterSpacing: 0.8,
-          color: AppColors.textoSecundario,
+          color: esOscuro ? const Color(0xFF8FA89B) : AppColors.textoSecundario,
         ),
       ),
     );
@@ -207,12 +247,17 @@ class _Bloque extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final esOscuro = Theme.of(context).brightness == Brightness.dark;
     return Material(
-      color: Colors.white,
+      color: esOscuro ? const Color(0xFF1E2822) : Colors.white,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: AppColors.verdeOscuro.withValues(alpha: 0.12)),
+        side: BorderSide(
+          color: esOscuro
+              ? Colors.white.withValues(alpha: 0.08)
+              : AppColors.verdeOscuro.withValues(alpha: 0.12),
+        ),
       ),
       child: child,
     );

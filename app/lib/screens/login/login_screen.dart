@@ -201,13 +201,23 @@ class _Encabezado extends StatelessWidget {
     return Column(
       children: <Widget>[
         Container(
-          width: 76,
-          height: 76,
+          width: 112,
+          height: 112,
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(26),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.35), width: 1.5),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.25),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
-          child: const Icon(Icons.bed_outlined, color: AppColors.verdeOscuro, size: 38),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(25),
+            child: Image.asset('assets/images/logo_app.png', fit: BoxFit.cover),
+          ),
         ),
         const SizedBox(height: 16),
         const Text(

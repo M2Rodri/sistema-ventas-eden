@@ -72,24 +72,25 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
-      final resumen = await _dashboardRepository.obtenerResumenDelDia(widget.sesion.token);
+      // Las tres peticiones salen a la vez: antes se esperaban una tras otra
+      // y el inicio tardaba la suma de las tres.
+      //
       // La semana es un extra de la pantalla: si falla no tumba el resumen
       // del día, la tarjeta simplemente queda sin cifra.
-      VentasSemanal? semana;
-      try {
-        semana = await _dashboardRepository.obtenerVentasSemanal(widget.sesion.token);
-      } catch (_) {
-        semana = null;
-      }
+      final semanaFuture = _dashboardRepository
+          .obtenerVentasSemanal(widget.sesion.token)
+          .then<VentasSemanal?>((valor) => valor)
+          .catchError((_) => null);
       // Igual que la semana: si falla, la campana queda sin avisos en vez de
       // tumbar el resumen del día.
-      var alertas = const <ProductoCatalogo>[];
-      try {
-        alertas = await _catalogoRepository.obtenerBajoMinimo(widget.sesion.token);
-        alertas = <ProductoCatalogo>[...alertas]..sort((a, b) => a.cantidadDisponible.compareTo(b.cantidadDisponible));
-      } catch (_) {
-        alertas = const <ProductoCatalogo>[];
-      }
+      final alertasFuture = _catalogoRepository
+          .obtenerBajoMinimo(widget.sesion.token)
+          .then<List<ProductoCatalogo>>((lista) =>
+              <ProductoCatalogo>[...lista]..sort((a, b) => a.cantidadDisponible.compareTo(b.cantidadDisponible)))
+          .catchError((_) => const <ProductoCatalogo>[]);
+      final resumen = await _dashboardRepository.obtenerResumenDelDia(widget.sesion.token);
+      final VentasSemanal? semana = await semanaFuture;
+      final alertas = await alertasFuture;
       if (!mounted) return;
       setState(() {
         _resumen = resumen;
@@ -882,8 +883,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final usuario = widget.sesion.usuario;
-
     return Scaffold(
       appBar: AppBar(
         // Menú de 3 barras con el mismo diseño que el de la app anterior (un
@@ -1003,20 +1002,6 @@ class _HomeScreenState extends State<HomeScreen> {
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(18, 18, 18, 100),
             children: <Widget>[
-              Text(
-                '¡Hola, ${usuario.nombre}!',
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textoPrincipal,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                usuario.role == 'ADMIN' ? 'Administrador' : 'Empleado',
-                style: const TextStyle(color: AppColors.textoSecundario),
-              ),
-              const SizedBox(height: 20),
               const _TituloSeccion(texto: 'Resumen de hoy'),
               const SizedBox(height: 12),
               _CuerpoResumen(
@@ -1270,7 +1255,7 @@ class _MetricaResumen extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
-        splashColor: AppColors.verdeOscuro.withValues(alpha: 0.08),
+        splashColor: Colors.white.withValues(alpha: 0.15),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
           decoration: BoxDecoration(
@@ -1305,7 +1290,11 @@ class _MetricaResumen extends StatelessWidget {
               if (onTap != null && mostrarVerDetalle)
                 Text(
                   'Ver detalle ›',
-                  style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w700, color: AppColors.iconoResumen.withValues(alpha: 0.6)),
+                  style: TextStyle(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white.withValues(alpha: 0.85),
+                  ),
                 ),
             ],
           ),
@@ -1335,6 +1324,7 @@ class _BotonModulo extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
+        splashColor: Colors.white.withValues(alpha: 0.15),
         child: Container(
           height: 56,
           padding: const EdgeInsets.symmetric(horizontal: 12),

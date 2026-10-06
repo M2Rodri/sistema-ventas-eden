@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Pantalla de entrada: fondo verde de la marca y el logo centrado (antes era
-     un fondo blanco vacío). -->
+<!-- Logo de la pantalla de entrada. Android 12+ lo recorta en un círculo de
+     192 dp sobre un lienzo de 288 dp: a 160 dp el logo entra entero y se ve grande. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@color/splash_fondo" />
     <item
         android:width="160dp"
         android:height="160dp"

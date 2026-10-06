@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'data/api_client.dart';
 import 'data/auth_repository.dart';
+import 'data/tema_service.dart';
 import 'screens/bloqueo/bloqueo_biometrico.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/login/login_navegacion.dart';
@@ -13,7 +14,9 @@ import 'theme/app_theme.dart';
 /// desde fuera de cualquier pantalla.
 final navigatorKey = GlobalKey<NavigatorState>();
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await TemaService().cargar();
   ApiClient.alVencerSesion = _alVencerLaSesion;
   runApp(const MuebleriaEdenApp());
 }
@@ -33,16 +36,23 @@ class MuebleriaEdenApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Mueblería Edén',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.tema,
-      navigatorKey: navigatorKey,
-      builder: (context, child) => BloqueoBiometrico(
-        navigatorKey: navigatorKey,
-        child: child ?? const SizedBox.shrink(),
-      ),
-      home: const _Arranque(),
+    return ValueListenableBuilder<bool>(
+      valueListenable: TemaService.modoOscuro,
+      builder: (context, esOscuro, _) {
+        return MaterialApp(
+          title: 'Mueblería Edén',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.tema,
+          darkTheme: AppTheme.temaOscuro,
+          themeMode: esOscuro ? ThemeMode.dark : ThemeMode.light,
+          navigatorKey: navigatorKey,
+          builder: (context, child) => BloqueoBiometrico(
+            navigatorKey: navigatorKey,
+            child: child ?? const SizedBox.shrink(),
+          ),
+          home: const _Arranque(),
+        );
+      },
     );
   }
 }

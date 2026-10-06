@@ -18,14 +18,22 @@ class AcercaScreen extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               Container(
-                width: 88,
-                height: 88,
+                width: 112,
+                height: 112,
                 decoration: BoxDecoration(
-                  color: AppColors.fondoResumen,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: AppColors.verdeOscuro.withValues(alpha: 0.12)),
+                  borderRadius: BorderRadius.circular(26),
+                  boxShadow: <BoxShadow>[
+                    BoxShadow(
+                      color: AppColors.verdeOscuro.withValues(alpha: 0.25),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
                 ),
-                child: const Icon(Icons.bed_outlined, color: AppColors.verdeOscuro, size: 44),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(26),
+                  child: Image.asset('assets/images/logo_app.png', fit: BoxFit.cover),
+                ),
               ),
               const SizedBox(height: 20),
               const Text(
