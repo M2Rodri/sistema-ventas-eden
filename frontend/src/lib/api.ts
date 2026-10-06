@@ -23,17 +23,31 @@ const API_URL = `${BACKEND_URL}/api/v1`;
  * Este módulo usa esta función en lugar del fetch global (ver la constante
  * `fetch` de abajo), por eso las funciones de más abajo no cambian.
  */
-const CACHE_LECTURAS_MS = 20_000;
+const CACHE_LECTURAS_MS = 60_000;
 const cacheLecturas = new Map<string, { vence: number; respuesta: Promise<Response> }>();
 
 export const vaciarCacheApi = (): void => cacheLecturas.clear();
+
+// Tras guardar algo, la caché queda vacía; se vuelve a llenar por detrás para
+// que el siguiente módulo que se abra tampoco espere. Se agrupan varias
+// escrituras seguidas en una sola precarga.
+let temporizadorPrecarga: ReturnType<typeof setTimeout> | undefined;
+const programarPrecarga = (): void => {
+  if (typeof window === 'undefined') return;
+  clearTimeout(temporizadorPrecarga);
+  temporizadorPrecarga = setTimeout(() => { void precargarDatos(); }, 800);
+};
 
 const fetch = (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
   const metodo = (init?.method ?? 'GET').toUpperCase();
   const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
 
   if (metodo !== 'GET') {
-    return globalThis.fetch(input, init).finally(vaciarCacheApi);
+    return globalThis.fetch(input, init).finally(() => {
+      vaciarCacheApi();
+      // El inicio de sesión no cuenta: todavía no hay token y el panel ya precarga al abrir.
+      if (url.startsWith(API_URL) && !url.includes('/auth/')) programarPrecarga();
+    });
   }
   if (!url.startsWith(API_URL)) {
     return globalThis.fetch(input, init);
@@ -2816,4 +2830,34 @@ export const actualizarStockMinimo = async (
   }
 
   return response.json();
+};
+
+/**
+ * Precarga en segundo plano las listas de los módulos principales para que,
+ * al abrirlos, ya estén en la caché de lecturas (ver más arriba). Se llama una
+ * vez al entrar al panel. Va de a una petición para no competir con la
+ * pantalla que el usuario está viendo, y cualquier fallo (por ejemplo un
+ * módulo que su rol no puede ver) se ignora: la pantalla lo pedirá cuando
+ * haga falta.
+ */
+export const precargarDatos = async (): Promise<void> => {
+  const pedidos: Array<() => Promise<unknown>> = [
+    getAllProductos,
+    getActiveCategorias,
+    getAllInventario,
+    getAlertasPendientes,
+    getAllVentas,
+    getAllClientes,
+    getClientesConEstadisticas,
+    getAllCompras,
+    getAllProveedores,
+    getAllUsers,
+  ];
+  for (const pedir of pedidos) {
+    try {
+      await pedir();
+    } catch {
+      // se ignora: es solo una precarga
+    }
+  }
 };
