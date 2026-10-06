@@ -74,4 +74,8 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
      * Contar productos por categoría
      */
     Long countByCategoriaId(Long categoriaId);
+
+    /** Total y activos en una sola consulta. Una fila: [total, activos]. */
+    @Query("SELECT COUNT(p), COUNT(CASE WHEN p.activo = true THEN 1 END) FROM Producto p")
+    List<Object[]> resumenConteo();
 }

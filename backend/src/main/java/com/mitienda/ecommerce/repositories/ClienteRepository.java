@@ -3,6 +3,7 @@ package com.mitienda.ecommerce.repositories;
 import com.mitienda.ecommerce.models.Cliente;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -43,9 +44,14 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long> {
      */
     Long countByActivo(Boolean activo);
 
-    /** Clientes registrados después de la fecha (clientes nuevos del mes). */
-    Long countByFechaRegistroAfter(java.time.LocalDateTime desde);
-
-    /** Clientes registrados estrictamente entre las dos fechas (clientes nuevos de hoy). */
-    Long countByFechaRegistroAfterAndFechaRegistroBefore(java.time.LocalDateTime desde, java.time.LocalDateTime hasta);
+    /**
+     * Cifras de clientes del panel de Inicio en una sola consulta.
+     * Una fila: [total, activos, nuevosHoy, nuevosMes].
+     */
+    @Query("SELECT COUNT(c), COUNT(CASE WHEN c.activo = true THEN 1 END), "
+            + "COUNT(CASE WHEN c.fechaRegistro > :hoy AND c.fechaRegistro < :finHoy THEN 1 END), "
+            + "COUNT(CASE WHEN c.fechaRegistro > :inicioMes THEN 1 END) FROM Cliente c")
+    List<Object[]> resumenClientes(@Param("hoy") java.time.LocalDateTime hoy,
+                                   @Param("finHoy") java.time.LocalDateTime finHoy,
+                                   @Param("inicioMes") java.time.LocalDateTime inicioMes);
 }

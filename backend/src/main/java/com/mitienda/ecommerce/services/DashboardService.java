@@ -71,9 +71,12 @@ public class DashboardService {
     public DashboardResponse getDashboardStats() {
         DashboardResponse dashboard = new DashboardResponse();
 
+        // Una consulta por tema: cada ida y vuelta a la base pesa en
+        // producción, así que se piden las cifras agrupadas.
+        Object[] inventario = inventarioRepository.resumenInventario().get(0);
         dashboard.setVentasStats(getVentasStats());
-        dashboard.setProductosStats(getProductosStats());
-        dashboard.setInventarioStats(getInventarioStats());
+        dashboard.setProductosStats(getProductosStats(inventario));
+        dashboard.setInventarioStats(getInventarioStats(inventario));
         dashboard.setClientesStats(getClientesStats());
         dashboard.setPagosStats(getPagosStats());
         dashboard.setProductosMasVendidos(getProductosMasVendidos(10));
@@ -93,23 +96,13 @@ public class DashboardService {
         // antes el conteo incluía todos los estados y el monto solo las
         // completadas, y quedaba "3 ventas registradas" al lado de un monto
         // que en realidad era la suma de 2 — parecía que faltaba plata.
-        Long totalVentasHoy = ventaRepository.countCompletadasEntre(hoy, finHoy);
-        BigDecimal montoVentasHoy = ventaRepository.sumMontoTotalByFechaVentaBetween(hoy, finHoy);
-        if (montoVentasHoy == null) {
-            montoVentasHoy = BigDecimal.ZERO;
-        }
-
-        Long totalVentasMes = ventaRepository.countCompletadasEntre(inicioMes, LocalDateTime.now());
-        BigDecimal montoVentasMes = ventaRepository.sumMontoTotalByFechaVentaBetween(inicioMes, LocalDateTime.now());
-        if (montoVentasMes == null) {
-            montoVentasMes = BigDecimal.ZERO;
-        }
-
-        Long totalVentasAño = ventaRepository.countCompletadasEntre(inicioAño, LocalDateTime.now());
-        BigDecimal montoVentasAño = ventaRepository.sumMontoTotalByFechaVentaBetween(inicioAño, LocalDateTime.now());
-        if (montoVentasAño == null) {
-            montoVentasAño = BigDecimal.ZERO;
-        }
+        Object[] fila = ventaRepository.resumenVentasCompletadas(hoy, finHoy, inicioMes, inicioAño).get(0);
+        Long totalVentasHoy = aLong(fila[0]);
+        BigDecimal montoVentasHoy = aDecimal(fila[1]);
+        Long totalVentasMes = aLong(fila[2]);
+        BigDecimal montoVentasMes = aDecimal(fila[3]);
+        Long totalVentasAño = aLong(fila[4]);
+        BigDecimal montoVentasAño = aDecimal(fila[5]);
 
         BigDecimal promedioVentaDiaria = totalVentasMes > 0
                 ? montoVentasMes.divide(BigDecimal.valueOf(LocalDate.now().getDayOfMonth()), 2, RoundingMode.HALF_UP)
@@ -123,32 +116,20 @@ public class DashboardService {
         );
     }
 
-    private DashboardResponse.ProductosStats getProductosStats() {
-        Long totalProductos = productoRepository.count();
-        Long productosActivos = productoRepository.countByActivo(true);
-        Long productosSinStock = inventarioRepository.countProductosSinStock();
-        Long productosBajoStock = inventarioRepository.countProductosConStockBajo();
-
+    private DashboardResponse.ProductosStats getProductosStats(Object[] inventario) {
+        Object[] conteo = productoRepository.resumenConteo().get(0);
         return new DashboardResponse.ProductosStats(
-                totalProductos, productosActivos,
-                productosSinStock, productosBajoStock
+                aLong(conteo[0]), aLong(conteo[1]),
+                aLong(inventario[0]), aLong(inventario[1])
         );
     }
 
-    private DashboardResponse.InventarioStats getInventarioStats() {
+    private DashboardResponse.InventarioStats getInventarioStats(Object[] inventario) {
         Long alertasInventario = alertaInventarioRepository.countByEstado(EstadoAlerta.PENDIENTE);
 
         // Se calcula con precioCompra: el rol EMPLEADO no debe verlo, asi
-        // que para EMPLEADO (o sin sesion) esta tarjeta queda en null en vez
-        // de calcularse.
-        BigDecimal valorTotal = null;
-        if (usuarioActualService.esAdmin()) {
-            // Productos sin precio de compra quedan afuera de la cuenta.
-            valorTotal = inventarioRepository.sumValorInventarioPrecioCompra();
-            if (valorTotal == null) {
-                valorTotal = BigDecimal.ZERO;
-            }
-        }
+        // que para EMPLEADO (o sin sesion) esta tarjeta queda en null.
+        BigDecimal valorTotal = usuarioActualService.esAdmin() ? aDecimal(inventario[2]) : null;
 
         Integer ajustesDelMes = 0;
 
@@ -158,20 +139,23 @@ public class DashboardService {
     }
 
     private DashboardResponse.ClientesStats getClientesStats() {
-        Long totalClientes = clienteRepository.count();
-        Long clientesActivos = clienteRepository.countByActivo(true);
-
         LocalDateTime hoy = LocalDate.now().atStartOfDay();
         LocalDateTime finHoy = LocalDate.now().atTime(23, 59, 59);
-        Long clientesNuevosHoy = clienteRepository.countByFechaRegistroAfterAndFechaRegistroBefore(hoy, finHoy);
-
         LocalDateTime inicioMes = LocalDate.now().withDayOfMonth(1).atStartOfDay();
-        Long clientesNuevosMes = clienteRepository.countByFechaRegistroAfter(inicioMes);
 
+        Object[] fila = clienteRepository.resumenClientes(hoy, finHoy, inicioMes).get(0);
         return new DashboardResponse.ClientesStats(
-                totalClientes, clientesNuevosHoy,
-                clientesNuevosMes, clientesActivos
+                aLong(fila[0]), aLong(fila[2]),
+                aLong(fila[3]), aLong(fila[1])
         );
+    }
+
+    private static Long aLong(Object valor) {
+        return valor == null ? 0L : ((Number) valor).longValue();
+    }
+
+    private static BigDecimal aDecimal(Object valor) {
+        return valor == null ? BigDecimal.ZERO : new BigDecimal(valor.toString());
     }
 
     /**
@@ -182,10 +166,8 @@ public class DashboardService {
      * No hay fecha de vencimiento en 'ventas', asi que no existe "vencidas".
      */
     private DashboardResponse.PagosStats getPagosStats() {
-        Long cuotasPendientes = ventaRepository.countVentasPorCobrar();
-        BigDecimal montoCuotasPendientes = ventaRepository.sumSaldoPendientePorCobrar();
-
-        return new DashboardResponse.PagosStats(cuotasPendientes, montoCuotasPendientes);
+        Object[] fila = ventaRepository.resumenPorCobrar().get(0);
+        return new DashboardResponse.PagosStats(aLong(fila[0]), aDecimal(fila[1]));
     }
 
     /**
@@ -286,21 +268,26 @@ public class DashboardService {
     }
 
     private List<DashboardResponse.VentaPorDiaDTO> getVentasUltimosDias(int dias) {
-        List<DashboardResponse.VentaPorDiaDTO> ventasPorDia = new ArrayList<>();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        LocalDate primerDia = LocalDate.now().minusDays(dias - 1L);
 
-        for (int i = dias - 1; i >= 0; i--) {
-            LocalDate fecha = LocalDate.now().minusDays(i);
-            LocalDateTime inicioFecha = fecha.atStartOfDay();
-            LocalDateTime finFecha = fecha.atTime(23, 59, 59);
+        // Una sola consulta para todos los días (antes era una por día).
+        List<Object[]> ventas = ventaRepository.findResumenVentasEntre(
+                primerDia.atStartOfDay(), LocalDate.now().atTime(23, 59, 59));
 
-            List<Venta> ventasDia = ventaRepository.findByFechaVentaBetweenOrderByFechaVentaDesc(inicioFecha, finFecha);
-            Long cantidadVentas = (long) ventasDia.size();
-            BigDecimal montoTotal = ventasDia.stream()
-                    .filter(v -> v.getEstado() == EstadoVenta.COMPLETADA)
-                    .map(Venta::getMontoTotal)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-
+        List<DashboardResponse.VentaPorDiaDTO> ventasPorDia = new ArrayList<>();
+        for (int i = 0; i < dias; i++) {
+            LocalDate fecha = primerDia.plusDays(i);
+            long cantidadVentas = 0;
+            BigDecimal montoTotal = BigDecimal.ZERO;
+            for (Object[] v : ventas) {
+                if (((LocalDateTime) v[0]).toLocalDate().equals(fecha)) {
+                    cantidadVentas++;
+                    if (v[1] == EstadoVenta.COMPLETADA) {
+                        montoTotal = montoTotal.add((BigDecimal) v[2]);
+                    }
+                }
+            }
             ventasPorDia.add(new DashboardResponse.VentaPorDiaDTO(
                     fecha.format(formatter),
                     cantidadVentas,

@@ -49,14 +49,6 @@ public interface InventarioRepository extends JpaRepository<Inventario, Long> {
     @Query("SELECT i FROM Inventario i WHERE i.cantidadDisponible = 0")
     List<Inventario> findProductosSinStock();
 
-    /** Cantidad de productos sin stock, sin traer las filas. */
-    @Query("SELECT COUNT(i) FROM Inventario i WHERE i.cantidadDisponible = 0")
-    Long countProductosSinStock();
-
-    /** Valor del inventario a precio de compra; null si ningún producto tiene precio de compra. */
-    @Query("SELECT SUM(p.precioCompra * i.cantidadDisponible) FROM Inventario i JOIN i.producto p WHERE p.precioCompra IS NOT NULL")
-    java.math.BigDecimal sumValorInventarioPrecioCompra();
-
     /**
      * Contar productos con stock bajo
      */
@@ -90,4 +82,15 @@ public interface InventarioRepository extends JpaRepository<Inventario, Long> {
             + "AND (:soloBajoMinimo = false OR (i.producto.stockMinimo > 0 AND i.cantidadDisponible <= i.producto.stockMinimo)) "
             + "ORDER BY i.producto.nombre")
     List<Inventario> findCatalogoApp(@Param("nombre") String nombre, @Param("soloBajoMinimo") boolean soloBajoMinimo);
+
+    /**
+     * Cifras de inventario del panel de Inicio en una sola consulta.
+     * Una fila: [sinStock, bajoStock, valorAPrecioDeCompra]. Los productos sin
+     * precio de compra no suman al valor.
+     */
+    @Query("SELECT COUNT(CASE WHEN i.cantidadDisponible = 0 THEN 1 END), "
+            + "COUNT(CASE WHEN p.stockMinimo > 0 AND i.cantidadDisponible <= p.stockMinimo THEN 1 END), "
+            + "COALESCE(SUM(CASE WHEN p.precioCompra IS NOT NULL THEN p.precioCompra * i.cantidadDisponible END), 0) "
+            + "FROM Inventario i JOIN i.producto p")
+    List<Object[]> resumenInventario();
 }

@@ -75,13 +75,6 @@ public interface VentaRepository extends JpaRepository<Venta, Long> {
     BigDecimal sumMontoTotalByFechaVentaBetween(@Param("inicio") LocalDateTime inicio, @Param("fin") LocalDateTime fin);
 
     /**
-     * Cantidad de ventas COMPLETADAS en un rango (inclusive). El panel de
-     * Inicio la usa en lugar de traer las ventas enteras solo para contarlas.
-     */
-    @Query("SELECT COUNT(v) FROM Venta v WHERE v.fechaVenta BETWEEN :inicio AND :fin AND v.estado = com.mitienda.ecommerce.models.EstadoVenta.COMPLETADA")
-    Long countCompletadasEntre(@Param("inicio") LocalDateTime inicio, @Param("fin") LocalDateTime fin);
-
-    /**
      * Cantidad de ventas, monto total y fecha de la última compra, agrupado
      * por cliente, en una sola consulta. Reemplaza el patrón anterior de
      * pedir el historial completo de cada cliente por separado (N+1) solo
@@ -131,4 +124,37 @@ public interface VentaRepository extends JpaRepository<Venta, Long> {
     @Query("SELECT COUNT(v) FROM Venta v WHERE v.estadoEntrega <> com.mitienda.ecommerce.models.EstadoEntrega.ENTREGADO " +
            "AND v.estado <> com.mitienda.ecommerce.models.EstadoVenta.CANCELADA")
     Long countVentasPorEntregar();
+
+    /**
+     * Cifras de ventas COMPLETADAS de hoy, del mes y del año en UNA sola
+     * consulta (el panel de Inicio las pedía en seis, y cada ida y vuelta a la
+     * base cuesta en producción).
+     * Una fila: [cantHoy, montoHoy, cantMes, montoMes, cantAnio, montoAnio].
+     */
+    @Query("SELECT COUNT(CASE WHEN v.fechaVenta BETWEEN :hoy AND :finHoy THEN 1 END), "
+            + "COALESCE(SUM(CASE WHEN v.fechaVenta BETWEEN :hoy AND :finHoy THEN v.montoTotal END), 0), "
+            + "COUNT(CASE WHEN v.fechaVenta BETWEEN :inicioMes AND :finHoy THEN 1 END), "
+            + "COALESCE(SUM(CASE WHEN v.fechaVenta BETWEEN :inicioMes AND :finHoy THEN v.montoTotal END), 0), "
+            + "COUNT(v), COALESCE(SUM(v.montoTotal), 0) "
+            + "FROM Venta v WHERE v.estado = com.mitienda.ecommerce.models.EstadoVenta.COMPLETADA "
+            + "AND v.fechaVenta BETWEEN :inicioAnio AND :finHoy")
+    List<Object[]> resumenVentasCompletadas(@Param("hoy") LocalDateTime hoy,
+                                            @Param("finHoy") LocalDateTime finHoy,
+                                            @Param("inicioMes") LocalDateTime inicioMes,
+                                            @Param("inicioAnio") LocalDateTime inicioAnio);
+
+    /**
+     * Cantidad y saldo de lo que está por cobrar, en una sola consulta.
+     * Una fila: [cantidad, saldo].
+     */
+    @Query("SELECT COUNT(v), COALESCE(SUM(v.saldoPendiente), 0) FROM Venta v "
+            + "WHERE v.saldoPendiente > 0 OR v.estado = com.mitienda.ecommerce.models.EstadoVenta.PENDIENTE_PAGO")
+    List<Object[]> resumenPorCobrar();
+
+    /**
+     * Fecha, estado y monto de las ventas de un rango, sin armar las ventas
+     * completas: lo usa el gráfico de los últimos días en una sola consulta.
+     */
+    @Query("SELECT v.fechaVenta, v.estado, v.montoTotal FROM Venta v WHERE v.fechaVenta BETWEEN :inicio AND :fin")
+    List<Object[]> findResumenVentasEntre(@Param("inicio") LocalDateTime inicio, @Param("fin") LocalDateTime fin);
 }
