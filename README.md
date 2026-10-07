@@ -1,230 +1,83 @@
-# Sistema de ventas — Mueblería Edén
+# Sistema de Ventas e Inventario — Mueblería Edén
 
-Sistema de gestión para **Mueblería Edén**, un negocio familiar de venta de
-camas, colchones y accesorios de descanso en Santa Cruz de la Sierra, Bolivia.
+**Trabajo Final · Diplomado en Desarrollo Web y Aplicaciones Móviles · UAJMS 2026**
+**Autor:** Rodrigo Mamani Mamani · **Docente:** M.Sc. Ing. Isaac Lange Aguilar
 
-Proyecto final del Diplomado en Desarrollo Web y Aplicaciones Móviles,
-Universidad Autónoma Juan Misael Saracho (Tarija).
+## 1. Descripción
 
-## Despliegue en producción
+Sistema de ventas e inventario para **Mueblería Edén**, un negocio familiar de camas, colchones y accesorios
+de descanso en Santa Cruz de la Sierra, Bolivia. Tiene dos partes que hablan con un único backend:
 
-| Parte | URL |
+- **Web administrativa:** ventas, cobros, clientes, productos, inventario, compras, proveedores, usuarios y reportes.
+- **App móvil (Android):** consulta de catálogo y de ventas, registro de ventas y cobros para el día a día.
+
+| Qué | Dónde |
 |---|---|
-| Frontend | https://sistema-ventas-eden.vercel.app |
-| API | https://sistema-ventas-eden-1.onrender.com |
-| Ruta de salud | https://sistema-ventas-eden-1.onrender.com/api/v1/salud |
+| Web | https://sistema-ventas-eden.vercel.app |
+| API (estado del servicio) | https://sistema-ventas-eden-1.onrender.com/api/v1/salud |
+| App Android (APK) | https://github.com/M2Rodri/sistema-ventas-eden/releases/latest/download/muebleria-eden.apk |
+| Página de estado | https://stats.uptimerobot.com/CLc5bJEPlk |
 
-Backend en Render (Docker, ver `backend/Dockerfile`), base de datos en Supabase
-(perfil `prod`), frontend en Vercel. El backend está en el plan gratuito de
-Render: si nadie lo usó en los últimos 15 minutos, el servicio se apaga solo y
-la primera petición después de eso tarda alrededor de un minuto en volver a
-levantarlo.
+Ni la web ni la app se conectan a la base de datos: toda la lógica, los permisos y la auditoría viven en el backend.
 
-## Versionado de la API
+## 2. Stack
 
-Todas las rutas de la API van con el prefijo **`/api/v1`**, por ejemplo
-`/api/v1/productos`, `/api/v1/ventas/{id}` o `/api/v1/auth/login`. Una ruta que
-empiece con `/api/` pero sin la versión **no existe y responde 404**, con o sin sesión.
+| Parte | Tecnología y versión |
+|---|---|
+| Backend (`backend/`) | Java 17 · Spring Boot 3.5.7 (Web, Data JPA, Security, Validation) · JWT con jjwt 0.12.3 · Lombok · ModelMapper 3.2.6 · springdoc-openapi 2.3.0 · Maven (incluye `mvnw`) |
+| Base de datos | PostgreSQL 17 (Supabase) · el esquema se valida al arrancar (`ddl-auto=validate`): el backend nunca modifica la estructura |
+| Frontend (`frontend/`) | Next.js 16.2.6 · React 19.2.6 · TypeScript 5.9 · Tailwind CSS 3.4 · Recharts 3.8 · lucide-react |
+| App móvil (`app/`) | Flutter 3.44.8 · Dart 3.12.2 · `http` · `flutter_secure_storage` · `local_auth` (huella) |
+| Archivos | Supabase Storage (fotos de productos y comprobantes de pago) |
+| Pruebas | JUnit 5.12 · Mockito 5.17 · Spring Boot Test · `flutter_test` · Newman 6.2 (colección de Postman) |
 
-- **En alcance y versionadas:** auth, usuarios, productos, categorías, imágenes de producto,
-  inventario, ventas, pagos, clientes, compras, proveedores, dashboard, reportes y
-  comprobantes de venta (solo `GET /comprobantes/venta/{idVenta}` y `POST /comprobantes`).
-- **Fuera de alcance (apagadas, responden 404):** envíos, transportadoras, promociones,
-  configuración, consulta de auditorías, mensajes de contacto y multimedia 3D. Su código sigue
-  en el repositorio hasta que se eliminen. El registro interno de auditoría (quién hizo cada
-  venta, compra, pago y ajuste) sigue funcionando: solo se apagó su ruta de consulta.
-- **Acceso por rol:** se define en `SecurityConfig` y se verifica con pruebas automáticas
-  (`RutasApiTest`): sin sesión, 401; con un rol sin permiso, 403 (por ejemplo, el EMPLEADO frente
-  a `/api/v1/reportes/**`).
-- **Ruta de salud:** `/api/v1/salud`, pública.
-
-La lista completa, con la ruta anterior, la nueva y el estado de cada una, está en
-[`docs/rutas-api-v1.md`](docs/rutas-api-v1.md). La web y la app móvil usan solo rutas `/api/v1`
-(la web, desde una única constante en `frontend/src/lib/api.ts`; la app, en `app/lib/data/`).
-No hay colección de Postman en el repositorio.
-
-## Errores de la API
-
-Todas las rutas responden los errores con el mismo formato, y la web y la app muestran `error.mensaje`:
-
-```json
-{ "error": { "codigo": "VENTA_NO_ENCONTRADA", "mensaje": "Venta no encontrada con ID: 999", "campos": { "campo": "detalle" } } }
-```
-
-`campos` solo viene en los errores de validación de campos. Códigos HTTP: 400 petición mal formada o campo inválido,
-401 sin sesión, 403 rol sin permiso, 404 recurso inexistente (también en PUT, PATCH y DELETE), 409 choca con el estado
-actual (por ejemplo, anular una compra ya anulada), 422 regla de negocio violada (stock insuficiente, pago mayor
-al saldo) y 500 error interno, sin detalles ni traza. Las respuestas de error llevan las cabeceras CORS.
-
-La tabla completa de códigos de error, cuándo ocurre cada uno y un ejemplo está en
-[`docs/errores-api.md`](docs/errores-api.md).
-
-## Numeración sin huecos
-
-Los números (ID) de ventas, compras, productos, clientes, proveedores, categorías, inventario, pagos,
-comprobantes, movimientos y usuarios salen de un contador propio (tabla `contadores_id`) que se actualiza
-**dentro de la misma operación** que guarda el registro. Si la operación falla y se revierte (por ejemplo,
-una venta sin stock), el contador también, y el número no se pierde: la numeración sigue 1, 2, 3, 4, sin huecos.
-El sistema no borra ventas ni compras: las cancela, y la fila conserva su número. Está en
-`config/GeneradorIdSinHuecos.java` y se prueba en `IdsSinHuecosTest`.
-
-- Hay que correr el script `31_ids_sin_huecos.sql` **antes** de publicar el backend que lo usa.
-- Después de cualquier carga masiva por SQL (como la carga inicial de productos), llamar a
-  `SELECT sincronizar_contadores_id();` para que el contador quede en el ID más alto.
-- `30_limpiar_datos_de_prueba.sql` borra los datos de prueba y reinicia todo en 1 (pide confirmación explícita).
-
-## Actualizaciones de la app móvil
-
-La app se actualiza sola, sin tienda: al abrirse (y en Ajustes, "Buscar actualización") lee un archivo
-`version.json` publicado en un bucket público de Supabase Storage (`app`). Si la compilación publicada es mayor
-que la instalada, avisa, descarga el APK con barra de avance, comprueba su huella (SHA-256) y abre el instalador
-de Android, donde se toca "Instalar" (Android no deja instalar sin esa confirmación). Los datos y la sesión se
-conservan. Sin internet o con el archivo roto no muestra nada. Solo Android.
-
-**Descarga:** https://github.com/M2Rodri/sistema-ventas-eden/releases/latest/download/muebleria-eden.apk — las siguientes versiones se instalan desde la propia app.
-
-**Publicar una versión nueva**
-1. En `app/pubspec.yaml` subir la versión y el número de compilación: `version: 1.1.0+2` (el número después del
-   `+` siempre tiene que crecer).
-2. Compilar firmado: `cd app && flutter build apk --release --dart-define=API_URL=https://sistema-ventas-eden-1.onrender.com`.
-3. Publicar: `node scripts/publicar-apk.mjs --notas "Qué cambió"` (usa SUPABASE_URL y SUPABASE_SERVICE_KEY; crea el
-   bucket la primera vez y se niega a publicar una compilación que no sea mayor que la ya publicada).
-
-**La llave de firma.** Una actualización solo se instala sobre la app ya instalada si está firmada con la **misma
-llave**. La llave está en `D:/ProyectoFinal/claves-firma/muebleria-eden-release.jks` y sus claves en
-`app/android/key.properties`. Ninguno de los dos va a git (están en `.gitignore`): hay que guardarlos con copia
-fuera de esta computadora. Si se pierden, hay que desinstalar la app de cada teléfono e instalar de nuevo.
-El APK no se sube a git (pesa 54 MB): va al bucket. Pruebas: `node --test scripts/*.test.mjs` y `flutter test`.
-
-## Actualizaciones de la app móvil
-
-La app se actualiza sola, sin tienda: al abrirse (y en Ajustes, "Buscar actualización") lee un archivo
- publicado en un bucket público de Supabase Storage (). Si la compilación publicada es mayor
-que la instalada, avisa, descarga el APK con barra de avance, comprueba su huella (SHA-256) y abre el instalador
-de Android, donde se toca "Instalar" (Android no deja instalar sin esa confirmación). Los datos y la sesión se
-conservan. Sin internet o con el archivo roto no muestra nada. Solo Android.
-
-**Publicar una versión nueva**
-1. En  subir la versión y el número de compilación:  (el número después del
-    siempre tiene que crecer).
-2. Compilar firmado: Running Gradle task 'assembleRelease'...                        
-Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 8380 bytes (99.5% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
-Running Gradle task 'assembleRelease'...                          828,0s
-✓ Built buildappoutputslutter-apkapp-release.apk (51.7MB).
-3. Publicar:  (usa SUPABASE_URL y SUPABASE_SERVICE_KEY; crea el
-   bucket la primera vez y se niega a publicar una compilación que no sea mayor que la ya publicada).
-
-**La llave de firma.** Una actualización solo se instala sobre la app ya instalada si está firmada con la **misma
-llave**. La llave está en  y sus claves en
-. Ninguno de los dos va a git (están en ): hay que guardarlos con copia
-fuera de esta computadora. Si se pierden, hay que desinstalar la app de cada teléfono e instalar de nuevo.
-El APK no se sube a git (pesa 54 MB): va al bucket. Pruebas: ℹ tests 0
-ℹ suites 0
-ℹ pass 0
-ℹ fail 0
-ℹ cancelled 0
-ℹ skipped 0
-ℹ todo 0
-ℹ duration_ms 78.0865 y .
-
-## Qué incluye
-| Parte | Carpeta | Tecnología | Para qué |
-|---|---|---|---|
-| **Backend** | `backend/` | Java 17 · Spring Boot 3.5 · PostgreSQL | API REST: ventas, inventario, compras, envíos, usuarios, auditoría |
-| **Frontend** | `frontend/` | Next.js 16 · React 19 · TypeScript · Tailwind | Panel de administración y tienda pública |
-| **App móvil** | `app/` | Flutter · Dart | App para el dueño del negocio (en construcción) |
-
-```
-sistema-ventas-eden/
-├── backend/
-│   ├── database/        scripts SQL del esquema, numerados y comentados
-│   └── src/
-├── frontend/
-│   └── src/
-│       ├── app/dashboard/   panel de administración
-│       └── app/tienda/      tienda pública, sin inicio de sesión
-├── app/                 app Flutter
-└── README.md
-```
-
-Las tres partes hablan con **un único backend**. Ni el frontend ni la app se
-conectan directo a la base de datos: toda la lógica, los permisos y la
-auditoría viven en un solo lugar.
-
-## Requisitos
+## 3. Requisitos previos
 
 | Herramienta | Versión |
 |---|---|
-| Java (JDK) | 17 |
+| JDK | 17 |
 | Maven | no hace falta instalarlo: el backend trae `mvnw` |
-| PostgreSQL | 15 o superior |
-| Node.js | 20.9 o superior |
-| Flutter | SDK con Dart 3.12 o superior |
+| PostgreSQL | 17 o superior (el esquema usa `transaction_timeout`, de la versión 17) |
+| Node.js | 20.9 o superior (Next.js 16); se usó 24 |
+| Flutter | 3.44 (Dart 3.12 o superior) y Android SDK, para compilar la app |
 
----
+## 4. Instalación local
 
-## Cómo ejecutar cada parte localmente
+Arrancar en este orden: base de datos, backend, frontend. La app necesita el backend corriendo.
 
-Arrancar en este orden: base de datos, backend, frontend. La app móvil
-necesita el backend corriendo.
+### 4.1 Base de datos
 
-### 1. Base de datos
+Crear la base vacía y cargar el esquema completo (26 tablas):
 
-El backend espera una base PostgreSQL llamada `muebleria_eden_db`.
+```bash
+createdb -U postgres muebleria_eden_db
+psql -U postgres -d muebleria_eden_db -v ON_ERROR_STOP=1 -f backend/database/00_esquema.sql
+```
 
-> **Limitación actual:** el repositorio todavía no puede crear la base desde
-> cero. Los scripts de `backend/database/` son **cambios sobre un esquema que
-> ya existe** (del 01 al 15); no hay un script que cree las tablas base. Hoy
-> hace falta partir de una copia de una base existente.
->
-> Además, en una base vacía nadie puede iniciar sesión: al arrancar, el
-> backend crea los roles `ADMIN` y `EMPLEADO`, pero ningún usuario.
-
-El backend nunca modifica la estructura de la base
-(`spring.jpa.hibernate.ddl-auto=validate`). Al arrancar compara todas las
-entidades contra las tablas y, si algo no coincide, **se niega a arrancar** y
-dice qué. Los cambios de esquema se hacen solo con los scripts; ver
+`00_esquema.sql` es el estado final de la base. Los scripts numerados `01` a `35` de `backend/database/` son
+los cambios históricos que llevaron hasta ahí: **no se corren encima del esquema**. Detalle en
 [`backend/database/README.md`](backend/database/README.md).
 
-### 2. Backend
+### 4.2 Backend
 
 ```bash
 cd backend
-
-# Configuración: copiar las plantillas (los archivos reales no se versionan)
-cp src/main/resources/application.properties.example      src/main/resources/application.properties
-cp src/main/resources/application-dev.properties.example  src/main/resources/application-dev.properties
-cp src/main/resources/application-prod.properties.example src/main/resources/application-prod.properties
-
-# Variables: copiar y completar al menos DB_PASSWORD y JWT_SECRET
-cp .env.example .env
-
-# Arrancar (Windows: .\mvnw.cmd spring-boot:run)
-./mvnw spring-boot:run
+cp src/main/resources/application-dev.properties.example src/main/resources/application-dev.properties
+cp .env.example .env        # completar al menos DB_PASSWORD, JWT_SECRET y el administrador inicial
+./mvnw spring-boot:run      # en Windows: .\mvnw.cmd spring-boot:run
 ```
 
-Queda en `http://localhost:8080`. Spring lee `backend/.env` solo; no hace falta
-exportar las variables.
+Queda en `http://localhost:8080`. Spring lee `backend/.env` solo.
 
-**Perfiles.** Eligen contra qué base se conecta:
+**Primer administrador.** Una base nueva no tiene usuarios. Si en `backend/.env` están definidas
+`ADMIN_INICIAL_USUARIO` y `ADMIN_INICIAL_CLAVE` (usuario de 3 a 30 caracteres y clave de 6 o más), al arrancar
+el backend crea con ellas un administrador, siempre que la tabla `usuarios` esté vacía; la clave se guarda con
+BCrypt y nunca se escribe en el registro. Si falta alguna variable o ya hay usuarios, no hace nada. Una vez
+dentro, conviene quitar la clave del entorno y crear el resto de usuarios desde la pantalla Usuarios.
 
-| Perfil | Base | Cuándo |
-|---|---|---|
-| `dev` (por omisión) | PostgreSQL local | trabajo diario y demostraciones |
-| `prod` | Supabase | entrega y app en un celular real |
+Los roles `ADMIN` y `EMPLEADO` los crea el backend al arrancar.
 
-```bash
-./mvnw spring-boot:run -Dspring-boot.run.profiles=prod
-```
-
-**Verificar que todo cable bien** (construye el contexto completo de Spring y
-valida el esquema contra la base, sin ocupar el puerto 8080):
-
-```bash
-./mvnw test
-```
-
-### 3. Frontend
+### 4.3 Frontend
 
 ```bash
 cd frontend
@@ -233,12 +86,9 @@ npm install
 npm run dev
 ```
 
-Queda en `http://localhost:3000`:
+Queda en `http://localhost:3000` (inicio de sesión en `/login`).
 
-- `http://localhost:3000/login` — panel de administración
-- `http://localhost:3000/tienda` — tienda pública
-
-### 4. App móvil
+### 4.4 App móvil
 
 ```bash
 cd app
@@ -247,119 +97,148 @@ flutter pub get
 flutter run --dart-define-from-file=.env
 ```
 
-Para el celular, `localhost` es el propio celular y no la computadora donde
-corre el backend. En `app/.env.example` están las tres formas de alcanzarlo
-(emulador, cable USB con `adb reverse`, o misma red WiFi).
+En el celular, `localhost` es el propio celular. En `app/.env.example` están las formas de alcanzar el
+backend (emulador, cable USB con `adb reverse` o la misma red WiFi).
 
-La app es por ahora el proyecto base de Flutter. Las pantallas se van
-incorporando en commits separados.
+## 5. Variables de entorno
 
----
+Cada parte trae un `.env.example` con todas sus variables explicadas y **sin valores**. Los archivos reales
+(`.env`, `.env.local`) están en `.gitignore` y nunca se suben.
 
-## Variables de entorno
+### Backend (`backend/.env`)
 
-Cada parte tiene su `.env.example` con todas las variables que usa, explicadas
-y sin valores reales.
-
-| Parte | Archivo real | Variables |
-|---|---|---|
-| Backend | `backend/.env` | `SPRING_PROFILE`, `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` |
-| Frontend | `frontend/.env.local` | `NEXT_PUBLIC_BACKEND_URL` |
-| App | `app/.env` | `API_URL` |
-
-Los archivos reales están en `.gitignore`. **Nunca se suben.**
-
-### Almacenamiento de archivos (Supabase Storage)
-
-Las fotos que suben los usuarios no se guardan en el disco del servidor, porque en
-Render el disco se borra al redesplegar o suspender el servicio. Van a Supabase Storage:
-
-| Bucket | Acceso | Qué guarda |
-|---|---|---|
-| `productos` | Público | Fotos del catálogo. En la base queda la URL pública. |
-| `comprobantes` | Privado | Fotos de comprobantes de pago. En la base queda el nombre del objeto y el backend entrega una URL firmada que vence a la hora. |
-
-El backend usa la API REST de Storage con dos variables de entorno, que **solo** se leen
-del entorno (o de `backend/.env` en desarrollo):
-
-| Variable | Qué es |
+| Variable | Qué hace |
 |---|---|
-| `SUPABASE_URL` | URL del proyecto, `https://<proyecto>.supabase.co` (Project Settings → API) |
-| `SUPABASE_SERVICE_KEY` | Clave `service_role` (Project Settings → API). Da acceso total al proyecto: la usa solo el backend, nunca el frontend ni la app, y no va en el repositorio. |
+| `SPRING_PROFILE` | Perfil de arranque: `dev` (PostgreSQL local, por defecto) o `prod` (Supabase) |
+| `DB_URL` | URL JDBC de la base. En `dev` tiene valor por defecto; en `prod` es obligatoria |
+| `DB_USERNAME` | Usuario de la base (en `dev` por defecto `postgres`) |
+| `DB_PASSWORD` | Contraseña de la base |
+| `JWT_SECRET` | Clave con la que se firman los tokens de sesión (larga y aleatoria, mínimo 64 caracteres) |
+| `SUPABASE_URL` | URL del proyecto de Supabase, para Storage |
+| `SUPABASE_SERVICE_KEY` | Clave de servicio de Supabase, solo para el backend; en `prod` son obligatorias las dos de Supabase |
+| `PORT` | Puerto del servidor (por defecto 8080; Render lo asigna solo) |
+| `CORS_ALLOWED_ORIGINS` | Dominios extra permitidos por CORS, separados por coma |
+| `ADMIN_INICIAL_USUARIO` | Usuario del administrador inicial (solo se usa si la tabla `usuarios` está vacía) |
+| `ADMIN_INICIAL_CLAVE` | Contraseña del administrador inicial |
 
-- **Desarrollo:** sin las dos variables, los archivos se guardan en `backend/uploads/` (disco local).
-- **Producción (perfil `prod`):** si faltan, el backend **no arranca** y el mensaje dice qué variable falta.
-- **Validación:** el servidor revisa el tipo real de la imagen (JPG, PNG o WebP), que no pase de 5 MB (productos) o 10 MB (comprobantes) y ignora el nombre original del archivo.
-- **Registros viejos** (rutas `/uploads/...` del disco): siguen funcionando; si el archivo ya no existe, la web muestra la imagen genérica.
-- **Ruta `/uploads/**`:** con Supabase activo exige sesión de ADMIN o EMPLEADO; con disco local (desarrollo) sigue abierta para que las pantallas muestren las fotos.
-- **Fuera de este cambio:** los modelos 3D y sus vistas previas (tienda) siguen en el disco.
+### Frontend (`frontend/.env.local`)
 
-**Preparar Supabase (a mano, una sola vez):** en Storage, crear el bucket `productos` con *Public bucket* activado y el bucket `comprobantes` con *Public bucket* desactivado. No hacen falta políticas: el backend usa la clave de servicio.
+| Variable | Qué hace |
+|---|---|
+| `NEXT_PUBLIC_BACKEND_URL` | Dirección del backend. Termina dentro del JavaScript del navegador: nunca poner claves aquí |
+| `NEXT_DIST_DIR` | Opcional. Carpeta de compilación, para verificar una compilación sin pisar la del servidor de desarrollo |
 
-**Preparar Render:** en Environment del servicio, agregar `SUPABASE_URL` y `SUPABASE_SERVICE_KEY` y volver a desplegar (*Save and Deploy*).
+### App (`app/.env`, se pasan con `--dart-define`)
 
-#### Respaldo de los archivos
+| Variable | Qué hace |
+|---|---|
+| `API_URL` | Dirección del backend (por defecto `http://10.0.2.2:8080`, el `localhost` del emulador) |
+| `UPDATE_URL` | Dónde se publica `version.json` para las actualizaciones (tiene un valor por defecto fijo) |
 
-Supabase guarda los archivos, pero conviene tener una copia propia. El script
-`scripts/respaldar-storage.mjs` descarga todo lo que hay en los buckets `productos` y
-`comprobantes` a la carpeta `respaldo-storage/`, conservando la estructura
-(`respaldo-storage/<bucket>/<ruta>`). Se ejecuta a mano, necesita Node 18 o superior y solo
-lee: no borra ni cambia nada en Supabase.
+## 6. Estructura del repositorio
 
-```bash
-# Usa SUPABASE_URL y SUPABASE_SERVICE_KEY del entorno; si no están, las toma de backend/.env
-node scripts/respaldar-storage.mjs
-
-# Opcionales
-node scripts/respaldar-storage.mjs --carpeta D:/respaldos/eden   # otra carpeta de destino
-node scripts/respaldar-storage.mjs --forzar                      # volver a bajar todo
+```
+sistema-ventas-eden/
+├── backend/
+│   ├── database/        00_esquema.sql, scripts 01 a 35 y carga_inicial/
+│   ├── src/main/java/com/mitienda/ecommerce/
+│   │   ├── controllers/ services/ repositories/ models/ dto/
+│   │   ├── security/ config/ exception/ storage/
+│   ├── src/test/        pruebas del backend
+│   ├── Dockerfile       imagen para Render
+│   └── pom.xml
+├── frontend/
+│   ├── middleware.ts    protege /dashboard y redirige las rutas fuera de alcance
+│   └── src/
+│       ├── app/         páginas: login y dashboard (panel administrativo)
+│       ├── components/ contexts/ hooks/ lib/ types/
+├── app/                 app Flutter
+│   ├── lib/             config/ data/ models/ screens/ theme/ widgets/
+│   ├── test/            pruebas de la app
+│   └── android/
+├── scripts/             publicación del APK y respaldo de archivos de Storage
+├── evidencia/           reportes de pruebas: api/ (Newman), backend/, app/, rendimiento/
+├── docs/                rutas-api-v1.md y errores-api.md
+└── README.md
 ```
 
-Por defecto no vuelve a bajar lo que ya está con el mismo tamaño, así que se puede correr
-seguido. Si algún archivo falla, lo informa y termina con código de error. La carpeta
-`respaldo-storage/` está en `.gitignore`: tiene comprobantes de pago y **no se sube al
-repositorio ni se comparte**. Las pruebas del script se corren con
-`node --test scripts/respaldar-storage.test.mjs`.
+El repositorio conserva código de módulos que quedaron fuera del alcance del trabajo. No forman parte del
+sistema entregado: sus rutas de API responden 404 y sus páginas redirigen al inicio de sesión.
 
-## Seguridad
+**Convenciones de la API**
+- Todas las rutas llevan el prefijo `/api/v1`; una ruta `/api/...` sin versión responde 404. La lista completa
+  está en [`docs/rutas-api-v1.md`](docs/rutas-api-v1.md).
+- Los errores tienen un solo formato, `{ "error": { "codigo", "mensaje", "campos" } }`, con los códigos HTTP 400,
+  401, 403, 404, 409, 422, 429 y 500. La tabla de códigos está en [`docs/errores-api.md`](docs/errores-api.md).
+- La sesión dura 12 horas. Cinco inicios de sesión fallidos de un mismo usuario en 15 minutos lo bloquean
+  15 minutos (429 `DEMASIADOS_INTENTOS`).
+- Los ID de ventas, compras, productos, clientes, proveedores, categorías, inventario, pagos, comprobantes,
+  movimientos y usuarios salen de un contador propio (`contadores_id`) dentro de la misma transacción: si una
+  operación se revierte, el número no se pierde y la numeración no tiene huecos. Después de una carga masiva
+  por SQL, ejecutar `SELECT sincronizar_contadores_id();`.
 
-El `.gitignore` de la raíz excluye todo lo que no debe entrar al repositorio:
-archivos `.env`, la configuración del backend (lleva la contraseña de la base
-y el secreto JWT), `local.json`, `google-services.json`, las credenciales de
-Firebase y las llaves de firma de Android e iOS.
+## 7. Roles
 
-Si alguno se sube por error, borrarlo en un commit nuevo **no alcanza**: queda
-en el historial. Hay que cambiar la credencial y reescribir el historial.
+| Rol | Quién | Qué puede hacer |
+|---|---|---|
+| **Administrador** (`ADMIN`) | El dueño del negocio | Todo: usuarios, productos, categorías, inventario, compras, proveedores, reportes y anulaciones |
+| **Empleado** (`EMPLEADO`) | Personal de venta | Registrar ventas y cobros, gestionar clientes y marcar entregas; consultar productos e inventario. No ve costos de compra ni accede a usuarios, compras, proveedores y reportes |
 
-## Roles
+Los permisos se definen y se aplican en el backend (`SecurityConfig.java` y `@PreAuthorize`) y se verifican con
+pruebas automáticas (`RutasApiTest`); la web y la app solo ocultan lo que el rol no puede usar.
+Las credenciales de acceso **se entregan por canal privado**.
 
-| Rol | Quién |
-|---|---|
-| `ADMIN` | Dueño del negocio. Acceso completo |
-| `EMPLEADO` | Personal de venta. Acceso limitado |
+## 8. Pruebas
 
-Los permisos se controlan en el backend. El frontend oculta lo que un rol no
-puede usar, pero la regla que vale es la del backend.
+| Qué | Comando | Total actual |
+|---|---|---|
+| Backend | `cd backend && ./mvnw test` | **164** pruebas, 0 fallos |
+| App móvil | `cd app && flutter test` | **56** pruebas, 0 fallos |
+| API (Newman) | `cd evidencia/api && npm install && node ejecutar.mjs` | **30** casos, todos aprobados |
 
-## Historial
+- Las pruebas del backend construyen la aplicación completa y validan las entidades contra la base, así que
+  necesitan PostgreSQL local con el esquema cargado (sección 4.1).
+- `ejecutar.mjs` corre la colección de Postman contra el servidor y mide el rendimiento. Las credenciales de
+  los usuarios de prueba se leen de las variables de entorno `ADMIN_USER`, `ADMIN_PASS`, `EMP_USER` y `EMP_PASS`;
+  `BASE_URL` es opcional (por defecto, el servidor de producción). Opciones: `--api` (solo la colección) y
+  `--rendimiento` (solo los tiempos). Crea datos de prueba en el servidor y los anula al terminar.
+- **Rendimiento (RNF-01, umbral 2 s)**, medido el 07/10/2026 en producción: `GET /api/v1/productos` 300 ms de
+  promedio y 401 ms de máximo; `GET /api/v1/inventario/catalogo` 320 ms y 512 ms.
+- Los reportes están en [`evidencia/`](evidencia/) con la fecha en el nombre.
 
-Este repositorio unifica tres repositorios que antes estaban separados. El
-historial de `backend/` y `frontend/` se trajo completo con `git subtree`,
-conservando autor, fecha y mensaje de cada commit. Antes de unificar se
-reescribió el historial del backend para quitar una contraseña que figuraba en
-el código.
+## 9. Despliegue
 
-Con `git subtree`, los commits anteriores a la unificación guardan las rutas
-**sin** el prefijo de su carpeta. Por eso, para ver la historia de un archivo:
+El backend (Render) y el frontend (Vercel) se despliegan solos al hacer push a `main`. El APK se publica a mano, con el procedimiento de más abajo.
 
-```bash
-# Así solo aparece el commit de la unificación:
-git log -- backend/src/main/java/com/mitienda/ecommerce/services/VentaService.java
+| Parte | Servicio | Notas |
+|---|---|---|
+| Backend | **Render** (Docker, `backend/Dockerfile`: Maven 3.9 y Java 17) | Plan gratuito: si nadie lo usa un rato, el servicio se duerme y la primera petición puede tardar más de un minuto. Variables de entorno de la sección 5 |
+| Frontend | **Vercel** | Variable `NEXT_PUBLIC_BACKEND_URL` apuntando al backend |
+| Base de datos y archivos | **Supabase** (PostgreSQL 17, Storage) | Buckets `productos` (público), `comprobantes` (privado) y `app` (público, con `version.json`) |
+| App Android | **GitHub Releases** | El APK se publica como `muebleria-eden.apk` |
+| Disponibilidad | **UptimeRobot** | Página de estado: https://stats.uptimerobot.com/CLc5bJEPlk |
 
-# Así aparece la historia completa: la ruta anterior, sin "backend/",
-# y --full-history para que Git no descarte la rama que se unió.
-git log --full-history -- src/main/java/com/mitienda/ecommerce/services/VentaService.java
-```
+**Orden al cambiar la base.** Los cambios de estructura se aplican en Supabase **antes** de publicar el backend que
+los usa: con `ddl-auto=validate`, un backend que espera una columna que no existe no arranca.
 
-`git blame` sobre la ruta actual sí llega a los commits originales sin nada
-especial.
+**Actualización de la app.** Al abrirse (y en Ajustes → "Buscar actualización"), la app lee `version.json` del
+bucket `app`; si la compilación publicada es mayor que la instalada, descarga el APK, comprueba su huella
+SHA-256 y abre el instalador de Android. Para publicar una versión nueva:
+1. Subir la versión y el número de compilación en `app/pubspec.yaml` (por ejemplo `1.0.1+2`; el número después del
+   `+` siempre crece).
+2. Compilar firmado: `cd app && flutter build apk --release --dart-define=API_URL=https://sistema-ventas-eden-1.onrender.com`.
+3. Publicar: `node scripts/publicar-apk.mjs --notas "Qué cambió"` (necesita `gh` autenticado y `SUPABASE_URL` y
+   `SUPABASE_SERVICE_KEY`). Crea el release de GitHub y actualiza `version.json`.
+
+La llave de firma del APK y su `key.properties` no están en el repositorio: una actualización solo se instala
+sobre la app ya instalada si está firmada con la misma llave, así que hay que guardar copia fuera de esta
+computadora.
+
+**Respaldos.**
+- Base de datos: `pg_dump -Fc --no-owner --no-privileges` contra Supabase, guardado fuera del repositorio.
+- Archivos: `node scripts/respaldar-storage.mjs` descarga los buckets `productos` y `comprobantes` a
+  `respaldo-storage/` (ignorada por git: tiene comprobantes de pago).
+
+## 10. Licencia
+
+Uso académico. Todos los derechos reservados por el autor.
