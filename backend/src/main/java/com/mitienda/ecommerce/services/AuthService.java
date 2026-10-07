@@ -5,9 +5,11 @@ import com.mitienda.ecommerce.dto.LoginRequest;
 import com.mitienda.ecommerce.models.Usuario;
 import com.mitienda.ecommerce.repositories.UsuarioRepository;
 import com.mitienda.ecommerce.security.JwtUtil;
+import com.mitienda.ecommerce.security.LimiteIntentosLogin;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +39,8 @@ public class AuthService {
 
     private final RegistroAuditoria registroAuditoria;
 
+    private final LimiteIntentosLogin limiteIntentos;
+
     /**
      * Inyeccion por constructor, no por campo.
      *
@@ -47,11 +51,13 @@ public class AuthService {
     public AuthService(UsuarioRepository usuarioRepository,
                        JwtUtil jwtUtil,
                        AuthenticationManager authenticationManager,
-                       RegistroAuditoria registroAuditoria) {
+                       RegistroAuditoria registroAuditoria,
+                       LimiteIntentosLogin limiteIntentos) {
         this.usuarioRepository = usuarioRepository;
         this.jwtUtil = jwtUtil;
         this.authenticationManager = authenticationManager;
         this.registroAuditoria = registroAuditoria;
+        this.limiteIntentos = limiteIntentos;
     }
 
 
@@ -70,6 +76,11 @@ public class AuthService {
         String usuarioNormalizado = request.getUsuario() == null
                 ? null : request.getUsuario().trim().toLowerCase();
 
+        // Cinco fallos en 15 minutos bloquean al usuario 15 minutos (429). Se revisa
+        // antes de mirar la contraseña, para que un usuario bloqueado no pueda seguir
+        // probando claves.
+        limiteIntentos.verificar(usuarioNormalizado);
+
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(usuarioNormalizado, request.getPassword())
@@ -77,8 +88,16 @@ public class AuthService {
         } catch (RuntimeException e) {
             registroAuditoria.registrarPara(null, "LOGIN_FALLIDO", "usuarios", null,
                     "Intento fallido con el usuario " + request.getUsuario());
+            // Solo cuentan las credenciales malas: un error de base de datos o de otro tipo
+            // no es culpa de quien intenta entrar.
+            if (e instanceof AuthenticationException && limiteIntentos.registrarFallo(usuarioNormalizado)) {
+                registroAuditoria.registrarPara(null, "LOGIN_BLOQUEADO", "usuarios", null,
+                        "Usuario " + request.getUsuario() + " bloqueado " + LimiteIntentosLogin.BLOQUEO.toMinutes()
+                                + " minutos por " + LimiteIntentosLogin.MAX_FALLOS + " intentos fallidos");
+            }
             throw e;
         }
+        limiteIntentos.limpiar(usuarioNormalizado);
 
         Usuario user = usuarioRepository.findByUsuario(usuarioNormalizado)
                 .orElseThrow(() -> new org.springframework.security.core.userdetails
