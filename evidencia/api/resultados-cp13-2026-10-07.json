@@ -1,0 +1,79 @@
+{
+  "fecha": "2026-10-07",
+  "hora": "18:12:06",
+  "servidor": "https://sistema-ventas-eden-1.onrender.com",
+  "caso": "CP-13",
+  "estado": "Aprobado",
+  "peticiones": [
+    {
+      "peticion": "CP-13 Reporte financiero como ADMIN",
+      "http": 200
+    },
+    {
+      "peticion": "CP-13 Reporte de ventas del mismo período",
+      "http": 200
+    }
+  ],
+  "asertos": [
+    {
+      "peticion": "CP-13 Reporte financiero como ADMIN",
+      "texto": "CP-13: responde HTTP 200",
+      "ok": true,
+      "motivo": ""
+    },
+    {
+      "peticion": "CP-13 Reporte financiero como ADMIN",
+      "texto": "CP-13: devuelve los campos del reporte (fechaInicio, fechaFin, gananciaVentas, ingresosTotales, gastosTotales, saldoPeriodo, detalleIngresos, detalleGastos)",
+      "ok": true,
+      "motivo": ""
+    },
+    {
+      "peticion": "CP-13 Reporte financiero como ADMIN",
+      "texto": "CP-13: gananciaVentas del financiero es un número (5475) y no supera los ingresos (13525)",
+      "ok": true,
+      "motivo": ""
+    },
+    {
+      "peticion": "CP-13 Reporte de ventas del mismo período",
+      "texto": "CP-13: reporte de ventas del mismo período responde HTTP 200",
+      "ok": true,
+      "motivo": ""
+    },
+    {
+      "peticion": "CP-13 Reporte de ventas del mismo período",
+      "texto": "CP-13: totalVentas (6) es la cantidad de ventas listadas (6)",
+      "ok": true,
+      "motivo": ""
+    },
+    {
+      "peticion": "CP-13 Reporte de ventas del mismo período",
+      "texto": "CP-13: montoTotalVentas (13770) es la suma de los montos listados (13770.00)",
+      "ok": true,
+      "motivo": ""
+    },
+    {
+      "peticion": "CP-13 Reporte de ventas del mismo período",
+      "texto": "CP-13: ninguna venta CANCELADA entra al reporte de ventas",
+      "ok": true,
+      "motivo": ""
+    },
+    {
+      "peticion": "CP-13 Reporte de ventas del mismo período",
+      "texto": "CP-13: el período tiene al menos 2 ventas y Bs 200 (solo las de CP-09 y CP-11 ya suman eso)",
+      "ok": true,
+      "motivo": ""
+    },
+    {
+      "peticion": "CP-13 Reporte de ventas del mismo período",
+      "texto": "CP-13: ingresosTotales del financiero (13525) es la suma de las ventas COMPLETADA del reporte de ventas (13525.00, 5 ventas)",
+      "ok": true,
+      "motivo": ""
+    },
+    {
+      "peticion": "CP-13 Reporte de ventas del mismo período",
+      "texto": "CP-13: montoTotalVentas (13770) no es menor que ingresosTotales (13525): el reporte de ventas también cuenta las pendientes de pago",
+      "ok": true,
+      "motivo": ""
+    }
+  ]
+}

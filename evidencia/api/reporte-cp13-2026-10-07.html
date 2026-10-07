@@ -1,0 +1,17 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><title>CP-13 2026-10-07</title>
+<style>body{font-family:system-ui,sans-serif;margin:24px;color:#222}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:6px 8px;text-align:left}tr.ok td:nth-child(3){color:#0a7a2f;font-weight:600}tr.mal{background:#fde8e8}</style></head><body>
+<h1>CP-13: reporte financiero y reporte de ventas del mismo período</h1>
+<p><b>Fecha:</b> 2026-10-07 18:12:06 &nbsp; <b>Servidor:</b> https://sistema-ventas-eden-1.onrender.com &nbsp; <b>Resultado:</b> Aprobado</p>
+<p><b>Peticiones:</b> CP-13 Reporte financiero como ADMIN (HTTP 200) · CP-13 Reporte de ventas del mismo período (HTTP 200)</p>
+<table><tr><th>Petición</th><th>Comprobación (con los valores obtenidos)</th><th>Estado</th><th>Motivo</th></tr>
+<tr class="ok"><td>CP-13 Reporte financiero como ADMIN</td><td>CP-13: responde HTTP 200</td><td>Aprobado</td><td></td></tr>
+<tr class="ok"><td>CP-13 Reporte financiero como ADMIN</td><td>CP-13: devuelve los campos del reporte (fechaInicio, fechaFin, gananciaVentas, ingresosTotales, gastosTotales, saldoPeriodo, detalleIngresos, detalleGastos)</td><td>Aprobado</td><td></td></tr>
+<tr class="ok"><td>CP-13 Reporte financiero como ADMIN</td><td>CP-13: gananciaVentas del financiero es un número (5475) y no supera los ingresos (13525)</td><td>Aprobado</td><td></td></tr>
+<tr class="ok"><td>CP-13 Reporte de ventas del mismo período</td><td>CP-13: reporte de ventas del mismo período responde HTTP 200</td><td>Aprobado</td><td></td></tr>
+<tr class="ok"><td>CP-13 Reporte de ventas del mismo período</td><td>CP-13: totalVentas (6) es la cantidad de ventas listadas (6)</td><td>Aprobado</td><td></td></tr>
+<tr class="ok"><td>CP-13 Reporte de ventas del mismo período</td><td>CP-13: montoTotalVentas (13770) es la suma de los montos listados (13770.00)</td><td>Aprobado</td><td></td></tr>
+<tr class="ok"><td>CP-13 Reporte de ventas del mismo período</td><td>CP-13: ninguna venta CANCELADA entra al reporte de ventas</td><td>Aprobado</td><td></td></tr>
+<tr class="ok"><td>CP-13 Reporte de ventas del mismo período</td><td>CP-13: el período tiene al menos 2 ventas y Bs 200 (solo las de CP-09 y CP-11 ya suman eso)</td><td>Aprobado</td><td></td></tr>
+<tr class="ok"><td>CP-13 Reporte de ventas del mismo período</td><td>CP-13: ingresosTotales del financiero (13525) es la suma de las ventas COMPLETADA del reporte de ventas (13525.00, 5 ventas)</td><td>Aprobado</td><td></td></tr>
+<tr class="ok"><td>CP-13 Reporte de ventas del mismo período</td><td>CP-13: montoTotalVentas (13770) no es menor que ingresosTotales (13525): el reporte de ventas también cuenta las pendientes de pago</td><td>Aprobado</td><td></td></tr>
+</table></body></html>
