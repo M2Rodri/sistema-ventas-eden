@@ -22,8 +22,10 @@
 --
 --  QUE NO INCLUYE
 --  --------------
---  - Datos. Los roles ADMIN y EMPLEADO los crea el backend al arrancar; el
---    primer usuario hay que crearlo aparte (o cargar carga_inicial/).
+--  - Datos. Los roles ADMIN y EMPLEADO los crea el backend al arrancar. El
+--    primer administrador tambien: si la tabla usuarios esta vacia y estan
+--    definidas ADMIN_INICIAL_USUARIO y ADMIN_INICIAL_CLAVE (ver .env.example),
+--    el backend lo crea al arrancar. Sin esas variables no hay ningun usuario.
 --  - Los esquemas internos de Supabase (auth, storage, realtime...): la
 --    aplicacion no los usa.
 --  - Permisos (GRANT/REVOKE) ni duenios: dependen del servidor donde se cree.
