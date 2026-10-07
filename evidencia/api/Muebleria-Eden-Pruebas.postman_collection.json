@@ -2132,7 +2132,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.collectionVariables.set('usuarioNuevo', 'prb' + (Date.now() % 1000000000)); pm.collectionVariables.set('claveNueva', 'x' + Math.random().toString(36).slice(2) + 'Qq7');"
+                  "pm.collectionVariables.set('usuarioNuevo', 'prueba_' + (Date.now() % 1000000000)); pm.collectionVariables.set('claveNueva', 'x' + Math.random().toString(36).slice(2) + 'Qq7');"
                 ]
               }
             },
