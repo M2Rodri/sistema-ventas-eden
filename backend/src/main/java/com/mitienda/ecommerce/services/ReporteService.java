@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -397,7 +398,9 @@ public class ReporteService {
                         v.getTelefonoClienteCompleto(),
                         v.getMontoTotal(),
                         v.getSaldoPendiente(),
-                        java.time.temporal.ChronoUnit.DAYS.between(v.getFechaVenta(), ahora)
+                        java.time.temporal.ChronoUnit.DAYS.between(v.getFechaVenta(), ahora),
+                        v.getFechaLimitePago(),
+                        v.getFechaLimitePago() != null && v.getFechaLimitePago().isBefore(LocalDate.now())
                 ))
                 .sorted((a, b) -> Long.compare(b.getDiasTranscurridos(), a.getDiasTranscurridos()))
                 .collect(Collectors.toList());

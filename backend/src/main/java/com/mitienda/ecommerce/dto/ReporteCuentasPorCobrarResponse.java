@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -31,5 +32,7 @@ public class ReporteCuentasPorCobrarResponse {
         private BigDecimal montoTotal;
         private BigDecimal saldoPendiente;
         private Long diasTranscurridos;
+        private LocalDate fechaLimitePago;
+        private Boolean fechaLimiteVencida;
     }
 }

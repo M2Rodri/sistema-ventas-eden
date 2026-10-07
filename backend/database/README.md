@@ -30,6 +30,7 @@ después.
 | 24 | Estado de entrega `DESPACHADO`; el retiro en tienda nace `ENTREGADO` |
 | 25 | Tipo de producto `MUEBLE` (categoría "Muebles de dormitorio") y restricción de `categorias.tipo_producto` |
 | 26 | Se quita el estado de entrega `DESPACHADO`: quedan `PENDIENTE` y `ENTREGADO` |
+| 35 | Fecha límite del pago pendiente: `ventas.fecha_limite_pago` (opcional) |
 
 Los scripts 16 al 23 existen en esta carpeta pero todavía no están en esta
 tabla.

@@ -12,7 +12,7 @@ import '../../theme/app_colors.dart';
 /// esta pantalla es específicamente el formulario para cuando hace falta
 /// loguearse.
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key, required this.onSesionIniciada, this.aviso});
+  LoginScreen({super.key, required this.onSesionIniciada, this.aviso});
 
   /// Se llama con la sesión recién creada. Quien use LoginScreen decide a
   /// dónde navegar desde ahí.
@@ -71,7 +71,9 @@ class _LoginScreenState extends State<LoginScreen> {
       // perderse: el mensaje que ve el usuario no dice nada útil para
       // depurar.
       debugPrint('Error inesperado en login: $error\n$stackTrace');
-      setState(() => _errorMensaje = 'Ocurrió un error inesperado. Probá de nuevo.');
+      setState(
+        () => _errorMensaje = 'Ocurrió un error inesperado. Probá de nuevo.',
+      );
     } finally {
       if (mounted) setState(() => _cargando = false);
     }
@@ -90,7 +92,7 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  const _Encabezado(),
+                  _Encabezado(),
                   const SizedBox(height: 28),
                   Card(
                     child: Padding(
@@ -102,15 +104,18 @@ class _LoginScreenState extends State<LoginScreen> {
                           children: <Widget>[
                             Text(
                               'Iniciar sesión',
-                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              style: Theme.of(context).textTheme.headlineSmall
+                                  ?.copyWith(
                                     fontWeight: FontWeight.bold,
                                     color: AppColors.verdeOscuro,
                                   ),
                             ),
                             const SizedBox(height: 4),
-                            const Text(
+                            Text(
                               'Ingresá con tu usuario y contraseña',
-                              style: TextStyle(color: AppColors.textoSecundario),
+                              style: TextStyle(
+                                color: AppColors.textoSecundario,
+                              ),
                             ),
                             const SizedBox(height: 24),
                             TextFormField(
@@ -118,7 +123,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               enabled: !_cargando,
                               keyboardType: TextInputType.text,
                               textInputAction: TextInputAction.next,
-                              autofillHints: const <String>[AutofillHints.username],
+                              autofillHints: const <String>[
+                                AutofillHints.username,
+                              ],
                               decoration: const InputDecoration(
                                 labelText: 'Usuario',
                                 prefixIcon: Icon(Icons.person_outline),
@@ -135,7 +142,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               enabled: !_cargando,
                               obscureText: _ocultarPassword,
                               textInputAction: TextInputAction.done,
-                              autofillHints: const <String>[AutofillHints.password],
+                              autofillHints: const <String>[
+                                AutofillHints.password,
+                              ],
                               onFieldSubmitted: (_) => _iniciarSesion(),
                               decoration: InputDecoration(
                                 labelText: 'Contraseña',
@@ -146,8 +155,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                         ? Icons.visibility_outlined
                                         : Icons.visibility_off_outlined,
                                   ),
-                                  onPressed: () =>
-                                      setState(() => _ocultarPassword = !_ocultarPassword),
+                                  onPressed: () => setState(
+                                    () => _ocultarPassword = !_ocultarPassword,
+                                  ),
                                 ),
                               ),
                               validator: (valor) {
@@ -175,7 +185,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                     )
                                   : const Text(
                                       'Ingresar',
-                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                             ),
                           ],
@@ -194,7 +207,7 @@ class _LoginScreenState extends State<LoginScreen> {
 }
 
 class _Encabezado extends StatelessWidget {
-  const _Encabezado();
+  _Encabezado();
 
   @override
   Widget build(BuildContext context) {
@@ -205,7 +218,10 @@ class _Encabezado extends StatelessWidget {
           height: 112,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(26),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.35), width: 1.5),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.35),
+              width: 1.5,
+            ),
             boxShadow: <BoxShadow>[
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.25),
@@ -222,7 +238,11 @@ class _Encabezado extends StatelessWidget {
         const SizedBox(height: 16),
         const Text(
           'Mueblería Edén',
-          style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 4),
         const Text(
@@ -235,7 +255,7 @@ class _Encabezado extends StatelessWidget {
 }
 
 class _AvisoError extends StatelessWidget {
-  const _AvisoError({required this.mensaje});
+  _AvisoError({required this.mensaje});
 
   final String mensaje;
 
@@ -250,10 +270,10 @@ class _AvisoError extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const Icon(Icons.error_outline, color: AppColors.error, size: 20),
+          Icon(Icons.error_outline, color: AppColors.error, size: 20),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(mensaje, style: const TextStyle(color: AppColors.error)),
+            child: Text(mensaje, style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),

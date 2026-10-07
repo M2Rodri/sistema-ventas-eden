@@ -28,10 +28,10 @@ class Usuario {
   }
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'id': id,
-        'nombre': nombre,
-        'apellido': apellido,
-        'usuario': usuario,
-        'role': role,
-      };
+    'id': id,
+    'nombre': nombre,
+    'apellido': apellido,
+    'usuario': usuario,
+    'role': role,
+  };
 }

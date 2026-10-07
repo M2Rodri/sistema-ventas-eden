@@ -10,7 +10,11 @@ import '../../widgets/dialogo_actualizacion.dart';
 
 /// Ajustes: la cuenta, la seguridad y, al final, cerrar sesión.
 class AjustesScreen extends StatefulWidget {
-  const AjustesScreen({super.key, required this.usuario, required this.onCerrarSesion});
+  AjustesScreen({
+    super.key,
+    required this.usuario,
+    required this.onCerrarSesion,
+  });
 
   final Usuario usuario;
   final VoidCallback onCerrarSesion;
@@ -50,17 +54,26 @@ class _AjustesScreenState extends State<AjustesScreen> {
     if (!mounted) return;
     setState(() => _buscandoActualizacion = false);
 
-    if (respuesta.resultado == ResultadoBusqueda.hayNueva && respuesta.version != null) {
-      await mostrarDialogoActualizacion(context, _actualizacion, respuesta.version!);
+    if (respuesta.resultado == ResultadoBusqueda.hayNueva &&
+        respuesta.version != null) {
+      await mostrarDialogoActualizacion(
+        context,
+        _actualizacion,
+        respuesta.version!,
+      );
       return;
     }
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
-        content: Text(respuesta.resultado == ResultadoBusqueda.alDia
-            ? 'Ya tienes la última versión.'
-            : 'No se pudo buscar actualizaciones. Revisa tu conexión.'),
-      ));
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            respuesta.resultado == ResultadoBusqueda.alDia
+                ? 'Ya tienes la última versión.'
+                : 'No se pudo buscar actualizaciones. Revisa tu conexión.',
+          ),
+        ),
+      );
   }
 
   Future<void> _cargar() async {
@@ -77,14 +90,18 @@ class _AjustesScreenState extends State<AjustesScreen> {
   /// desbloqueado no puede apagar el candado sin ser el dueño.
   Future<void> _cambiar(bool activar) async {
     final ok = await _biometria.autenticar(
-      activar ? 'Confirma tu huella para activar el candado' : 'Confirma tu huella para desactivarlo',
+      activar
+          ? 'Confirma tu huella para activar el candado'
+          : 'Confirma tu huella para desactivarlo',
     );
     if (!mounted) return;
 
     if (!ok) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text('No se pudo verificar la huella.')));
+        ..showSnackBar(
+          const SnackBar(content: Text('No se pudo verificar la huella.')),
+        );
       return;
     }
 
@@ -99,22 +116,31 @@ class _AjustesScreenState extends State<AjustesScreen> {
   Widget build(BuildContext context) {
     final usuario = widget.usuario;
     final esOscuro = Theme.of(context).brightness == Brightness.dark;
-    final colorTextoPrincipal = esOscuro ? Colors.white : AppColors.textoPrincipal;
-    final colorTextoSecundario = esOscuro ? Colors.white70 : AppColors.textoSecundario;
-    final colorIcono = esOscuro ? const Color(0xFF8FD1AC) : AppColors.verdeOscuro;
+    final colorTextoPrincipal = esOscuro
+        ? Colors.white
+        : AppColors.textoPrincipal;
+    final colorTextoSecundario = esOscuro
+        ? Colors.white70
+        : AppColors.textoSecundario;
+    final colorIcono = esOscuro
+        ? const Color(0xFF8FD1AC)
+        : AppColors.verdeOscuro;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Ajustes')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
         children: <Widget>[
-          const _TituloSeccion('CUENTA'),
+          _TituloSeccion('CUENTA'),
           _Bloque(
             child: ListTile(
               leading: Icon(Icons.person_outline_rounded, color: colorIcono),
               title: Text(
                 usuario.nombreCompleto,
-                style: TextStyle(fontWeight: FontWeight.w700, color: colorTextoPrincipal),
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: colorTextoPrincipal,
+                ),
               ),
               subtitle: Text(
                 usuario.role == 'ADMIN' ? 'Administrador' : 'Empleado',
@@ -123,7 +149,7 @@ class _AjustesScreenState extends State<AjustesScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          const _TituloSeccion('SEGURIDAD'),
+          _TituloSeccion('SEGURIDAD'),
           _Bloque(
             child: ValueListenableBuilder<bool>(
               valueListenable: BiometriaService.activa,
@@ -132,7 +158,10 @@ class _AjustesScreenState extends State<AjustesScreen> {
                   leading: Icon(Icons.fingerprint_rounded, color: colorIcono),
                   title: Text(
                     'Entrar con huella digital',
-                    style: TextStyle(fontWeight: FontWeight.w700, color: colorTextoPrincipal),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: colorTextoPrincipal,
+                    ),
                   ),
                   subtitle: Text(
                     _cargando || _disponible
@@ -143,28 +172,39 @@ class _AjustesScreenState extends State<AjustesScreen> {
                   trailing: Switch(
                     value: activa,
                     activeThumbColor: AppColors.verdeOscuro,
-                    activeTrackColor: AppColors.verdeOscuro.withValues(alpha: 0.35),
-                    onChanged: _cargando || (!_disponible && !activa) ? null : _cambiar,
+                    activeTrackColor: AppColors.verdeOscuro.withValues(
+                      alpha: 0.35,
+                    ),
+                    onChanged: _cargando || (!_disponible && !activa)
+                        ? null
+                        : _cambiar,
                   ),
-                  onTap: _cargando || (!_disponible && !activa) ? null : () => _cambiar(!activa),
+                  onTap: _cargando || (!_disponible && !activa)
+                      ? null
+                      : () => _cambiar(!activa),
                 );
               },
             ),
           ),
           const SizedBox(height: 24),
-          const _TituloSeccion('APARIENCIA'),
+          _TituloSeccion('APARIENCIA'),
           _Bloque(
             child: ValueListenableBuilder<bool>(
               valueListenable: TemaService.modoOscuro,
               builder: (context, oscuro, _) {
                 return ListTile(
                   leading: Icon(
-                    oscuro ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
+                    oscuro
+                        ? Icons.dark_mode_outlined
+                        : Icons.light_mode_outlined,
                     color: colorIcono,
                   ),
                   title: Text(
                     oscuro ? 'Tema oscuro' : 'Tema claro',
-                    style: TextStyle(fontWeight: FontWeight.w700, color: colorTextoPrincipal),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: colorTextoPrincipal,
+                    ),
                   ),
                   subtitle: Text(
                     'Cambia entre claro y oscuro',
@@ -173,7 +213,9 @@ class _AjustesScreenState extends State<AjustesScreen> {
                   trailing: Switch(
                     value: oscuro,
                     activeThumbColor: AppColors.verdeOscuro,
-                    activeTrackColor: AppColors.verdeOscuro.withValues(alpha: 0.35),
+                    activeTrackColor: AppColors.verdeOscuro.withValues(
+                      alpha: 0.35,
+                    ),
                     onChanged: (valor) => _temaService.alternar(valor),
                   ),
                   onTap: () => _temaService.alternar(!oscuro),
@@ -182,21 +224,33 @@ class _AjustesScreenState extends State<AjustesScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          const _TituloSeccion('ACTUALIZACIONES'),
+          _TituloSeccion('ACTUALIZACIONES'),
           _Bloque(
             child: ListTile(
               leading: Icon(Icons.system_update_alt_rounded, color: colorIcono),
               title: Text(
                 'Buscar actualización',
-                style: TextStyle(fontWeight: FontWeight.w700, color: colorTextoPrincipal),
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: colorTextoPrincipal,
+                ),
               ),
               subtitle: Text(
-                _versionInstalada.isEmpty ? 'Versión de la app' : 'Versión instalada: $_versionInstalada',
+                _versionInstalada.isEmpty
+                    ? 'Versión de la app'
+                    : 'Versión instalada: $_versionInstalada',
                 style: TextStyle(color: colorTextoSecundario),
               ),
               trailing: _buscandoActualizacion
-                  ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5))
-                  : Icon(Icons.chevron_right_rounded, color: colorTextoSecundario),
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2.5),
+                    )
+                  : Icon(
+                      Icons.chevron_right_rounded,
+                      color: colorTextoSecundario,
+                    ),
               onTap: _buscandoActualizacion ? null : _buscarActualizacion,
             ),
           ),
@@ -218,7 +272,7 @@ class _AjustesScreenState extends State<AjustesScreen> {
 }
 
 class _TituloSeccion extends StatelessWidget {
-  const _TituloSeccion(this.texto);
+  _TituloSeccion(this.texto);
 
   final String texto;
 
@@ -241,7 +295,7 @@ class _TituloSeccion extends StatelessWidget {
 }
 
 class _Bloque extends StatelessWidget {
-  const _Bloque({required this.child});
+  _Bloque({required this.child});
 
   final Widget child;
 

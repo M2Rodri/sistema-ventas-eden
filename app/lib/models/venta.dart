@@ -153,7 +153,9 @@ class Pago {
       id: json['id'] as int,
       monto: (json['monto'] as num?)?.toDouble() ?? 0.0,
       metodoPago: metodoPagoDesdeApi(json['metodoPago'] as String?),
-      fechaPago: json['fechaPago'] != null ? DateTime.tryParse(json['fechaPago'] as String) : null,
+      fechaPago: json['fechaPago'] != null
+          ? DateTime.tryParse(json['fechaPago'] as String)
+          : null,
       referencia: json['referencia'] as String?,
       nombreUsuario: json['nombreUsuario'] as String?,
     );
@@ -190,7 +192,11 @@ class ItemCarrito {
     return ((precioOriginal - precioFinal) / precioOriginal) * 100;
   }
 
-  ItemCarrito copyWith({double? precioOriginal, double? precioFinal, int? cantidad}) {
+  ItemCarrito copyWith({
+    double? precioOriginal,
+    double? precioFinal,
+    int? cantidad,
+  }) {
     return ItemCarrito(
       idProducto: idProducto,
       nombre: nombre,
@@ -205,14 +211,24 @@ class ItemCarrito {
 
 /// Lo que manda POST /api/v1/ventas (VentaRequest en el backend). Mismos
 /// campos y las mismas reglas de armado que RegistrarVentaModal.tsx.
+/// yyyy-MM-dd, el formato que el servidor espera para una fecha sin hora.
+String _fechaIso(DateTime f) {
+  String dos(int n) => n.toString().padLeft(2, '0');
+  return '${f.year}-${dos(f.month)}-${dos(f.day)}';
+}
+
 class NuevaVentaRequest {
   const NuevaVentaRequest({
     this.idCliente,
     this.nombreClienteInvitado,
     this.telefonoClienteInvitado,
+    this.ciClienteInvitado,
+    this.referenciaPago,
     required this.metodoPago,
     required this.items,
     required this.montoPagado,
+    this.fechaLimitePago,
+    this.plazoDiasPago,
     required this.modalidadEntrega,
     this.estadoEntrega,
     this.direccionDestino,
@@ -224,9 +240,18 @@ class NuevaVentaRequest {
   final int? idCliente;
   final String? nombreClienteInvitado;
   final String? telefonoClienteInvitado;
+  final String? ciClienteInvitado;
+  final String? referenciaPago;
   final MetodoPago metodoPago;
   final List<ItemCarrito> items;
   final double montoPagado;
+
+  /// Hasta cuándo se espera el pago del saldo pendiente. Opcional.
+  final DateTime? fechaLimitePago;
+
+  /// Alternativa a la fecha: "dentro de N días". El servidor calcula la fecha con
+  /// su reloj. Si se manda, la fecha no se envía.
+  final int? plazoDiasPago;
   final ModalidadEntrega modalidadEntrega;
 
   /// Estado con el que se registra. En tienda el backend lo deja ENTREGADO por
@@ -241,28 +266,48 @@ class NuevaVentaRequest {
     return <String, dynamic>{
       if (idCliente != null) 'idCliente': idCliente,
       if (idCliente == null) 'nombreClienteInvitado': nombreClienteInvitado,
-      if (idCliente == null && telefonoClienteInvitado != null && telefonoClienteInvitado!.isNotEmpty)
+      if (idCliente == null &&
+          telefonoClienteInvitado != null &&
+          telefonoClienteInvitado!.isNotEmpty)
         'telefonoClienteInvitado': telefonoClienteInvitado,
+      if (idCliente == null && _hayTexto(ciClienteInvitado))
+        'ciClienteInvitado': ciClienteInvitado!.trim(),
+      if (_hayTexto(referenciaPago)) 'referenciaPago': referenciaPago!.trim(),
       'metodoPago': metodoPago.valorApi,
       'items': items
-          .map((item) => <String, dynamic>{
-                'idProducto': item.idProducto,
-                'cantidad': item.cantidad,
-                // Si el precio escrito difiere del de catálogo se manda tal cual
-                // (también si es mayor: el servidor lo rechaza con 422).
-                if (item.precioFinal != item.precioOriginal) 'precioUnitarioConDescuento': item.precioFinal,
-                if (item.descuentoPorcentaje > 0) 'descuentoPorcentaje': item.descuentoPorcentaje,
-              })
+          .map(
+            (item) => <String, dynamic>{
+              'idProducto': item.idProducto,
+              'cantidad': item.cantidad,
+              // Si el precio escrito difiere del de catálogo se manda tal cual
+              // (también si es mayor: el servidor lo rechaza con 422).
+              if (item.precioFinal != item.precioOriginal)
+                'precioUnitarioConDescuento': item.precioFinal,
+              if (item.descuentoPorcentaje > 0)
+                'descuentoPorcentaje': item.descuentoPorcentaje,
+            },
+          )
           .toList(),
       'montoPagado': montoPagado,
+      if (plazoDiasPago != null)
+        'plazoDiasPago': plazoDiasPago
+      else if (fechaLimitePago != null)
+        'fechaLimitePago': _fechaIso(fechaLimitePago!),
       'modalidadEntrega': _modalidadValorApi(modalidadEntrega),
-      if (modalidadEntrega != ModalidadEntrega.retiro && estadoEntrega != null) 'estadoEntrega': estadoEntrega!.valorApi,
+      if (modalidadEntrega != ModalidadEntrega.retiro && estadoEntrega != null)
+        'estadoEntrega': estadoEntrega!.valorApi,
       // Dirección: opcional en domicilio y transportadora. Ciudad: solo la
       // pide la transportadora. Transportadora y guía: opcionales.
-      if (modalidadEntrega != ModalidadEntrega.retiro && _hayTexto(direccionDestino)) 'direccionDestino': direccionDestino,
+      if (modalidadEntrega != ModalidadEntrega.retiro &&
+          _hayTexto(direccionDestino))
+        'direccionDestino': direccionDestino,
       if (modalidadEntrega == ModalidadEntrega.transportadora) 'ciudad': ciudad,
-      if (modalidadEntrega == ModalidadEntrega.transportadora && _hayTexto(transportadora)) 'transportadora': transportadora,
-      if (modalidadEntrega == ModalidadEntrega.transportadora && _hayTexto(guiaRemision)) 'guiaRemision': guiaRemision,
+      if (modalidadEntrega == ModalidadEntrega.transportadora &&
+          _hayTexto(transportadora))
+        'transportadora': transportadora,
+      if (modalidadEntrega == ModalidadEntrega.transportadora &&
+          _hayTexto(guiaRemision))
+        'guiaRemision': guiaRemision,
     };
   }
 }
@@ -288,6 +333,8 @@ class Venta {
     required this.fechaVenta,
     required this.montoTotal,
     required this.saldoPendiente,
+    this.fechaLimitePago,
+    this.fechaLimiteVencida = false,
     required this.estado,
     required this.modalidadEntrega,
     required this.estadoEntrega,
@@ -305,6 +352,13 @@ class Venta {
   final DateTime? fechaVenta;
   final double montoTotal;
   final double saldoPendiente;
+
+  /// Hasta cuándo se espera el pago del saldo pendiente (solo la fecha).
+  final DateTime? fechaLimitePago;
+
+  /// La calcula el servidor con SU reloj (hay pago pendiente y la fecha ya pasó):
+  /// un reloj mal puesto en el teléfono no cambia nada.
+  final bool fechaLimiteVencida;
   final EstadoVenta estado;
   final ModalidadEntrega modalidadEntrega;
   final EstadoEntrega estadoEntrega;
@@ -317,9 +371,19 @@ class Venta {
 
   bool get tieneSaldoPendiente => saldoPendiente > 0;
 
+  /// La fecha límite como dd/MM/aaaa, o null si no hay.
+  String? get fechaLimiteTexto {
+    final f = fechaLimitePago;
+    if (f == null) return null;
+    String dos(int n) => n.toString().padLeft(2, '0');
+    return '${dos(f.day)}/${dos(f.month)}/${f.year}';
+  }
+
   /// "Por entregar": estado de entrega distinto de ENTREGADO y venta no
   /// cancelada. Es la misma definición que usan el backend y la web.
-  bool get porEntregar => estado != EstadoVenta.cancelada && estadoEntrega != EstadoEntrega.entregado;
+  bool get porEntregar =>
+      estado != EstadoVenta.cancelada &&
+      estadoEntrega != EstadoEntrega.entregado;
 
   /// Una venta por transportadora sin la transportadora o sin la guía. No
   /// bloquea nada: solo se muestra la etiqueta "Falta completar".
@@ -329,25 +393,43 @@ class Venta {
       (!_hayTexto(transportadora) || !_hayTexto(guiaRemision));
 
   factory Venta.desdeApi(Map<String, dynamic> json) {
-    final detallesJson = json['detalles'] as List<dynamic>? ?? const <dynamic>[];
+    final detallesJson =
+        json['detalles'] as List<dynamic>? ?? const <dynamic>[];
     final pagosJson = json['pagos'] as List<dynamic>? ?? const <dynamic>[];
 
     return Venta(
       id: json['id'] as int,
-      nombreCliente: json['nombreCliente'] as String? ?? 'Cliente no especificado',
+      nombreCliente:
+          json['nombreCliente'] as String? ?? 'Cliente no especificado',
       telefonoCliente: json['telefonoCliente'] as String?,
-      fechaVenta: json['fechaVenta'] != null ? DateTime.tryParse(json['fechaVenta'] as String) : null,
+      fechaVenta: json['fechaVenta'] != null
+          ? DateTime.tryParse(json['fechaVenta'] as String)
+          : null,
       montoTotal: (json['montoTotal'] as num?)?.toDouble() ?? 0.0,
       saldoPendiente: (json['saldoPendiente'] as num?)?.toDouble() ?? 0.0,
-      estado: estadoVentaDesdeApi(json['estado'] as String? ?? 'PENDIENTE_PAGO'),
-      modalidadEntrega: modalidadEntregaDesdeApi(json['modalidadEntrega'] as String?),
-      estadoEntrega: estadoEntregaDesdeApi(json['estadoEntrega'] as String? ?? 'PENDIENTE'),
+      fechaLimitePago: json['fechaLimitePago'] != null
+          ? DateTime.tryParse(json['fechaLimitePago'] as String)
+          : null,
+      fechaLimiteVencida: json['fechaLimiteVencida'] == true,
+      estado: estadoVentaDesdeApi(
+        json['estado'] as String? ?? 'PENDIENTE_PAGO',
+      ),
+      modalidadEntrega: modalidadEntregaDesdeApi(
+        json['modalidadEntrega'] as String?,
+      ),
+      estadoEntrega: estadoEntregaDesdeApi(
+        json['estadoEntrega'] as String? ?? 'PENDIENTE',
+      ),
       direccionDestino: json['direccionDestino'] as String?,
       ciudad: json['ciudad'] as String?,
       transportadora: json['transportadora'] as String?,
       guiaRemision: json['guiaRemision'] as String?,
-      detalles: detallesJson.map((d) => DetalleVenta.desdeApi(d as Map<String, dynamic>)).toList(),
-      pagos: pagosJson.map((p) => Pago.desdeApi(p as Map<String, dynamic>)).toList(),
+      detalles: detallesJson
+          .map((d) => DetalleVenta.desdeApi(d as Map<String, dynamic>))
+          .toList(),
+      pagos: pagosJson
+          .map((p) => Pago.desdeApi(p as Map<String, dynamic>))
+          .toList(),
     );
   }
 }

@@ -5,11 +5,15 @@ import '../theme/app_colors.dart';
 
 /// Busca en silencio si hay una versión nueva y, si la hay, avisa. Se llama al
 /// abrir la app: si no hay internet o ya está al día, no muestra nada.
-Future<void> revisarActualizacionAlAbrir(BuildContext context, {ActualizacionRepository? repositorio}) async {
+Future<void> revisarActualizacionAlAbrir(
+  BuildContext context, {
+  ActualizacionRepository? repositorio,
+}) async {
   final repo = repositorio ?? ActualizacionRepository();
   final respuesta = await repo.buscar();
   if (!context.mounted) return;
-  if (respuesta.resultado == ResultadoBusqueda.hayNueva && respuesta.version != null) {
+  if (respuesta.resultado == ResultadoBusqueda.hayNueva &&
+      respuesta.version != null) {
     await mostrarDialogoActualizacion(context, repo, respuesta.version!);
   }
 }
@@ -24,12 +28,13 @@ Future<void> mostrarDialogoActualizacion(
   return showDialog<void>(
     context: context,
     barrierDismissible: false,
-    builder: (_) => _DialogoActualizacion(repositorio: repositorio, version: version),
+    builder: (_) =>
+        _DialogoActualizacion(repositorio: repositorio, version: version),
   );
 }
 
 class _DialogoActualizacion extends StatefulWidget {
-  const _DialogoActualizacion({required this.repositorio, required this.version});
+  _DialogoActualizacion({required this.repositorio, required this.version});
 
   final ActualizacionRepository repositorio;
   final InfoVersion version;
@@ -61,7 +66,11 @@ class _DialogoActualizacionState extends State<_DialogoActualizacion> {
     } on ActualizacionException catch (e) {
       if (mounted) setState(() => _error = e.mensaje);
     } on Exception {
-      if (mounted) setState(() => _error = 'No se pudo actualizar. Revisa tu conexión e intenta de nuevo.');
+      if (mounted)
+        setState(
+          () => _error =
+              'No se pudo actualizar. Revisa tu conexión e intenta de nuevo.',
+        );
     } finally {
       if (mounted) setState(() => _descargando = false);
     }
@@ -80,7 +89,10 @@ class _DialogoActualizacionState extends State<_DialogoActualizacion> {
         children: <Widget>[
           Text(
             'Versión ${version.versionName}',
-            style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.textoPrincipal),
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              color: AppColors.textoPrincipal,
+            ),
           ),
           if (notas != null && notas.isNotEmpty) ...<Widget>[
             const SizedBox(height: 8),
@@ -88,17 +100,28 @@ class _DialogoActualizacionState extends State<_DialogoActualizacion> {
           ],
           if (_descargando) ...<Widget>[
             const SizedBox(height: 16),
-            LinearProgressIndicator(value: _avance > 0 ? _avance : null, color: AppColors.verdeOscuro),
+            LinearProgressIndicator(
+              value: _avance > 0 ? _avance : null,
+              color: AppColors.verdeOscuro,
+            ),
             const SizedBox(height: 6),
-            Text(_avance > 0 ? 'Descargando… ${(_avance * 100).round()}%' : 'Descargando…', style: const TextStyle(fontSize: 12)),
+            Text(
+              _avance > 0
+                  ? 'Descargando… ${(_avance * 100).round()}%'
+                  : 'Descargando…',
+              style: const TextStyle(fontSize: 12),
+            ),
           ],
           if (_error != null) ...<Widget>[
             const SizedBox(height: 12),
-            Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 13)),
+            Text(
+              _error!,
+              style: const TextStyle(color: Colors.red, fontSize: 13),
+            ),
           ],
           if (!_descargando && _error == null) ...<Widget>[
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Se descarga y Android te pide tocar "Instalar". Tus datos y tu sesión se conservan.',
               style: TextStyle(fontSize: 12, color: AppColors.textoSecundario),
             ),

@@ -3,12 +3,15 @@ import 'api_client.dart';
 
 /// GET /api/v1/clientes, para el selector de cliente de Nueva venta.
 class ClientesRepository {
-  ClientesRepository({ApiClient? apiClient}) : _apiClient = apiClient ?? const ApiClient();
+  ClientesRepository({ApiClient? apiClient})
+    : _apiClient = apiClient ?? const ApiClient();
 
   final ApiClient _apiClient;
 
   Future<List<Cliente>> obtenerClientes(String token) async {
     final json = await _apiClient.getList('/api/v1/clientes', token: token);
-    return json.map((item) => Cliente.desdeApi(item as Map<String, dynamic>)).toList();
+    return json
+        .map((item) => Cliente.desdeApi(item as Map<String, dynamic>))
+        .toList();
   }
 }

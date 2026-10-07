@@ -1,10 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../data/api_client.dart';
 import '../../data/api_exception.dart';
 import '../../data/auth_repository.dart';
 import '../../data/catalogo_repository.dart';
 import '../../data/dashboard_repository.dart';
+import '../../data/precarga_datos.dart';
+import '../../data/tema_service.dart';
 import '../../data/ventas_repository.dart';
 import '../../models/dashboard_resumen.dart';
 import '../../models/producto_catalogo.dart';
@@ -24,12 +29,33 @@ import '../ventas/ventas_screen.dart';
 
 enum _EstadoResumen { cargando, conDatos, vacio, error }
 
-const _diasSemana = <String>['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-const _mesesCortos = <String>['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+const _diasSemana = <String>[
+  'Lunes',
+  'Martes',
+  'Miércoles',
+  'Jueves',
+  'Viernes',
+  'Sábado',
+  'Domingo',
+];
+const _mesesCortos = <String>[
+  'ene',
+  'feb',
+  'mar',
+  'abr',
+  'may',
+  'jun',
+  'jul',
+  'ago',
+  'sep',
+  'oct',
+  'nov',
+  'dic',
+];
 
 /// Pantalla principal: resumen del día y accesos a los módulos.
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, required this.sesion});
+  HomeScreen({super.key, required this.sesion});
 
   final Sesion sesion;
 
@@ -42,11 +68,16 @@ class _HomeScreenState extends State<HomeScreen> {
   final _dashboardRepository = DashboardRepository();
   final _ventasRepository = VentasRepository();
   final _catalogoRepository = CatalogoRepository();
-  final _formatoMoneda = NumberFormat.currency(locale: 'es_BO', symbol: 'Bs. ', decimalDigits: 2);
+  final _formatoMoneda = NumberFormat.currency(
+    locale: 'es_BO',
+    symbol: 'Bs. ',
+    decimalDigits: 2,
+  );
   final _formatoFecha = DateFormat('dd/MM/yyyy HH:mm');
   bool get _esAdmin => widget.sesion.usuario.role == 'ADMIN';
 
   _EstadoResumen _estado = _EstadoResumen.cargando;
+  StreamSubscription<String>? _suscripcion;
   DashboardResumen? _resumen;
   VentasSemanal? _semana;
 
@@ -59,17 +90,67 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _cargarResumen();
+    // Al cambiar de tema (claro/oscuro) desde Ajustes, el inicio se vuelve a dibujar.
+    TemaService.modoOscuro.addListener(_alCambiarTema);
+    // Si llegan datos nuevos por detrás (resumen, semana, stock bajo), el inicio
+    // se corrige solo, sin spinner.
+    _suscripcion = ApiClient.actualizaciones.listen((ruta) {
+      if (ruta.startsWith('/api/v1/dashboard/') ||
+          ruta.contains('soloBajoMinimo')) {
+        _cargarResumen(silencioso: true);
+      }
+    });
+    // Con el inicio ya pidiendo lo suyo, deja listos por detrás los datos de las
+    // demás pantallas (ventas, catálogo, clientes) para que abran al instante.
+    Future<void>.delayed(const Duration(milliseconds: 1500), () {
+      if (mounted) PrecargaDatos.precargar(widget.sesion.token);
+    });
     // Al abrir la app, avisa si hay una versión nueva (sin molestar si no hay internet).
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) revisarActualizacionAlAbrir(context);
     });
   }
 
-  Future<void> _cargarResumen() async {
-    setState(() {
-      _estado = _EstadoResumen.cargando;
-      _errorMensaje = null;
-    });
+  @override
+  void dispose() {
+    TemaService.modoOscuro.removeListener(_alCambiarTema);
+    _suscripcion?.cancel();
+    super.dispose();
+  }
+
+  void _alCambiarTema() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _cargarResumen({bool silencioso = false}) async {
+    // Al abrir la app, muestra AL INSTANTE lo último que se vio mientras llegan
+    // los números nuevos (que reemplazan a estos apenas llegan).
+    if (_resumen == null) {
+      final guardado = await _dashboardRepository.resumenGuardado();
+      if (guardado != null && mounted && _resumen == null) {
+        final semanaGuardada = await _dashboardRepository.semanaGuardada();
+        final alertasGuardadas = await _catalogoRepository.alertasGuardadas();
+        if (!mounted) return;
+        setState(() {
+          _resumen = guardado;
+          _semana = semanaGuardada;
+          _alertasStock = alertasGuardadas ?? const <ProductoCatalogo>[];
+          _errorMensaje = null;
+          _estado =
+              guardado.sinMovimientoHoy &&
+                  (semanaGuardada?.totalVentas ?? 0) == 0
+              ? _EstadoResumen.vacio
+              : _EstadoResumen.conDatos;
+        });
+      }
+    }
+    // Con datos en pantalla no se tapa nada con el indicador de carga.
+    if (_resumen == null) {
+      setState(() {
+        _estado = _EstadoResumen.cargando;
+        _errorMensaje = null;
+      });
+    }
 
     try {
       // Las tres peticiones salen a la vez: antes se esperaban una tras otra
@@ -85,10 +166,16 @@ class _HomeScreenState extends State<HomeScreen> {
       // tumbar el resumen del día.
       final alertasFuture = _catalogoRepository
           .obtenerBajoMinimo(widget.sesion.token)
-          .then<List<ProductoCatalogo>>((lista) =>
-              <ProductoCatalogo>[...lista]..sort((a, b) => a.cantidadDisponible.compareTo(b.cantidadDisponible)))
+          .then<List<ProductoCatalogo>>(
+            (lista) => <ProductoCatalogo>[...lista]
+              ..sort(
+                (a, b) => a.cantidadDisponible.compareTo(b.cantidadDisponible),
+              ),
+          )
           .catchError((_) => const <ProductoCatalogo>[]);
-      final resumen = await _dashboardRepository.obtenerResumenDelDia(widget.sesion.token);
+      final resumen = await _dashboardRepository.obtenerResumenDelDia(
+        widget.sesion.token,
+      );
       final VentasSemanal? semana = await semanaFuture;
       final alertas = await alertasFuture;
       if (!mounted) return;
@@ -102,17 +189,73 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     } on ApiException catch (error) {
       if (!mounted) return;
+      if (_resumen != null) {
+        if (silencioso) return;
+        // Hay datos de la última vez en pantalla: se dejan y solo se avisa.
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${error.mensaje}. Se muestran los últimos datos.'),
+          ),
+        );
+        return;
+      }
       setState(() {
         _errorMensaje = error.mensaje;
         _estado = _EstadoResumen.error;
       });
     } catch (_) {
       if (!mounted) return;
+      if (_resumen != null) return;
       setState(() {
         _errorMensaje = 'No se pudo cargar el resumen del día.';
         _estado = _EstadoResumen.error;
       });
     }
+  }
+
+  /// Notificaciones: ventana flotante bajo la campana, más ancha que un menú.
+  /// Tocar una fila abre el detalle del producto.
+  void _abrirNotificaciones() {
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black26,
+      useSafeArea: false,
+      builder: (dialogContext) => Align(
+        alignment: Alignment.topRight,
+        child: Padding(
+          padding: EdgeInsets.only(
+            top: MediaQuery.of(dialogContext).padding.top + kToolbarHeight,
+            left: 20,
+            right: 20,
+          ),
+          child: Material(
+            color: AppColors.tarjeta,
+            elevation: 8,
+            borderRadius: BorderRadius.circular(16),
+            clipBehavior: Clip.antiAlias,
+            child: _PanelNotificaciones(
+              alertas: _alertasStock,
+              onTapProducto: (producto) {
+                Navigator.of(dialogContext).pop();
+                _verDetalleProducto(producto);
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _verDetalleProducto(ProductoCatalogo producto) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => DetalleProductoSheet(
+        producto: producto,
+        formatoMoneda: _formatoMoneda,
+      ),
+    );
   }
 
   Future<void> _cerrarSesion() async {
@@ -123,13 +266,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _abrirCatalogo() {
     Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => CatalogoScreen(token: widget.sesion.token)),
+      MaterialPageRoute<void>(
+        builder: (_) => CatalogoScreen(token: widget.sesion.token),
+      ),
     );
   }
 
   void _abrirVentas() {
     Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => VentasScreen(token: widget.sesion.token, esAdmin: _esAdmin)),
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            VentasScreen(token: widget.sesion.token, esAdmin: _esAdmin),
+      ),
     );
   }
 
@@ -147,10 +295,16 @@ class _HomeScreenState extends State<HomeScreen> {
           duration: const Duration(seconds: 3),
           backgroundColor: AppColors.textoPrincipal,
           margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
           content: Row(
             children: <Widget>[
-              const Icon(Icons.cloud_off_rounded, color: Colors.white, size: 20),
+              const Icon(
+                Icons.cloud_off_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(_errorMensaje ?? 'No se pudo cargar el resumen.'),
@@ -181,7 +335,10 @@ class _HomeScreenState extends State<HomeScreen> {
         heightFactor: 0.94,
         child: ClipRRect(
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          child: NuevaVentaScreen(token: widget.sesion.token, esAdmin: _esAdmin),
+          child: NuevaVentaScreen(
+            token: widget.sesion.token,
+            esAdmin: _esAdmin,
+          ),
         ),
       ),
     );
@@ -214,8 +371,8 @@ class _HomeScreenState extends State<HomeScreen> {
               behavior: HitTestBehavior.opaque,
               onTap: () {},
               child: Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
+                decoration: BoxDecoration(
+                  color: AppColors.tarjeta,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                 ),
                 child: Column(
@@ -226,7 +383,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         width: 40,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
+                          color: AppColors.borde,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -238,23 +395,38 @@ class _HomeScreenState extends State<HomeScreen> {
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFE8F4EC),
+                              color: AppColors.tintVerde,
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Icon(Icons.shopping_bag_outlined, color: AppColors.verdeOscuro, size: 22),
+                            child: Icon(
+                              Icons.shopping_bag_outlined,
+                              color: AppColors.verdeOscuro,
+                              size: 22,
+                            ),
                           ),
                           const SizedBox(width: 12),
-                          const Expanded(
+                          Expanded(
                             child: Text(
                               'Ventas de Hoy',
-                              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.textoPrincipal),
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textoPrincipal,
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
                     const Divider(height: 1),
-                    Expanded(child: _contenidoVentasHoy(modalCtx, scrollController, hoy, ventasFuture)),
+                    Expanded(
+                      child: _contenidoVentasHoy(
+                        modalCtx,
+                        scrollController,
+                        hoy,
+                        ventasFuture,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -278,9 +450,11 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context, snapshot) {
         final Widget ventas;
         if (snapshot.connectionState == ConnectionState.waiting) {
-          ventas = const Padding(
+          ventas = Padding(
             padding: EdgeInsets.all(24),
-            child: Center(child: CircularProgressIndicator(color: AppColors.verdeOscuro)),
+            child: Center(
+              child: CircularProgressIndicator(color: AppColors.verdeOscuro),
+            ),
           );
         } else if (snapshot.hasError) {
           ventas = Padding(
@@ -288,26 +462,36 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Text(
               'Error al cargar ventas: ${snapshot.error}',
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.error),
+              style: TextStyle(color: AppColors.error),
             ),
           );
         } else {
           final ventasHoy = (snapshot.data ?? <Venta>[]).where((v) {
-            if (v.fechaVenta == null || v.estado != EstadoVenta.completada) return false;
+            if (v.fechaVenta == null || v.estado != EstadoVenta.completada)
+              return false;
             final f = v.fechaVenta!;
-            return f.year == hoy.year && f.month == hoy.month && f.day == hoy.day;
+            return f.year == hoy.year &&
+                f.month == hoy.month &&
+                f.day == hoy.day;
           }).toList();
 
           ventas = ventasHoy.isEmpty
-              ? const Padding(
+              ? Padding(
                   padding: EdgeInsets.all(30),
                   child: Column(
                     children: <Widget>[
-                      Icon(Icons.inbox_outlined, size: 48, color: AppColors.textoSecundario),
+                      Icon(
+                        Icons.inbox_outlined,
+                        size: 48,
+                        color: AppColors.textoSecundario,
+                      ),
                       SizedBox(height: 12),
                       Text(
                         'No hay ventas registradas hoy.',
-                        style: TextStyle(color: AppColors.textoSecundario, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          color: AppColors.textoSecundario,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ],
                   ),
@@ -328,9 +512,13 @@ class _HomeScreenState extends State<HomeScreen> {
           children: <Widget>[
             _tarjetaTotalHoy(),
             const SizedBox(height: 18),
-            const Text(
+            Text(
               'Detalle',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textoPrincipal),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textoPrincipal,
+              ),
             ),
             const SizedBox(height: 10),
             ventas,
@@ -347,14 +535,18 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           colors: <Color>[AppColors.verdeOscuro, Color(0xFF2C5E43)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(18),
         boxShadow: <BoxShadow>[
-          BoxShadow(color: AppColors.verdeOscuro.withValues(alpha: 0.25), blurRadius: 12, offset: const Offset(0, 4)),
+          BoxShadow(
+            color: AppColors.verdeOscuro.withValues(alpha: 0.25),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: Column(
@@ -362,7 +554,12 @@ class _HomeScreenState extends State<HomeScreen> {
         children: <Widget>[
           Text(
             'TOTAL FACTURADO HOY',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.8),
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.8),
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+            ),
           ),
           const SizedBox(height: 6),
           Row(
@@ -371,14 +568,25 @@ class _HomeScreenState extends State<HomeScreen> {
             children: <Widget>[
               Text(
                 _formatoMoneda.format(datos?.montoVentasHoy ?? 0.0),
-                style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 26,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 child: Text(
                   '${datos?.totalVentasHoy ?? 0} ventas',
-                  style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
@@ -397,7 +605,11 @@ class _HomeScreenState extends State<HomeScreen> {
         Navigator.of(context)
             .push(
               MaterialPageRoute<void>(
-                builder: (_) => VentaDetalleScreen(idVenta: v.id, token: widget.sesion.token, esAdmin: _esAdmin),
+                builder: (_) => VentaDetalleScreen(
+                  idVenta: v.id,
+                  token: widget.sesion.token,
+                  esAdmin: _esAdmin,
+                ),
               ),
             )
             .then((_) {
@@ -408,9 +620,11 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.tarjeta,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.verdeOscuro.withValues(alpha: 0.12)),
+          border: Border.all(
+            color: AppColors.verdeOscuro.withValues(alpha: 0.12),
+          ),
         ),
         child: Row(
           children: <Widget>[
@@ -418,11 +632,22 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text(v.nombreCliente, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  Text(
+                    v.nombreCliente,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
                   const SizedBox(height: 2),
                   Text(
-                    v.fechaVenta != null ? _formatoFecha.format(v.fechaVenta!) : 'Hoy',
-                    style: const TextStyle(fontSize: 11, color: AppColors.textoSecundario),
+                    v.fechaVenta != null
+                        ? _formatoFecha.format(v.fechaVenta!)
+                        : 'Hoy',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textoSecundario,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Wrap(
@@ -430,31 +655,60 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: <Widget>[
                       if (v.tieneSaldoPendiente)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(color: const Color(0xFFFEF3C7), borderRadius: BorderRadius.circular(6)),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.tintAmbar,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
                           child: Text(
-                            'Saldo: ${_formatoMoneda.format(v.saldoPendiente)}',
-                            style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFFD97706)),
+                            'Saldo: ${_formatoMoneda.format(v.saldoPendiente)}${v.fechaLimiteTexto != null ? ' · vence ${v.fechaLimiteTexto}' : ''}',
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.acAmbar,
+                            ),
                           ),
                         )
                       else
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(color: const Color(0xFFDCFCE7), borderRadius: BorderRadius.circular(6)),
-                          child: const Text(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.tintVerdeFuerte,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
                             'Pagada',
-                            style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.acVerde,
+                            ),
                           ),
                         ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
-                          color: colorEstadoEntrega(v.estadoEntrega).withValues(alpha: 0.12),
+                          color: colorEstadoEntrega(
+                            v.estadoEntrega,
+                          ).withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
                           v.estadoEntrega.etiqueta,
-                          style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: colorEstadoEntrega(v.estadoEntrega)),
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.bold,
+                            color: colorEstadoEntrega(v.estadoEntrega),
+                          ),
                         ),
                       ),
                     ],
@@ -467,10 +721,18 @@ class _HomeScreenState extends State<HomeScreen> {
               children: <Widget>[
                 Text(
                   _formatoMoneda.format(v.montoTotal),
-                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: AppColors.verdeOscuro),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 15,
+                    color: AppColors.verdeOscuro,
+                  ),
                 ),
                 const SizedBox(height: 4),
-                const Icon(Icons.chevron_right_rounded, size: 18, color: AppColors.textoSecundario),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 18,
+                  color: AppColors.textoSecundario,
+                ),
               ],
             ),
           ],
@@ -502,8 +764,8 @@ class _HomeScreenState extends State<HomeScreen> {
               behavior: HitTestBehavior.opaque,
               onTap: () {},
               child: Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
+                decoration: BoxDecoration(
+                  color: AppColors.tarjeta,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                 ),
                 child: _HojaVentasSemanales(
@@ -558,146 +820,273 @@ class _HomeScreenState extends State<HomeScreen> {
               behavior: HitTestBehavior.opaque,
               onTap: () {},
               child: Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
+                decoration: BoxDecoration(
+                  color: AppColors.tarjeta,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                 ),
-          child: Column(
-            children: <Widget>[
-              const SizedBox(height: 12),
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
-                child: Row(
+                child: Column(
                   children: <Widget>[
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(color: const Color(0xFFFFFBEB), borderRadius: BorderRadius.circular(12)),
-                      child: const Icon(Icons.hourglass_bottom_rounded, color: Color(0xFFD97706), size: 22),
+                    const SizedBox(height: 12),
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: AppColors.borde,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
+                      child: Row(
                         children: <Widget>[
-                          const Text('Ventas por Cobrar', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.textoPrincipal)),
-                          Text('Saldo total: ${_formatoMoneda.format(_resumen?.montoCuotasPendientes ?? 0)} (${_resumen?.cuotasPendientes ?? 0} cuotas)', style: const TextStyle(fontSize: 12, color: AppColors.textoSecundario)),
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: AppColors.tintAmbarSuave,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              Icons.hourglass_bottom_rounded,
+                              color: AppColors.acAmbar,
+                              size: 22,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: <Widget>[
+                                Text(
+                                  'Ventas por Cobrar',
+                                  style: TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.textoPrincipal,
+                                  ),
+                                ),
+                                Text(
+                                  'Saldo total: ${_formatoMoneda.format(_resumen?.montoCuotasPendientes ?? 0)} (${_resumen?.cuotasPendientes ?? 0} cuotas)',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.textoSecundario,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
+                      ),
+                    ),
+                    const Divider(height: 1),
+                    Expanded(
+                      child: FutureBuilder<List<Venta>>(
+                        future: _ventasRepository.obtenerVentas(
+                          widget.sesion.token,
+                        ),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return Center(
+                              child: CircularProgressIndicator(
+                                color: AppColors.verdeOscuro,
+                              ),
+                            );
+                          }
+                          if (snapshot.hasError) {
+                            return Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(20),
+                                child: Text(
+                                  'Error al cargar ventas: ${snapshot.error}',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: AppColors.error),
+                                ),
+                              ),
+                            );
+                          }
+                          final lista = snapshot.data ?? <Venta>[];
+                          final porCobrar = lista
+                              .where((v) => v.tieneSaldoPendiente)
+                              .toList();
+
+                          if (porCobrar.isEmpty) {
+                            return Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(30),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    Icon(
+                                      Icons.check_circle_outline,
+                                      size: 48,
+                                      color: Color(0xFF16A34A),
+                                    ),
+                                    SizedBox(height: 12),
+                                    Text(
+                                      'No hay ventas con saldo pendiente de pago.',
+                                      style: TextStyle(
+                                        color: AppColors.textoSecundario,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }
+
+                          return ListView.separated(
+                            controller: scrollController,
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                            itemCount: porCobrar.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(height: 10),
+                            itemBuilder: (context, index) {
+                              final v = porCobrar[index];
+                              return InkWell(
+                                onTap: () {
+                                  Navigator.of(modalCtx).pop();
+                                  Navigator.of(this.context)
+                                      .push(
+                                        MaterialPageRoute<void>(
+                                          builder: (_) => VentaDetalleScreen(
+                                            idVenta: v.id,
+                                            token: widget.sesion.token,
+                                            esAdmin: _esAdmin,
+                                          ),
+                                        ),
+                                      )
+                                      .then((_) {
+                                        if (mounted) _cargarResumen();
+                                      });
+                                },
+                                borderRadius: BorderRadius.circular(14),
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.tarjeta,
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(
+                                      color: const Color(
+                                        0xFFD97706,
+                                      ).withValues(alpha: 0.25),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: <Widget>[
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: <Widget>[
+                                            Text(
+                                              v.nombreCliente,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                            if (v.telefonoCliente != null &&
+                                                v
+                                                    .telefonoCliente!
+                                                    .isNotEmpty) ...<Widget>[
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                'Cel: ${v.telefonoCliente}',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  color:
+                                                      AppColors.textoSecundario,
+                                                ),
+                                              ),
+                                            ],
+                                            const SizedBox(height: 6),
+                                            Text(
+                                              'Total venta: ${_formatoMoneda.format(v.montoTotal)}',
+                                              style: TextStyle(
+                                                fontSize: 11.5,
+                                                color:
+                                                    AppColors.textoSecundario,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: <Widget>[
+                                          Text(
+                                            'Debe:',
+                                            style: TextStyle(
+                                              fontSize: 10.5,
+                                              color: AppColors.acAmbar,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          Text(
+                                            _formatoMoneda.format(
+                                              v.saldoPendiente,
+                                            ),
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w900,
+                                              fontSize: 15,
+                                              color: AppColors.acAmbar,
+                                            ),
+                                          ),
+                                          if (v.fechaLimiteTexto != null)
+                                            Text(
+                                              v.fechaLimiteVencida
+                                                  ? 'Venció ${v.fechaLimiteTexto}'
+                                                  : 'Vence ${v.fechaLimiteTexto}',
+                                              style: TextStyle(
+                                                fontSize: 10.5,
+                                                fontWeight: FontWeight.w700,
+                                                color: v.fechaLimiteVencida
+                                                    ? AppColors.error
+                                                    : AppColors.textoSecundario,
+                                              ),
+                                            ),
+                                          const SizedBox(height: 4),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 3,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.tintAmbar,
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                            ),
+                                            child: Text(
+                                              'Cobrar >',
+                                              style: TextStyle(
+                                                fontSize: 10.5,
+                                                fontWeight: FontWeight.bold,
+                                                color: AppColors.acAmbar,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        },
                       ),
                     ),
                   ],
                 ),
               ),
-              const Divider(height: 1),
-              Expanded(
-                child: FutureBuilder<List<Venta>>(
-                  future: _ventasRepository.obtenerVentas(widget.sesion.token),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator(color: AppColors.verdeOscuro));
-                    }
-                    if (snapshot.hasError) {
-                      return Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Text('Error al cargar ventas: ${snapshot.error}', textAlign: TextAlign.center, style: const TextStyle(color: AppColors.error)),
-                        ),
-                      );
-                    }
-                    final lista = snapshot.data ?? <Venta>[];
-                    final porCobrar = lista.where((v) => v.tieneSaldoPendiente).toList();
-
-                    if (porCobrar.isEmpty) {
-                      return const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(30),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              Icon(Icons.check_circle_outline, size: 48, color: Color(0xFF16A34A)),
-                              SizedBox(height: 12),
-                              Text('No hay ventas con saldo pendiente de pago.', style: TextStyle(color: AppColors.textoSecundario, fontWeight: FontWeight.w600)),
-                            ],
-                          ),
-                        ),
-                      );
-                    }
-
-                    return ListView.separated(
-                      controller: scrollController,
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                      itemCount: porCobrar.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 10),
-                      itemBuilder: (context, index) {
-                        final v = porCobrar[index];
-                        return InkWell(
-                          onTap: () {
-                            Navigator.of(modalCtx).pop();
-                            Navigator.of(this.context).push(
-                              MaterialPageRoute<void>(builder: (_) => VentaDetalleScreen(idVenta: v.id, token: widget.sesion.token, esAdmin: _esAdmin)),
-                            ).then((_) {
-                              if (mounted) _cargarResumen();
-                            });
-                          },
-                          borderRadius: BorderRadius.circular(14),
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: const Color(0xFFD97706).withValues(alpha: 0.25)),
-                            ),
-                            child: Row(
-                              children: <Widget>[
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: <Widget>[
-                                      Text(v.nombreCliente, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                                      if (v.telefonoCliente != null && v.telefonoCliente!.isNotEmpty) ...<Widget>[
-                                        const SizedBox(height: 2),
-                                        Text('Cel: ${v.telefonoCliente}', style: const TextStyle(fontSize: 11, color: AppColors.textoSecundario)),
-                                      ],
-                                      const SizedBox(height: 6),
-                                      Text('Total venta: ${_formatoMoneda.format(v.montoTotal)}', style: const TextStyle(fontSize: 11.5, color: AppColors.textoSecundario)),
-                                    ],
-                                  ),
-                                ),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: <Widget>[
-                                    const Text('Debe:', style: TextStyle(fontSize: 10.5, color: Color(0xFFD97706), fontWeight: FontWeight.bold)),
-                                    Text(_formatoMoneda.format(v.saldoPendiente), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFFD97706))),
-                                    const SizedBox(height: 4),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                      decoration: BoxDecoration(color: const Color(0xFFFEF3C7), borderRadius: BorderRadius.circular(6)),
-                                      child: const Text('Cobrar >', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFFD97706))),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
-    ),
-  ],
-),
     );
   }
 
@@ -722,162 +1111,300 @@ class _HomeScreenState extends State<HomeScreen> {
               behavior: HitTestBehavior.opaque,
               onTap: () {},
               child: Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
+                decoration: BoxDecoration(
+                  color: AppColors.tarjeta,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                 ),
-          child: Column(
-            children: <Widget>[
-              const SizedBox(height: 12),
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
-                child: Row(
+                child: Column(
                   children: <Widget>[
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(color: const Color(0xFFF3E8FF), borderRadius: BorderRadius.circular(12)),
-                      child: const Icon(Icons.local_shipping_outlined, color: Color(0xFF7C3AED), size: 22),
+                    const SizedBox(height: 12),
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: AppColors.borde,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
+                      child: Row(
                         children: <Widget>[
-                          const Text('Ventas por Entregar', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.textoPrincipal)),
-                          Text('${_resumen?.ventasPorEntregar ?? 0} pedidos por entregar', style: const TextStyle(fontSize: 12, color: AppColors.textoSecundario)),
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: AppColors.tintVioleta,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              Icons.local_shipping_outlined,
+                              color: AppColors.acVioleta,
+                              size: 22,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: <Widget>[
+                                Text(
+                                  'Ventas por Entregar',
+                                  style: TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.textoPrincipal,
+                                  ),
+                                ),
+                                Text(
+                                  '${_resumen?.ventasPorEntregar ?? 0} pedidos por entregar',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.textoSecundario,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
+                      ),
+                    ),
+                    const Divider(height: 1),
+                    Expanded(
+                      child: FutureBuilder<List<Venta>>(
+                        future: _ventasRepository.obtenerVentas(
+                          widget.sesion.token,
+                        ),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return Center(
+                              child: CircularProgressIndicator(
+                                color: AppColors.verdeOscuro,
+                              ),
+                            );
+                          }
+                          if (snapshot.hasError) {
+                            return Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(20),
+                                child: Text(
+                                  'Error al cargar entregas: ${snapshot.error}',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: AppColors.error),
+                                ),
+                              ),
+                            );
+                          }
+                          final lista = snapshot.data ?? <Venta>[];
+                          final porEntregar = lista
+                              .where((v) => v.porEntregar)
+                              .toList();
+
+                          if (porEntregar.isEmpty) {
+                            return Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(30),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    Icon(
+                                      Icons.check_circle_outline,
+                                      size: 48,
+                                      color: Color(0xFF16A34A),
+                                    ),
+                                    SizedBox(height: 12),
+                                    Text(
+                                      'No hay pedidos pendientes de entrega.',
+                                      style: TextStyle(
+                                        color: AppColors.textoSecundario,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }
+
+                          return ListView.separated(
+                            controller: scrollController,
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                            itemCount: porEntregar.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(height: 10),
+                            itemBuilder: (context, index) {
+                              final v = porEntregar[index];
+                              final esDomicilio =
+                                  v.modalidadEntrega ==
+                                  ModalidadEntrega.domicilio;
+                              return InkWell(
+                                onTap: () {
+                                  Navigator.of(modalCtx).pop();
+                                  Navigator.of(this.context)
+                                      .push(
+                                        MaterialPageRoute<void>(
+                                          builder: (_) => VentaDetalleScreen(
+                                            idVenta: v.id,
+                                            token: widget.sesion.token,
+                                            esAdmin: _esAdmin,
+                                          ),
+                                        ),
+                                      )
+                                      .then((_) {
+                                        if (mounted) _cargarResumen();
+                                      });
+                                },
+                                borderRadius: BorderRadius.circular(14),
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.tarjeta,
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(
+                                      color: const Color(
+                                        0xFF7C3AED,
+                                      ).withValues(alpha: 0.25),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: <Widget>[
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: <Widget>[
+                                            Row(
+                                              children: <Widget>[
+                                                Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 6,
+                                                        vertical: 2,
+                                                      ),
+                                                  decoration: BoxDecoration(
+                                                    color: const Color(
+                                                      0xFFF3E8FF,
+                                                    ),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          6,
+                                                        ),
+                                                  ),
+                                                  child: Text(
+                                                    esDomicilio
+                                                        ? 'A domicilio'
+                                                        : 'Transportadora',
+                                                    style: TextStyle(
+                                                      fontSize: 10.5,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color:
+                                                          AppColors.acVioleta,
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Expanded(
+                                                  child: Text(
+                                                    v.nombreCliente,
+                                                    style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 13.5,
+                                                    ),
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 6),
+                                            if (v.direccionDestino != null &&
+                                                v.direccionDestino!.isNotEmpty)
+                                              Text(
+                                                'Dir: ${v.direccionDestino}',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  color:
+                                                      AppColors.textoSecundario,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            if (v.ciudad != null &&
+                                                v.ciudad!.isNotEmpty)
+                                              Text(
+                                                'Ciudad: ${v.ciudad}',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  color:
+                                                      AppColors.textoSecundario,
+                                                ),
+                                              ),
+                                            if (v.transportadora != null &&
+                                                v.transportadora!.isNotEmpty)
+                                              Text(
+                                                'Empresa: ${v.transportadora}',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  color:
+                                                      AppColors.textoSecundario,
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: <Widget>[
+                                          Text(
+                                            _formatoMoneda.format(v.montoTotal),
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 3,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.tintIndigo,
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                            ),
+                                            child: Text(
+                                              'Entregar >',
+                                              style: TextStyle(
+                                                fontSize: 10.5,
+                                                fontWeight: FontWeight.bold,
+                                                color: AppColors.acIndigo,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        },
                       ),
                     ),
                   ],
                 ),
               ),
-              const Divider(height: 1),
-              Expanded(
-                child: FutureBuilder<List<Venta>>(
-                  future: _ventasRepository.obtenerVentas(widget.sesion.token),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator(color: AppColors.verdeOscuro));
-                    }
-                    if (snapshot.hasError) {
-                      return Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Text('Error al cargar entregas: ${snapshot.error}', textAlign: TextAlign.center, style: const TextStyle(color: AppColors.error)),
-                        ),
-                      );
-                    }
-                    final lista = snapshot.data ?? <Venta>[];
-                    final porEntregar = lista.where((v) => v.porEntregar).toList();
-
-                    if (porEntregar.isEmpty) {
-                      return const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(30),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              Icon(Icons.check_circle_outline, size: 48, color: Color(0xFF16A34A)),
-                              SizedBox(height: 12),
-                              Text('No hay pedidos pendientes de entrega.', style: TextStyle(color: AppColors.textoSecundario, fontWeight: FontWeight.w600)),
-                            ],
-                          ),
-                        ),
-                      );
-                    }
-
-                    return ListView.separated(
-                      controller: scrollController,
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                      itemCount: porEntregar.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 10),
-                      itemBuilder: (context, index) {
-                        final v = porEntregar[index];
-                        final esDomicilio = v.modalidadEntrega == ModalidadEntrega.domicilio;
-                        return InkWell(
-                          onTap: () {
-                            Navigator.of(modalCtx).pop();
-                            Navigator.of(this.context).push(
-                              MaterialPageRoute<void>(builder: (_) => VentaDetalleScreen(idVenta: v.id, token: widget.sesion.token, esAdmin: _esAdmin)),
-                            ).then((_) {
-                              if (mounted) _cargarResumen();
-                            });
-                          },
-                          borderRadius: BorderRadius.circular(14),
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: const Color(0xFF7C3AED).withValues(alpha: 0.25)),
-                            ),
-                            child: Row(
-                              children: <Widget>[
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: <Widget>[
-                                      Row(
-                                        children: <Widget>[
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                            decoration: BoxDecoration(color: const Color(0xFFF3E8FF), borderRadius: BorderRadius.circular(6)),
-                                            child: Text(
-                                              esDomicilio ? 'A domicilio' : 'Transportadora',
-                                              style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF7C3AED)),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Expanded(
-                                            child: Text(v.nombreCliente, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5), overflow: TextOverflow.ellipsis),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 6),
-                                      if (v.direccionDestino != null && v.direccionDestino!.isNotEmpty)
-                                        Text('Dir: ${v.direccionDestino}', style: const TextStyle(fontSize: 11, color: AppColors.textoSecundario), maxLines: 1, overflow: TextOverflow.ellipsis),
-                                      if (v.ciudad != null && v.ciudad!.isNotEmpty)
-                                        Text('Ciudad: ${v.ciudad}', style: const TextStyle(fontSize: 11, color: AppColors.textoSecundario)),
-                                      if (v.transportadora != null && v.transportadora!.isNotEmpty)
-                                        Text('Empresa: ${v.transportadora}', style: const TextStyle(fontSize: 11, color: AppColors.textoSecundario)),
-                                    ],
-                                  ),
-                                ),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: <Widget>[
-                                    Text(_formatoMoneda.format(v.montoTotal), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-                                    const SizedBox(height: 4),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                      decoration: BoxDecoration(color: const Color(0xFFE0E7FF), borderRadius: BorderRadius.circular(6)),
-                                      child: const Text('Entregar >', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF4338CA))),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
-    ),
-  ],
-),
     );
   }
 
@@ -892,33 +1419,48 @@ class _HomeScreenState extends State<HomeScreen> {
           tooltip: 'Menú',
           offset: const Offset(0, 48),
           elevation: 6,
-          color: Colors.white,
+          color: AppColors.tarjeta,
           surfaceTintColor: Colors.transparent,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: AppColors.verdeOscuro.withValues(alpha: 0.1)),
+            side: BorderSide(
+              color: AppColors.verdeOscuro.withValues(alpha: 0.1),
+            ),
           ),
           onSelected: (opcion) {
             if (opcion == 'ajustes') {
               Navigator.of(context).push(
                 MaterialPageRoute<void>(
-                  builder: (_) => AjustesScreen(usuario: widget.sesion.usuario, onCerrarSesion: _cerrarSesion),
+                  builder: (_) => AjustesScreen(
+                    usuario: widget.sesion.usuario,
+                    onCerrarSesion: _cerrarSesion,
+                  ),
                 ),
               );
             } else if (opcion == 'acerca') {
-              Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const AcercaScreen()));
+              Navigator.of(
+                context,
+              ).push(MaterialPageRoute<void>(builder: (_) => AcercaScreen()));
             }
           },
-          itemBuilder: (_) => const <PopupMenuEntry<String>>[
+          itemBuilder: (_) => <PopupMenuEntry<String>>[
             PopupMenuItem<String>(
               value: 'ajustes',
               child: Row(
                 children: <Widget>[
-                  Icon(Icons.settings_outlined, color: AppColors.verdeOscuro, size: 20),
+                  Icon(
+                    Icons.settings_outlined,
+                    color: AppColors.verdeOscuro,
+                    size: 20,
+                  ),
                   SizedBox(width: 12),
                   Text(
                     'Ajustes',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5, color: AppColors.textoPrincipal),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13.5,
+                      color: AppColors.textoPrincipal,
+                    ),
                   ),
                 ],
               ),
@@ -928,11 +1470,19 @@ class _HomeScreenState extends State<HomeScreen> {
               value: 'acerca',
               child: Row(
                 children: <Widget>[
-                  Icon(Icons.info_outline_rounded, color: AppColors.verdeOscuro, size: 20),
+                  Icon(
+                    Icons.info_outline_rounded,
+                    color: AppColors.verdeOscuro,
+                    size: 20,
+                  ),
                   SizedBox(width: 12),
                   Text(
                     'Acerca de la app',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5, color: AppColors.textoPrincipal),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13.5,
+                      color: AppColors.textoPrincipal,
+                    ),
                   ),
                 ],
               ),
@@ -942,15 +1492,25 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.all(8),
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.tarjeta,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.verdeOscuro.withValues(alpha: 0.12)),
+                border: Border.all(
+                  color: AppColors.verdeOscuro.withValues(alpha: 0.12),
+                ),
                 boxShadow: <BoxShadow>[
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
                 ],
               ),
-              child: const Center(
-                child: Icon(Icons.menu_rounded, color: AppColors.verdeOscuro, size: 22),
+              child: Center(
+                child: Icon(
+                  Icons.menu_rounded,
+                  color: AppColors.verdeOscuro,
+                  size: 22,
+                ),
               ),
             ),
           ),
@@ -959,23 +1519,13 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: <Widget>[
           // Notificaciones: se abre justo debajo de la campana. Por ahora avisa
           // del stock bajo.
-          PopupMenuButton<void>(
+          IconButton(
             tooltip: 'Notificaciones',
             icon: _CampanaConAviso(
               agotados: _alertasStock.where((p) => p.agotado).length,
               hayBajos: _alertasStock.isNotEmpty,
             ),
-            position: PopupMenuPosition.under,
-            color: Colors.white,
-            surfaceTintColor: Colors.transparent,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            itemBuilder: (_) => <PopupMenuEntry<void>>[
-              PopupMenuItem<void>(
-                enabled: false,
-                padding: EdgeInsets.zero,
-                child: _PanelNotificaciones(alertas: _alertasStock),
-              ),
-            ],
+            onPressed: _abrirNotificaciones,
           ),
           IconButton(
             tooltip: 'Cerrar sesión',
@@ -994,15 +1544,19 @@ class _HomeScreenState extends State<HomeScreen> {
       // Tocar en cualquier parte fuera del aviso de error lo cierra.
       body: Listener(
         behavior: HitTestBehavior.translucent,
-        onPointerDown: (_) => ScaffoldMessenger.of(context).hideCurrentSnackBar(),
+        onPointerDown: (_) =>
+            ScaffoldMessenger.of(context).hideCurrentSnackBar(),
         child: RefreshIndicator(
           color: AppColors.verdeOscuro,
-          onRefresh: _cargarResumen,
+          onRefresh: () {
+            ApiClient.vaciarCache();
+            return _cargarResumen();
+          },
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(18, 18, 18, 100),
             children: <Widget>[
-              const _TituloSeccion(texto: 'Resumen de hoy'),
+              _TituloSeccion(texto: 'Resumen de hoy'),
               const SizedBox(height: 12),
               _CuerpoResumen(
                 estado: _estado,
@@ -1018,7 +1572,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 onTapError: _mostrarErrorResumen,
               ),
               const SizedBox(height: 24),
-              const _TituloSeccion(texto: 'Accesos rápidos'),
+              _TituloSeccion(texto: 'Accesos rápidos'),
               const SizedBox(height: 12),
               Row(
                 children: <Widget>[
@@ -1048,7 +1602,7 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _TituloSeccion extends StatelessWidget {
-  const _TituloSeccion({required this.texto});
+  _TituloSeccion({required this.texto});
 
   final String texto;
 
@@ -1056,7 +1610,7 @@ class _TituloSeccion extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       texto,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 15,
         fontWeight: FontWeight.bold,
         color: AppColors.textoPrincipal,
@@ -1067,7 +1621,7 @@ class _TituloSeccion extends StatelessWidget {
 
 /// Los cuatro estados de la vista: cargando, con datos, vacío y error.
 class _CuerpoResumen extends StatelessWidget {
-  const _CuerpoResumen({
+  _CuerpoResumen({
     required this.estado,
     required this.resumen,
     required this.semana,
@@ -1099,7 +1653,7 @@ class _CuerpoResumen extends StatelessWidget {
   Widget build(BuildContext context) {
     switch (estado) {
       case _EstadoResumen.cargando:
-        return const Card(
+        return Card(
           child: Padding(
             padding: EdgeInsets.symmetric(vertical: 32),
             child: Center(
@@ -1121,12 +1675,16 @@ class _CuerpoResumen extends StatelessWidget {
         );
 
       case _EstadoResumen.vacio:
-        return const Card(
+        return Card(
           child: Padding(
             padding: EdgeInsets.all(20),
             child: Column(
               children: <Widget>[
-                Icon(Icons.inbox_outlined, color: AppColors.textoSecundario, size: 40),
+                Icon(
+                  Icons.inbox_outlined,
+                  color: AppColors.textoSecundario,
+                  size: 40,
+                ),
                 SizedBox(height: 10),
                 Text(
                   'Todavía no hay ventas registradas hoy.',
@@ -1153,12 +1711,12 @@ class _CuerpoResumen extends StatelessWidget {
       ),
       child: Row(
         children: <Widget>[
-          const Icon(Icons.cloud_off_rounded, color: AppColors.error, size: 20),
+          Icon(Icons.cloud_off_rounded, color: AppColors.error, size: 20),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               errorMensaje ?? 'No se pudo cargar el resumen.',
-              style: const TextStyle(fontSize: 12.5, color: AppColors.textoPrincipal),
+              style: TextStyle(fontSize: 12.5, color: AppColors.textoPrincipal),
             ),
           ),
           TextButton(onPressed: onReintentar, child: const Text('Reintentar')),
@@ -1192,7 +1750,9 @@ class _CuerpoResumen extends StatelessWidget {
                 Expanded(
                   child: _MetricaResumen(
                     icono: Icons.date_range_rounded,
-                    valor: semana != null ? formatoMoneda.format(semana!.montoTotal) : '—',
+                    valor: semana != null
+                        ? formatoMoneda.format(semana!.montoTotal)
+                        : '—',
                     etiqueta: 'Ventas semanales',
                     onTap: sinDatos ? onTapError : onTapSemanal,
                     mostrarVerDetalle: !sinDatos,
@@ -1206,8 +1766,12 @@ class _CuerpoResumen extends StatelessWidget {
                 Expanded(
                   child: _MetricaResumen(
                     icono: Icons.hourglass_bottom_rounded,
-                    valor: sinDatos ? '—' : formatoMoneda.format(datos.montoCuotasPendientes),
-                    etiqueta: sinDatos ? 'Por cobrar' : 'Por cobrar (${datos.cuotasPendientes})',
+                    valor: sinDatos
+                        ? '—'
+                        : formatoMoneda.format(datos.montoCuotasPendientes),
+                    etiqueta: sinDatos
+                        ? 'Por cobrar'
+                        : 'Por cobrar (${datos.cuotasPendientes})',
                     onTap: sinDatos ? onTapError : onTapPorCobrar,
                     mostrarVerDetalle: !sinDatos,
                   ),
@@ -1232,7 +1796,7 @@ class _CuerpoResumen extends StatelessWidget {
 }
 
 class _MetricaResumen extends StatelessWidget {
-  const _MetricaResumen({
+  _MetricaResumen({
     required this.icono,
     required this.valor,
     required this.etiqueta,
@@ -1284,7 +1848,10 @@ class _MetricaResumen extends StatelessWidget {
                 textAlign: TextAlign.center,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 11, color: AppColors.etiquetaResumen),
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.etiquetaResumen,
+                ),
               ),
               const SizedBox(height: 4),
               if (onTap != null && mostrarVerDetalle)
@@ -1307,7 +1874,11 @@ class _MetricaResumen extends StatelessWidget {
 /// Acceso a un módulo como botón suelto, cuadrado de esquinas redondeadas y de
 /// un solo color.
 class _BotonModulo extends StatelessWidget {
-  const _BotonModulo({required this.icono, required this.titulo, required this.onTap});
+  _BotonModulo({
+    required this.icono,
+    required this.titulo,
+    required this.onTap,
+  });
 
   final IconData icono;
   final String titulo;
@@ -1337,7 +1908,7 @@ class _BotonModulo extends StatelessWidget {
                   titulo,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11.5,
                     fontWeight: FontWeight.w700,
                     color: AppColors.textoModulos,
@@ -1356,7 +1927,7 @@ class _BotonModulo extends StatelessWidget {
 /// Contenido de la hoja "Ventas semanales": resumen de la semana (lunes a
 /// domingo), desglose por día y flechas para ir a semanas anteriores.
 class _HojaVentasSemanales extends StatefulWidget {
-  const _HojaVentasSemanales({
+  _HojaVentasSemanales({
     required this.repositorio,
     required this.token,
     required this.formatoMoneda,
@@ -1485,7 +2056,7 @@ class _HojaVentasSemanalesState extends State<_HojaVentasSemanales> {
       future: _ventasFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Padding(
+          return Padding(
             padding: EdgeInsets.all(16),
             child: Center(
               child: SizedBox(
@@ -1500,7 +2071,7 @@ class _HojaVentasSemanalesState extends State<_HojaVentasSemanales> {
           );
         }
         if (snapshot.hasError) {
-          return const Padding(
+          return Padding(
             padding: EdgeInsets.all(14),
             child: Text(
               'No se pudieron cargar las ventas.',
@@ -1540,7 +2111,7 @@ class _HojaVentasSemanalesState extends State<_HojaVentasSemanales> {
                           children: <Widget>[
                             Text(
                               v.nombreCliente,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.textoPrincipal,
@@ -1553,7 +2124,7 @@ class _HojaVentasSemanalesState extends State<_HojaVentasSemanales> {
                               style: TextStyle(
                                 fontSize: 11,
                                 color: v.tieneSaldoPendiente
-                                    ? const Color(0xFFD97706)
+                                    ? AppColors.acAmbar
                                     : AppColors.textoSecundario,
                               ),
                             ),
@@ -1562,14 +2133,14 @@ class _HojaVentasSemanalesState extends State<_HojaVentasSemanales> {
                       ),
                       Text(
                         widget.formatoMoneda.format(v.montoTotal),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
                           color: AppColors.verdeOscuro,
                         ),
                       ),
                       const SizedBox(width: 4),
-                      const Icon(
+                      Icon(
                         Icons.chevron_right_rounded,
                         size: 18,
                         color: AppColors.textoSecundario,
@@ -1644,7 +2215,7 @@ class _HojaVentasSemanalesState extends State<_HojaVentasSemanales> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: AppColors.borde,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -1656,17 +2227,17 @@ class _HojaVentasSemanalesState extends State<_HojaVentasSemanales> {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE8F4EC),
+                      color: AppColors.tintVerde,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.date_range_rounded,
                       color: AppColors.verdeOscuro,
                       size: 22,
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
@@ -1697,7 +2268,7 @@ class _HojaVentasSemanalesState extends State<_HojaVentasSemanales> {
                 height: 46,
                 padding: const EdgeInsets.symmetric(horizontal: 14),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.tarjeta,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
                     color: AppColors.verdeOscuro.withValues(alpha: 0.25),
@@ -1707,9 +2278,9 @@ class _HojaVentasSemanalesState extends State<_HojaVentasSemanales> {
                   child: DropdownButton<int>(
                     value: _indice,
                     isExpanded: true,
-                    dropdownColor: Colors.white,
+                    dropdownColor: AppColors.tarjeta,
                     borderRadius: BorderRadius.circular(14),
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.keyboard_arrow_down_rounded,
                       color: AppColors.verdeOscuro,
                     ),
@@ -1729,7 +2300,7 @@ class _HojaVentasSemanalesState extends State<_HojaVentasSemanales> {
                           alignment: Alignment.centerLeft,
                           child: Text(
                             o.value,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13.5,
                               fontWeight: FontWeight.w700,
                               color: AppColors.textoPrincipal,
@@ -1753,7 +2324,7 @@ class _HojaVentasSemanalesState extends State<_HojaVentasSemanales> {
                             ),
                           ),
                         ),
-                      const DropdownMenuItem<int>(
+                      DropdownMenuItem<int>(
                         value: _accionElegirFecha,
                         child: Row(
                           children: <Widget>[
@@ -1793,12 +2364,12 @@ class _HojaVentasSemanalesState extends State<_HojaVentasSemanales> {
     bool cargando,
   ) {
     if (cargando) {
-      return const Center(
+      return Center(
         child: CircularProgressIndicator(color: AppColors.verdeOscuro),
       );
     }
     if (snapshot.hasError || semana == null) {
-      return const Center(
+      return Center(
         child: Padding(
           padding: EdgeInsets.all(20),
           child: Text(
@@ -1819,7 +2390,7 @@ class _HojaVentasSemanalesState extends State<_HojaVentasSemanales> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
+            gradient: LinearGradient(
               colors: <Color>[AppColors.verdeOscuro, Color(0xFF2C5E43)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -1884,7 +2455,7 @@ class _HojaVentasSemanalesState extends State<_HojaVentasSemanales> {
           ),
         ),
         const SizedBox(height: 18),
-        const Text(
+        Text(
           'Desglose por día',
           style: TextStyle(
             fontSize: 13,
@@ -1917,7 +2488,7 @@ class _HojaVentasSemanalesState extends State<_HojaVentasSemanales> {
 }
 
 class _FilaDiaSemana extends StatelessWidget {
-  const _FilaDiaSemana({
+  _FilaDiaSemana({
     required this.nombre,
     required this.fecha,
     required this.esHoy,
@@ -1945,7 +2516,7 @@ class _FilaDiaSemana extends StatelessWidget {
   Widget build(BuildContext context) {
     final sinVentas = cantidad == 0;
     return Material(
-      color: esHoy ? const Color(0xFFE8F4EC) : const Color(0xFFF8FAF9),
+      color: esHoy ? AppColors.tintVerde : AppColors.tintNeutro,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
@@ -1963,7 +2534,7 @@ class _FilaDiaSemana extends StatelessWidget {
             // verde; al cerrarlo (o abrir otro día) vuelve a su color normal.
             child: Ink(
               color: abierto
-                  ? (esHoy ? const Color(0xFFDCEFE2) : const Color(0xFFE8F4EC))
+                  ? (esHoy ? AppColors.tintVerdeHoy : AppColors.tintVerde)
                   : null,
               child: Padding(
                 padding: const EdgeInsets.symmetric(
@@ -1990,7 +2561,7 @@ class _FilaDiaSemana extends StatelessWidget {
                             sinVentas
                                 ? fecha
                                 : '$fecha · $cantidad ${cantidad == 1 ? 'venta' : 'ventas'}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
                               color: AppColors.textoSecundario,
                             ),
@@ -2042,7 +2613,7 @@ class _FilaDiaSemana extends StatelessWidget {
 /// contiene. Arriba tiene desplegables de año, mes y día para saltar rápido.
 /// Devuelve el lunes de la semana elegida, o null si se cierra con la X.
 class _SelectorSemanaDialog extends StatefulWidget {
-  const _SelectorSemanaDialog({required this.lunesInicial, required this.hoy});
+  _SelectorSemanaDialog({required this.lunesInicial, required this.hoy});
 
   /// Semana que aparece elegida al abrir.
   final DateTime lunesInicial;
@@ -2177,7 +2748,7 @@ class _SelectorSemanaDialogState extends State<_SelectorSemanaDialog> {
       height: 44,
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.tarjeta,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: AppColors.verdeOscuro.withValues(alpha: 0.25),
@@ -2188,21 +2759,18 @@ class _SelectorSemanaDialogState extends State<_SelectorSemanaDialog> {
           value: value,
           hint: Text(
             hint,
-            style: const TextStyle(
-              fontSize: 13.5,
-              color: AppColors.textoSecundario,
-            ),
+            style: TextStyle(fontSize: 13.5, color: AppColors.textoSecundario),
           ),
           isExpanded: true,
-          dropdownColor: Colors.white,
+          dropdownColor: AppColors.tarjeta,
           borderRadius: BorderRadius.circular(12),
           menuMaxHeight: 300,
-          icon: const Icon(
+          icon: Icon(
             Icons.keyboard_arrow_down_rounded,
             size: 20,
             color: AppColors.verdeOscuro,
           ),
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13.5,
             fontWeight: FontWeight.w700,
             color: AppColors.textoPrincipal,
@@ -2296,7 +2864,7 @@ class _SelectorSemanaDialogState extends State<_SelectorSemanaDialog> {
     final diaEnEsteMes = _dia.year == _mes.year && _dia.month == _mes.month;
 
     return Dialog(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.tarjeta,
       surfaceTintColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -2310,7 +2878,7 @@ class _SelectorSemanaDialogState extends State<_SelectorSemanaDialog> {
             children: <Widget>[
               Row(
                 children: <Widget>[
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
@@ -2414,7 +2982,7 @@ class _SelectorSemanaDialogState extends State<_SelectorSemanaDialog> {
                           child: Text(
                             '${_capitalizada(_mesesLargos[_mes.month - 1])} ${_mes.year}',
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
                               color: AppColors.textoPrincipal,
@@ -2437,7 +3005,7 @@ class _SelectorSemanaDialogState extends State<_SelectorSemanaDialog> {
                             child: Center(
                               child: Text(
                                 letra,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
                                   color: AppColors.textoSecundario,
@@ -2453,7 +3021,7 @@ class _SelectorSemanaDialogState extends State<_SelectorSemanaDialog> {
                     Text(
                       _textoSemana,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w700,
                         color: AppColors.verdeOscuro,
@@ -2479,7 +3047,7 @@ class _SelectorSemanaDialogState extends State<_SelectorSemanaDialog> {
 /// agotados, o solo un punto naranja si hay stock bajo pero ninguno agotado.
 /// Sin alertas, la campana va sola.
 class _CampanaConAviso extends StatelessWidget {
-  const _CampanaConAviso({required this.agotados, required this.hayBajos});
+  _CampanaConAviso({required this.agotados, required this.hayBajos});
 
   final int agotados;
   final bool hayBajos;
@@ -2497,11 +3065,19 @@ class _CampanaConAviso extends StatelessWidget {
             child: Container(
               constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
               padding: const EdgeInsets.symmetric(horizontal: 4),
-              decoration: BoxDecoration(color: AppColors.error, borderRadius: BorderRadius.circular(8)),
+              decoration: BoxDecoration(
+                color: AppColors.error,
+                borderRadius: BorderRadius.circular(8),
+              ),
               child: Center(
                 child: Text(
                   '$agotados',
-                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800, height: 1.2),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    height: 1.2,
+                  ),
                 ),
               ),
             ),
@@ -2513,7 +3089,10 @@ class _CampanaConAviso extends StatelessWidget {
             child: Container(
               width: 9,
               height: 9,
-              decoration: const BoxDecoration(color: Color(0xFFF59E0B), shape: BoxShape.circle),
+              decoration: const BoxDecoration(
+                color: Color(0xFFF59E0B),
+                shape: BoxShape.circle,
+              ),
             ),
           ),
       ],
@@ -2524,91 +3103,143 @@ class _CampanaConAviso extends StatelessWidget {
 /// Lo que muestra la campana al abrirse: el stock bajo, con los agotados
 /// primero, o un mensaje de que todo está en orden.
 class _PanelNotificaciones extends StatelessWidget {
-  const _PanelNotificaciones({required this.alertas});
+  _PanelNotificaciones({required this.alertas, required this.onTapProducto});
 
   final List<ProductoCatalogo> alertas;
+  final ValueChanged<ProductoCatalogo> onTapProducto;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 290,
+      width: double.infinity,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            const Text(
+            Text(
               'Notificaciones',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.textoPrincipal),
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textoPrincipal,
+              ),
             ),
             const SizedBox(height: 12),
             if (alertas.isEmpty)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.symmetric(vertical: 12),
                 child: Center(
                   child: Column(
                     children: <Widget>[
-                      Icon(Icons.check_circle_outline_rounded, size: 40, color: AppColors.verdeSuave),
+                      Icon(
+                        Icons.check_circle_outline_rounded,
+                        size: 40,
+                        color: AppColors.verdeSuave,
+                      ),
                       SizedBox(height: 8),
                       Text(
                         'Todo en orden',
-                        style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: AppColors.textoPrincipal),
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textoPrincipal,
+                        ),
                       ),
                       SizedBox(height: 2),
                       Text(
                         'No hay productos con stock bajo.',
-                        style: TextStyle(fontSize: 12, color: AppColors.textoSecundario),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textoSecundario,
+                        ),
                       ),
                     ],
                   ),
                 ),
               )
             else ...<Widget>[
-              const Text(
-                'STOCK BAJO',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.8, color: AppColors.textoSecundario),
+              Text(
+                'STOCK BAJO · ${alertas.length}',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.8,
+                  color: AppColors.textoSecundario,
+                ),
               ),
               const SizedBox(height: 6),
+              // Se ven 5 filas completas y, si hay más, asoma la mitad de la sexta
+              // para que se note que la lista se desliza.
               ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 300),
+                constraints: const BoxConstraints(maxHeight: 248),
                 child: SingleChildScrollView(
                   child: Column(
                     children: <Widget>[
-                      for (final p in alertas)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 7),
-                          child: Row(
-                            children: <Widget>[
-                              Container(
-                                width: 9,
-                                height: 9,
-                                decoration: BoxDecoration(
-                                  color: p.agotado ? AppColors.error : const Color(0xFFF59E0B),
-                                  shape: BoxShape.circle,
+                      for (var i = 0; i < alertas.length; i++) ...<Widget>[
+                        if (i > 0)
+                          const Divider(
+                            height: 1,
+                            thickness: 1,
+                            color: Color(0x14000000),
+                          ),
+                        InkWell(
+                          onTap: () => onTapProducto(alertas[i]),
+                          borderRadius: BorderRadius.circular(10),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 12,
+                              horizontal: 4,
+                            ),
+                            child: Row(
+                              children: <Widget>[
+                                Container(
+                                  width: 9,
+                                  height: 9,
+                                  decoration: BoxDecoration(
+                                    color: alertas[i].agotado
+                                        ? AppColors.error
+                                        : const Color(0xFFF59E0B),
+                                    shape: BoxShape.circle,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  p.nombre,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textoPrincipal),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    alertas[i].nombre,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.textoPrincipal,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                p.agotado ? 'Agotado' : 'Quedan ${p.cantidadDisponible}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: p.agotado ? AppColors.error : const Color(0xFFD97706),
+                                const SizedBox(width: 8),
+                                Text(
+                                  alertas[i].agotado
+                                      ? 'Agotado'
+                                      : 'Quedan ${alertas[i].cantidadDisponible}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: alertas[i].agotado
+                                        ? AppColors.error
+                                        : AppColors.acAmbar,
+                                  ),
                                 ),
-                              ),
-                            ],
+                                Icon(
+                                  Icons.chevron_right_rounded,
+                                  size: 20,
+                                  color: AppColors.textoSecundario,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
+                      ],
                     ],
                   ),
                 ),

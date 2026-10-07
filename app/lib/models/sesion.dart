@@ -25,7 +25,7 @@ class Sesion {
   }
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'token': token,
-        'usuario': usuario.toJson(),
-      };
+    'token': token,
+    'usuario': usuario.toJson(),
+  };
 }

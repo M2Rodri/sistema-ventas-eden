@@ -3,6 +3,7 @@ package com.mitienda.ecommerce.dto;
 import com.mitienda.ecommerce.models.EstadoEntrega;
 import com.mitienda.ecommerce.models.MetodoPago;
 import com.mitienda.ecommerce.models.ModalidadEntrega;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -11,6 +12,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;  // ← ESTA LÍNEA FALTABA
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -53,6 +55,22 @@ public class VentaRequest {
      * a la venta a crédito).
      */
     private BigDecimal montoPagado;
+
+    /**
+     * Hasta cuándo se espera el pago del saldo pendiente (yyyy-MM-dd).
+     * Opcional: solo se guarda si la venta queda con saldo pendiente y no
+     * puede ser anterior a hoy.
+     */
+    private LocalDate fechaLimitePago;
+
+    /**
+     * Alternativa a fechaLimitePago: "dentro de N días". El servidor calcula la
+     * fecha con su propio reloj (no depende de la hora del teléfono ni del
+     * navegador). Si vienen las dos, manda este.
+     */
+    @Min(value = 1, message = "El plazo debe ser de al menos 1 día")
+    @Max(value = 365, message = "El plazo no puede superar 365 días")
+    private Integer plazoDiasPago;
 
     /**
      * Modalidad de entrega. Opcional: si no viene, se asume RETIRO (el

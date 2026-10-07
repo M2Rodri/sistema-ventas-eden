@@ -1,9 +1,11 @@
 'use client';
 
+import { formatearFechaLimite } from '@/lib/fechaLimite';
+
 import React, { useState, useEffect } from 'react';
 import { X, User, Calendar, CreditCard, Package, AlertCircle, FileText, Upload, Image as ImageIcon, Banknote, Truck } from 'lucide-react';
 import { Venta, Pago, EstadoEntrega, EstadoVenta, ModalidadEntrega } from '@/types/venta';
-import { adjuntarComprobantePago, marcarVentaEntregada, urlArchivo } from '@/lib/api';
+import { actualizarFechaLimitePago, adjuntarComprobantePago, marcarVentaEntregada, urlArchivo } from '@/lib/api';
 import { ACCEPT_COMPROBANTE, archivoDeEventoSoltar, errorDeComprobante, imagenDelPortapapeles, TEXTO_FORMATOS_COMPROBANTE, urlEsPdf } from '@/lib/comprobanteImagen';
 import {
   CORREGIR_ENTREGA_ACTIVO,
@@ -44,6 +46,24 @@ export default function DetalleVentaModal({
   const [showEditarEntregaModal, setShowEditarEntregaModal] = useState(false);
   const [entregaError, setEntregaError] = useState<string | null>(null);
   const [entregaProcesando, setEntregaProcesando] = useState(false);
+  const [guardandoFecha, setGuardandoFecha] = useState(false);
+  const [errorFecha, setErrorFecha] = useState<string | null>(null);
+
+  // Poner o cambiar la fecha límite del pago pendiente. Los botones mandan los
+  // días (el servidor calcula la fecha con su reloj); el calendario, la fecha.
+  const guardarFechaLimite = async (datos: { plazoDiasPago?: number; fechaLimitePago?: string }) => {
+    setErrorFecha(null);
+    setGuardandoFecha(true);
+    try {
+      const actualizada = await actualizarFechaLimitePago(venta.id, datos);
+      onVentaActualizada?.(actualizada);
+      onUpdated?.();
+    } catch (e: any) {
+      setErrorFecha(e?.message ?? 'No se pudo guardar la fecha límite');
+    } finally {
+      setGuardandoFecha(false);
+    }
+  };
   const [pagosState, setPagosState] = useState<Pago[]>(venta.pagos);
   const [subiendoId, setSubiendoId] = useState<number | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -449,6 +469,49 @@ export default function DetalleVentaModal({
                 <div className="flex justify-between items-center mt-1">
                   <span className="text-sm font-medium text-gray-700">Saldo pendiente:</span>
                   <span className="text-base font-bold text-red-600">{formatPrice(venta.saldoPendiente ?? 0)}</span>
+                </div>
+              )}
+              {hayDeuda && (
+                <div className="mt-2 pt-2 border-t border-blue-200">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-gray-700">Fecha límite:</span>
+                    <span
+                      className={`text-sm font-semibold ${
+                        venta.fechaLimiteVencida ? 'text-red-600' : 'text-gray-900'
+                      }`}
+                    >
+                      {venta.fechaLimitePago
+                        ? `${formatearFechaLimite(venta.fechaLimitePago)}${venta.fechaLimiteVencida ? ' (vencida)' : ''}`
+                        : 'Sin fecha'}
+                    </span>
+                  </div>
+                  {/* Solo para ponerla si se olvidó; con fecha ya puesta no se muestra nada. */}
+                  {!venta.fechaLimitePago && (
+                    <div className="flex flex-wrap items-center gap-2 mt-2">
+                      <span className="text-xs text-gray-500">
+                        Poner fecha:
+                      </span>
+                      {[7, 15, 30].map((dias) => (
+                        <button
+                          key={dias}
+                          type="button"
+                          disabled={guardandoFecha}
+                          onClick={() => guardarFechaLimite({ plazoDiasPago: dias })}
+                          className="px-3 py-1 text-xs rounded-lg border border-gray-300 text-gray-700 hover:bg-white font-medium disabled:opacity-50"
+                        >
+                          {dias} días
+                        </button>
+                      ))}
+                      <input
+                        type="date"
+                        disabled={guardandoFecha}
+                        value=""
+                        onChange={(e) => e.target.value && guardarFechaLimite({ fechaLimitePago: e.target.value })}
+                        className="px-2 py-1 text-sm border border-gray-300 rounded-lg disabled:opacity-50"
+                      />
+                    </div>
+                  )}
+                  {errorFecha && <p className="text-xs text-red-600 mt-1">{errorFecha}</p>}
                 </div>
               )}
             </div>

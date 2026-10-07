@@ -1,5 +1,7 @@
 'use client';
 
+import { formatearFechaLimite } from '@/lib/fechaLimite';
+
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDragScrollTable } from '@/hooks/useDragScrollTable';
@@ -481,6 +483,11 @@ export default function VentasPage() {
                       {venta.estado === EstadoVenta.PENDIENTE_PAGO && (venta.saldoPendiente ?? 0) > 0 && (
                         <div className="text-xs text-gray-500">
                           Cobrado Bs. {(venta.montoTotal - (venta.saldoPendiente ?? 0)).toFixed(2)}
+                        </div>
+                      )}
+                      {venta.estado === EstadoVenta.PENDIENTE_PAGO && venta.fechaLimitePago && (venta.saldoPendiente ?? 0) > 0 && (
+                        <div className={`text-xs ${venta.fechaLimiteVencida ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
+                          Vence {formatearFechaLimite(venta.fechaLimitePago)}
                         </div>
                       )}
                     </td>

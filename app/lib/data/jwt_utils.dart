@@ -10,10 +10,12 @@ bool tokenExpirado(String token) {
 
   try {
     final payloadNormalizado = base64Url.normalize(partes[1]);
-    final payload = jsonDecode(utf8.decode(base64Url.decode(payloadNormalizado)))
-        as Map<String, dynamic>;
+    final payload =
+        jsonDecode(utf8.decode(base64Url.decode(payloadNormalizado)))
+            as Map<String, dynamic>;
     final exp = payload['exp'];
-    if (exp is! int) return false; // sin campo exp, no hay como saber: se deja pasar
+    if (exp is! int)
+      return false; // sin campo exp, no hay como saber: se deja pasar
 
     final expiracion = DateTime.fromMillisecondsSinceEpoch(exp * 1000);
     return DateTime.now().isAfter(expiracion);

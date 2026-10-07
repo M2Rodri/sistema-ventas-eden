@@ -4,7 +4,11 @@
 /// Los nombres siguen a los del backend tal cual. Cuenta solo ventas
 /// COMPLETADA, igual que la tarjeta "Ventas hoy".
 class VentaPorDia {
-  const VentaPorDia({required this.fecha, required this.cantidadVentas, required this.montoTotal});
+  const VentaPorDia({
+    required this.fecha,
+    required this.cantidadVentas,
+    required this.montoTotal,
+  });
 
   final DateTime fecha;
   final int cantidadVentas;
@@ -47,7 +51,9 @@ class VentasSemanal {
       esSemanaActual: json['esSemanaActual'] as bool? ?? false,
       totalVentas: (json['totalVentas'] as num?)?.toInt() ?? 0,
       montoTotal: (json['montoTotal'] as num?)?.toDouble() ?? 0.0,
-      ventasPorDia: porDia.map((d) => VentaPorDia.fromJson(d as Map<String, dynamic>)).toList(),
+      ventasPorDia: porDia
+          .map((d) => VentaPorDia.fromJson(d as Map<String, dynamic>))
+          .toList(),
     );
   }
 }

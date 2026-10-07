@@ -5,7 +5,7 @@ import '../../theme/app_colors.dart';
 
 /// Acerca de la app: nombre, versión y qué es. Nada más, es para el dueño.
 class AcercaScreen extends StatelessWidget {
-  const AcercaScreen({super.key});
+  AcercaScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -32,13 +32,20 @@ class AcercaScreen extends StatelessWidget {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(26),
-                  child: Image.asset('assets/images/logo_app.png', fit: BoxFit.cover),
+                  child: Image.asset(
+                    'assets/images/logo_app.png',
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
-              const Text(
+              Text(
                 'Mueblería Edén',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textoPrincipal),
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textoPrincipal,
+                ),
               ),
               const SizedBox(height: 4),
               FutureBuilder<PackageInfo>(
@@ -47,15 +54,22 @@ class AcercaScreen extends StatelessWidget {
                   final info = snapshot.data;
                   return Text(
                     info == null ? ' ' : 'Versión ${info.version}',
-                    style: const TextStyle(fontSize: 13.5, color: AppColors.textoSecundario),
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      color: AppColors.textoSecundario,
+                    ),
                   );
                 },
               ),
               const SizedBox(height: 24),
-              const Text(
+              Text(
                 'Sistema de ventas para registrar ventas, cobros y entregas.',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, height: 1.4, color: AppColors.textoPrincipal),
+                style: TextStyle(
+                  fontSize: 14,
+                  height: 1.4,
+                  color: AppColors.textoPrincipal,
+                ),
               ),
             ],
           ),

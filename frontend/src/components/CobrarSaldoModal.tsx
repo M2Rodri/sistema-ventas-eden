@@ -5,6 +5,7 @@ import { X, AlertCircle, Banknote, Upload } from "lucide-react";
 import { registrarPago, adjuntarComprobantePago } from "@/lib/api";
 import { PagoRequest, MetodoPago } from "@/types/pago";
 import { Venta } from "@/types/venta";
+import { formatearFechaLimite } from "@/lib/fechaLimite";
 
 interface CobrarSaldoModalProps {
   venta: Venta;
@@ -120,6 +121,19 @@ export default function CobrarSaldoModal({
                 {formatCurrency(saldoPendiente)}
               </span>
             </div>
+            {venta.fechaLimitePago && (
+              <div className="flex justify-between mt-1">
+                <span className="text-gray-600">Fecha límite:</span>
+                <span
+                  className={`font-semibold ${
+                    venta.fechaLimiteVencida ? "text-red-600" : "text-gray-900"
+                  }`}
+                >
+                  {formatearFechaLimite(venta.fechaLimitePago)}
+                  {venta.fechaLimiteVencida ? " (vencida)" : ""}
+                </span>
+              </div>
+            )}
           </div>
 
           <div>

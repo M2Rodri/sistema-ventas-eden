@@ -12,7 +12,7 @@ const bool corregirEntregaActivo = false;
 Color colorEstadoEntrega(EstadoEntrega estado) {
   switch (estado) {
     case EstadoEntrega.pendiente:
-      return const Color(0xFF7C3AED);
+      return AppColors.acVioleta;
     case EstadoEntrega.entregado:
       return AppColors.verdeSuave;
   }

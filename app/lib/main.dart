@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'data/api_client.dart';
 import 'data/auth_repository.dart';
+import 'data/precarga_datos.dart';
 import 'data/tema_service.dart';
 import 'screens/bloqueo/bloqueo_biometrico.dart';
 import 'screens/home/home_screen.dart';
@@ -18,7 +19,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await TemaService().cargar();
   ApiClient.alVencerSesion = _alVencerLaSesion;
-  runApp(const MuebleriaEdenApp());
+  ApiClient.precargar = PrecargaDatos.precargar;
+  runApp(MuebleriaEdenApp());
 }
 
 /// Una petición con sesión recibió 401: se borra la sesión guardada y se lleva
@@ -32,7 +34,7 @@ Future<void> _alVencerLaSesion() async {
 }
 
 class MuebleriaEdenApp extends StatelessWidget {
-  const MuebleriaEdenApp({super.key});
+  MuebleriaEdenApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -50,7 +52,7 @@ class MuebleriaEdenApp extends StatelessWidget {
             navigatorKey: navigatorKey,
             child: child ?? const SizedBox.shrink(),
           ),
-          home: const _Arranque(),
+          home: _Arranque(),
         );
       },
     );
@@ -61,7 +63,7 @@ class MuebleriaEdenApp extends StatelessWidget {
 /// token todavía no venció, entra directo a la pantalla principal (sin
 /// pasar por el formulario de login); si no, muestra el login.
 class _Arranque extends StatefulWidget {
-  const _Arranque();
+  _Arranque();
 
   @override
   State<_Arranque> createState() => _ArranqueState();
@@ -97,7 +99,9 @@ class _ArranqueState extends State<_Arranque> {
           builder: (routeContext) => LoginScreen(
             onSesionIniciada: (sesion) {
               Navigator.of(routeContext).pushReplacement(
-                MaterialPageRoute<void>(builder: (_) => HomeScreen(sesion: sesion)),
+                MaterialPageRoute<void>(
+                  builder: (_) => HomeScreen(sesion: sesion),
+                ),
               );
             },
           ),
@@ -108,9 +112,9 @@ class _ArranqueState extends State<_Arranque> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: AppColors.verdeOscuro,
-      body: Center(child: CircularProgressIndicator(color: Colors.white)),
-    );
+    // Solo el verde de la marca, igual al de la pantalla de entrada de Android
+    // y al fondo del login: así no aparece una pantalla intermedia con el logo
+    // o con un indicador de carga antes del login.
+    return Scaffold(backgroundColor: AppColors.verdeOscuro);
   }
 }

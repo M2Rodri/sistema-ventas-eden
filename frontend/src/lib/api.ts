@@ -858,6 +858,28 @@ export const marcarVentaEntregada = async (id: number): Promise<Venta> => {
 };
 
 /**
+ * Poner o cambiar la fecha límite del pago pendiente de una venta (ADMIN y
+ * EMPLEADO). Se manda una de las dos: los días (el servidor calcula la fecha
+ * con su reloj) o una fecha exacta yyyy-MM-dd.
+ */
+export const actualizarFechaLimitePago = async (
+  id: number,
+  datos: { plazoDiasPago?: number; fechaLimitePago?: string },
+): Promise<Venta> => {
+  const response = await fetch(`${API_URL}/ventas/${id}/fecha-limite-pago`, {
+    method: 'PATCH',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(datos),
+  });
+
+  if (!response.ok) {
+    throw await errorDeRespuesta(response, 'Error al guardar la fecha límite');
+  }
+
+  return response.json();
+};
+
+/**
  * Corregir una entrega marcada por error: ENTREGADO -> PENDIENTE (solo ADMIN).
  */
 export const deshacerEntregaVenta = async (id: number): Promise<Venta> => {

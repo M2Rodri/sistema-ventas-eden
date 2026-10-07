@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Logo de la pantalla de entrada. Android 12+ lo recorta en un círculo de
-     192 dp sobre un lienzo de 288 dp: a 160 dp el logo entra entero y se ve grande. -->
+<!-- Android 12+ recorta el ícono de entrada en un círculo de 192 dp: el logo
+     (con su fondo redondeado) a 150 dp entra sin que se corten las esquinas. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item
-        android:width="160dp"
-        android:height="160dp"
+        android:width="150dp"
+        android:height="150dp"
         android:gravity="center">
         <bitmap
             android:gravity="fill"

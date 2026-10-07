@@ -13,6 +13,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -80,6 +81,10 @@ public class Venta {
     /** Lo que falta cobrar: montoTotal menos la suma de los pagos completados. */
     @Column(precision = 10, scale = 2)
     private BigDecimal saldoPendiente = BigDecimal.ZERO;
+
+    /** Hasta cuándo se espera el pago del saldo pendiente. Opcional. */
+    @Column(name = "fecha_limite_pago")
+    private LocalDate fechaLimitePago;
 
     @Enumerated(EnumType.STRING)
     @Column(length = 20)

@@ -12,7 +12,11 @@ import '../login/login_navegacion.dart';
 ///   - al volver de segundo plano después de más de [_tiempoDeGracia] fuera
 ///     (el minuto cubre sacar la foto de un comprobante o atender una llamada).
 class BloqueoBiometrico extends StatefulWidget {
-  const BloqueoBiometrico({super.key, required this.child, required this.navigatorKey});
+  BloqueoBiometrico({
+    super.key,
+    required this.child,
+    required this.navigatorKey,
+  });
 
   final Widget child;
   final GlobalKey<NavigatorState> navigatorKey;
@@ -21,7 +25,8 @@ class BloqueoBiometrico extends StatefulWidget {
   State<BloqueoBiometrico> createState() => _BloqueoBiometricoState();
 }
 
-class _BloqueoBiometricoState extends State<BloqueoBiometrico> with WidgetsBindingObserver {
+class _BloqueoBiometricoState extends State<BloqueoBiometrico>
+    with WidgetsBindingObserver {
   static const _tiempoDeGracia = Duration(minutes: 1);
 
   final _biometria = BiometriaService();
@@ -114,22 +119,33 @@ class _BloqueoBiometricoState extends State<BloqueoBiometrico> with WidgetsBindi
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: <Widget>[
-                              const Icon(Icons.lock_outline_rounded, size: 56, color: Colors.white),
+                              const Icon(
+                                Icons.lock_outline_rounded,
+                                size: 56,
+                                color: Colors.white,
+                              ),
                               const SizedBox(height: 16),
                               const Text(
                                 'Mueblería Edén',
-                                style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800),
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w800,
+                                ),
                               ),
                               const SizedBox(height: 8),
                               Text(
                                 'Usa tu huella para continuar',
                                 textAlign: TextAlign.center,
-                                style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 14),
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.8),
+                                  fontSize: 14,
+                                ),
                               ),
                               const SizedBox(height: 28),
                               FilledButton.icon(
                                 style: FilledButton.styleFrom(
-                                  backgroundColor: Colors.white,
+                                  backgroundColor: AppColors.tarjeta,
                                   foregroundColor: AppColors.verdeOscuro,
                                 ),
                                 onPressed: _pedirHuella,
@@ -138,7 +154,9 @@ class _BloqueoBiometricoState extends State<BloqueoBiometrico> with WidgetsBindi
                               ),
                               const SizedBox(height: 12),
                               TextButton(
-                                style: TextButton.styleFrom(foregroundColor: Colors.white70),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: Colors.white70,
+                                ),
                                 onPressed: _cerrarSesion,
                                 child: const Text('Cerrar sesión'),
                               ),

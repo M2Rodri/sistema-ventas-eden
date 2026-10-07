@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { formatearFechaLimite, sumarDiasISO } from "@/lib/fechaLimite";
 import {
   X,
   AlertCircle,
@@ -153,6 +154,9 @@ export default function RegistrarVentaModal({
     return () => document.removeEventListener("paste", alPegar);
   }, [pidePegarComprobante]);
   const [saldoPendienteHabilitado, setSaldoPendienteHabilitado] = useState(false);
+  const [fechaLimitePago, setFechaLimitePago] = useState("");
+  // Si se usó un botón rápido, se manda el plazo en días (el servidor calcula la fecha).
+  const [plazoDiasPago, setPlazoDiasPago] = useState<number | null>(null);
   const [clientes, setClientes] = useState<any[]>([]);
 
   // Estado
@@ -506,6 +510,17 @@ export default function RegistrarVentaModal({
         referenciaPago: pagos[0].referencia || undefined,
         items,
         montoPagado,
+        // Solo cuenta si la venta queda con saldo pendiente.
+        // Solo cuenta si la venta queda con saldo pendiente. Los botones mandan
+        // los días; el calendario, la fecha. El servidor valida con su reloj.
+        plazoDiasPago:
+          saldoPendienteHabilitado && totalVenta - montoPagado > 0 && plazoDiasPago
+            ? plazoDiasPago
+            : undefined,
+        fechaLimitePago:
+          saldoPendienteHabilitado && totalVenta - montoPagado > 0 && !plazoDiasPago && fechaLimitePago
+            ? fechaLimitePago
+            : undefined,
         modalidadEntrega,
         // En tienda el backend lo deja entregado por su cuenta.
         estadoEntrega:
@@ -591,6 +606,8 @@ export default function RegistrarVentaModal({
     setCiudad("");
     setTransportadora("");
     setGuiaRemision("");
+    setFechaLimitePago("");
+    setPlazoDiasPago(null);
     setError(null);
     setPaso(1);
     setPagos([{ metodo: MetodoPago.EFECTIVO, monto: 0, referencia: "" }]);
@@ -1082,6 +1099,8 @@ export default function RegistrarVentaModal({
                           type="button"
                           onClick={() => {
                             setSaldoPendienteHabilitado(false);
+                            setFechaLimitePago("");
+                            setPlazoDiasPago(null);
                             const nuevos = [...pagos];
                             nuevos[0] = { ...nuevos[0], monto: totalVenta };
                             setPagos(nuevos);
@@ -1242,6 +1261,58 @@ export default function RegistrarVentaModal({
                   >
                     Bs. {redondear(totalVenta - montoPagado).toFixed(2)}
                   </span>
+                </div>
+              )}
+              {saldoPendienteHabilitado && totalVenta - montoPagado > 0 && (
+                <div className="mt-3 pt-3 border-t border-gray-200">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Fecha límite de pago
+                  </label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {[7, 15, 30].map((dias) => (
+                      <button
+                        key={dias}
+                        type="button"
+                        onClick={() => {
+                          setPlazoDiasPago(dias);
+                          setFechaLimitePago(sumarDiasISO(dias));
+                        }}
+                        className={`px-3 py-1 text-xs rounded-lg border font-medium transition-colors ${
+                          plazoDiasPago === dias
+                            ? "bg-blue-600 text-white border-blue-600"
+                            : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                        }`}
+                      >
+                        {dias} días
+                      </button>
+                    ))}
+                    <input
+                      type="date"
+                      value={plazoDiasPago ? "" : fechaLimitePago}
+                      onChange={(e) => {
+                        setPlazoDiasPago(null);
+                        setFechaLimitePago(e.target.value);
+                      }}
+                      className="px-2 py-1 text-sm border border-gray-300 rounded-lg"
+                    />
+                    {fechaLimitePago && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFechaLimitePago("");
+                          setPlazoDiasPago(null);
+                        }}
+                        className="text-red-500 hover:text-red-700 text-xs"
+                      >
+                        Quitar
+                      </button>
+                    )}
+                  </div>
+                  {plazoDiasPago && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Dentro de {plazoDiasPago} días (aprox. {formatearFechaLimite(fechaLimitePago)}); el servidor calcula la fecha exacta.
+                    </p>
+                  )}
                 </div>
               )}
             </div>

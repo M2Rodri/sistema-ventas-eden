@@ -204,6 +204,8 @@ export interface VentaPendienteReporte {
   montoTotal: number;
   saldoPendiente: number;
   diasTranscurridos: number;
+  fechaLimitePago: string | null;
+  fechaLimiteVencida: boolean;
 }
 
 export interface ReporteCuentasPorCobrar {

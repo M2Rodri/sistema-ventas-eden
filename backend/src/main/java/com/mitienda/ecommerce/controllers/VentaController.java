@@ -3,6 +3,7 @@ package com.mitienda.ecommerce.controllers;
 import com.mitienda.ecommerce.exception.PeticionInvalidaException;
 import com.mitienda.ecommerce.dto.ComprobanteRequest;
 import com.mitienda.ecommerce.dto.DatosEntregaRequest;
+import com.mitienda.ecommerce.dto.FechaLimitePagoRequest;
 import com.mitienda.ecommerce.dto.VentaRequest;
 import com.mitienda.ecommerce.dto.VentaResponse;
 import com.mitienda.ecommerce.models.EstadoVenta;
@@ -136,6 +137,17 @@ public class VentaController {
     public ResponseEntity<?> actualizarDatosEntrega(@PathVariable Long id,
                                                     @Valid @RequestBody DatosEntregaRequest request) {
         VentaResponse venta = ventaService.actualizarDatosEntrega(id, request);
+        return ResponseEntity.ok(venta);
+    }
+
+    /**
+     * PATCH /api/v1/ventas/{id}/fecha-limite-pago
+     * Poner o cambiar hasta cuándo se espera el pago pendiente (ADMIN y EMPLEADO).
+     */
+    @PatchMapping("/{id}/fecha-limite-pago")
+    public ResponseEntity<?> actualizarFechaLimitePago(@PathVariable Long id,
+                                                       @Valid @RequestBody FechaLimitePagoRequest request) {
+        VentaResponse venta = ventaService.actualizarFechaLimitePago(id, request);
         return ResponseEntity.ok(venta);
     }
 

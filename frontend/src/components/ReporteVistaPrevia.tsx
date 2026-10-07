@@ -1,4 +1,6 @@
 'use client';
+
+import { formatearFechaLimite } from '@/lib/fechaLimite';
 import { useState, useEffect } from 'react';
 import { ArrowLeft, Loader2, Printer, TrendingUp } from 'lucide-react';
 import { TipoReporte } from '@/types/reporte';
@@ -789,6 +791,7 @@ export default function ReporteVistaPrevia({
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Monto Total</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Saldo Pendiente</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Días</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vence</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -808,6 +811,9 @@ export default function ReporteVistaPrevia({
                         venta.diasTranscurridos > 30 ? 'text-red-600' : 'text-gray-700'
                       }`}>
                         {venta.diasTranscurridos}
+                      </td>
+                      <td className={`px-4 py-3 text-sm ${venta.fechaLimiteVencida ? 'font-semibold text-red-600' : 'text-gray-700'}`}>
+                        {formatearFechaLimite(venta.fechaLimitePago) || '—'}
                       </td>
                     </tr>
                   ))}

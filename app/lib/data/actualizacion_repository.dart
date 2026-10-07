@@ -75,8 +75,8 @@ class ActualizacionException implements Exception {
 /// actualiza si el APK nuevo está firmado con la misma llave que el instalado.
 class ActualizacionRepository {
   ActualizacionRepository({http.Client? cliente, String? urlVersion})
-      : _cliente = cliente ?? http.Client(),
-        _urlVersion = urlVersion ?? ApiConfig.actualizacionUrl;
+    : _cliente = cliente ?? http.Client(),
+      _urlVersion = urlVersion ?? ApiConfig.actualizacionUrl;
 
   final http.Client _cliente;
   final String _urlVersion;
@@ -93,12 +93,17 @@ class ActualizacionRepository {
   Future<RespuestaBusqueda> buscar() async {
     try {
       final respuesta = await _cliente
-          .get(Uri.parse(_urlVersion), headers: <String, String>{'Cache-Control': 'no-cache'})
+          .get(
+            Uri.parse(_urlVersion),
+            headers: <String, String>{'Cache-Control': 'no-cache'},
+          )
           .timeout(const Duration(seconds: 10));
       if (respuesta.statusCode != 200) {
         return const RespuestaBusqueda(ResultadoBusqueda.sinConexion);
       }
-      final publicada = InfoVersion.fromJson(jsonDecode(utf8.decode(respuesta.bodyBytes)) as Map<String, dynamic>);
+      final publicada = InfoVersion.fromJson(
+        jsonDecode(utf8.decode(respuesta.bodyBytes)) as Map<String, dynamic>,
+      );
       final instalada = await versionInstalada();
       return hayVersionNueva(publicada.versionCode, instalada)
           ? RespuestaBusqueda(ResultadoBusqueda.hayNueva, version: publicada)
@@ -110,15 +115,24 @@ class ActualizacionRepository {
 
   /// Descarga el APK a una carpeta temporal, avisando el avance (0 a 1), y
   /// comprueba su huella si version.json la trae. Devuelve el archivo.
-  Future<File> descargar(InfoVersion version, {void Function(double avance)? alAvanzar}) async {
+  Future<File> descargar(
+    InfoVersion version, {
+    void Function(double avance)? alAvanzar,
+  }) async {
     final carpeta = await getTemporaryDirectory();
-    final archivo = File('${carpeta.path}/muebleria-eden-${version.versionName}.apk');
+    final archivo = File(
+      '${carpeta.path}/muebleria-eden-${version.versionName}.apk',
+    );
     if (await archivo.exists()) await archivo.delete();
 
     final pedido = http.Request('GET', Uri.parse(version.apkUrl));
-    final respuesta = await _cliente.send(pedido).timeout(const Duration(seconds: 30));
+    final respuesta = await _cliente
+        .send(pedido)
+        .timeout(const Duration(seconds: 30));
     if (respuesta.statusCode != 200) {
-      throw const ActualizacionException('No se pudo descargar la actualización. Intenta de nuevo más tarde.');
+      throw const ActualizacionException(
+        'No se pudo descargar la actualización. Intenta de nuevo más tarde.',
+      );
     }
 
     final total = respuesta.contentLength ?? version.tamanoBytes ?? 0;
@@ -134,18 +148,28 @@ class ActualizacionRepository {
       await salida.close();
     }
 
-    if (!coincideHuella(version.sha256, await sha256.bind(archivo.openRead()).first)) {
+    if (!coincideHuella(
+      version.sha256,
+      await sha256.bind(archivo.openRead()).first,
+    )) {
       await archivo.delete();
-      throw const ActualizacionException('La descarga llegó dañada. Intenta de nuevo.');
+      throw const ActualizacionException(
+        'La descarga llegó dañada. Intenta de nuevo.',
+      );
     }
     return archivo;
   }
 
   /// Abre el instalador de Android con el APK descargado.
   Future<void> instalar(File apk) async {
-    final resultado = await OpenFilex.open(apk.path, type: 'application/vnd.android.package-archive');
+    final resultado = await OpenFilex.open(
+      apk.path,
+      type: 'application/vnd.android.package-archive',
+    );
     if (resultado.type != ResultType.done) {
-      throw ActualizacionException('No se pudo abrir el instalador: ${resultado.message}');
+      throw ActualizacionException(
+        'No se pudo abrir el instalador: ${resultado.message}',
+      );
     }
   }
 }
@@ -155,4 +179,6 @@ bool hayVersionNueva(int publicada, int instalada) => publicada > instalada;
 
 /// Sin huella publicada no hay nada que comparar; con huella, tiene que coincidir.
 bool coincideHuella(String? esperada, Digest calculada) =>
-    esperada == null || esperada.isEmpty || esperada.toLowerCase() == calculada.toString();
+    esperada == null ||
+    esperada.isEmpty ||
+    esperada.toLowerCase() == calculada.toString();

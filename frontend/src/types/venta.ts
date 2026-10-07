@@ -62,6 +62,11 @@ export interface VentaRequest {
   // Monto efectivamente cobrado. Si no viene, el backend asume pago total.
   montoPagado?: number;
 
+  // Hasta cuándo se espera el pago del saldo pendiente (yyyy-MM-dd). Opcional.
+  fechaLimitePago?: string;
+  // Alternativa: "dentro de N días". El servidor calcula la fecha con su reloj.
+  plazoDiasPago?: number;
+
   // Entrega. Si no viene, el backend asume RETIRO.
   modalidadEntrega?: ModalidadEntrega;
   // Estado con el que se registra. Si no viene queda PENDIENTE (RETIRO siempre
@@ -118,6 +123,9 @@ export interface Venta {
   descuento?: number;
   montoTotal: number;
   saldoPendiente?: number;
+  fechaLimitePago?: string | null;
+  // La calcula el servidor con su reloj: hay pago pendiente y la fecha ya pasó.
+  fechaLimiteVencida?: boolean;
 
   estado: EstadoVenta;
 

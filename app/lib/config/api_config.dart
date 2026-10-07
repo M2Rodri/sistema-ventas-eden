@@ -18,6 +18,7 @@ class ApiConfig {
   /// público de Supabase Storage. Ver scripts/publicar-apk.mjs.
   static const String actualizacionUrl = String.fromEnvironment(
     'UPDATE_URL',
-    defaultValue: 'https://lcipybfksedtqrwgothl.supabase.co/storage/v1/object/public/app/version.json',
+    defaultValue:
+        'https://lcipybfksedtqrwgothl.supabase.co/storage/v1/object/public/app/version.json',
   );
 }

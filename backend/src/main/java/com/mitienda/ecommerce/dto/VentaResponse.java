@@ -9,6 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -30,6 +31,13 @@ public class VentaResponse {
     private BigDecimal descuento;
     private BigDecimal montoTotal;
     private BigDecimal saldoPendiente;
+    private LocalDate fechaLimitePago;
+
+    /**
+     * Calculado por el servidor con SU reloj: hay pago pendiente y la fecha límite
+     * ya pasó (el mismo día todavía no cuenta). La web y la app solo lo muestran.
+     */
+    private Boolean fechaLimiteVencida;
 
     private EstadoVenta estado;
 
@@ -79,6 +87,12 @@ public class VentaResponse {
         this.descuento = venta.getDescuento();
         this.montoTotal = venta.getMontoTotal();
         this.saldoPendiente = venta.getSaldoPendiente();
+        this.fechaLimitePago = venta.getFechaLimitePago();
+        this.fechaLimiteVencida = venta.getFechaLimitePago() != null
+                && venta.getEstado() == EstadoVenta.PENDIENTE_PAGO
+                && venta.getSaldoPendiente() != null
+                && venta.getSaldoPendiente().compareTo(java.math.BigDecimal.ZERO) > 0
+                && venta.getFechaLimitePago().isBefore(LocalDate.now());
         this.estado = venta.getEstado();
 
         this.modalidadEntrega = venta.getModalidadEntrega();

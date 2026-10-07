@@ -33,6 +33,17 @@ public class CatalogoProductoResponse {
     private Integer stockMinimo;
     private Boolean bajoStockMinimo;
 
+    // Ficha técnica: los mismos campos (y nombres) que la ficha del producto en la web.
+    // El precio de compra NO se incluye: el empleado no debe ver costos.
+    private String marca;
+    private String modelo;
+    private String calidad;
+    private String color;
+    private String firmeza;
+    private String materialNucleo;
+    private String materialArmazon;
+    private String dimensiones;
+
     public CatalogoProductoResponse(Inventario inventario) {
         var producto = inventario.getProducto();
         this.id = producto.getId();
@@ -48,5 +59,13 @@ public class CatalogoProductoResponse {
         this.cantidadDisponible = inventario.getCantidadDisponible();
         this.stockMinimo = producto.getStockMinimo();
         this.bajoStockMinimo = inventario.estaBajoStockMinimo();
+        this.marca = producto.getMarca();
+        this.modelo = producto.getModelo();
+        this.calidad = producto.getCalidad();
+        this.color = producto.getColor();
+        this.firmeza = producto.getFirmeza();
+        this.materialNucleo = producto.getMaterialNucleo();
+        this.materialArmazon = producto.getMaterialArmazon();
+        this.dimensiones = producto.getDimensiones();
     }
 }

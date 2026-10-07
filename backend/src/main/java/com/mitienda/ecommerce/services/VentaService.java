@@ -5,6 +5,7 @@ import com.mitienda.ecommerce.exception.PeticionInvalidaException;
 import com.mitienda.ecommerce.exception.RecursoNoEncontradoException;
 import com.mitienda.ecommerce.exception.ReglaNegocioException;
 import com.mitienda.ecommerce.dto.DatosEntregaRequest;
+import com.mitienda.ecommerce.dto.FechaLimitePagoRequest;
 import com.mitienda.ecommerce.dto.VentaRequest;
 import com.mitienda.ecommerce.dto.VentaResponse;
 import com.mitienda.ecommerce.models.*;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -217,6 +219,11 @@ public class VentaService {
         venta.setEstado(saldoPendiente.compareTo(BigDecimal.ZERO) == 0
                 ? EstadoVenta.COMPLETADA : EstadoVenta.PENDIENTE_PAGO);
 
+        // Fecha límite del pago pendiente: opcional y solo si queda saldo.
+        if (saldoPendiente.compareTo(BigDecimal.ZERO) > 0) {
+            venta.setFechaLimitePago(resolverFechaLimitePago(request.getPlazoDiasPago(), request.getFechaLimitePago()));
+        }
+
         Venta savedVenta = ventaRepository.save(venta);
 
         // PASO 3: CREAR DETALLES Y REDUCIR INVENTARIO
@@ -353,6 +360,7 @@ public class VentaService {
         // PENDIENTE_PAGO cancelada quedaba con su saldoPendiente viejo
         // pegado en la base para siempre, como si la deuda siguiera viva.
         venta.setSaldoPendiente(BigDecimal.ZERO);
+        venta.setFechaLimitePago(null);
         Venta cancelada = ventaRepository.save(venta);
 
         // Cancelar una venta devuelve mercaderia al stock y anula plata cobrada:
@@ -452,6 +460,55 @@ public class VentaService {
                 "Datos de entrega editados en la venta #" + actualizada.getId());
 
         return new VentaResponse(actualizada);
+    }
+
+    /**
+     * Pone o cambia la fecha límite del pago pendiente de una venta ya
+     * registrada (ADMIN y EMPLEADO). Solo si todavía hay saldo pendiente.
+     */
+    @Transactional
+    public VentaResponse actualizarFechaLimitePago(Long id, FechaLimitePagoRequest datos) {
+        Venta venta = buscarVenta(id);
+
+        if (venta.getEstado() == EstadoVenta.CANCELADA) {
+            throw new ConflictoEstadoException("VENTA_CANCELADA", "No se puede cambiar la fecha de una venta cancelada");
+        }
+        if (venta.getEstado() != EstadoVenta.PENDIENTE_PAGO
+                || venta.getSaldoPendiente() == null
+                || venta.getSaldoPendiente().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ReglaNegocioException("SIN_PAGO_PENDIENTE", "La venta no tiene pago pendiente");
+        }
+        LocalDate fecha = resolverFechaLimitePago(datos.getPlazoDiasPago(), datos.getFechaLimitePago());
+        if (fecha == null) {
+            throw new PeticionInvalidaException("FECHA_REQUERIDA", "Indica la fecha límite o los días de plazo");
+        }
+
+        venta.setFechaLimitePago(fecha);
+        Venta actualizada = ventaRepository.save(venta);
+
+        registroAuditoria.registrar("EDITAR_FECHA_LIMITE_PAGO", "ventas", actualizada.getId(),
+                "Fecha límite de pago de la venta #" + actualizada.getId() + ": " + fecha);
+
+        return new VentaResponse(actualizada);
+    }
+
+    /**
+     * La fecha límite sale del reloj del SERVIDOR, nunca del aparato del
+     * usuario: si vienen días, es hoy más esos días; si viene una fecha, no
+     * puede ser anterior a hoy. Si no viene nada, no hay fecha (null).
+     */
+    private LocalDate resolverFechaLimitePago(Integer plazoDias, LocalDate fecha) {
+        if (plazoDias != null) {
+            return LocalDate.now().plusDays(plazoDias);
+        }
+        if (fecha != null) {
+            if (fecha.isBefore(LocalDate.now())) {
+                throw new PeticionInvalidaException("FECHA_LIMITE_INVALIDA",
+                        "La fecha límite de pago no puede ser anterior a hoy");
+            }
+            return fecha;
+        }
+        return null;
     }
 
     private Venta buscarVenta(Long id) {
