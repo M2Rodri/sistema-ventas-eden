@@ -63,6 +63,7 @@ public class ImagenProductoController {
     }
 
     @PutMapping("/{idImagen}/principal/{idProducto}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> setImagenPrincipal(@PathVariable Long idImagen, @PathVariable Long idProducto) {
         imagenProductoService.setImagenPrincipal(idImagen, idProducto);
         return ResponseEntity.ok(Map.of("message", "Imagen marcada como principal correctamente."));

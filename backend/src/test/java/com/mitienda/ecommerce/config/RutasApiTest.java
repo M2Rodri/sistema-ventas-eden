@@ -104,9 +104,10 @@ class RutasApiTest {
     }
 
     @Test
-    void elEmpleadoNoPuedeSubirNiBorrarImagenesDeProductos() throws Exception {
+    void elEmpleadoNoPuedeSubirBorrarNiElegirLaImagenPrincipalDeProductos() throws Exception {
         assertEquals(403, estado(HttpMethod.POST, "/api/v1/imagenes-producto/producto/1", EMPLEADO));
         assertEquals(403, estado(HttpMethod.DELETE, "/api/v1/imagenes-producto/1", EMPLEADO));
+        assertEquals(403, estado(HttpMethod.PUT, "/api/v1/imagenes-producto/1/principal/1", EMPLEADO));
     }
 
     @Test
@@ -117,6 +118,7 @@ class RutasApiTest {
     @Test
     void elAdminSiPasaLaSeguridadDeImagenesYStockMinimo() throws Exception {
         assertNotEquals(403, estado(HttpMethod.DELETE, "/api/v1/imagenes-producto/999999999", ADMIN));
+        assertNotEquals(403, estado(HttpMethod.PUT, "/api/v1/imagenes-producto/999999999/principal/1", ADMIN));
         assertNotEquals(403, estado(HttpMethod.PATCH, "/api/v1/productos/999999999/stock-minimo?stockMinimo=3", ADMIN));
     }
 
