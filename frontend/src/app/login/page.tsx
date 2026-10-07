@@ -77,7 +77,7 @@ export default function LoginPage() {
           {sesionExpirada && !error && (
             <div className="rounded-md bg-amber-50 border border-amber-200 p-4">
               <p className="text-sm text-amber-800">
-                Tu sesión expiró por seguridad. Volvé a iniciar sesión para continuar.
+                Tu sesión venció. Iniciá sesión de nuevo.
               </p>
             </div>
           )}

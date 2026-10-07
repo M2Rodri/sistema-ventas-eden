@@ -29,7 +29,7 @@ Future<void> _alVencerLaSesion() async {
   await AuthRepository().cerrarSesion();
   final navigator = navigatorKey.currentState;
   if (navigator != null) {
-    irAlLogin(navigator, aviso: 'Tu sesión venció. Inicia sesión de nuevo.');
+    irAlLogin(navigator, aviso: 'Tu sesión venció. Iniciá sesión de nuevo.');
   }
 }
 
