@@ -1,6 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import Cookies from 'js-cookie';
+import { guardarSesion, borrarSesion } from '@/lib/sesion';
 
 export type UserRole = 'ADMIN' | 'EMPLEADO' | 'CLIENTE';
 
@@ -29,10 +31,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
 
-  // Cargar datos del localStorage al montar
+  // Cargar la sesión desde las cookies al montar (no se guarda nada en localStorage)
   useEffect(() => {
-    const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
+    const storedToken = Cookies.get('token');
+    const storedUser = Cookies.get('user');
 
     if (storedToken && storedUser) {
       try {
@@ -41,22 +43,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(userData);
       } catch (error) {
         console.error('Error al parsear datos de usuario:', error);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        borrarSesion();
       }
     }
   }, []);
 
   const login = (newToken: string, userData: User) => {
-    localStorage.setItem('token', newToken);
-    localStorage.setItem('user', JSON.stringify(userData));
+    guardarSesion(newToken, userData, userData.role);
     setToken(newToken);
     setUser(userData);
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    borrarSesion();
     setToken(null);
     setUser(null);
   };

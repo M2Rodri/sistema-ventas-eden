@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Cookies from 'js-cookie';
+import { borrarSesion } from '@/lib/sesion';
 import { BACKEND_URL } from '@/lib/api';
 
 /**
@@ -44,9 +44,7 @@ export default function SesionExpiradaWatcher() {
 
       if (esLlamadaAlBackend && sesionRechazada && !esLogin && !redirigiendo) {
         redirigiendo = true;
-        Cookies.remove('token');
-        Cookies.remove('user');
-        Cookies.remove('role');
+        borrarSesion();
         // El motivo va en sessionStorage y no en la URL porque useAuth también
         // redirige al login al no encontrar la cookie, y pisaría el parámetro.
         sessionStorage.setItem('motivoSalida', 'sesion-expirada');

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
+import { borrarSesion } from '@/lib/sesion';
 import { AuthResponse } from '@/lib/api';
 
 export const useAuth = () => {
@@ -27,17 +28,13 @@ export const useAuth = () => {
       }
     } catch (error) {
       console.error('Error al verificar autenticación:', error);
-      Cookies.remove('token');
-      Cookies.remove('user');
-      Cookies.remove('role');
+      borrarSesion();
       router.replace('/login');
     }
   };
 
   const logout = () => {
-    Cookies.remove('token');
-    Cookies.remove('user');
-    Cookies.remove('role');
+    borrarSesion();
     setUser(null);
     router.replace('/login');
   };

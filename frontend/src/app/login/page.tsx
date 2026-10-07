@@ -1,5 +1,5 @@
 "use client";
-import Cookies from "js-cookie";
+import { guardarSesion } from "@/lib/sesion";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -42,30 +42,11 @@ export default function LoginPage() {
     try {
       const response = await login(formData);
 
-      console.log("🔐 Login response:", response);
-
-      Cookies.set("token", response.token, {
-        expires: 7,
-        path: "/",
-        secure: process.env.NODE_ENV === "production",
-      });
-
-      Cookies.set("user", JSON.stringify(response), {
-        expires: 7,
-        path: "/",
-        secure: process.env.NODE_ENV === "production",
-      });
-
       const rawRole = response.role || "";
       const role = rawRole.replace("ROLE_", "").toUpperCase();
 
-      Cookies.set("role", role, {
-        expires: 7,
-        path: "/",
-        secure: process.env.NODE_ENV === "production",
-      });
-
-      console.log("🎭 Rol normalizado:", role);
+      // Token, usuario y rol van en cookies de 12 horas (ver lib/sesion.ts).
+      guardarSesion(response.token, response, role);
 
       if (role === "ADMIN" || role === "EMPLEADO") {
         window.location.href = "/dashboard";
