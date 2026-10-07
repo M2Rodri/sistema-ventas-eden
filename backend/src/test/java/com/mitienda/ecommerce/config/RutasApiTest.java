@@ -104,6 +104,30 @@ class RutasApiTest {
     }
 
     @Test
+    void elEmpleadoNoPuedeSubirNiBorrarImagenesDeProductos() throws Exception {
+        assertEquals(403, estado(HttpMethod.POST, "/api/v1/imagenes-producto/producto/1", EMPLEADO));
+        assertEquals(403, estado(HttpMethod.DELETE, "/api/v1/imagenes-producto/1", EMPLEADO));
+    }
+
+    @Test
+    void elEmpleadoNoPuedeCambiarElStockMinimo() throws Exception {
+        assertEquals(403, estado(HttpMethod.PATCH, "/api/v1/productos/1/stock-minimo?stockMinimo=3", EMPLEADO));
+    }
+
+    @Test
+    void elAdminSiPasaLaSeguridadDeImagenesYStockMinimo() throws Exception {
+        assertNotEquals(403, estado(HttpMethod.DELETE, "/api/v1/imagenes-producto/999999999", ADMIN));
+        assertNotEquals(403, estado(HttpMethod.PATCH, "/api/v1/productos/999999999/stock-minimo?stockMinimo=3", ADMIN));
+    }
+
+    @Test
+    void elEmpleadoSiPuedeMirarLasImagenesDeProductos() throws Exception {
+        int estado = estado(HttpMethod.GET, "/api/v1/imagenes-producto/producto/1", EMPLEADO);
+        assertNotEquals(401, estado);
+        assertNotEquals(403, estado);
+    }
+
+    @Test
     void elEmpleadoSiPuedeLeerYVender() throws Exception {
         for (String ruta : new String[]{"/api/v1/productos", "/api/v1/ventas", "/api/v1/inventario",
                 "/api/v1/clientes", "/api/v1/dashboard/estadisticas"}) {

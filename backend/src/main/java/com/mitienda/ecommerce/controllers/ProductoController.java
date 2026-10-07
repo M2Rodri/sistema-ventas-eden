@@ -87,7 +87,7 @@ public class ProductoController {
      * Cambia el umbral que dispara las alertas de stock bajo.
      */
     @PatchMapping("/{id}/stock-minimo")
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLEADO')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> actualizarStockMinimo(@PathVariable Long id,
                                                    @RequestParam Integer stockMinimo) {
         return ResponseEntity.ok(productoService.actualizarStockMinimo(id, stockMinimo));

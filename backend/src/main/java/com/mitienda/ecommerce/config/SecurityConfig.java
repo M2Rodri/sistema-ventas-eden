@@ -101,6 +101,10 @@ public class SecurityConfig {
                         // quedó fuera del alcance del proyecto: nada en el panel
                         // ADMIN/EMPLEADO ni en la app llama a estos endpoints sin sesión,
                         // así que ahora toda la ruta requiere ADMIN o EMPLEADO.
+                        // Subir y borrar fotos de productos es cosa del ADMIN, igual que crear y editar
+                        // productos. Mirarlas sigue abierto al EMPLEADO.
+                        .requestMatchers(HttpMethod.POST, "/api/v1/imagenes-producto/**").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/imagenes-producto/**").hasAuthority("ROLE_ADMIN")
                         .requestMatchers("/api/v1/imagenes-producto/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_EMPLEADO")
                         .requestMatchers("/api/v1/categorias/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_EMPLEADO")
 
