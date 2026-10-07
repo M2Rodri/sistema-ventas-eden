@@ -18,9 +18,9 @@ export default function HomePage() {
       if (user.role === 'ADMIN' || user.role === 'EMPLEADO') {
         router.replace('/dashboard');
       } 
-      // Si es cliente → Tienda (ya logueado)
-      else if (user.role === 'CLIENTE') {
-        router.replace('/tienda');
+      // Cualquier otro rol no tiene panel: al login
+      else {
+        router.replace('/login');
       }
     } else {
       // Sin login → Tienda pública

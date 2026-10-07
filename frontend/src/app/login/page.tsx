@@ -1,5 +1,5 @@
 "use client";
-import { guardarSesion } from "@/lib/sesion";
+import { guardarSesion, borrarSesion } from "@/lib/sesion";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -51,7 +51,9 @@ export default function LoginPage() {
       if (role === "ADMIN" || role === "EMPLEADO") {
         window.location.href = "/dashboard";
       } else {
-        window.location.href = "/tienda";
+        // Una cuenta sin rol de panel no entra: no hay a dónde mandarla.
+        borrarSesion();
+        setError("Esta cuenta no tiene acceso al sistema.");
       }
     } catch (err: any) {
       console.error("❌ Error en login:", err);
