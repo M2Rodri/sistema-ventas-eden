@@ -1161,7 +1161,77 @@
                   "pm.test('CP-13: responde HTTP 200', () => pm.response.to.have.status(200));",
                   "pm.test('CP-13: devuelve los campos del reporte (' + Object.keys(cuerpo).join(', ') + ')', () => {",
                   "  ['fechaInicio', 'fechaFin', 'gananciaVentas', 'ingresosTotales', 'gastosTotales', 'saldoPeriodo', 'detalleIngresos', 'detalleGastos'].forEach((c) => pm.expect(cuerpo).to.have.property(c));",
-                  "});"
+                  "});",
+                  "pm.test('CP-13: gananciaVentas del financiero es un número (' + cuerpo.gananciaVentas + ') y no supera los ingresos (' + cuerpo.ingresosTotales + ')', () => {",
+                  "  pm.expect(cuerpo.gananciaVentas).to.be.a('number');",
+                  "  pm.expect(cuerpo.gananciaVentas).to.be.at.most(cuerpo.ingresosTotales + 0.01);",
+                  "});",
+                  "vars.set('finGanancia', cuerpo.gananciaVentas);",
+                  "vars.set('finIngresos', cuerpo.ingresosTotales);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-13 Reporte de ventas del mismo período",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reportes/ventas?inicio={{inicio}}&fin={{fin}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reportes",
+                "ventas"
+              ],
+              "query": [
+                {
+                  "key": "inicio",
+                  "value": "{{inicio}}"
+                },
+                {
+                  "key": "fin",
+                  "value": "{{fin}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "const lista = Array.isArray(cuerpo.ventas) ? cuerpo.ventas : [];",
+                  "const suma = (xs) => xs.reduce((a, v) => a + Number(v.montoTotal), 0);",
+                  "const completadas = lista.filter((v) => v.estado === 'COMPLETADA');",
+                  "const ingresos = Number(vars.get('finIngresos'));",
+                  "",
+                  "pm.test('CP-13: reporte de ventas del mismo período responde HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('CP-13: totalVentas (' + cuerpo.totalVentas + ') es la cantidad de ventas listadas (' + lista.length + ')', () => pm.expect(cuerpo.totalVentas).to.eql(lista.length));",
+                  "pm.test('CP-13: montoTotalVentas (' + cuerpo.montoTotalVentas + ') es la suma de los montos listados (' + suma(lista).toFixed(2) + ')', () => pm.expect(Math.abs(Number(cuerpo.montoTotalVentas) - suma(lista))).to.be.below(0.01));",
+                  "pm.test('CP-13: ninguna venta CANCELADA entra al reporte de ventas', () => pm.expect(lista.filter((v) => v.estado === 'CANCELADA').length).to.eql(0));",
+                  "pm.test('CP-13: el período tiene al menos 2 ventas y Bs 200 (solo las de CP-09 y CP-11 ya suman eso)', () => { pm.expect(cuerpo.totalVentas).to.be.at.least(2); pm.expect(Number(cuerpo.montoTotalVentas)).to.be.at.least(200); });",
+                  "pm.test('CP-13: ingresosTotales del financiero (' + ingresos + ') es la suma de las ventas COMPLETADA del reporte de ventas (' + suma(completadas).toFixed(2) + ', ' + completadas.length + ' ventas)', () => pm.expect(Math.abs(ingresos - suma(completadas))).to.be.below(0.01));",
+                  "pm.test('CP-13: montoTotalVentas (' + cuerpo.montoTotalVentas + ') no es menor que ingresosTotales (' + ingresos + '): el reporte de ventas también cuenta las pendientes de pago', () => pm.expect(Number(cuerpo.montoTotalVentas)).to.be.at.least(ingresos - 0.01));"
                 ]
               }
             }
