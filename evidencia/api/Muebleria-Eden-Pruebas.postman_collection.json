@@ -1,13 +1,13 @@
 {
   "info": {
     "name": "Mueblería Edén: pruebas de la API",
-    "description": "Casos CP-02 a CP-28 del apartado 2.8 Pruebas. Las credenciales NO están en este archivo: el ejecutor (ejecutar.mjs) las toma de las variables de entorno ADMIN_USER, ADMIN_PASS, EMP_USER y EMP_PASS. Crea datos con nombre \"Prueba\" y al final los anula (no borra datos reales).",
+    "description": "Casos CP-02 a CP-35 del apartado 2.8 Pruebas. Las credenciales NO están en este archivo: el ejecutor (ejecutar.mjs) las toma de las variables de entorno ADMIN_USER, ADMIN_PASS, EMP_USER y EMP_PASS. Crea datos con nombre \"Prueba\" y al final los anula (no borra datos reales).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
       "key": "baseUrl",
-      "value": "https://sistema-ventas-eden.onrender.com"
+      "value": "https://sistema-ventas-eden-1.onrender.com"
     }
   ],
   "item": [
@@ -1931,6 +1931,622 @@
               }
             }
           ]
+        },
+        {
+          "name": "CP-29 Venta con monto pagado mayor al total",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ventas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ventas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idCliente\": {{clienteAId}},\n  \"metodoPago\": \"EFECTIVO\",\n  \"items\": [\n    {\n      \"idProducto\": {{productoAId}},\n      \"cantidad\": 1\n    }\n  ],\n  \"montoPagado\": 9999999,\n  \"modalidadEntrega\": \"RETIRO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-29: responde HTTP 422', () => pm.response.to.have.status(422));",
+                  "pm.test('CP-29: código de error PAGO_EXCEDE_TOTAL', () => pm.expect(codigoError).to.eql('PAGO_EXCEDE_TOTAL'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-30 Ajuste de inventario sin motivo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/inventario/ajustar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "inventario",
+                "ajustar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"idProducto\": {{productoAId}}, \"cantidad\": 1, \"tipoMovimiento\": \"ENTRADA\" }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-30: responde HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('CP-30: código de error VALIDACION', () => pm.expect(codigoError).to.eql('VALIDACION'));",
+                  "pm.test('CP-30: el error señala el campo motivo', () => pm.expect(cuerpo.error.campos).to.have.property('motivo'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-31 Ajuste de entrada válido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/inventario/ajustar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "inventario",
+                "ajustar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"idProducto\": {{productoAId}}, \"cantidad\": 1, \"tipoMovimiento\": \"ENTRADA\", \"motivo\": \"Prueba de ajuste de entrada\" }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-31: responde HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('CP-31: devuelve la cantidad disponible', () => pm.expect(cuerpo.cantidadDisponible).to.be.a('number').and.to.be.at.least(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-32 Alta de usuario válida",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/usuarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "usuarios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"nombre\": \"Usuario\", \"apellido\": \"Prueba\", \"usuario\": \"{{usuarioNuevo}}\", \"password\": \"{{claveNueva}}\", \"role\": \"EMPLEADO\", \"activo\": true }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('usuarioNuevo', 'prb' + (Date.now() % 1000000000)); pm.collectionVariables.set('claveNueva', 'x' + Math.random().toString(36).slice(2) + 'Qq7');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-32: responde HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('CP-32: el usuario queda creado con rol EMPLEADO', () => { pm.expect(cuerpo.id).to.exist; pm.expect(String(cuerpo.role)).to.match(/EMPLEADO/); });",
+                  "pm.test('CP-32: la respuesta no devuelve la contraseña', () => pm.expect(cuerpo).to.not.have.property('password'));",
+                  "vars.set('usuarioNuevoId', cuerpo.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-33 Historial de compras de un cliente",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/clientes/{{clienteAId}}/historial-compras",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "clientes",
+                "{{clienteAId}}",
+                "historial-compras"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-33: responde HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('CP-33: trae el cliente y su resumen', () => { pm.expect(cuerpo.cliente).to.exist; pm.expect(cuerpo.estadisticas).to.exist; });",
+                  "pm.test('CP-33: lista las ventas del cliente', () => { pm.expect(cuerpo.ventas).to.be.an('array'); pm.expect(cuerpo.ventas.length).to.be.at.least(1); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-34 Entregar una venta ya entregada",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ventas/{{ventaEntregaId}}/entregar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ventas",
+                "{{ventaEntregaId}}",
+                "entregar"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-34: responde HTTP 409', () => pm.response.to.have.status(409));",
+                  "pm.test('CP-34: código de error VENTA_YA_ENTREGADA', () => pm.expect(codigoError).to.eql('VENTA_YA_ENTREGADA'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-35 Límite de intentos de login (intento 1 de 6)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"usuario\": \"{{usuarioLimite}}\", \"password\": \"clave-incorrecta-1\" }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('usuarioLimite', 'limite' + (Date.now() % 1000000000));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-35: el intento 1 responde HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('CP-35: el intento 1 dice CREDENCIALES_INVALIDAS', () => pm.expect(codigoError).to.eql('CREDENCIALES_INVALIDAS'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-35 Límite de intentos de login (intento 2 de 6)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"usuario\": \"{{usuarioLimite}}\", \"password\": \"clave-incorrecta-1\" }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-35: el intento 2 responde HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('CP-35: el intento 2 dice CREDENCIALES_INVALIDAS', () => pm.expect(codigoError).to.eql('CREDENCIALES_INVALIDAS'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-35 Límite de intentos de login (intento 3 de 6)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"usuario\": \"{{usuarioLimite}}\", \"password\": \"clave-incorrecta-1\" }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-35: el intento 3 responde HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('CP-35: el intento 3 dice CREDENCIALES_INVALIDAS', () => pm.expect(codigoError).to.eql('CREDENCIALES_INVALIDAS'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-35 Límite de intentos de login (intento 4 de 6)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"usuario\": \"{{usuarioLimite}}\", \"password\": \"clave-incorrecta-1\" }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-35: el intento 4 responde HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('CP-35: el intento 4 dice CREDENCIALES_INVALIDAS', () => pm.expect(codigoError).to.eql('CREDENCIALES_INVALIDAS'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-35 Límite de intentos de login (intento 5 de 6)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"usuario\": \"{{usuarioLimite}}\", \"password\": \"clave-incorrecta-1\" }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-35: el intento 5 responde HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('CP-35: el intento 5 dice CREDENCIALES_INVALIDAS', () => pm.expect(codigoError).to.eql('CREDENCIALES_INVALIDAS'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-35 Límite de intentos de login (intento 6 de 6)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"usuario\": \"{{usuarioLimite}}\", \"password\": \"clave-incorrecta-1\" }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-35: el sexto intento responde HTTP 429', () => pm.response.to.have.status(429));",
+                  "pm.test('CP-35: código de error DEMASIADOS_INTENTOS', () => pm.expect(codigoError).to.eql('DEMASIADOS_INTENTOS'));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -2145,6 +2761,49 @@
                   "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
                   "const vars = pm.collectionVariables;",
                   "pm.test('Limpieza: producto B dado de baja (HTTP 200)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dar de baja el usuario de prueba (CP-32)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/usuarios/{{usuarioNuevoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "usuarios",
+                "{{usuarioNuevoId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('Limpieza: usuario de prueba dado de baja (HTTP 200)', () => pm.response.to.have.status(200));"
                 ]
               }
             }

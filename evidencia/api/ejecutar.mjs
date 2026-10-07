@@ -18,7 +18,7 @@ import { fileURLToPath } from 'node:url';
 import newman from 'newman';
 
 const aquí = path.dirname(fileURLToPath(import.meta.url));
-const BASE_URL = (process.env.BASE_URL || 'https://sistema-ventas-eden.onrender.com').replace(/\/$/, '');
+const BASE_URL = (process.env.BASE_URL || 'https://sistema-ventas-eden-1.onrender.com').replace(/\/$/, '');
 const requeridas = ['ADMIN_USER', 'ADMIN_PASS', 'EMP_USER', 'EMP_PASS'];
 const faltan = requeridas.filter((v) => !process.env[v]);
 if (faltan.length) {
