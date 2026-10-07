@@ -565,13 +565,17 @@ function InventarioContent() {
                         >
                           <History size={16} />
                         </button>
-                        <button
-                          onClick={() => handleConfigurarStockMinimo(item)}
-                          className="p-1.5 border border-gray-200 bg-white text-gray-600 hover:text-primary-700 hover:bg-gray-50 rounded-lg transition-colors"
-                          title="Configurar stock mínimo"
-                        >
-                          <Settings size={16} />
-                        </button>
+                        {/* Cambiar el stock mínimo es solo del ADMIN (el backend responde 403 al
+                            EMPLEADO), así que a él no se le muestra el botón. */}
+                        {user?.role === 'ADMIN' && (
+                          <button
+                            onClick={() => handleConfigurarStockMinimo(item)}
+                            className="p-1.5 border border-gray-200 bg-white text-gray-600 hover:text-primary-700 hover:bg-gray-50 rounded-lg transition-colors"
+                            title="Configurar stock mínimo"
+                          >
+                            <Settings size={16} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
