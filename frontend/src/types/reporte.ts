@@ -42,6 +42,7 @@ export interface ReporteVentas {
   totalVentas: number;
   montoTotalVentas: number;
   ticketPromedio: number;
+  gananciaVentas: number;
   ventas: VentaDetalleReporte[];
 }
 

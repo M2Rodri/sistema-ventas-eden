@@ -230,8 +230,8 @@ export default function ReporteVistaPrevia({
                 <p className="text-2xl font-bold text-green-900">{formatPrice(data.montoTotalVentas)}</p>
               </div>
               <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                <p className="text-sm text-purple-700 mb-1">Ticket Promedio</p>
-                <p className="text-2xl font-bold text-purple-900">{formatPrice(data.ticketPromedio)}</p>
+                <p className="text-sm text-purple-700 mb-1">Ganancia</p>
+                <p className="text-2xl font-bold text-purple-900">{formatPrice(data.gananciaVentas)}</p>
               </div>
             </div>
             {data.ventas.length === 0 ? (
