@@ -3,6 +3,7 @@
 Todas las rutas de la API van con el prefijo `/api/v1`. Una ruta con `/api/` sin la versión responde 404.
 
 - **versionada**: sigue existiendo, ahora con `/api/v1`.
+- **nueva**: se creó después de versionar la API; nunca existió sin `/api/v1`, por eso no tiene ruta anterior.
 - **eliminada**: se quitó del sistema (no la usaba ninguna pantalla, era de prueba, o dejó de existir al quitar el estado y la edición de las compras).
 - **apagada (404)**: módulo fuera de alcance; su código sigue en el repositorio pero la ruta no responde.
 
@@ -148,6 +149,8 @@ Todas las rutas de la API van con el prefijo `/api/v1`. Una ruta con `/api/` sin
 | GET | `/api/inventario/sin-stock` | `/api/v1/inventario/sin-stock` | versionada |
 | GET | `/api/inventario/verificar-disponibilidad` | `/api/v1/inventario/verificar-disponibilidad` | versionada |
 | GET | `/api/inventario/alertas/pendientes` | `/api/v1/inventario/alertas/pendientes` | versionada |
+| PATCH | — | `/api/v1/inventario/alertas/{id}/atender` | nueva |
+| PATCH | — | `/api/v1/inventario/producto/{idProducto}/reactivar-alerta` | nueva |
 | GET | `/api/inventario/estadisticas` | `/api/v1/inventario/estadisticas` | versionada |
 
 ## MensajeContacto
@@ -237,6 +240,7 @@ Todas las rutas de la API van con el prefijo `/api/v1`. Una ruta con `/api/` sin
 | GET | `/api/reportes/clientes-frecuentes` | `/api/v1/reportes/clientes-frecuentes` | versionada |
 | GET | `/api/reportes/inventario-valorizado` | `/api/v1/reportes/inventario-valorizado` | versionada |
 | GET | `/api/reportes/ventas-por-categoria` | `/api/v1/reportes/ventas-por-categoria` | versionada |
+| GET | — | `/api/v1/reportes/ventas-por-producto` | nueva |
 | GET | `/api/reportes/ventas-por-metodo-pago` | `/api/v1/reportes/ventas-por-metodo-pago` | versionada |
 | GET | `/api/reportes/cuentas-por-cobrar` | `/api/v1/reportes/cuentas-por-cobrar` | versionada |
 | GET | `/api/reportes/financiero` | `/api/v1/reportes/financiero` | versionada |
@@ -285,6 +289,7 @@ Todas las rutas de la API van con el prefijo `/api/v1`. Una ruta con `/api/` sin
 | PATCH | `/api/ventas/{id}/entregar` | `/api/v1/ventas/{id}/entregar` | versionada |
 | PATCH | `/api/ventas/{id}/deshacer-entrega` | `/api/v1/ventas/{id}/deshacer-entrega` | versionada |
 | PATCH | `/api/ventas/{id}/datos-entrega` | `/api/v1/ventas/{id}/datos-entrega` | versionada |
+| PATCH | — | `/api/v1/ventas/{id}/fecha-limite-pago` | nueva |
 | GET | `/api/ventas/cliente/{clienteId}` | `/api/v1/ventas/cliente/{clienteId}` | versionada |
 | GET | `/api/ventas/estado/{estado}` | `/api/v1/ventas/estado/{estado}` | versionada |
 | GET | `/api/ventas/del-dia` | `/api/v1/ventas/del-dia` | versionada |
