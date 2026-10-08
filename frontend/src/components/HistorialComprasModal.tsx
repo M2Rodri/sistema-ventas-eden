@@ -159,7 +159,7 @@ export default function HistorialComprasModal({
                   </p>
                 </div>
                 <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                  <p className="text-xs text-gray-500 uppercase tracking-wide">Ticket promedio</p>
+                  <p className="text-xs text-gray-500 uppercase tracking-wide">Promedio por venta</p>
                   <p className="text-base font-bold text-gray-900 mt-1">
                     {formatBs(estadisticas.ticketPromedio)}
                   </p>
