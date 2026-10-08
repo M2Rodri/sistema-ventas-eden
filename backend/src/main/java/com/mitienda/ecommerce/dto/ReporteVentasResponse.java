@@ -21,6 +21,7 @@ public class ReporteVentasResponse {
     private Long totalVentas;
     private BigDecimal montoTotalVentas;
     private BigDecimal ticketPromedio;
+    private BigDecimal gananciaVentas;
     private List<VentaDetalleDTO> ventas;
 
     @Data

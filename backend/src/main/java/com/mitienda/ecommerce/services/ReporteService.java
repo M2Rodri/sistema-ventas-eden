@@ -91,6 +91,21 @@ public class ReporteService {
     }
 
     /**
+     * Ganancia real de lo vendido: solo ventas COMPLETADA y, por cada línea,
+     * (precio unitario - costo unitario guardado en detalle_venta) x cantidad.
+     * La usan el reporte de ventas y el financiero, para que den el mismo número.
+     */
+    private BigDecimal calcularGananciaVentas(List<Venta> ventas) {
+        return ventas.stream()
+                .filter(v -> v.getEstado() == EstadoVenta.COMPLETADA)
+                .flatMap(v -> v.getDetalles().stream())
+                .map(d -> d.getPrecioUnitario()
+                        .subtract(d.getCostoUnitario())
+                        .multiply(BigDecimal.valueOf(d.getCantidad())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    /**
      * Reporte de ventas por período
      */
     public ReporteVentasResponse getReporteVentas(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
@@ -124,7 +139,7 @@ public class ReporteService {
         return new ReporteVentasResponse(
                 fechaInicio, fechaFin,
                 totalVentas, montoTotalVentas,
-                ticketPromedio, ventasDetalle
+                ticketPromedio, calcularGananciaVentas(ventas), ventasDetalle
         );
     }
 
@@ -443,12 +458,7 @@ public class ReporteService {
                 .filter(c -> c.getEstado() == EstadoCompra.CONFIRMADA)
                 .collect(Collectors.toList());
 
-        BigDecimal gananciaVentas = ventas.stream()
-                .flatMap(v -> v.getDetalles().stream())
-                .map(d -> d.getPrecioUnitario()
-                        .subtract(d.getCostoUnitario())
-                        .multiply(BigDecimal.valueOf(d.getCantidad())))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal gananciaVentas = calcularGananciaVentas(ventas);
 
         BigDecimal ingresosTotales = ventas.stream()
                 .map(Venta::getMontoTotal)
