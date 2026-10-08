@@ -57,7 +57,8 @@
                   "const vars = pm.collectionVariables;",
                   "",
                   "pm.test('Preparación: login de ADMIN (HTTP 200 con token)', () => { pm.response.to.have.status(200); pm.expect(cuerpo.token).to.be.a('string'); });",
-                  "vars.set('adminToken', cuerpo.token);"
+                  "vars.set('adminToken', cuerpo.token);",
+                  "vars.set('adminId', cuerpo.id);"
                 ]
               }
             }
@@ -106,7 +107,9 @@
                   "const vars = pm.collectionVariables;",
                   "",
                   "pm.test('Preparación: login de EMPLEADO (HTTP 200 con token)', () => { pm.response.to.have.status(200); pm.expect(cuerpo.token).to.be.a('string'); });",
-                  "vars.set('empToken', cuerpo.token);"
+                  "vars.set('empToken', cuerpo.token);",
+                  "vars.set('empId', cuerpo.id);",
+                  "vars.set('empNombre', cuerpo.nombre + ' ' + cuerpo.apellido);"
                 ]
               }
             }
@@ -2316,6 +2319,63 @@
           ]
         },
         {
+          "name": "CP-36 Venta registrada por el EMPLEADO (el usuario sale de la sesión)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{empToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ventas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ventas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idCliente\": {{clienteAId}},\n  \"idUsuario\": {{adminId}},\n  \"metodoPago\": \"EFECTIVO\",\n  \"items\": [\n    {\n      \"idProducto\": {{productoAId}},\n      \"cantidad\": 1\n    }\n  ],\n  \"modalidadEntrega\": \"RETIRO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "const emp = Number(vars.get('empId'));",
+                  "const admin = Number(vars.get('adminId'));",
+                  "",
+                  "pm.test('CP-36: la venta del EMPLEADO responde HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('CP-36: idUsuario de la venta (' + cuerpo.idUsuario + ') es el del EMPLEADO (' + emp + '), no el del ADMIN (' + admin + ') que se mandó en el cuerpo', () => { pm.expect(emp).to.not.eql(admin); pm.expect(cuerpo.idUsuario).to.eql(emp); });",
+                  "pm.test('CP-36: nombreUsuario (' + cuerpo.nombreUsuario + ') es el nombre del EMPLEADO', () => pm.expect(cuerpo.nombreUsuario).to.eql(vars.get('empNombre')));",
+                  "vars.set('ventaEmpleadoId', cuerpo.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "CP-29 Límite de intentos de login (intento 1 de 6)",
           "request": {
             "method": "POST",
@@ -2703,6 +2763,50 @@
                   "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
                   "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
                   "const vars = pm.collectionVariables;",
+                  "pm.test('Limpieza: venta anulada (HTTP 200)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Anular venta CP-36",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ventas/{{ventaEmpleadoId}}/cancelar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ventas",
+                "{{ventaEmpleadoId}}",
+                "cancelar"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
                   "pm.test('Limpieza: venta anulada (HTTP 200)', () => pm.response.to.have.status(200));"
                 ]
               }

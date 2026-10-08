@@ -1,0 +1,22 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><title>CP-36 2026-10-07</title>
+<style>body{font-family:system-ui,sans-serif;margin:24px;color:#222}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:6px 8px;text-align:left}tr.ok td:nth-child(3){color:#0a7a2f;font-weight:600}tr.mal{background:#fde8e8}</style></head><body>
+<h1>CP-36: la venta guarda al usuario de la sesión, no al que llega en el cuerpo</h1>
+<p><b>Fecha:</b> 2026-10-07 20:11:25 &nbsp; <b>Servidor:</b> https://sistema-ventas-eden-1.onrender.com &nbsp; <b>Resultado:</b> Aprobado</p>
+<p><b>Petición:</b> CP-36 Venta registrada por el EMPLEADO (el usuario sale de la sesión) (HTTP 201)</p>
+<table><tr><th>Petición</th><th>Comprobación (con los valores obtenidos)</th><th>Estado</th><th>Motivo</th></tr>
+<tr class="ok"><td>CP-36 Venta registrada por el EMPLEADO (el usuario sale de la sesión)</td><td>CP-36: la venta del EMPLEADO responde HTTP 201</td><td>Aprobado</td><td></td></tr>
+<tr class="ok"><td>CP-36 Venta registrada por el EMPLEADO (el usuario sale de la sesión)</td><td>CP-36: idUsuario de la venta (5) es el del EMPLEADO (5), no el del ADMIN (6) que se mandó en el cuerpo</td><td>Aprobado</td><td></td></tr>
+<tr class="ok"><td>CP-36 Venta registrada por el EMPLEADO (el usuario sale de la sesión)</td><td>CP-36: nombreUsuario (Lucía Fernández Arce) es el nombre del EMPLEADO</td><td>Aprobado</td><td></td></tr>
+</table>
+<h2>Preparación y limpieza (todas bien)</h2>
+<table><tr><th>Petición</th><th>Comprobación</th><th>Estado</th><th></th></tr>
+<tr class="ok"><td>Login ADMIN</td><td>Preparación: login de ADMIN (HTTP 200 con token)</td><td>Aprobado</td><td>HTTP 200</td></tr>
+<tr class="ok"><td>Login EMPLEADO</td><td>Preparación: login de EMPLEADO (HTTP 200 con token)</td><td>Aprobado</td><td>HTTP 200</td></tr>
+<tr class="ok"><td>Categoría activa que no sea de muebles</td><td>Preparación: hay una categoría activa para los productos de prueba</td><td>Aprobado</td><td>HTTP 200</td></tr>
+<tr class="ok"><td>Crear Producto Prueba A (stock 0)</td><td>Preparación: producto de prueba A creado (HTTP 201)</td><td>Aprobado</td><td>HTTP 201</td></tr>
+<tr class="ok"><td>Crear Cliente Prueba A</td><td>Preparación: cliente de prueba A creado (HTTP 201)</td><td>Aprobado</td><td>HTTP 201</td></tr>
+<tr class="ok"><td>CP-05 Compra de 10 unidades del producto A</td><td>CP-05: la compra se registra (HTTP 201)</td><td>Aprobado</td><td>HTTP 201</td></tr>
+<tr class="ok"><td>Anular venta CP-36</td><td>Limpieza: venta anulada (HTTP 200)</td><td>Aprobado</td><td>HTTP 200</td></tr>
+<tr class="ok"><td>Anular la compra de prueba</td><td>Limpieza: compra anulada (HTTP 200)</td><td>Aprobado</td><td>HTTP 200</td></tr>
+<tr class="ok"><td>Dar de baja el producto A</td><td>Limpieza: producto A dado de baja (HTTP 200)</td><td>Aprobado</td><td>HTTP 200</td></tr>
+</table></body></html>
