@@ -1,0 +1,142 @@
+{
+  "fecha": "2026-10-07",
+  "hora": "21:14:46",
+  "servidor": "https://sistema-ventas-eden-1.onrender.com",
+  "caso": "CP-03 y CP-07",
+  "estado": "Aprobado",
+  "peticiones": [
+    {
+      "peticion": "CP-03 Crear producto de prueba A (stock 0)",
+      "http": 201
+    },
+    {
+      "peticion": "CP-03 Stock del producto A recién creado",
+      "http": 200
+    },
+    {
+      "peticion": "CP-03 El producto A aparece en GET /productos",
+      "http": 200
+    },
+    {
+      "peticion": "CP-07 Primera venta con stock (a domicilio, pagada completa; también CP-09)",
+      "http": 201
+    },
+    {
+      "peticion": "CP-07 (después) Stock del producto A",
+      "http": 200
+    }
+  ],
+  "asertos": [
+    {
+      "peticion": "CP-03 Crear producto de prueba A (stock 0)",
+      "texto": "CP-03: el producto se crea (HTTP 201) con id 19",
+      "ok": true,
+      "motivo": ""
+    },
+    {
+      "peticion": "CP-03 Crear producto de prueba A (stock 0)",
+      "texto": "CP-03: precio de venta 100 y activo true",
+      "ok": true,
+      "motivo": ""
+    },
+    {
+      "peticion": "CP-03 Stock del producto A recién creado",
+      "texto": "CP-03: el stock inicial es 0 (obtenido 0)",
+      "ok": true,
+      "motivo": ""
+    },
+    {
+      "peticion": "CP-03 El producto A aparece en GET /productos",
+      "texto": "CP-03: GET /productos incluye el producto A (id 19, entre 19 productos)",
+      "ok": true,
+      "motivo": ""
+    },
+    {
+      "peticion": "CP-07 Primera venta con stock (a domicilio, pagada completa; también CP-09)",
+      "texto": "CP-09: la venta a domicilio nace pendiente de entrega (HTTP 201)",
+      "ok": true,
+      "motivo": ""
+    },
+    {
+      "peticion": "CP-07 Primera venta con stock (a domicilio, pagada completa; también CP-09)",
+      "texto": "CP-07: la primera venta se registra (HTTP 201) con id 16",
+      "ok": true,
+      "motivo": ""
+    },
+    {
+      "peticion": "CP-07 Primera venta con stock (a domicilio, pagada completa; también CP-09)",
+      "texto": "CP-07: total 100 = suma de cantidad × precio (100)",
+      "ok": true,
+      "motivo": ""
+    },
+    {
+      "peticion": "CP-07 (después) Stock del producto A",
+      "texto": "CP-07: el stock bajó en 1 (antes 10, ahora 9)",
+      "ok": true,
+      "motivo": ""
+    }
+  ],
+  "preparacionYLimpieza": [
+    {
+      "peticion": "Login ADMIN",
+      "http": 200,
+      "texto": "Preparación: login de ADMIN (HTTP 200 con token)",
+      "ok": true
+    },
+    {
+      "peticion": "Login EMPLEADO",
+      "http": 200,
+      "texto": "Preparación: login de EMPLEADO (HTTP 200 con token)",
+      "ok": true
+    },
+    {
+      "peticion": "Categoría activa que no sea de muebles",
+      "http": 200,
+      "texto": "Preparación: hay una categoría activa para los productos de prueba",
+      "ok": true
+    },
+    {
+      "peticion": "Crear Cliente Prueba A",
+      "http": 201,
+      "texto": "Preparación: cliente de prueba A creado (HTTP 201)",
+      "ok": true
+    },
+    {
+      "peticion": "CP-05 (antes) Stock del producto A",
+      "http": 200,
+      "texto": "CP-05: el producto de prueba A está en el catálogo",
+      "ok": true
+    },
+    {
+      "peticion": "CP-05 Compra de 10 unidades del producto A",
+      "http": 201,
+      "texto": "CP-05: la compra se registra (HTTP 201)",
+      "ok": true
+    },
+    {
+      "peticion": "CP-05 (después) Stock del producto A",
+      "http": 200,
+      "texto": "CP-05: el stock subió en 10 (antes 0, ahora 10)",
+      "ok": true
+    },
+    {
+      "peticion": "Anular venta CP-09",
+      "http": 200,
+      "texto": "Limpieza: venta anulada (HTTP 200)",
+      "ok": true
+    },
+    {
+      "peticion": "Anular la compra de prueba",
+      "http": 200,
+      "texto": "Limpieza: compra anulada (HTTP 200)",
+      "ok": true
+    },
+    {
+      "peticion": "Dar de baja el producto A",
+      "http": 200,
+      "texto": "Limpieza: producto A dado de baja (HTTP 200)",
+      "ok": true
+    }
+  ],
+  "preparacionYLimpiezaOk": true
+}

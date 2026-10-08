@@ -165,58 +165,6 @@
           ]
         },
         {
-          "name": "Crear Producto Prueba A (stock 0)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{adminToken}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/productos",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "productos"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{ \"sku\": \"PRUEBA-A-{{$timestamp}}\", \"nombre\": \"Producto Prueba A\", \"descripcion\": \"Producto de prueba automática\", \"idCategoria\": {{categoriaId}}, \"precioCompra\": 60, \"precioVenta\": 100, \"dimensiones\": \"140x190 cm\", \"stockMinimo\": 5, \"stockInicial\": 0, \"tipoProducto\": \"{{categoriaTipo}}\", \"activo\": true }",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
-                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
-                  "const vars = pm.collectionVariables;",
-                  "",
-                  "pm.test('Preparación: producto de prueba A creado (HTTP 201)', () => { pm.response.to.have.status(201); pm.expect(cuerpo.id).to.exist; });",
-                  "vars.set('productoAId', cuerpo.id);"
-                ]
-              }
-            }
-          ]
-        },
-        {
           "name": "Crear Producto Prueba B (stock 2, mínimo 5)",
           "request": {
             "method": "POST",
@@ -445,6 +393,152 @@
           ]
         },
         {
+          "name": "CP-03 Crear producto de prueba A (stock 0)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/productos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "productos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"sku\": \"PRUEBA-A-{{$timestamp}}\", \"nombre\": \"Producto Prueba A\", \"descripcion\": \"Producto de prueba automática\", \"idCategoria\": {{categoriaId}}, \"precioCompra\": 60, \"precioVenta\": 100, \"dimensiones\": \"140x190 cm\", \"stockMinimo\": 5, \"stockInicial\": 0, \"tipoProducto\": \"{{categoriaTipo}}\", \"activo\": true }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-03: el producto se crea (HTTP 201) con id ' + cuerpo.id, () => { pm.response.to.have.status(201); pm.expect(cuerpo.id).to.exist; });",
+                  "pm.test('CP-03: precio de venta ' + cuerpo.precioVenta + ' y activo ' + cuerpo.activo, () => { pm.expect(Number(cuerpo.precioVenta)).to.eql(100); pm.expect(cuerpo.activo).to.eql(true); });",
+                  "vars.set('productoAId', cuerpo.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-03 Stock del producto A recién creado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/inventario/catalogo?nombre=Producto%20Prueba%20A",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "inventario",
+                "catalogo"
+              ],
+              "query": [
+                {
+                  "key": "nombre",
+                  "value": "Producto%20Prueba%20A"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "const p = Array.isArray(cuerpo) ? cuerpo.find((x) => x.id == vars.get('productoAId')) : undefined;",
+                  "pm.test('CP-03: el stock inicial es 0 (obtenido ' + (p ? p.cantidadDisponible : 'producto no encontrado') + ')', () => { pm.expect(p).to.exist; pm.expect(p.cantidadDisponible).to.eql(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-03 El producto A aparece en GET /productos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/productos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "productos"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "const p = Array.isArray(cuerpo) ? cuerpo.find((x) => x.id == vars.get('productoAId')) : undefined;",
+                  "pm.test('CP-03: GET /productos incluye el producto A (id ' + vars.get('productoAId') + ', entre ' + (Array.isArray(cuerpo) ? cuerpo.length : '?') + ' productos)', () => { pm.expect(p).to.exist; pm.expect(p.nombre).to.eql('Producto Prueba A'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "CP-04 Producto con nombre vacío y precio 0",
           "request": {
             "method": "POST",
@@ -647,7 +741,8 @@
                   "const p = cuerpo.find((x) => x.id == vars.get('productoAId'));",
                   "const antes = Number(vars.get('stockAntes'));",
                   "const ahora = p ? p.cantidadDisponible : -1;",
-                  "pm.test('CP-05: el stock subió en 10 (antes ' + antes + ', ahora ' + ahora + ')', () => pm.expect(ahora).to.eql(antes + 10));"
+                  "pm.test('CP-05: el stock subió en 10 (antes ' + antes + ', ahora ' + ahora + ')', () => pm.expect(ahora).to.eql(antes + 10));",
+                  "vars.set('stockTrasCompra', ahora);"
                 ]
               }
             }
@@ -758,7 +853,7 @@
           ]
         },
         {
-          "name": "CP-09 Venta a domicilio pendiente (pagada completa)",
+          "name": "CP-07 Primera venta con stock (a domicilio, pagada completa; también CP-09)",
           "request": {
             "method": "POST",
             "header": [
@@ -803,7 +898,66 @@
                   "const vars = pm.collectionVariables;",
                   "",
                   "pm.test('CP-09: la venta a domicilio nace pendiente de entrega (HTTP 201)', () => { pm.response.to.have.status(201); pm.expect(cuerpo.estadoEntrega).to.eql('PENDIENTE'); });",
-                  "vars.set('ventaEntregaId', cuerpo.id);"
+                  "vars.set('ventaEntregaId', cuerpo.id);",
+                  "const detalles = cuerpo.detalles || [];",
+                  "const esperado = detalles.reduce((s, d) => s + Number(d.cantidad) * Number(d.precioUnitario), 0);",
+                  "const unidades = detalles.reduce((s, d) => s + Number(d.cantidad), 0);",
+                  "vars.set('ventaUnidades', unidades);",
+                  "pm.test('CP-07: la primera venta se registra (HTTP 201) con id ' + cuerpo.id, () => { pm.response.to.have.status(201); pm.expect(cuerpo.id).to.exist; });",
+                  "pm.test('CP-07: total ' + cuerpo.montoTotal + ' = suma de cantidad × precio (' + esperado + ')', () => { pm.expect(detalles.length).to.be.above(0); pm.expect(Number(cuerpo.montoTotal)).to.eql(esperado); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-07 (después) Stock del producto A",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/inventario/catalogo?nombre=Producto%20Prueba%20A",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "inventario",
+                "catalogo"
+              ],
+              "query": [
+                {
+                  "key": "nombre",
+                  "value": "Producto%20Prueba%20A"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "const p = Array.isArray(cuerpo) ? cuerpo.find((x) => x.id == vars.get('productoAId')) : undefined;",
+                  "const previo = Number(vars.get('stockTrasCompra'));",
+                  "const vendidas = Number(vars.get('ventaUnidades'));",
+                  "const ahora = p ? p.cantidadDisponible : -1;",
+                  "pm.test('CP-07: el stock bajó en ' + vendidas + ' (antes ' + previo + ', ahora ' + ahora + ')', () => { pm.expect(p).to.exist; pm.expect(ahora).to.eql(previo - vendidas); });"
                 ]
               }
             }
