@@ -67,13 +67,20 @@ cp .env.example .env        # completar al menos DB_PASSWORD, JWT_SECRET y el ad
 ./mvnw spring-boot:run      # en Windows: .\mvnw.cmd spring-boot:run
 ```
 
-Queda en `http://localhost:8080`. Spring lee `backend/.env` solo.
+El archivo `application-dev.properties` no viene en el repositorio (está en `.gitignore`): sin copiarlo, el backend
+no arranca (`Failed to configure a DataSource`). En `backend/.env` se define `SPRING_PROFILE=dev`; `JWT_SECRET` debe
+tener 64 caracteres o más; `SUPABASE_URL` y `SUPABASE_SERVICE_KEY` se dejan vacías en `dev` (los archivos se guardan
+en `backend/uploads/`). Las variables de entorno del sistema tienen prioridad sobre `backend/.env`.
+
+Queda en `http://localhost:8080`. Spring lee `backend/.env` solo. Para comprobar que funciona, abrir
+`http://localhost:8080/api/v1/salud`: debe responder `"estado":"OK"` y `"baseDeDatos":"DISPONIBLE"`.
 
 **Primer administrador.** Una base nueva no tiene usuarios. Si en `backend/.env` están definidas
 `ADMIN_INICIAL_USUARIO` y `ADMIN_INICIAL_CLAVE` (usuario de 3 a 30 caracteres y clave de 6 o más), al arrancar
 el backend crea con ellas un administrador, siempre que la tabla `usuarios` esté vacía; la clave se guarda con
 BCrypt y nunca se escribe en el registro. Si falta alguna variable o ya hay usuarios, no hace nada. Una vez
-dentro, conviene quitar la clave del entorno y crear el resto de usuarios desde la pantalla Usuarios.
+dentro, crear el usuario Empleado desde la pantalla Usuarios, quitar `ADMIN_INICIAL_USUARIO` y `ADMIN_INICIAL_CLAVE`
+del entorno (o de `backend/.env`) y reiniciar el backend.
 
 Los roles `ADMIN` y `EMPLEADO` los crea el backend al arrancar.
 
@@ -86,19 +93,24 @@ npm install
 npm run dev
 ```
 
-Queda en `http://localhost:3000` (inicio de sesión en `/login`).
+Queda en `http://localhost:3000` (inicio de sesión en `/login`). `.env.local` solo necesita
+`NEXT_PUBLIC_BACKEND_URL=http://localhost:8080`; `npm install` tarda unos minutos. Si el backend o la web usan otros
+puertos, cambiar esa variable y agregar el origen de la web a `CORS_ALLOWED_ORIGINS` del backend (por ejemplo
+`http://localhost:3001`).
 
 ### 4.4 App móvil
 
 ```bash
 cd app
-cp .env.example .env
 flutter pub get
-flutter run --dart-define-from-file=.env
+flutter run --dart-define=API_URL=http://10.0.2.2:8080     # con un emulador Android
+flutter build apk --debug --dart-define=API_URL=http://10.0.2.2:8080   # para comprobar que compila, sin emulador
 ```
 
+`10.0.2.2` es la dirección del equipo vista desde el emulador; si el backend usa otro puerto, cambiarlo en `API_URL`.
 En el celular, `localhost` es el propio celular. En `app/.env.example` están las formas de alcanzar el
-backend (emulador, cable USB con `adb reverse` o la misma red WiFi).
+backend (emulador, cable USB con `adb reverse` o la misma red WiFi); ese archivo también sirve con
+`--dart-define-from-file=.env`.
 
 ## 5. Variables de entorno
 
@@ -156,9 +168,11 @@ sistema-ventas-eden/
 │   ├── lib/             config/ data/ models/ screens/ theme/ widgets/
 │   ├── test/            pruebas de la app
 │   └── android/
-├── scripts/             publicación del APK y respaldo de archivos de Storage
+├── scripts/             publicar-apk.mjs (publica el APK), respaldar-storage.mjs (respaldo de Storage),
+│                        generar-icono-adaptativo.mjs e instalar-icono.mjs (ícono de la app) y sus pruebas
 ├── evidencia/           reportes de pruebas: api/ (Newman), backend/, app/, rendimiento/
-├── docs/                rutas-api-v1.md y errores-api.md
+├── docs/                rutas-api-v1.md, errores-api.md, análisis de requisitos y documentos del proyecto
+├── .gitignore
 └── README.md
 ```
 
@@ -192,7 +206,7 @@ Las credenciales de acceso **se entregan por canal privado**.
 
 | Qué | Comando | Total actual |
 |---|---|---|
-| Backend | `cd backend && ./mvnw test` | **164** pruebas, 0 fallos |
+| Backend | `cd backend && ./mvnw test` | **167** pruebas, 0 fallos |
 | App móvil | `cd app && flutter test` | **56** pruebas, 0 fallos |
 | API (Newman) | `cd evidencia/api && npm install && node ejecutar.mjs` | **30** casos, todos aprobados |
 
