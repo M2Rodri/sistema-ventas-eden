@@ -851,8 +851,8 @@ export default function RegistrarVentaModal({
 
             {/* Buscador + filtro por tipo, en la misma fila */}
             <div className="relative mb-3" ref={productoBoxRef}>
-              <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr] items-stretch gap-2">
-                <div className="flex items-center border border-gray-300 rounded-lg px-3 py-1.5 gap-1.5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-[2fr_1fr_1fr_1fr_1fr] items-stretch gap-2">
+                <div className="col-span-2 sm:col-span-3 md:col-span-1 flex items-center border border-gray-300 rounded-lg px-3 py-1.5 gap-1.5">
                   <Search size={14} className="text-gray-400 flex-shrink-0" />
                   <input
                     type="text"
@@ -877,7 +877,7 @@ export default function RegistrarVentaModal({
                     key={tipo.valor}
                     type="button"
                     onClick={() => toggleTipoProducto(tipo.valor)}
-                    className={`w-full whitespace-nowrap border rounded-lg px-2 py-1.5 text-[11px] font-medium select-none text-center ${
+                    className={`w-full last:col-span-2 sm:last:col-span-1 md:whitespace-nowrap border rounded-lg px-2 py-1.5 text-[11px] font-medium select-none text-center ${
                       tipoActivo === tipo.valor
                         ? "border-blue-500 bg-blue-50 text-blue-700"
                         : "border-gray-300 text-gray-600"

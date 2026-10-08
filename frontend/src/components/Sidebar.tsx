@@ -19,6 +19,7 @@ import {
   Contact,
   ChevronLeft,
   ChevronRight,
+  X,
 } from 'lucide-react';
 
 interface MenuItem {
@@ -59,6 +60,31 @@ export default function Sidebar({ isAdmin }: SidebarProps) {
   // Una pantalla puede pedir más lugar (por ejemplo, Compras con el panel de nuevo producto):
   // el menú se achica mientras dura y vuelve a como estaba.
   const estabaCerrado = useRef(false);
+  // En celular el menú es un cajón que se abre desde el botón del encabezado.
+  const [esMovil, setEsMovil] = useState(false);
+  const [cajonAbierto, setCajonAbierto] = useState(false);
+  const colapsado = isCollapsed && !esMovil;
+
+  useEffect(() => {
+    const consulta = window.matchMedia('(max-width: 767px)');
+    const actualizar = () => {
+      setEsMovil(consulta.matches);
+      if (!consulta.matches) setCajonAbierto(false);
+    };
+    actualizar();
+    consulta.addEventListener('change', actualizar);
+    const alternar = () => setCajonAbierto((abierto) => !abierto);
+    window.addEventListener('sidebar:alternar', alternar);
+    return () => {
+      consulta.removeEventListener('change', actualizar);
+      window.removeEventListener('sidebar:alternar', alternar);
+    };
+  }, []);
+
+  // Al cambiar de pantalla el cajón se cierra solo.
+  useEffect(() => {
+    setCajonAbierto(false);
+  }, [pathname]);
 
   useEffect(() => {
     const achicar = () => {
@@ -81,10 +107,19 @@ export default function Sidebar({ isAdmin }: SidebarProps) {
   );
 
   return (
-    <aside className={`${isCollapsed ? 'w-20' : 'w-64'} bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 h-screen border-r border-gray-700 transition-all duration-300 ease-in-out relative flex flex-col`}>
+    <>
+    {/* Fondo oscuro detrás del cajón (solo celular) */}
+    {cajonAbierto && (
+      <div
+        className="fixed inset-0 z-40 bg-black/50 md:hidden"
+        onClick={() => setCajonAbierto(false)}
+        aria-hidden="true"
+      />
+    )}
+    <aside className={`${colapsado ? 'md:w-20' : 'md:w-64'} w-72 max-w-[85vw] bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 h-dvh md:h-screen border-r border-gray-700 transition-all duration-300 ease-in-out flex flex-col fixed inset-y-0 left-0 z-50 md:relative md:inset-auto md:z-auto ${cajonAbierto ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
       {/* Header */}
-      <div className={`p-6 border-b border-gray-700 ${isCollapsed ? 'px-3' : ''}`}>
-        {!isCollapsed ? (
+      <div className={`p-6 border-b border-gray-700 ${colapsado ? 'px-3' : ''}`}>
+        {!colapsado ? (
           <>
             <h1 className="text-xl font-bold text-white flex items-center gap-2">
               🛏️ Mueblería Edén
@@ -96,25 +131,35 @@ export default function Sidebar({ isAdmin }: SidebarProps) {
         )}
       </div>
 
+      {/* Cerrar cajón (solo celular) */}
+      <button
+        onClick={() => setCajonAbierto(false)}
+        className="absolute right-2 top-3 flex h-11 w-11 items-center justify-center rounded-lg text-gray-300 hover:bg-gray-700/50 md:hidden"
+        aria-label="Cerrar menú"
+      >
+        <X size={22} />
+      </button>
+
       {/* Toggle Button */}
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute -right-3 top-20 bg-primary-600 hover:bg-primary-700 text-white p-1.5 rounded-full shadow-lg transition-all duration-200 z-10"
+        className="hidden md:block absolute -right-3 top-20 bg-primary-600 hover:bg-primary-700 text-white p-1.5 rounded-full shadow-lg transition-all duration-200 z-10"
       >
         {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
       </button>
       
       {/* Menu */}
       
-      <nav className="px-3 py-4 space-y-1 overflow-y-auto h-[calc(100vh-120px)]">
+      <nav className="px-3 py-4 space-y-1 overflow-y-auto flex-1 min-h-0">
         {filteredMenu.map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link
               key={item.href}
               href={item.href}
-              title={isCollapsed ? item.name : ''}
+              title={colapsado ? item.name : ''}
               onClick={(e) => {
+                setCajonAbierto(false);
                 // Clickear un módulo tiene que volver esa pantalla a su
                 // estado normal, incluso si ya estás ahí. Cada pantalla
                 // escucha su propio evento y reinicia sus filtros.
@@ -143,15 +188,15 @@ export default function Sidebar({ isAdmin }: SidebarProps) {
                 isActive
                   ? 'bg-gradient-to-r from-primary-600 to-primary-700 text-white font-semibold shadow-lg scale-105'
                   : 'text-gray-300 hover:bg-gray-700/50 hover:text-white'
-              } ${isCollapsed ? 'justify-center' : ''}`}
+              } ${colapsado ? 'justify-center' : ''}`}
             >
               <span className={`${isActive ? 'text-white' : 'text-gray-400 group-hover:text-white'} transition-colors`}>
                 {item.icon}
               </span>
-              {!isCollapsed && <span className="truncate">{item.name}</span>}
+              {!colapsado && <span className="truncate">{item.name}</span>}
               
               {/* Indicador activo cuando está colapsado */}
-              {isCollapsed && isActive && (
+              {colapsado && isActive && (
                 <span className="absolute left-0 w-1 h-8 bg-primary-400 rounded-r-full"></span>
               )}
             </Link>
@@ -166,5 +211,6 @@ export default function Sidebar({ isAdmin }: SidebarProps) {
         </div>
       )} */}
     </aside>
+    </>
   );
 }

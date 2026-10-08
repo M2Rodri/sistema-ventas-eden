@@ -61,3 +61,168 @@
   transform: translateY(-4px);
   box-shadow: 0 4px 8px rgba(11, 59, 55, 0.14), 0 20px 44px rgba(11, 59, 55, 0.30);
 }
+
+/*
+ * Tablas como tarjetas en celular.
+ *
+ * Una tabla de 8 columnas no entra en 390 px y obliga a deslizar de costado. En
+ * pantallas angostas cada fila pasa a ser una tarjeta y cada celda muestra su
+ * columna como etiqueta (data-label, que pone TablasResponsivas). En
+ * escritorio estas reglas no aplican. Las tablas de documentos (.area-impresion)
+ * no llevan data-tarjetas y no se tocan.
+ */
+@media screen and (max-width: 767px) {
+  table[data-tarjetas] {
+    display: block;
+    width: 100%;
+    min-width: 0 !important;
+  }
+  table[data-tarjetas] thead {
+    display: none;
+  }
+  table[data-tarjetas] tbody {
+    display: block;
+  }
+  table[data-tarjetas] tbody > tr {
+    display: block;
+    margin-bottom: 0.75rem;
+    padding: 0.25rem 0.875rem;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+  table[data-tarjetas] tbody > tr > td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    width: auto !important;
+    min-width: 0;
+    padding: 0.5rem 0 !important;
+    text-align: right;
+    white-space: normal !important;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  table[data-tarjetas] tbody > tr > td:last-child {
+    border-bottom: 0;
+  }
+  table[data-tarjetas] tbody > tr > td::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    max-width: 45%;
+    text-align: left;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #6b7280;
+  }
+  table[data-tarjetas] tbody > tr > td[data-label=""]::before {
+    content: none;
+  }
+  table[data-tarjetas] tbody > tr > td[data-label=""] {
+    justify-content: center;
+    text-align: center;
+  }
+}
+
+/* En la tarjeta hay espacio de sobra: los textos se leen completos, sin "…". */
+@media screen and (max-width: 767px) {
+  table[data-tarjetas] tbody > tr > td .truncate {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  table[data-tarjetas] tbody > tr > td[class*="max-w-"],
+  table[data-tarjetas] tbody > tr > td [class*="max-w-"] {
+    max-width: none !important;
+  }
+}
+
+/* Botones de las tarjetas (ver, editar, borrar…): área táctil cómoda. */
+@media screen and (max-width: 767px) {
+  table[data-tarjetas] tbody > tr > td button,
+  table[data-tarjetas] tbody > tr > td a {
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/*
+ * Campos y botones cómodos para el dedo en celular.
+ * Letra de 16 px en los campos: con menos, iPhone hace zoom solo al tocarlos.
+ */
+@media screen and (max-width: 767px) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='color']),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='color']),
+  select {
+    min-height: 2.75rem;
+  }
+  button,
+  [role='button'] {
+    min-height: 2.5rem;
+    min-width: 2.5rem;
+  }
+}
+
+/* Filtros (select) de las barras de herramientas: de a dos por fila en celular. */
+@media screen and (max-width: 767px) {
+  select {
+    flex: 1 1 calc(50% - 0.625rem);
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
+@media screen and (max-width: 767px) {
+  select {
+    padding-left: 0.5rem !important;
+    padding-right: 1.5rem !important;
+    text-overflow: ellipsis;
+  }
+}
+
+@media screen and (max-width: 767px) {
+  select {
+    min-width: min(12rem, 100%);
+  }
+}
+
+/* Los modales no deben mostrar barra de desplazamiento horizontal por 1 px de sobra. */
+@media screen and (max-width: 767px) {
+  [class*='max-h-[90vh]'] {
+    overflow-x: hidden;
+  }
+}
+
+/* Celdas con varias líneas (nombre + correo, precio + detalle…): la etiqueta arriba y el contenido debajo. */
+@media screen and (max-width: 767px) {
+  table[data-tarjetas] tbody > tr > td:has(> :nth-child(2)) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.25rem;
+  }
+  table[data-tarjetas] tbody > tr > td:has(> :nth-child(2))::before {
+    max-width: none;
+  }
+  table[data-tarjetas] tbody > tr > td:has(> :nth-child(2)) > * {
+    text-align: right;
+    overflow-wrap: anywhere;
+    max-width: 100%;
+  }
+}
+
+@media screen and (max-width: 767px) {
+  table[data-tarjetas] tbody > tr > td {
+    overflow-wrap: anywhere;
+  }
+}

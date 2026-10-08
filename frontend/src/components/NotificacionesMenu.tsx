@@ -75,7 +75,7 @@ export default function NotificacionesMenu() {
     <div className="relative" ref={contenedor}>
       <button
         onClick={() => setAbierto(!abierto)}
-        className="relative rounded-lg p-2 transition-colors hover:bg-gray-100"
+        className="relative flex h-11 w-11 items-center justify-center rounded-lg transition-colors hover:bg-gray-100 md:h-auto md:w-auto md:p-2"
         title={total > 0 ? `${total} aviso${total === 1 ? '' : 's'} sin atender` : 'Sin avisos pendientes'}
         aria-label="Notificaciones"
       >
@@ -89,7 +89,7 @@ export default function NotificacionesMenu() {
       </button>
 
       {abierto && (
-        <div className="absolute right-0 z-50 mt-2 w-96 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
+        <div className="fixed inset-x-3 top-[4.25rem] z-50 overflow-hidden md:absolute md:inset-x-auto md:right-0 md:top-auto md:mt-2 md:w-96 rounded-lg border border-gray-200 bg-white shadow-lg">
           <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3">
             <p className="font-semibold text-gray-900">Avisos pendientes</p>
             <button

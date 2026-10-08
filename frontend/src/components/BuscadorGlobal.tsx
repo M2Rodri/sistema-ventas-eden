@@ -146,7 +146,7 @@ export default function BuscadorGlobal() {
   const consultaValida = texto.trim().length >= MINIMO_CARACTERES;
 
   return (
-    <div className="relative w-96" ref={contenedor}>
+    <div className="relative min-w-0 flex-1 md:w-96 md:flex-none" ref={contenedor}>
       <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2">
         <Search size={18} className="flex-shrink-0 text-gray-400" />
         <input

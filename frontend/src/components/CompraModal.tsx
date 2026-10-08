@@ -294,16 +294,16 @@ export default function CompraModal({
 
           {/* Productos */}
           <div>
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-2">
               <label className="block text-sm font-medium text-gray-700">Productos comprados *</label>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={abrirNuevoProducto}
                 disabled={cargandoDatos}
                 className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 border border-primary-300 text-primary-700 rounded-lg hover:bg-primary-50 disabled:opacity-50"
               >
-                <Plus size={16} />
+                <Plus size={16} className="flex-shrink-0" />
                 Nuevo producto
               </button>
               <button
@@ -312,7 +312,7 @@ export default function CompraModal({
                 disabled={cargandoDatos}
                 className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
               >
-                <Plus size={16} />
+                <Plus size={16} className="flex-shrink-0" />
                 Buscar y agregar productos
               </button>
               </div>

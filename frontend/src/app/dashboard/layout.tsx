@@ -6,6 +6,7 @@ import { precargarDatos } from '@/lib/api';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import SesionExpiradaWatcher from '@/components/SesionExpiradaWatcher';
+import TablasResponsivas from '@/components/TablasResponsivas';
 
 export default function DashboardLayout({
   children,
@@ -30,14 +31,15 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-primary-50">
+    <div className="flex h-dvh md:h-screen overflow-hidden bg-primary-50">
       <SesionExpiradaWatcher />
+      <TablasResponsivas />
       <Sidebar isAdmin={isAdmin()} />
-      
-      <div className="flex-1 flex flex-col overflow-hidden">
+
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
         <Header />
-        
-        <main className="flex-1 overflow-y-auto bg-gray-50 p-6">
+
+        <main className="flex-1 overflow-y-auto bg-gray-50 p-3 sm:p-4 md:p-6">
           <div className="max-w-7xl mx-auto">
             {children}
           </div>

@@ -565,7 +565,7 @@ export default function DetalleVentaModal({
                     </div>
 
                     <div
-                      className="mt-2 pt-2 border-t border-green-200 flex items-center gap-3"
+                      className="mt-2 pt-2 border-t border-green-200 flex flex-wrap items-center gap-x-3 gap-y-2"
                       onDragOver={(e) => e.preventDefault()}
                       onDrop={(e) => {
                         e.preventDefault();
@@ -592,7 +592,7 @@ export default function DetalleVentaModal({
                           <ImageIcon size={14} /> Ver comprobante
                         </a>
                       ) : (
-                        <p className="text-xs text-gray-400">Sin comprobante adjunto (podés arrastrar el archivo acá)</p>
+                        <p className="text-xs text-gray-400">Sin comprobante adjunto<span className="hidden sm:inline"> (podés arrastrar el archivo acá)</span></p>
                       )}
 
                       <button
@@ -605,7 +605,7 @@ export default function DetalleVentaModal({
                         <ImageIcon size={14} /> Pegar imagen
                       </button>
 
-                      <label className="flex items-center gap-1 text-xs text-gray-600 hover:text-gray-900 cursor-pointer">
+                      <label className="flex items-center gap-1 text-xs text-gray-600 hover:text-gray-900 cursor-pointer min-h-[2.5rem] md:min-h-0">
                         <Upload size={14} />
                         {subiendoId === pago.id
                           ? 'Subiendo...'
@@ -632,14 +632,14 @@ export default function DetalleVentaModal({
           )}
 
           {/* Botones */}
-          <div className="flex gap-3 px-5 py-3.5 border-t border-gray-200 bg-gray-50">
+          <div className="flex flex-wrap gap-2 sm:gap-3 px-4 sm:px-5 py-3.5 border-t border-gray-200 bg-gray-50">
             
             {/* El comprobante se genera para toda venta al registrarla, sin
                 importar el estado: documenta qué se vendió, no si está
                 pagada. Por eso este botón no depende del estado. */}
             <button
               onClick={handleVerComprobante}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+              className="flex flex-1 sm:flex-none items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
             >
               <FileText size={20} />
               Ver Comprobante
@@ -648,7 +648,7 @@ export default function DetalleVentaModal({
             {venta.estado === 'PENDIENTE_PAGO' && (venta.saldoPendiente ?? 0) > 0 && onCobrarSaldo && (
               <button
                 onClick={onCobrarSaldo}
-                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
+                className="flex flex-1 sm:flex-none items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
               >
                 <Banknote size={20} />
                 Cobrar saldo pendiente
@@ -657,7 +657,7 @@ export default function DetalleVentaModal({
 
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              className="flex-1 basis-full sm:basis-0 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
             >
               Cerrar
             </button>
