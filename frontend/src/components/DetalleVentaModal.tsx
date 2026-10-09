@@ -465,7 +465,7 @@ export default function DetalleVentaModal({
               </div>
               <div className="flex justify-between items-center mt-2 pt-2 border-t border-blue-200">
                 <span className="text-sm font-medium text-gray-700">
-                  {esAnulada ? 'Pagado antes de cancelar:' : 'Total pagado:'}
+                  {esAnulada ? 'Registrado antes de cancelar:' : 'Total pagado:'}
                 </span>
                 <span className="text-base font-semibold text-gray-900">{formatPrice(totalPagado)}</span>
               </div>
