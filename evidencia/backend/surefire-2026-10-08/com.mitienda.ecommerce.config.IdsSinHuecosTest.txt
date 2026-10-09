@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.mitienda.ecommerce.config.IdsSinHuecosTest
+-------------------------------------------------------------------------------
+Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 13.47 s -- in com.mitienda.ecommerce.config.IdsSinHuecosTest

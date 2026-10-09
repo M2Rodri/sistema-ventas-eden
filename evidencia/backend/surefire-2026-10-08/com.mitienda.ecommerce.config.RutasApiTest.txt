@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.mitienda.ecommerce.config.RutasApiTest
+-------------------------------------------------------------------------------
+Tests run: 16, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 4.708 s -- in com.mitienda.ecommerce.config.RutasApiTest
