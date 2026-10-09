@@ -1,0 +1,1058 @@
+{
+  "fecha": "2026-10-08",
+  "hora": "21:10:52",
+  "servidor": "https://sistema-ventas-eden-1.onrender.com",
+  "casos": [
+    {
+      "id": "CP-02",
+      "estado": "Aprobado",
+      "http": [
+        401
+      ],
+      "codigoError": "CREDENCIALES_INVALIDAS",
+      "peticiones": [
+        "CP-02 Login con contraseña incorrecta"
+      ],
+      "asertos": [
+        {
+          "texto": "CP-02: responde HTTP 401",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-02: código de error CREDENCIALES_INVALIDAS",
+          "ok": true,
+          "motivo": ""
+        }
+      ]
+    },
+    {
+      "id": "CP-03",
+      "estado": "Aprobado",
+      "http": [
+        201,
+        200,
+        200
+      ],
+      "codigoError": null,
+      "peticiones": [
+        "CP-03 Crear producto de prueba A (stock 0)",
+        "CP-03 Stock del producto A recién creado",
+        "CP-03 El producto A aparece en GET /productos"
+      ],
+      "asertos": [
+        {
+          "texto": "CP-03: el producto se crea (HTTP 201) con id 21",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-03: precio de venta 100 y activo true",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-03: el stock inicial es 0 (obtenido 0)",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-03: GET /productos incluye el producto A (id 21, entre 21 productos)",
+          "ok": true,
+          "motivo": ""
+        }
+      ]
+    },
+    {
+      "id": "CP-04",
+      "estado": "Aprobado",
+      "http": [
+        400
+      ],
+      "codigoError": "VALIDACION",
+      "peticiones": [
+        "CP-04 Producto con nombre vacío y precio 0"
+      ],
+      "asertos": [
+        {
+          "texto": "CP-04: responde HTTP 400",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-04: código de error VALIDACION",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-04: indica los campos con error (nombre y precioVenta)",
+          "ok": true,
+          "motivo": ""
+        }
+      ]
+    },
+    {
+      "id": "CP-05",
+      "estado": "Aprobado",
+      "http": [
+        200,
+        201,
+        200
+      ],
+      "codigoError": null,
+      "peticiones": [
+        "CP-05 (antes) Stock del producto A",
+        "CP-05 Compra de 10 unidades del producto A",
+        "CP-05 (después) Stock del producto A"
+      ],
+      "asertos": [
+        {
+          "texto": "CP-05: el producto de prueba A está en el catálogo",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-05: la compra se registra (HTTP 201)",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-05: el stock subió en 10 (antes 0, ahora 10)",
+          "ok": true,
+          "motivo": ""
+        }
+      ]
+    },
+    {
+      "id": "CP-06",
+      "estado": "Aprobado",
+      "http": [
+        400
+      ],
+      "codigoError": "VALIDACION",
+      "peticiones": [
+        "CP-06 Compra sin productos"
+      ],
+      "asertos": [
+        {
+          "texto": "CP-06: responde HTTP 400",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-06: código de error VALIDACION",
+          "ok": true,
+          "motivo": ""
+        }
+      ]
+    },
+    {
+      "id": "CP-07",
+      "estado": "Aprobado",
+      "http": [
+        201,
+        200
+      ],
+      "codigoError": null,
+      "peticiones": [
+        "CP-07 Primera venta con stock (a domicilio, pagada completa; también CP-09)",
+        "CP-07 (después) Stock del producto A"
+      ],
+      "asertos": [
+        {
+          "texto": "CP-07: la primera venta se registra (HTTP 201) con id 17",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-07: total 100 = suma de cantidad × precio (100)",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-07: el stock bajó en 1 (antes 10, ahora 9)",
+          "ok": true,
+          "motivo": ""
+        }
+      ]
+    },
+    {
+      "id": "CP-08",
+      "estado": "Aprobado",
+      "http": [
+        422
+      ],
+      "codigoError": "PRECIO_EXCEDE_CATALOGO",
+      "peticiones": [
+        "CP-08 Venta con precio mayor al de catálogo"
+      ],
+      "asertos": [
+        {
+          "texto": "CP-08: responde HTTP 422",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-08: código de error PRECIO_EXCEDE_CATALOGO",
+          "ok": true,
+          "motivo": ""
+        }
+      ]
+    },
+    {
+      "id": "CP-09",
+      "estado": "Aprobado",
+      "http": [
+        200
+      ],
+      "codigoError": null,
+      "peticiones": [
+        "CP-09 Marcar como entregada"
+      ],
+      "asertos": [
+        {
+          "texto": "CP-09: la venta a domicilio nace pendiente de entrega (HTTP 201)",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-09: marcar entregada responde HTTP 200",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-09: el estado de entrega queda ENTREGADO",
+          "ok": true,
+          "motivo": ""
+        }
+      ]
+    },
+    {
+      "id": "CP-10",
+      "estado": "Aprobado",
+      "http": [
+        400
+      ],
+      "codigoError": "CIUDAD_REQUERIDA",
+      "peticiones": [
+        "CP-10 Venta por transportadora sin ciudad"
+      ],
+      "asertos": [
+        {
+          "texto": "CP-10: responde HTTP 400",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-10: código de error CIUDAD_REQUERIDA",
+          "ok": true,
+          "motivo": ""
+        }
+      ]
+    },
+    {
+      "id": "CP-11",
+      "estado": "Aprobado",
+      "http": [
+        201,
+        200
+      ],
+      "codigoError": null,
+      "peticiones": [
+        "CP-11 Venta a domicilio con saldo (pagó 40 de 100)",
+        "CP-11 Marcar como entregada una venta con saldo"
+      ],
+      "asertos": [
+        {
+          "texto": "CP-11: la venta queda con saldo pendiente 60 (HTTP 201)",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-11: entregar con saldo responde HTTP 200",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-11: el estado de entrega queda ENTREGADO",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-11: el saldo no cambia (antes 60, ahora 60)",
+          "ok": true,
+          "motivo": ""
+        }
+      ]
+    },
+    {
+      "id": "CP-12",
+      "estado": "Aprobado",
+      "http": [
+        201,
+        200
+      ],
+      "codigoError": null,
+      "peticiones": [
+        "CP-12 Pago que cubre el saldo de la venta entregada",
+        "CP-12 Venta después del pago"
+      ],
+      "asertos": [
+        {
+          "texto": "CP-12: el pago se registra (HTTP 201)",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-12: el saldo queda en 0",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-12: el estado de la venta queda COMPLETADA",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-12: la entrega sigue ENTREGADO (sin cambios)",
+          "ok": true,
+          "motivo": ""
+        }
+      ]
+    },
+    {
+      "id": "CP-13",
+      "estado": "Aprobado",
+      "http": [
+        200,
+        200
+      ],
+      "codigoError": null,
+      "peticiones": [
+        "CP-13 Reporte financiero como ADMIN",
+        "CP-13 Reporte de ventas del mismo período"
+      ],
+      "asertos": [
+        {
+          "texto": "CP-13: responde HTTP 200",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-13: devuelve los campos del reporte (fechaInicio, fechaFin, gananciaVentas, ingresosTotales, gastosTotales, saldoPeriodo, detalleIngresos, detalleGastos)",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-13: gananciaVentas del financiero es un número (5555) y no supera los ingresos (13725)",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-13: reporte de ventas del mismo período responde HTTP 200",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-13: totalVentas (8) es la cantidad de ventas listadas (8)",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-13: montoTotalVentas (13970) es la suma de los montos listados (13970.00)",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-13: ninguna venta CANCELADA entra al reporte de ventas",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-13: el período tiene al menos 2 ventas y Bs 200 (solo las de CP-09 y CP-11 ya suman eso)",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-13: ingresosTotales del financiero (13725) es la suma de las ventas COMPLETADA del reporte de ventas (13725.00, 7 ventas)",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-13: montoTotalVentas (13970) no es menor que ingresosTotales (13725): el reporte de ventas también cuenta las pendientes de pago",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-13: gananciaVentas del reporte de ventas (5555) es igual a la del financiero (5555)",
+          "ok": true,
+          "motivo": ""
+        }
+      ]
+    },
+    {
+      "id": "CP-14",
+      "estado": "Aprobado",
+      "http": [
+        403
+      ],
+      "codigoError": "SIN_PERMISO",
+      "peticiones": [
+        "CP-14 Reporte financiero con token de EMPLEADO"
+      ],
+      "asertos": [
+        {
+          "texto": "CP-14: responde HTTP 403",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-14: código de error SIN_PERMISO",
+          "ok": true,
+          "motivo": ""
+        }
+      ]
+    },
+    {
+      "id": "CP-15",
+      "estado": "Aprobado",
+      "http": [
+        401
+      ],
+      "codigoError": "NO_AUTENTICADO",
+      "peticiones": [
+        "CP-15 GET productos sin token"
+      ],
+      "asertos": [
+        {
+          "texto": "CP-15: responde HTTP 401",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-15: código de error NO_AUTENTICADO",
+          "ok": true,
+          "motivo": ""
+        }
+      ]
+    },
+    {
+      "id": "CP-16",
+      "estado": "Aprobado",
+      "http": [
+        403
+      ],
+      "codigoError": "SIN_PERMISO",
+      "peticiones": [
+        "CP-16 GET usuarios con token de EMPLEADO"
+      ],
+      "asertos": [
+        {
+          "texto": "CP-16: responde HTTP 403",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-16: código de error SIN_PERMISO",
+          "ok": true,
+          "motivo": ""
+        }
+      ]
+    },
+    {
+      "id": "CP-17",
+      "estado": "Aprobado",
+      "http": [
+        404
+      ],
+      "codigoError": "PRODUCTO_NO_ENCONTRADO",
+      "peticiones": [
+        "CP-17 PUT de un producto inexistente"
+      ],
+      "asertos": [
+        {
+          "texto": "CP-17: responde HTTP 404",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-17: código de error PRODUCTO_NO_ENCONTRADO",
+          "ok": true,
+          "motivo": ""
+        }
+      ]
+    },
+    {
+      "id": "CP-18",
+      "estado": "Aprobado",
+      "http": [
+        200,
+        409
+      ],
+      "codigoError": "VENTA_YA_CANCELADA",
+      "peticiones": [
+        "CP-18 (preparación) Cancelar la venta",
+        "CP-18 Cancelar una venta ya cancelada"
+      ],
+      "asertos": [
+        {
+          "texto": "CP-18: la primera cancelación responde HTTP 200",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-18: responde HTTP 409",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-18: código de error VENTA_YA_CANCELADA",
+          "ok": true,
+          "motivo": ""
+        }
+      ]
+    },
+    {
+      "id": "CP-19",
+      "estado": "Aprobado",
+      "http": [
+        201,
+        422
+      ],
+      "codigoError": "PAGO_EXCEDE_SALDO",
+      "peticiones": [
+        "CP-19 (preparación) Venta con saldo para el pago excedido",
+        "CP-19 Pago mayor que el saldo"
+      ],
+      "asertos": [
+        {
+          "texto": "CP-19: venta de preparación con saldo 60 (HTTP 201)",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-19: responde HTTP 422",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-19: código de error PAGO_EXCEDE_SALDO",
+          "ok": true,
+          "motivo": ""
+        }
+      ]
+    },
+    {
+      "id": "CP-20",
+      "estado": "Aprobado",
+      "http": [
+        422
+      ],
+      "codigoError": "STOCK_INSUFICIENTE",
+      "peticiones": [
+        "CP-20 Ajuste de salida mayor que el stock"
+      ],
+      "asertos": [
+        {
+          "texto": "CP-20: responde HTTP 422",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-20: código de error STOCK_INSUFICIENTE",
+          "ok": true,
+          "motivo": ""
+        }
+      ]
+    },
+    {
+      "id": "CP-21",
+      "estado": "Aprobado",
+      "http": [
+        404
+      ],
+      "codigoError": "RUTA_NO_ENCONTRADA",
+      "peticiones": [
+        "CP-21 Ruta sin versión /api/productos"
+      ],
+      "asertos": [
+        {
+          "texto": "CP-21: responde HTTP 404",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-21: código de error RUTA_NO_ENCONTRADA",
+          "ok": true,
+          "motivo": ""
+        }
+      ]
+    },
+    {
+      "id": "CP-23",
+      "estado": "Aprobado",
+      "http": [
+        200,
+        200
+      ],
+      "codigoError": null,
+      "peticiones": [
+        "CP-23 (control) El ADMIN ve el precio de compra",
+        "CP-23 GET productos con token de EMPLEADO"
+      ],
+      "asertos": [
+        {
+          "texto": "CP-23: el ADMIN sí ve el precio de compra (control)",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-23: responde HTTP 200 con lista de productos (21)",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-23: ningún producto trae precio de compra (con costo: 0)",
+          "ok": true,
+          "motivo": ""
+        }
+      ]
+    },
+    {
+      "id": "CP-25",
+      "estado": "Aprobado",
+      "http": [
+        200
+      ],
+      "codigoError": null,
+      "peticiones": [
+        "CP-25 Dashboard: estadísticas"
+      ],
+      "asertos": [
+        {
+          "texto": "CP-25: responde HTTP 200",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-25: trae ventas del día (2 ventas, Bs 200) y del mes (7 ventas, Bs 13725)",
+          "ok": true,
+          "motivo": ""
+        }
+      ]
+    },
+    {
+      "id": "CP-26",
+      "estado": "Aprobado",
+      "http": [
+        200
+      ],
+      "codigoError": null,
+      "peticiones": [
+        "CP-26 Producto bajo su stock mínimo en stock-bajo"
+      ],
+      "asertos": [
+        {
+          "texto": "CP-26: responde HTTP 200",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-26: el producto de prueba B (stock 2, mínimo 5) aparece en la lista",
+          "ok": true,
+          "motivo": ""
+        }
+      ]
+    },
+    {
+      "id": "CP-27",
+      "estado": "Aprobado",
+      "http": [
+        409
+      ],
+      "codigoError": "USUARIO_DUPLICADO",
+      "peticiones": [
+        "CP-27 Alta de usuario con nombre ya usado"
+      ],
+      "asertos": [
+        {
+          "texto": "CP-27: responde HTTP 409",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-27: código de error USUARIO_DUPLICADO",
+          "ok": true,
+          "motivo": ""
+        }
+      ]
+    },
+    {
+      "id": "CP-28",
+      "estado": "Aprobado",
+      "http": [
+        409
+      ],
+      "codigoError": "NIT_CI_DUPLICADO",
+      "peticiones": [
+        "CP-28 Editar un cliente con el NIT/CI de otro"
+      ],
+      "asertos": [
+        {
+          "texto": "CP-28: responde HTTP 409",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-28: código de error NIT_CI_DUPLICADO",
+          "ok": true,
+          "motivo": ""
+        }
+      ]
+    },
+    {
+      "id": "CP-29",
+      "estado": "Aprobado",
+      "http": [
+        401,
+        401,
+        401,
+        401,
+        401,
+        429
+      ],
+      "codigoError": "DEMASIADOS_INTENTOS",
+      "peticiones": [
+        "CP-29 Límite de intentos de login (intento 1 de 6)",
+        "CP-29 Límite de intentos de login (intento 2 de 6)",
+        "CP-29 Límite de intentos de login (intento 3 de 6)",
+        "CP-29 Límite de intentos de login (intento 4 de 6)",
+        "CP-29 Límite de intentos de login (intento 5 de 6)",
+        "CP-29 Límite de intentos de login (intento 6 de 6)"
+      ],
+      "asertos": [
+        {
+          "texto": "CP-29: el intento 1 responde HTTP 401",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-29: el intento 1 dice CREDENCIALES_INVALIDAS",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-29: el intento 2 responde HTTP 401",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-29: el intento 2 dice CREDENCIALES_INVALIDAS",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-29: el intento 3 responde HTTP 401",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-29: el intento 3 dice CREDENCIALES_INVALIDAS",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-29: el intento 4 responde HTTP 401",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-29: el intento 4 dice CREDENCIALES_INVALIDAS",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-29: el intento 5 responde HTTP 401",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-29: el intento 5 dice CREDENCIALES_INVALIDAS",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-29: el sexto intento responde HTTP 429",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-29: código de error DEMASIADOS_INTENTOS",
+          "ok": true,
+          "motivo": ""
+        }
+      ]
+    },
+    {
+      "id": "CP-36",
+      "estado": "Aprobado",
+      "http": [
+        201
+      ],
+      "codigoError": null,
+      "peticiones": [
+        "CP-36 Venta registrada por el EMPLEADO (el usuario sale de la sesión)"
+      ],
+      "asertos": [
+        {
+          "texto": "CP-36: la venta del EMPLEADO responde HTTP 201",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-36: idUsuario de la venta (5) es el del EMPLEADO (5), no el del ADMIN (6) que se mandó en el cuerpo",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-36: nombreUsuario (Lucía Fernández Arce) es el nombre del EMPLEADO",
+          "ok": true,
+          "motivo": ""
+        }
+      ]
+    },
+    {
+      "id": "CP-38",
+      "estado": "Aprobado",
+      "http": [
+        422
+      ],
+      "codigoError": "PAGO_EXCEDE_TOTAL",
+      "peticiones": [
+        "CP-38 Venta con monto pagado mayor al total"
+      ],
+      "asertos": [
+        {
+          "texto": "CP-38: responde HTTP 422",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-38: código de error PAGO_EXCEDE_TOTAL",
+          "ok": true,
+          "motivo": ""
+        }
+      ]
+    },
+    {
+      "id": "CP-39",
+      "estado": "Aprobado",
+      "http": [
+        400
+      ],
+      "codigoError": "VALIDACION",
+      "peticiones": [
+        "CP-39 Ajuste de inventario sin motivo"
+      ],
+      "asertos": [
+        {
+          "texto": "CP-39: responde HTTP 400",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-39: código de error VALIDACION",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-39: el error señala el campo motivo",
+          "ok": true,
+          "motivo": ""
+        }
+      ]
+    },
+    {
+      "id": "CP-40",
+      "estado": "Aprobado",
+      "http": [
+        200
+      ],
+      "codigoError": null,
+      "peticiones": [
+        "CP-40 Ajuste de entrada válido"
+      ],
+      "asertos": [
+        {
+          "texto": "CP-40: responde HTTP 200",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-40: devuelve la cantidad disponible",
+          "ok": true,
+          "motivo": ""
+        }
+      ]
+    },
+    {
+      "id": "CP-41",
+      "estado": "Aprobado",
+      "http": [
+        201
+      ],
+      "codigoError": null,
+      "peticiones": [
+        "CP-41 Alta de usuario válida"
+      ],
+      "asertos": [
+        {
+          "texto": "CP-41: responde HTTP 201",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-41: el usuario queda creado con rol EMPLEADO",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-41: la respuesta no devuelve la contraseña",
+          "ok": true,
+          "motivo": ""
+        }
+      ]
+    },
+    {
+      "id": "CP-42",
+      "estado": "Aprobado",
+      "http": [
+        200
+      ],
+      "codigoError": null,
+      "peticiones": [
+        "CP-42 Historial de compras de un cliente"
+      ],
+      "asertos": [
+        {
+          "texto": "CP-42: responde HTTP 200",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-42: trae el cliente y su resumen",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-42: lista las ventas del cliente",
+          "ok": true,
+          "motivo": ""
+        }
+      ]
+    },
+    {
+      "id": "CP-43",
+      "estado": "Aprobado",
+      "http": [
+        409
+      ],
+      "codigoError": "VENTA_YA_ENTREGADA",
+      "peticiones": [
+        "CP-43 Entregar una venta ya entregada"
+      ],
+      "asertos": [
+        {
+          "texto": "CP-43: responde HTTP 409",
+          "ok": true,
+          "motivo": ""
+        },
+        {
+          "texto": "CP-43: código de error VENTA_YA_ENTREGADA",
+          "ok": true,
+          "motivo": ""
+        }
+      ]
+    }
+  ],
+  "preparacionYLimpieza": [
+    {
+      "peticion": "Login ADMIN",
+      "texto": "Preparación: login de ADMIN (HTTP 200 con token)",
+      "ok": true,
+      "motivo": ""
+    },
+    {
+      "peticion": "Login EMPLEADO",
+      "texto": "Preparación: login de EMPLEADO (HTTP 200 con token)",
+      "ok": true,
+      "motivo": ""
+    },
+    {
+      "peticion": "Categoría activa que no sea de muebles",
+      "texto": "Preparación: hay una categoría activa para los productos de prueba",
+      "ok": true,
+      "motivo": ""
+    },
+    {
+      "peticion": "Crear Producto Prueba B (stock 2, mínimo 5)",
+      "texto": "Preparación: producto de prueba B creado (HTTP 201)",
+      "ok": true,
+      "motivo": ""
+    },
+    {
+      "peticion": "Crear Cliente Prueba A",
+      "texto": "Preparación: cliente de prueba A creado (HTTP 201)",
+      "ok": true,
+      "motivo": ""
+    },
+    {
+      "peticion": "Crear Cliente Prueba B",
+      "texto": "Preparación: cliente de prueba B creado (HTTP 201)",
+      "ok": true,
+      "motivo": ""
+    },
+    {
+      "peticion": "Anular venta CP-09",
+      "texto": "Limpieza: venta anulada (HTTP 200)",
+      "ok": true,
+      "motivo": ""
+    },
+    {
+      "peticion": "Anular venta CP-11/12",
+      "texto": "Limpieza: venta anulada (HTTP 200)",
+      "ok": true,
+      "motivo": ""
+    },
+    {
+      "peticion": "Anular venta CP-36",
+      "texto": "Limpieza: venta anulada (HTTP 200)",
+      "ok": true,
+      "motivo": ""
+    },
+    {
+      "peticion": "Anular la compra de prueba",
+      "texto": "Limpieza: compra anulada (HTTP 200)",
+      "ok": true,
+      "motivo": ""
+    },
+    {
+      "peticion": "Dar de baja el producto A",
+      "texto": "Limpieza: producto A dado de baja (HTTP 200)",
+      "ok": true,
+      "motivo": ""
+    },
+    {
+      "peticion": "Dar de baja el producto B",
+      "texto": "Limpieza: producto B dado de baja (HTTP 200)",
+      "ok": true,
+      "motivo": ""
+    },
+    {
+      "peticion": "Dar de baja el usuario de prueba (CP-41)",
+      "texto": "Limpieza: usuario de prueba dado de baja (HTTP 200)",
+      "ok": true,
+      "motivo": ""
+    }
+  ]
+}
