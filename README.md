@@ -208,7 +208,7 @@ Las credenciales de acceso **se entregan por canal privado**.
 |---|---|---|
 | Backend | `cd backend && ./mvnw test` | **167** pruebas, 0 fallos |
 | App móvil | `cd app && flutter test` | **56** pruebas, 0 fallos |
-| API (Newman) | `cd evidencia/api && npm install && node ejecutar.mjs` | **30** casos, todos aprobados |
+| API (Newman) | `cd evidencia/api && npm install && node ejecutar.mjs` | **33** casos, todos aprobados |
 
 - Las pruebas del backend construyen la aplicación completa y validan las entidades contra la base, así que
   necesitan PostgreSQL local con el esquema cargado (sección 4.1).
