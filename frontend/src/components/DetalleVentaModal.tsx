@@ -171,7 +171,7 @@ export default function DetalleVentaModal({
     const labels = {
       COMPLETADA: 'Completada',
       PENDIENTE_PAGO: 'Pago pendiente',
-      CANCELADA: 'Anulada',
+      CANCELADA: 'Cancelada',
     };
     return { color: colors[venta.estado], label: labels[venta.estado] };
   };
@@ -300,7 +300,7 @@ export default function DetalleVentaModal({
             const estado = venta.estadoEntrega;
             const puedeEntregar = estado !== EstadoEntrega.ENTREGADO && !cancelada;
             const puedeCorregir = CORREGIR_ENTREGA_ACTIVO && esAdmin && !esRetiro && estado === EstadoEntrega.ENTREGADO && !cancelada;
-            const puedeEditar = esAdmin && !esRetiro && !cancelada;
+            const puedeEditar = esAdmin && !esRetiro && !cancelada && estado !== EstadoEntrega.ENTREGADO;
             const dato = (valor?: string) => valor?.trim() || null;
 
             return (
@@ -327,6 +327,10 @@ export default function DetalleVentaModal({
                         >
                           {etiquetaEstadoEntrega(estado)}
                         </button>
+                      ) : cancelada ? (
+                        <span className="px-3 py-1 text-xs font-semibold rounded-full border bg-red-100 text-red-800 border-red-200">
+                          Cancelada
+                        </span>
                       ) : (
                         <span className={`px-3 py-1 text-xs font-semibold rounded-full border ${claseBadgeEstadoEntrega(estado)}`}>
                           {etiquetaEstadoEntrega(estado)}
@@ -461,7 +465,7 @@ export default function DetalleVentaModal({
               </div>
               <div className="flex justify-between items-center mt-2 pt-2 border-t border-blue-200">
                 <span className="text-sm font-medium text-gray-700">
-                  {esAnulada ? 'Pagado antes de anular:' : 'Total pagado:'}
+                  {esAnulada ? 'Pagado antes de cancelar:' : 'Total pagado:'}
                 </span>
                 <span className="text-base font-semibold text-gray-900">{formatPrice(totalPagado)}</span>
               </div>

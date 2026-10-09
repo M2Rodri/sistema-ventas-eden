@@ -277,15 +277,14 @@ function ComprasContent() {
                           <Eye size={18} />
                         </button>
 
-                        {compra.estado !== 'CANCELADA' && (
-                          <button
-                            onClick={() => setCompraAAnular(compra)}
-                            className="text-red-600 hover:text-red-800 p-1.5"
-                            title="Anular compra"
-                          >
-                            <XCircle size={18} />
-                          </button>
-                        )}
+                        <button
+                          onClick={() => setCompraAAnular(compra)}
+                          disabled={compra.estado === 'CANCELADA'}
+                          className="text-red-600 hover:text-red-800 p-1.5 disabled:text-gray-300 disabled:hover:text-gray-300 disabled:cursor-not-allowed"
+                          title="Anular compra"
+                        >
+                          <XCircle size={18} />
+                        </button>
                       </div>
                     </td>
                   </tr>

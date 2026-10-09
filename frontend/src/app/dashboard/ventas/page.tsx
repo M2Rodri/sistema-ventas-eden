@@ -462,6 +462,9 @@ export default function VentasPage() {
                   <tr key={venta.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-3 py-2.5 whitespace-nowrap">
                       <span className="text-sm font-bold text-primary-700">{venta.id}</span>
+                      {venta.estado === EstadoVenta.CANCELADA && (
+                        <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Cancelada</span>
+                      )}
                     </td>
                     <td className="px-3 py-2.5 whitespace-nowrap max-w-[9.5rem]">
                       <div className="text-sm font-medium text-gray-900 truncate" title={venta.nombreCliente}>
@@ -497,7 +500,11 @@ export default function VentasPage() {
                       </span>
                     </td>
                     <td className="px-3 py-2.5 whitespace-nowrap text-center">
-                      {venta.modalidadEntrega === ModalidadEntrega.RETIRO ? (
+                      {venta.estado === EstadoVenta.CANCELADA ? (
+                        <span className="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full border bg-red-100 text-red-800 border-red-200">
+                          Cancelada
+                        </span>
+                      ) : venta.modalidadEntrega === ModalidadEntrega.RETIRO ? (
                         <span className="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full border bg-blue-50 text-blue-700 border-blue-200">
                           En tienda
                         </span>
@@ -508,8 +515,7 @@ export default function VentasPage() {
                           </span>
                           {CORREGIR_ENTREGA_ACTIVO
                             && user?.role === 'ADMIN'
-                            && venta.estadoEntrega === EstadoEntrega.ENTREGADO
-                            && venta.estado !== EstadoVenta.CANCELADA ? (
+                            && venta.estadoEntrega === EstadoEntrega.ENTREGADO ? (
                             <button
                               type="button"
                               onClick={() => setVentaACorregir(venta)}
@@ -594,8 +600,8 @@ export default function VentasPage() {
                             <button
                               onClick={() => setVentaACancelarId(venta.id)}
                               disabled={!puedeCancelar}
-                              style={{ visibility: puedeCancelar ? 'visible' : 'hidden' }}
-                              className="p-1 text-red-600 hover:bg-red-50 rounded-lg transition-colors pointer-events-auto disabled:pointer-events-none"
+                              style={{ visibility: user?.role === 'ADMIN' ? 'visible' : 'hidden' }}
+                              className="p-1 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:text-gray-300 disabled:hover:bg-transparent disabled:cursor-not-allowed"
                               title="Cancelar venta"
                             >
                               <XCircle size={18} />
