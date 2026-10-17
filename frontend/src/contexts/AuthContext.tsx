@@ -1,8 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import Cookies from 'js-cookie';
-import { guardarSesion, borrarSesion } from '@/lib/sesion';
+import { cerrarSesion, obtenerUsuarioDeCookie, DatosUsuario } from '@/lib/sesion';
 
 export type UserRole = 'ADMIN' | 'EMPLEADO' | 'CLIENTE';
 
@@ -18,7 +17,7 @@ export interface User {
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (token: string, userData: User) => void;
+  login: (userData: User) => void;
   logout: () => void;
   isAuthenticated: boolean;
   isAdmin: boolean;
@@ -29,43 +28,37 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
 
-  // Cargar la sesión desde las cookies al montar (no se guarda nada en localStorage)
+  // Cargar la sesión desde la cookie user_info al montar
   useEffect(() => {
-    const storedToken = Cookies.get('token');
-    const storedUser = Cookies.get('user');
-
-    if (storedToken && storedUser) {
-      try {
-        const userData = JSON.parse(storedUser);
-        setToken(storedToken);
-        setUser(userData);
-      } catch (error) {
-        console.error('Error al parsear datos de usuario:', error);
-        borrarSesion();
-      }
+    const datos = obtenerUsuarioDeCookie();
+    if (datos) {
+      setUser({
+        id: datos.id,
+        username: datos.usuario,
+        nombreCompleto: `${datos.nombre} ${datos.apellido}`.trim(),
+        usuario: datos.usuario,
+        role: datos.role as UserRole,
+        activo: true,
+      });
     }
   }, []);
 
-  const login = (newToken: string, userData: User) => {
-    guardarSesion(newToken, userData, userData.role);
-    setToken(newToken);
+  const login = (userData: User) => {
     setUser(userData);
   };
 
   const logout = () => {
-    borrarSesion();
-    setToken(null);
+    void cerrarSesion();
     setUser(null);
   };
 
   const value: AuthContextType = {
     user,
-    token,
+    token: null, // El token es HttpOnly y ya no se expone a JavaScript
     login,
     logout,
-    isAuthenticated: !!token && !!user,
+    isAuthenticated: !!user,
     isAdmin: user?.role === 'ADMIN',
     isEmpleado: user?.role === 'EMPLEADO',
   };

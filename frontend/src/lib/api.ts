@@ -2,10 +2,19 @@
 import { ImagenProducto } from '@/types/imagenProducto';
 import { esPorEntregar } from '@/lib/entrega';
 import { errorDeRespuesta } from '@/lib/errores';
+
+/**
+ * URL pública del backend — se mantiene para `urlArchivo()` (fotos antiguas
+ * con ruta relativa /uploads/...) y para que SesionExpiradaWatcher pueda
+ * distinguir llamadas si hace falta. Las peticiones autenticadas ya NO van
+ * aquí: pasan por el proxy BFF `/api/proxy/...`.
+ */
 export const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL ?? 'https://backend-sistema-ventas-production-d0a4.up.railway.app';
-// Todas las rutas de la API van con la versión: /api/v1/...
-const API_URL = `${BACKEND_URL}/api/v1`;
+
+// Todas las rutas de la API van con la versión a través del proxy BFF.
+// El proxy reenvía /api/proxy/RUTA → BACKEND/api/v1/RUTA con el JWT inyectado.
+const API_URL = '/api/proxy';
 
 /**
  * Caché corta de lecturas (GET) de la API.
@@ -174,27 +183,33 @@ export interface UserRequest {
 // IMPORTAR TIPOS DE PRODUCTO Y CATEGORIA
 import { Producto, ProductoRequest, Categoria, TipoProducto } from '@/types/producto';
 
-// Helper para obtener el token
-const getAuthHeaders = () => {
-  const token = document.cookie
+// Helper para obtener el token CSRF de la cookie (no es HttpOnly)
+const getCsrfToken = (): string | undefined => {
+  if (typeof document === 'undefined') return undefined;
+  return document.cookie
     .split('; ')
-    .find(row => row.startsWith('token='))
+    .find(row => row.startsWith('csrf-token='))
     ?.split('=')[1];
-  return {
+};
+
+// Headers para peticiones JSON. El token JWT lo inyecta el proxy BFF en el
+// servidor; el cliente solo necesita mandar el Content-Type y, para las
+// escrituras, el CSRF token.
+const getAuthHeaders = () => {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`,
   };
+  const csrf = getCsrfToken();
+  if (csrf) headers['X-CSRF-Token'] = csrf;
+  return headers;
 };
 
 const getAuthHeadersForFormData = () => {
-  const token = document.cookie
-    .split('; ')
-    .find(row => row.startsWith('token='))
-    ?.split('=')[1];
-  return {
-    'Authorization': `Bearer ${token}`,
-    // NO incluir Content-Type - el navegador lo establece automáticamente
-  };
+  const headers: Record<string, string> = {};
+  const csrf = getCsrfToken();
+  if (csrf) headers['X-CSRF-Token'] = csrf;
+  // NO incluir Content-Type - el navegador lo establece automáticamente
+  return headers;
 };
 
 // Listar todos los usuarios

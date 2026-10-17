@@ -32,7 +32,9 @@ export function middleware(request: NextRequest) {
       const respuesta = NextResponse.redirect(new URL('/login', request.url));
       respuesta.cookies.delete('token');
       respuesta.cookies.delete('user');
+      respuesta.cookies.delete('user_info');
       respuesta.cookies.delete('role');
+      respuesta.cookies.delete('csrf-token');
       return respuesta;
     }
 

@@ -2,30 +2,22 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Cookies from 'js-cookie';
+import { obtenerUsuarioDeCookie } from '@/lib/sesion';
 
 export default function HomePage() {
   const router = useRouter();
 
   useEffect(() => {
-    const token = Cookies.get('token');
-    const userData = Cookies.get('user');
-    
-    if (token && userData) {
-      const user = JSON.parse(userData);
-      
+    const user = obtenerUsuarioDeCookie();
+
+    if (user) {
       // Si es admin/empleado → Dashboard
       if (user.role === 'ADMIN' || user.role === 'EMPLEADO') {
         router.replace('/dashboard');
-      } 
-      // Cualquier otro rol no tiene panel: al login
-      else {
+      } else {
         router.replace('/login');
       }
     } else {
-      // Sin login → Tienda pública
-      // router.replace('/tienda');
-      // Sin login → Login
       router.replace('/login');
     }
   }, [router]);

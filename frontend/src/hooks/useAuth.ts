@@ -2,13 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Cookies from 'js-cookie';
-import { borrarSesion } from '@/lib/sesion';
-import { AuthResponse } from '@/lib/api';
+import { cerrarSesion, obtenerUsuarioDeCookie, DatosUsuario } from '@/lib/sesion';
 
 export const useAuth = () => {
   const router = useRouter();
-  const [user, setUser] = useState<AuthResponse | null>(null);
+  const [user, setUser] = useState<DatosUsuario | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -17,24 +15,23 @@ export const useAuth = () => {
 
   const checkAuth = () => {
     try {
-      const token = Cookies.get('token');
-      const userData = Cookies.get('user');
+      const userData = obtenerUsuarioDeCookie();
 
-      if (token && userData) {
-        setUser(JSON.parse(userData));
+      if (userData) {
+        setUser(userData);
         setLoading(false);
       } else {
         router.replace('/login');
       }
     } catch (error) {
       console.error('Error al verificar autenticación:', error);
-      borrarSesion();
+      void cerrarSesion();
       router.replace('/login');
     }
   };
 
-  const logout = () => {
-    borrarSesion();
+  const logout = async () => {
+    await cerrarSesion();
     setUser(null);
     router.replace('/login');
   };

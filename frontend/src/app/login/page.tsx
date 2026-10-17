@@ -1,9 +1,7 @@
 "use client";
-import { guardarSesion, borrarSesion } from "@/lib/sesion";
+import { iniciarSesion, cerrarSesion } from "@/lib/sesion";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { login } from "@/lib/api";
 import { mensajeError } from "@/lib/errores";
 
 export default function LoginPage() {
@@ -40,19 +38,14 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await login(formData);
-
-      const rawRole = response.role || "";
-      const role = rawRole.replace("ROLE_", "").toUpperCase();
-
-      // Token, usuario y rol van en cookies de 12 horas (ver lib/sesion.ts).
-      guardarSesion(response.token, response, role);
+      const usuarioData = await iniciarSesion(formData.usuario, formData.password);
+      const role = usuarioData.role;
 
       if (role === "ADMIN" || role === "EMPLEADO") {
         window.location.href = "/dashboard";
       } else {
         // Una cuenta sin rol de panel no entra: no hay a dónde mandarla.
-        borrarSesion();
+        await cerrarSesion();
         setError("Esta cuenta no tiene acceso al sistema.");
       }
     } catch (err: any) {
@@ -144,12 +137,6 @@ export default function LoginPage() {
           </div>
 
           <div className="flex flex-col space-y-2 text-center">
-            {/*
-              Antes había un "Recuperar Contraseña" que simulaba el envío de un
-              correo: mostraba un mensaje de éxito y no hacía nada. El sistema
-              no tiene servicio de correo, y las contraseñas las restablece el
-              administrador desde la gestión de usuarios.
-            */}
             {mounted && showRecoverModal && (
               <p className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-lg p-3">
                 Contactá a la persona encargada del sistema para recuperar tu acceso.
@@ -160,8 +147,6 @@ export default function LoginPage() {
                 type="button"
                 onClick={() => {
                   setShowRecoverModal(true);
-                  // Vuelve solo al estado normal: no hace falta que el
-                  // usuario cierre el aviso a mano.
                   setTimeout(() => setShowRecoverModal(false), 7000);
                 }}
                 className="font-medium text-primary-600 hover:text-primary-500 text-sm"
@@ -172,7 +157,6 @@ export default function LoginPage() {
           </div>
         </form>
       </div>
-
     </div>
   );
 }
