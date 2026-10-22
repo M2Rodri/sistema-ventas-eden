@@ -111,7 +111,16 @@ function publicarEnGitHub({ rutaApk, versionName, notas }) {
 }
 
 /** Flujo completo: GitHub Release + Supabase version.json. */
-export async function publicar({ rutaApk, apkBytes, version, notas, credenciales, forzar = false, http = fetch }) {
+export async function publicar({
+  rutaApk,
+  apkBytes,
+  version,
+  notas,
+  credenciales,
+  forzar = false,
+  http = fetch,
+  subidorGitHub = publicarEnGitHub,
+}) {
   const urlPublica = `${credenciales.url}/storage/v1/object/public/${BUCKET}`;
 
   // Verificar que versionCode sea mayor al publicado
@@ -128,7 +137,7 @@ export async function publicar({ rutaApk, apkBytes, version, notas, credenciales
 
   // 1. Subir APK a GitHub Releases
   console.log('📦 Subiendo APK a GitHub Releases...');
-  const apkUrl = publicarEnGitHub({ rutaApk, versionName: version.versionName, notas });
+  const apkUrl = subidorGitHub({ rutaApk, versionName: version.versionName, notas });
   console.log(`  ✅ APK disponible en: ${apkUrl}`);
 
   // 2. Actualizar version.json en Supabase

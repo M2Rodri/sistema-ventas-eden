@@ -34,8 +34,8 @@ test('lee la versión de pubspec.yaml', () => {
   assert.throws(() => leerVersionPubspec('name: x'), /version/);
 });
 
-test('el nombre del APK lleva la versión y la compilación', () => {
-  assert.equal(nombreApk(version), 'muebleria-eden-1.1.0-2.apk');
+test('el nombre del APK lleva el nombre fijo', () => {
+  assert.equal(nombreApk(version), 'muebleria-eden.apk');
 });
 
 test('version.json trae lo que la app necesita', () => {
@@ -45,39 +45,75 @@ test('version.json trae lo que la app necesita', () => {
   });
 });
 
-test('publica primero el APK y después version.json', async () => {
+test('publica el release en GitHub y después version.json en Supabase', async () => {
   const { http, pedidos } = storageFalso();
-  const r = await publicar({ apk, version, notas: 'Nueva', credenciales, http });
+  let githubLlamado = false;
+  const subidorGitHubFalso = ({ rutaApk, versionName, notas }) => {
+    githubLlamado = true;
+    return `https://github.com/M2Rodri/sistema-ventas-eden/releases/download/v${versionName}/muebleria-eden.apk`;
+  };
+
+  const r = await publicar({
+    rutaApk: 'app-release.apk',
+    apkBytes: apk,
+    version,
+    notas: 'Nueva',
+    credenciales,
+    http,
+    subidorGitHub: subidorGitHubFalso,
+  });
+
+  assert.ok(githubLlamado, 'debe subir a GitHub Releases');
+  assert.equal(r.apkUrl, 'https://github.com/M2Rodri/sistema-ventas-eden/releases/download/v1.1.0/muebleria-eden.apk');
 
   const subidas = pedidos.filter((p) => p.metodo === 'POST' && p.url.includes('/object/app/'));
-  assert.equal(subidas.length, 2);
-  assert.ok(subidas[0].url.endsWith('/object/app/muebleria-eden-1.1.0-2.apk'));
-  assert.ok(subidas[1].url.endsWith('/object/app/version.json'));
-  assert.equal(subidas[1].cabeceras['cache-control'], 'no-cache');
+  assert.equal(subidas.length, 1, 'solo sube version.json a Supabase (el APK va a GitHub)');
+  assert.ok(subidas[0].url.endsWith('/object/app/version.json'));
+  assert.equal(subidas[0].cabeceras['cache-control'], 'no-cache');
   assert.equal(subidas[0].cabeceras['x-upsert'], 'true');
 
-  const publicado = JSON.parse(subidas[1].cuerpo);
+  const publicado = JSON.parse(subidas[0].cuerpo);
   assert.equal(publicado.versionCode, 2);
-  assert.equal(publicado.apkUrl, 'https://proyecto.test/storage/v1/object/public/app/muebleria-eden-1.1.0-2.apk');
+  assert.equal(publicado.apkUrl, 'https://github.com/M2Rodri/sistema-ventas-eden/releases/download/v1.1.0/muebleria-eden.apk');
   assert.equal(publicado.tamanoBytes, apk.length);
   assert.equal(publicado.sha256.length, 64);
-  assert.equal(r.bucket, 'creado');
 });
 
-test('si el bucket ya existe, sigue sin problema', async () => {
+test('si el bucket ya existe en Supabase, sigue sin problema', async () => {
   const { http } = storageFalso({ bucketExiste: true });
-  const r = await publicar({ apk, version, credenciales, http });
-  assert.equal(r.bucket, 'existente');
+  const subidorGitHubFalso = () => 'https://github.com/fake/apk';
+  const r = await publicar({
+    rutaApk: 'app-release.apk',
+    apkBytes: apk,
+    version,
+    credenciales,
+    http,
+    subidorGitHub: subidorGitHubFalso,
+  });
+  assert.equal(r.info.versionCode, 2);
 });
 
 test('se niega a publicar una compilación que no es mayor que la publicada', async () => {
   const { http, pedidos } = storageFalso({ publicada: { versionCode: 2 } });
-  await assert.rejects(() => publicar({ apk, version, credenciales, http }), /no es mayor/);
+  await assert.rejects(
+    () => publicar({ rutaApk: 'a.apk', apkBytes: apk, version, credenciales, http }),
+    /no es mayor/
+  );
   assert.equal(pedidos.filter((p) => p.metodo === 'POST').length, 0, 'no subió nada');
 });
 
 test('--forzar permite repetir la compilación', async () => {
   const { http } = storageFalso({ publicada: { versionCode: 2 } });
-  const r = await publicar({ apk, version, credenciales, http, forzar: true });
+  const subidorGitHubFalso = () => 'https://github.com/fake/apk';
+  const r = await publicar({
+    rutaApk: 'a.apk',
+    apkBytes: apk,
+    version,
+    credenciales,
+    http,
+    forzar: true,
+    subidorGitHub: subidorGitHubFalso,
+  });
   assert.equal(r.info.versionCode, 2);
 });
+
