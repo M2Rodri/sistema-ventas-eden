@@ -233,6 +233,9 @@ export default function ProductoModal({
     // El stock mínimo ya no se pide acá: al crear nace en 1 y se ajusta
     // desde Inventario. Al editar se reenvía el valor que ya tenía.
     stockMinimo: productoParaEditar ? productoParaEditar.stockMinimo : 1,
+    // Solo en el alta desde Productos: con stock inicial 0 por defecto. Al editar y en
+    // el panel de Nueva compra no se envía (en la compra, el stock entra con la compra).
+    stockInicial: !productoParaEditar && !modoPanel ? 0 : undefined,
     tipoProducto: tipoInicial,
     activo: productoParaEditar?.activo !== undefined ? productoParaEditar.activo : true,
 
@@ -334,6 +337,12 @@ export default function ProductoModal({
       // Opcional: un campo vacío tiene que quedar en undefined, no en 0 ni
       // en un string vacío, para que el backend lo reciba como "sin dato".
       setFormData(prev => ({ ...prev, precioCompra: value === '' ? undefined : Number(value) }));
+    } else if (name === 'stockInicial') {
+      // Cantidad entera y no negativa; vacío queda en undefined y el campo obligatorio lo frena.
+      setFormData(prev => ({
+        ...prev,
+        stockInicial: value === '' ? undefined : Math.max(0, Math.trunc(Number(value))),
+      }));
     } else if (name === 'idCategoria') {
       const nuevoTipo = tipoDeCategoria(Number(val)) || formData.tipoProducto;
       setFormData(prev => ({
@@ -625,8 +634,8 @@ export default function ProductoModal({
                 />
               </div>
 
-              {/* Al crear no se pide: el costo entra con la primera compra (módulo Compras). */}
-              {isEditing && (
+              {/* Al crear desde Productos se pide opcional; en el panel de Nueva compra no, porque ahí el costo entra con la compra. */}
+              {(isEditing || !modoPanel) && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Precio de compra</label>
                   {productoParaEditar?.tieneComprasConfirmadas ? (
@@ -649,6 +658,20 @@ export default function ProductoModal({
                 <input type="number" step="0.01" name="precioVenta" value={formData.precioVenta} onChange={handleChange}
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-2 py-1.5" required />
               </div>
+
+              {/* Solo al crear desde Productos: cuántas unidades hay hoy en el local. */}
+              {!isEditing && !modoPanel && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Stock inicial *</label>
+                  <input type="number" step="1" min="0" name="stockInicial" value={formData.stockInicial ?? ''} onChange={handleChange}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-2 py-1.5" required />
+                  {(formData.stockInicial ?? 0) > 0 && formData.precioCompra == null && (
+                    <p className="mt-1 text-xs text-amber-700">
+                      Sin precio de compra, la ganancia de este producto no se podrá calcular bien hasta que cargues el costo.
+                    </p>
+                  )}
+                </div>
+              )}
 
               {isEditing && (
                 <div>
