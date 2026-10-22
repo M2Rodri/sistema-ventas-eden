@@ -24,6 +24,9 @@ import AvisoCargaParcial from '@/components/AvisoCargaParcial';
 import { crearRecolector } from '@/lib/cargaParcial';
 import { mensajeError } from '@/lib/errores';
 import { useAuth } from '@/hooks/useAuth';
+import Paginacion from '@/components/Paginacion';
+
+const ITEMS_PER_PAGE = 30;
 
 export default function ProductosPage() {
   const { user } = useAuth();
@@ -42,6 +45,7 @@ export default function ProductosPage() {
   const [imagenesConError, setImagenesConError] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
 
   // El buscador de la cabecera navega hasta aca con ?q=<texto>. Se copia al
   // filtro de la pantalla para que el elemento que se eligio alla quede a la
@@ -129,6 +133,7 @@ export default function ProductosPage() {
       filtered = filtered.filter(producto => !producto.activo);
     }
 
+    setCurrentPage(1);
     setFilteredProductos(filtered);
   }, [searchTerm, categoriaFilter, statusFilter, productos]);
 
@@ -273,6 +278,16 @@ export default function ProductosPage() {
     theadProps,
   } = useDragScrollTable([loading, filteredProductos]);
 
+  // Paginación: se calcula a partir de filteredProductos
+  const totalPages = Math.ceil(filteredProductos.length / ITEMS_PER_PAGE);
+  const paginatedProductos = filteredProductos.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE,
+  );
+  // Rangos reales de ID mostrados en la página (para lista ordenada desc o asc)
+  const startId = paginatedProductos.length > 0 ? paginatedProductos[0].id : undefined;
+  const endId = paginatedProductos.length > 0 ? paginatedProductos[paginatedProductos.length - 1].id : undefined;
+
   return (
     <div>
       <Breadcrumbs items={[{ label: 'Productos' }]} />
@@ -354,32 +369,39 @@ export default function ProductosPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
           </div>
         ) : (
-        <div className="overflow-x-auto" ref={scrollContainerRef}>
-          <table className="min-w-full divide-y divide-gray-200" ref={tableRef}>
+          <>
+            <div className="overflow-x-auto" ref={scrollContainerRef}>
+          <table className="w-full table-fixed min-w-[750px] divide-y divide-gray-200" ref={tableRef}>
             <thead
               ref={theadRef}
               className={`bg-gray-50 ${hasOverflow ? 'cursor-grab select-none' : ''}`}
               {...theadProps}
             >
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">ID</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">SKU</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Imagen</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Nombre</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Categoría</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Precio de venta</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Stock actual</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Estado</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Acciones</th>
+                <th className="w-[5%] px-1 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">ID</th>
+                <th className="w-[9%] px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">SKU</th>
+                <th className="w-[7%] px-1 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Imagen</th>
+                <th className="w-[25%] px-2.5 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Nombre</th>
+                <th className="w-[12%] px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Categoría</th>
+                <th className="w-[14%] px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider leading-tight">
+                  <span>PRECIO DE</span>
+                  <span className="block">VENTA</span>
+                </th>
+                <th className="w-[8%] px-1 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider leading-tight">
+                  <span>STOCK</span>
+                  <span className="block">ACTUAL</span>
+                </th>
+                <th className="w-[11%] px-1 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Estado</th>
+                <th className="w-[9%] px-1 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Acciones</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredProductos.map((producto, index) => (
+              {paginatedProductos.map((producto, index) => (
                 <tr key={producto.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{producto.id}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700">{producto.sku}</td>
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <div className="h-12 w-12 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                  <td className="px-1 py-[7px] whitespace-nowrap text-sm text-center text-gray-500 font-mono">{producto.id}</td>
+                  <td className="px-2 py-[7px] whitespace-nowrap text-sm font-mono text-gray-700 truncate" title={producto.sku}>{producto.sku}</td>
+                  <td className="px-1 py-1 whitespace-nowrap text-center">
+                    <div className="w-11 h-[35px] rounded-md bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0 mx-auto border border-gray-200 shadow-sm">
                       {producto.imagenes && producto.imagenes.length > 0 && !imagenesConError.has(producto.id) ? (
                         <img
                           src={urlArchivo(producto.imagenes[0].urlImagen)}
@@ -390,63 +412,60 @@ export default function ProductosPage() {
                           }
                         />
                       ) : (
-                        <ImageIcon size={24} className="text-gray-400" />
+                        <ImageIcon size={16} className="text-gray-400" />
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900 max-w-xs truncate">{producto.nombre}</div>
+                  <td className="px-2.5 py-[7px]">
+                    <div className="text-sm font-medium text-gray-900 truncate" title={producto.nombre}>{producto.nombre}</div>
                     {producto.modelo && (
-                      <div className="text-xs text-gray-500 max-w-xs truncate">{producto.modelo}</div>
+                      <div className="text-xs text-gray-400 truncate" title={producto.modelo}>{producto.modelo}</div>
                     )}
                   </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{producto.nombreCategoria}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{formatPrice(producto.precioVenta)}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600 text-center">
+                  <td className="px-2 py-[7px] truncate text-sm text-gray-600" title={producto.nombreCategoria}>{producto.nombreCategoria}</td>
+                  <td className="px-2 py-[7px] whitespace-nowrap text-sm font-semibold text-gray-900 text-right">{formatPrice(producto.precioVenta)}</td>
+                  <td className="px-1 py-[7px] whitespace-nowrap text-sm text-gray-700 font-mono text-center">
                     {stockPorProducto.get(producto.id) ?? '—'}
                   </td>
-                  <td className="px-4 py-4 whitespace-nowrap">
+                  <td className="px-1 py-[7px] whitespace-nowrap text-center">
                     {user?.role === 'ADMIN' ? (
                       <button
                         onClick={() => handleToggleStatus(producto)}
-                        className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                        className={`inline-flex items-center justify-center gap-1 px-2.5 py-[3px] rounded-full text-xs font-semibold transition-colors ${
                           producto.activo ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-red-100 text-red-800 hover:bg-red-200'
                         }`}
                       >
-                        <Power size={14} />
+                        <Power size={13} />
                         {producto.activo ? 'Activo' : 'Inactivo'}
                       </button>
                     ) : (
                       <span
-                        className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold w-fit ${
+                        className={`inline-flex items-center justify-center gap-1 px-2.5 py-[3px] rounded-full text-xs font-semibold w-fit ${
                           producto.activo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                         }`}
                       >
-                        <Power size={14} />
+                        <Power size={13} />
                         {producto.activo ? 'Activo' : 'Inactivo'}
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
-                    {/* Editar/Eliminar son solo-admin en el backend: para
-                        EMPLEADO quedan visibles pero deshabilitados, en vez
-                        de ocultos o de dejar que fallen al guardar. */}
-                    <div className="flex items-center gap-3">
+                  <td className="px-1 py-[7px] whitespace-nowrap text-sm font-medium text-center">
+                    <div className="inline-flex items-center justify-center gap-1">
                       <button
                         onClick={() => handleEditProducto(producto)}
                         disabled={user?.role !== 'ADMIN'}
-                        className="text-primary-600 hover:text-primary-800 transition-colors disabled:text-gray-300 disabled:hover:text-gray-300 disabled:cursor-not-allowed"
+                        className="p-1 text-primary-600 hover:bg-primary-50 rounded transition-colors disabled:text-gray-300 disabled:hover:bg-transparent disabled:cursor-not-allowed"
                         title={user?.role === 'ADMIN' ? 'Editar' : 'Solo el administrador puede editar'}
                       >
-                        <Edit size={18} />
+                        <Edit size={16} />
                       </button>
                       <button
                         onClick={() => handleDeleteClick(producto)}
                         disabled={user?.role !== 'ADMIN'}
-                        className="text-red-600 hover:text-red-800 transition-colors disabled:text-gray-300 disabled:hover:text-gray-300 disabled:cursor-not-allowed"
+                        className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors disabled:text-gray-300 disabled:hover:bg-transparent disabled:cursor-not-allowed"
                         title={user?.role === 'ADMIN' ? 'Eliminar' : 'Solo el administrador puede eliminar'}
                       >
-                        <Trash2 size={18} />
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   </td>
@@ -455,13 +474,25 @@ export default function ProductosPage() {
             </tbody>
           </table>
 
-          {filteredProductos.length === 0 && (
-            <div className="text-center py-12">
-              <Package size={48} className="mx-auto text-gray-400 mb-4" />
-              <p className="text-gray-500">No se encontraron productos</p>
+              {filteredProductos.length === 0 && (
+                <div className="text-center py-12">
+                  <Package size={48} className="mx-auto text-gray-400 mb-4" />
+                  <p className="text-gray-500">No se encontraron productos</p>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+
+            {/* Paginación */}
+            <Paginacion
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={filteredProductos.length}
+              itemsPerPage={ITEMS_PER_PAGE}
+              onPageChange={setCurrentPage}
+              startItem={startId}
+              endItem={endId}
+            />
+          </>
         )}
       </div>
 

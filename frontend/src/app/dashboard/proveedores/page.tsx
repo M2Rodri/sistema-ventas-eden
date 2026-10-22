@@ -14,6 +14,9 @@ import ProveedorModal from '@/components/ProveedorModal';
 import CompraModal from '@/components/CompraModal';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 import { mensajeError } from '@/lib/errores';
+import Paginacion from '@/components/Paginacion';
+
+const ITEMS_PER_PAGE = 15;
 
 export default function ProveedoresPage() {
   const router = useRouter();
@@ -37,6 +40,7 @@ export default function ProveedoresPage() {
     }
   }, []);
   const [statusFilter, setStatusFilter] = useState<string>('TODOS');
+  const [currentPage, setCurrentPage] = useState(1);
   
   // Modals
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -87,6 +91,7 @@ export default function ProveedoresPage() {
       filtered = filtered.filter(proveedor => !proveedor.activo);
     }
 
+    setCurrentPage(1);
     setFilteredProveedores(filtered);
   }, [searchTerm, statusFilter, proveedores]);
 
@@ -155,6 +160,15 @@ export default function ProveedoresPage() {
     theadProps,
   } = useDragScrollTable([loading, filteredProveedores]);
 
+  // Paginación
+  const totalPages = Math.ceil(filteredProveedores.length / ITEMS_PER_PAGE);
+  const proveedoresPaginados = filteredProveedores.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE,
+  );
+  const startId = proveedoresPaginados.length > 0 ? proveedoresPaginados[0].id : undefined;
+  const endId = proveedoresPaginados.length > 0 ? proveedoresPaginados[proveedoresPaginados.length - 1].id : undefined;
+
   return (
     <div className="max-w-full">
       <Breadcrumbs items={[{ label: 'Proveedores' }]} />
@@ -220,69 +234,75 @@ export default function ProveedoresPage() {
       ) : (
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden mb-6">
         <div className="overflow-x-auto" ref={scrollContainerRef}>
-          <table className="min-w-full divide-y divide-gray-200" ref={tableRef}>
+          <table className="w-full table-fixed min-w-[680px] divide-y divide-gray-200" ref={tableRef}>
             <thead
               ref={theadRef}
               className={`bg-gray-50 ${hasOverflow ? 'cursor-grab select-none' : ''}`}
               {...theadProps}
             >
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">ID</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Empresa</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">NIT</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Contacto</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Teléfono</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Correo electrónico</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Estado</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Acciones</th>
+                <th className="w-[5%] px-1 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">ID</th>
+                <th className="w-[27%] px-2.5 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Empresa</th>
+                <th className="w-[11%] px-1.5 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">NIT</th>
+                <th className="w-[15%] px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Contacto</th>
+                <th className="w-[10%] px-1.5 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Teléfono</th>
+                <th className="w-[14%] px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Correo</th>
+                <th className="w-[8%] px-1 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Estado</th>
+                <th className="w-[10%] px-1 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Acciones</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredProveedores.map((proveedor) => (
+              {proveedoresPaginados.map((proveedor) => (
                 <tr key={proveedor.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{proveedor.id}</td>
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{proveedor.nombreEmpresa}</div>
+                  <td className="px-1 py-[7px] whitespace-nowrap text-sm text-center text-gray-500 font-mono">{proveedor.id}</td>
+                  <td className="px-2.5 py-[7px] truncate text-sm font-medium text-gray-900" title={proveedor.nombreEmpresa}>
+                    {proveedor.nombreEmpresa}
                   </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm font-mono text-gray-900">{proveedor.nit}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{proveedor.contacto}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{proveedor.telefono}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{proveedor.email || '-'}</td>
-                  <td className="px-4 py-4 whitespace-nowrap">
+                  <td className="px-1.5 py-[7px] whitespace-nowrap text-sm font-mono text-gray-900 truncate" title={proveedor.nit}>
+                    {proveedor.nit}
+                  </td>
+                  <td className="px-2 py-[7px] truncate text-sm text-gray-600" title={proveedor.contacto}>
+                    {proveedor.contacto}
+                  </td>
+                  <td className="px-1.5 py-[7px] whitespace-nowrap text-sm text-gray-600">{proveedor.telefono}</td>
+                  <td className="px-2 py-[7px] truncate text-sm text-gray-600" title={proveedor.email || ''}>
+                    {proveedor.email || '-'}
+                  </td>
+                  <td className="px-1 py-[7px] whitespace-nowrap text-center">
                     <button
                       onClick={() => handleClickEstado(proveedor)}
-                      className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                      className={`inline-flex items-center justify-center gap-1 px-2 py-[3px] rounded-full text-xs font-semibold transition-colors ${
                         proveedor.activo 
                           ? 'bg-green-100 text-green-800 hover:bg-green-200' 
                           : 'bg-red-100 text-red-800 hover:bg-red-200'
                       }`}
                     >
-                      <Power size={14} />
+                      <Power size={13} />
                       {proveedor.activo ? 'Activo' : 'Inactivo'}
                     </button>
                   </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex items-center gap-2">
+                  <td className="px-1 py-[7px] whitespace-nowrap text-sm font-medium text-center">
+                    <div className="inline-flex items-center justify-center gap-1">
                       <button
                         onClick={() => handleRegistrarCompra(proveedor)}
-                        className="text-primary-600 hover:text-primary-800 transition-colors"
+                        className="p-1 text-primary-600 hover:bg-primary-50 rounded transition-colors"
                         title="Registrar compra"
                       >
-                        <ShoppingCart size={18} />
+                        <ShoppingCart size={15} />
                       </button>
                       <button
                         onClick={() => handleVerCompras(proveedor)}
-                        className="text-gray-600 hover:text-gray-900 transition-colors"
+                        className="p-1 text-gray-600 hover:bg-gray-100 rounded transition-colors"
                         title="Ver compras"
                       >
-                        <Package size={18} />
+                        <Package size={15} />
                       </button>
                       <button
                         onClick={() => handleEditProveedor(proveedor)}
-                        className="text-primary-600 hover:text-primary-800 transition-colors"
+                        className="p-1 text-primary-600 hover:bg-primary-50 rounded transition-colors"
                         title="Editar"
                       >
-                        <Edit size={18} />
+                        <Edit size={15} />
                       </button>
                     </div>
                   </td>
@@ -298,6 +318,20 @@ export default function ProveedoresPage() {
             </div>
           )}
         </div>
+
+        {/* Paginación */}
+        {filteredProveedores.length > 0 && (
+          <Paginacion
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredProveedores.length}
+            itemsPerPage={ITEMS_PER_PAGE}
+            onPageChange={setCurrentPage}
+            itemName="proveedores"
+            startItem={startId}
+            endItem={endId}
+          />
+        )}
       </div>
       )}
 

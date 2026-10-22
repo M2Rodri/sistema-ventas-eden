@@ -263,6 +263,7 @@ export default function ConfiguracionPage() {
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
+      hour12: false,
     });
   };
 
@@ -745,7 +746,10 @@ export default function ConfiguracionPage() {
                         </p>
                       </div>
                       <span className="text-xs text-gray-500 whitespace-nowrap">
-                        {new Date(m.fechaEnvio).toLocaleString('es-BO')}
+                        {new Date(m.fechaEnvio).toLocaleString('es-BO', {
+                          day: '2-digit', month: '2-digit', year: 'numeric',
+                          hour: '2-digit', minute: '2-digit', hour12: false,
+                        })}
                       </span>
                     </div>
 

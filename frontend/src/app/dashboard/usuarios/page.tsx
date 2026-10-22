@@ -8,6 +8,9 @@ import UserModal from '@/components/UserModal';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 import { mensajeError } from '@/lib/errores';
 import { useDragScrollTable } from '@/hooks/useDragScrollTable';
+import Paginacion from '@/components/Paginacion';
+
+const ITEMS_PER_PAGE = 15;
 
 export default function UsuariosPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -15,6 +18,7 @@ export default function UsuariosPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
   const [roleFilter, setRoleFilter] = useState<string>('TODOS');
   const [statusFilter, setStatusFilter] = useState<string>('TODOS');
   
@@ -71,6 +75,7 @@ export default function UsuariosPage() {
       filtered = filtered.filter(user => !user.activo);
     }
 
+    setCurrentPage(1);
     setFilteredUsers(filtered);
   }, [searchTerm, roleFilter, statusFilter, users]);
 
@@ -161,6 +166,15 @@ export default function UsuariosPage() {
     theadProps,
   } = useDragScrollTable([loading, filteredUsers]);
 
+  // Paginación
+  const totalPages = Math.ceil(filteredUsers.length / ITEMS_PER_PAGE);
+  const usersPaginados = filteredUsers.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE,
+  );
+  const startId = usersPaginados.length > 0 ? usersPaginados[0].id : undefined;
+  const endId = usersPaginados.length > 0 ? usersPaginados[usersPaginados.length - 1].id : undefined;
+
   return (
     <div>
       <Breadcrumbs items={[{ label: 'Usuarios' }]} />
@@ -249,7 +263,8 @@ export default function UsuariosPage() {
             </button>
           </div>
         ) : (
-        <div className="overflow-x-auto" ref={scrollContainerRef}>
+          <>
+            <div className="overflow-x-auto" ref={scrollContainerRef}>
           <table className="min-w-full divide-y divide-gray-200" ref={tableRef}>
             <thead
               ref={theadRef}
@@ -268,39 +283,39 @@ export default function UsuariosPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredUsers.map((user) => (
+              {usersPaginados.map((user) => (
                 <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.id}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-[7px] whitespace-nowrap text-sm text-gray-900">{user.id}</td>
+                  <td className="px-6 py-[7px] whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">{user.nombreCompleto}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{user.usuario}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{user.telefono || '-'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleBadge(user.role)}`}>
+                  <td className="px-6 py-[7px] whitespace-nowrap text-sm text-gray-600">{user.usuario}</td>
+                  <td className="px-6 py-[7px] whitespace-nowrap text-sm text-gray-600">{user.telefono || '-'}</td>
+                  <td className="px-6 py-[7px] whitespace-nowrap">
+                    <span className={`px-2.5 py-[3px] inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleBadge(user.role)}`}>
                       {user.role}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-[7px] whitespace-nowrap">
                     <button
                       onClick={() => handleToggleStatus(user)}
-                      className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                      className={`inline-flex items-center gap-1 px-2.5 py-[3px] rounded-full text-xs font-semibold transition-colors ${
                         user.activo ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-red-100 text-red-800 hover:bg-red-200'
                       }`}
                     >
-                      <Power size={14} />
+                      <Power size={13} />
                       {user.activo ? 'Activo' : 'Inactivo'}
                     </button>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{formatDate(user.fechaCreacion)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex items-center gap-3">
+                  <td className="px-6 py-[7px] whitespace-nowrap text-sm text-gray-600">{formatDate(user.fechaCreacion)}</td>
+                  <td className="px-6 py-[7px] whitespace-nowrap text-sm font-medium">
+                    <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleEditUser(user)}
-                        className="text-primary-600 hover:text-primary-800 transition-colors"
+                        className="p-1 text-primary-600 hover:bg-primary-50 rounded transition-colors"
                         title="Editar"
                       >
-                        <Edit size={18} />
+                        <Edit size={16} />
                       </button>
                       <button
                         onClick={() => handleCerrarSesiones(user)}
@@ -311,10 +326,10 @@ export default function UsuariosPage() {
                       </button>
                       <button
                         onClick={() => handleDeleteClick(user)}
-                        className="text-red-600 hover:text-red-800 transition-colors"
+                        className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
                         title="Eliminar"
                       >
-                        <Trash2 size={18} />
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   </td>
@@ -329,6 +344,21 @@ export default function UsuariosPage() {
             </div>
           )}
         </div>
+
+            {/* Paginación */}
+            {filteredUsers.length > 0 && (
+              <Paginacion
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={filteredUsers.length}
+                itemsPerPage={ITEMS_PER_PAGE}
+                onPageChange={setCurrentPage}
+                itemName="usuarios"
+                startItem={startId}
+                endItem={endId}
+              />
+            )}
+          </>
         )}
       </div>
 

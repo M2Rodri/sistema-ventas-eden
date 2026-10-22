@@ -143,7 +143,10 @@ export default function DetalleProductoModal({ inventario, onClose }: DetallePro
               <p className="text-sm font-medium text-gray-900">Última Fecha de Actualización</p>
             </div>
             <p className="text-base font-semibold text-blue-600">
-              {new Date(inventario.fechaActualizacion).toLocaleString('es-BO')}
+              {new Date(inventario.fechaActualizacion).toLocaleString('es-BO', {
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit', hour12: false,
+              })}
             </p>
           </div>
 
@@ -179,6 +182,7 @@ export default function DetalleProductoModal({ inventario, onClose }: DetallePro
                           {new Date(mov.fecha).toLocaleString('es-BO', {
                             day: '2-digit', month: '2-digit', year: 'numeric',
                             hour: '2-digit', minute: '2-digit',
+                            hour12: false,
                           })}
                         </td>
                         <td className="px-4 py-2">

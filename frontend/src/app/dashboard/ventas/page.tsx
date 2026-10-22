@@ -33,6 +33,9 @@ import { mensajeError } from '@/lib/errores';
 import { CORREGIR_ENTREGA_ACTIVO, claseBadgeEstadoEntrega, esPorEntregar, etiquetaEstadoEntrega, etiquetaModalidadCorta, faltaCompletarEnvio } from '@/lib/entrega';
 import DeshacerEntregaModal from '@/components/DeshacerEntregaModal';
 import { useAuth } from '@/hooks/useAuth';
+import Paginacion from '@/components/Paginacion';
+
+const ITEMS_PER_PAGE = 30;
 
 
 export default function VentasPage() {
@@ -40,6 +43,7 @@ export default function VentasPage() {
   const { user } = useAuth();
   const [ventas, setVentas] = useState<Venta[]>([]);
   const [ventasFiltradas, setVentasFiltradas] = useState<Venta[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // Reemplaza los alert() nativos del navegador (mostraban "localhost dice"
@@ -190,6 +194,7 @@ export default function VentasPage() {
       resultado = resultado.filter(v => v.estadoEntrega === EstadoEntrega.ENTREGADO);
     }
 
+    setCurrentPage(1);
     setVentasFiltradas(resultado);
   };
 
@@ -257,6 +262,22 @@ export default function VentasPage() {
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
+  };
+
+  const formatSoloFecha = (fecha: string) => {
+    return new Date(fecha).toLocaleDateString('es-BO', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+  };
+
+  const formatSoloHora = (fecha: string) => {
+    return new Date(fecha).toLocaleTimeString('es-BO', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
   };
 
   const formatFecha = (fecha: string) => {
@@ -400,6 +421,14 @@ export default function VentasPage() {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
         </div>
       ) : (() => {
+        const totalPages = Math.ceil(ventasFiltradas.length / ITEMS_PER_PAGE);
+        const ventasPaginadas = ventasFiltradas.slice(
+          (currentPage - 1) * ITEMS_PER_PAGE,
+          currentPage * ITEMS_PER_PAGE,
+        );
+        const startId = ventasPaginadas.length > 0 ? ventasPaginadas[0].id : undefined;
+        const endId = ventasPaginadas.length > 0 ? ventasPaginadas[ventasPaginadas.length - 1].id : undefined;
+
         // El casillero de una acción se reserva en TODA la tabla, no fila
         // por fila: si ninguna venta visible la necesita, no ocupa espacio
         // en ninguna; en cuanto una la necesita, vuelve a reservarse en
@@ -424,17 +453,19 @@ export default function VentasPage() {
                 <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Cliente
                 </th>
-                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  Fecha y Hora
+                <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider leading-tight">
+                  <span>FECHA</span>
+                  <span className="block">Y HORA</span>
                 </th>
-                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Productos
                 </th>
-                <th className="px-3 py-2.5 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-3 py-2 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Total (Bs.)
                 </th>
-                <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  Estado de pago
+                <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider leading-tight">
+                  <span>ESTADO</span>
+                  <span className="block">DE PAGO</span>
                 </th>
                 <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Entrega
@@ -458,7 +489,7 @@ export default function VentasPage() {
                   </td>
                 </tr>
               ) : (
-                ventasFiltradas.map((venta) => (
+                ventasPaginadas.map((venta) => (
                   <tr key={venta.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-3 py-2.5 whitespace-nowrap">
                       <span className="text-sm font-bold text-primary-700">{venta.id}</span>
@@ -471,8 +502,9 @@ export default function VentasPage() {
                         {venta.nombreCliente}
                       </div>
                     </td>
-                    <td className="px-3 py-2.5 whitespace-nowrap text-sm text-gray-900">
-                      {formatFecha(venta.fechaVenta)}
+                    <td className="px-3 py-2 text-center whitespace-nowrap font-mono leading-tight" title={formatFecha(venta.fechaVenta)}>
+                      <span className="text-sm text-gray-900 font-medium block">{formatSoloFecha(venta.fechaVenta)}</span>
+                      <span className="text-xs text-gray-500 font-medium block">{formatSoloHora(venta.fechaVenta)}</span>
                     </td>
                     <td className="px-3 py-2.5 text-sm text-gray-600 max-w-[12.5rem]">
                       <div className="truncate" title={obtenerResumenProductos(venta)}>
@@ -490,7 +522,7 @@ export default function VentasPage() {
                       )}
                       {venta.estado === EstadoVenta.PENDIENTE_PAGO && venta.fechaLimitePago && (venta.saldoPendiente ?? 0) > 0 && (
                         <div className={`text-xs ${venta.fechaLimiteVencida ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
-                          Vence {formatearFechaLimite(venta.fechaLimitePago)}
+                          {venta.fechaLimiteVencida ? 'Vencida' : 'Vence'} {formatearFechaLimite(venta.fechaLimitePago)}
                         </div>
                       )}
                     </td>
@@ -616,6 +648,20 @@ export default function VentasPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Paginación */}
+        {ventasFiltradas.length > 0 && (
+          <Paginacion
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={ventasFiltradas.length}
+            itemsPerPage={ITEMS_PER_PAGE}
+            onPageChange={setCurrentPage}
+            itemName="ventas"
+            startItem={startId}
+            endItem={endId}
+          />
+        )}
       </div>
         );
       })()}

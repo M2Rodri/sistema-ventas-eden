@@ -244,8 +244,6 @@ export default function ComprobanteModal({ isOpen, onClose, idVenta }: Comproban
                   <h3 className="font-bold text-gray-700 mb-3 text-base border-b pb-2">Datos de la Venta:</h3>
                   <p className="mb-1 text-sm"><span className="font-semibold">Fecha:</span> {formatDate(venta.fechaVenta)}</p>
                   <p className="mb-1 text-sm"><span className="font-semibold">Método:</span> {getMetodoPagoLabel(venta.metodoPago ?? "")}</p>
-                  <p className="mb-1 text-sm"><span className="font-semibold">Vendedor:</span> {venta.nombreUsuario || 'Sistema'}</p>
-                  <p className="mb-1 text-sm"><span className="font-semibold">Venta #:</span> {venta.id}</p>
                 </div>
               </div>
 

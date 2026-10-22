@@ -16,6 +16,9 @@ import ModificarClienteModal from '@/components/ModificarClienteModal';
 import HistorialComprasModal from '@/components/HistorialComprasModal';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { mensajeError } from '@/lib/errores';
+import Paginacion from '@/components/Paginacion';
+
+const ITEMS_PER_PAGE = 30;
 
 export default function ClientesPage() {
   const router = useRouter();
@@ -34,6 +37,7 @@ export default function ClientesPage() {
 
   // Estados para filtros
   const [busqueda, setBusqueda] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
 
   // El buscador de la cabecera navega hasta aca con ?q=<texto>. Se copia al
   // filtro de la pantalla para que el elemento que se eligio alla quede a la
@@ -88,6 +92,7 @@ export default function ClientesPage() {
     // Siempre lo más nuevo arriba: ID de mayor a menor, como Ventas.
     resultado.sort((x, y) => y.id - x.id);
 
+    setCurrentPage(1);
     setClientesFiltrados(resultado);
     setError(null);
   };
@@ -120,6 +125,15 @@ export default function ClientesPage() {
     hasOverflow,
     theadProps,
   } = useDragScrollTable([loading, clientesFiltrados]);
+
+  // Paginación
+  const totalPages = Math.ceil(clientesFiltrados.length / ITEMS_PER_PAGE);
+  const clientesPaginados = clientesFiltrados.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE,
+  );
+  const startId = clientesPaginados.length > 0 ? clientesPaginados[0].id : undefined;
+  const endId = clientesPaginados.length > 0 ? clientesPaginados[clientesPaginados.length - 1].id : undefined;
 
   return (
     <div>
@@ -175,35 +189,38 @@ export default function ClientesPage() {
       ) : (
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <div className="overflow-x-auto" ref={scrollContainerRef}>
-          <table className="w-full" ref={tableRef}>
+          <table className="w-full table-fixed min-w-[680px] divide-y divide-gray-200" ref={tableRef}>
             <thead
               ref={theadRef}
               className={`bg-gray-50 border-b border-gray-200 ${hasOverflow ? 'cursor-grab select-none' : ''}`}
               {...theadProps}
             >
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                <th className="w-[5%] px-1 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                   ID
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                  Nombre Completo
+                <th className="w-[28%] px-2.5 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                  Cliente
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                <th className="w-[12%] px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                   Teléfono
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                <th className="w-[12%] px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                   NIT / CI
                 </th>
-                <th className="px-6 py-4 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
-                  # Compras
+                <th className="w-[8%] px-1 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider leading-tight">
+                  <span>N°</span>
+                  <span className="block">COMPRAS</span>
                 </th>
-                <th className="px-6 py-4 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">
-                  Monto Total (Bs.)
+                <th className="w-[13%] px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider leading-tight">
+                  <span>MONTO TOTAL</span>
+                  <span className="block">(BS.)</span>
                 </th>
-                <th className="px-6 py-4 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
-                  Última Compra
+                <th className="w-[12%] px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider leading-tight">
+                  <span>ÚLTIMA</span>
+                  <span className="block">COMPRA</span>
                 </th>
-                <th className="px-6 py-4 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
+                <th className="w-[10%] px-1 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                   Acciones
                 </th>
               </tr>
@@ -222,49 +239,53 @@ export default function ClientesPage() {
                   </td>
                 </tr>
               ) : (
-                clientesFiltrados.map((cliente) => (
+                clientesPaginados.map((cliente) => (
                   <tr key={cliente.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{cliente.id}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{cliente.nombreCompleto}</div>
+                    <td className="px-1 py-[7px] whitespace-nowrap text-sm text-center text-gray-500 font-mono">{cliente.id}</td>
+                    <td className="px-2.5 py-[7px]">
+                      <div className="text-sm font-medium text-gray-900 truncate" title={cliente.nombreCompleto}>
+                        {cliente.nombreCompleto}
+                      </div>
                       {cliente.email && (
-                        <div className="text-xs text-gray-500">{cliente.email}</div>
+                        <div className="text-xs text-gray-400 truncate" title={cliente.email}>
+                          {cliente.email}
+                        </div>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-2 py-[7px] whitespace-nowrap text-sm text-gray-600">
                       {cliente.telefono || "-"}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-2 py-[7px] whitespace-nowrap text-sm text-gray-900 font-mono truncate" title={cliente.nitCi || ''}>
                       {cliente.nitCi || '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <span className="px-3 py-1 text-sm font-semibold bg-primary-50 text-primary-700 border border-primary-200 rounded-full">
+                    <td className="px-1 py-[7px] whitespace-nowrap text-center">
+                      <span className="px-2 py-[2px] text-xs font-semibold bg-primary-50 text-primary-700 border border-primary-200 rounded-full">
                         {cliente.numeroCompras}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <span className="text-lg font-semibold text-gray-900">
+                    <td className="px-2 py-[7px] whitespace-nowrap text-right">
+                      <span className="text-sm font-semibold text-gray-900">
                         Bs. {cliente.montoTotalComprado.toFixed(2)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                    <td className="px-2 py-[7px] whitespace-nowrap text-center text-xs text-gray-600 font-mono">
                       {formatFecha(cliente.ultimaFechaCompra)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <div className="flex items-center justify-center gap-2">
+                    <td className="px-1 py-[7px] whitespace-nowrap text-center">
+                      <div className="inline-flex items-center justify-center gap-1">
                         <button
                           onClick={() => handleModificar(cliente)}
-                          className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                          className="p-1.5 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
                           title="Modificar cliente"
                         >
-                          <Edit2 size={18} />
+                          <Edit2 size={16} />
                         </button>
                         <button
                           onClick={() => handleVerHistorial(cliente)}
-                          className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                          className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                           title="Ver historial de compras"
                         >
-                          <History size={18} />
+                          <History size={16} />
                         </button>
                       </div>
                     </td>
@@ -274,6 +295,20 @@ export default function ClientesPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Paginación */}
+        {clientesFiltrados.length > 0 && (
+          <Paginacion
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={clientesFiltrados.length}
+            itemsPerPage={ITEMS_PER_PAGE}
+            onPageChange={setCurrentPage}
+            itemName="clientes"
+            startItem={startId}
+            endItem={endId}
+          />
+        )}
       </div>
       )}
 

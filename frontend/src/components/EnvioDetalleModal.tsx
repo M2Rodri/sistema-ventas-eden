@@ -88,6 +88,7 @@ export default function EnvioDetalleModal({ envio, onClose, onSuccess }: EnvioDe
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
+      hour12: false,
     });
   };
 

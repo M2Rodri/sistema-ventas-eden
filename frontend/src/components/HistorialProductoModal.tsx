@@ -44,6 +44,7 @@ export default function HistorialProductoModal({ inventario, onClose }: Historia
     new Date(f).toLocaleString('es-BO', {
       day: '2-digit', month: '2-digit', year: 'numeric',
       hour: '2-digit', minute: '2-digit',
+      hour12: false,
     });
 
   const colorTipo = (tipo: string) => {

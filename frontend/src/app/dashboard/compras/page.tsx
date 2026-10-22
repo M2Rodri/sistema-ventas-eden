@@ -15,6 +15,9 @@ import CompraModal from '@/components/CompraModal';
 import DetalleCompraModal from '@/components/DetalleCompraModal';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 import { mensajeError } from '@/lib/errores';
+import Paginacion from '@/components/Paginacion';
+
+const ITEMS_PER_PAGE = 30;
 
 /**
  * Compras a proveedores.
@@ -56,6 +59,7 @@ function ComprasContent() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
   const [mensaje, setMensaje] = useState<{ tipo: 'success' | 'error'; texto: string } | null>(null);
 
   const [modalNuevaAbierto, setModalNuevaAbierto] = useState(false);
@@ -84,10 +88,16 @@ function ComprasContent() {
     const resetearFiltros = () => {
       setBusqueda('');
       suprimirFiltroProveedor();
+      setCurrentPage(1);
     };
     window.addEventListener('compras:reset-filtros', resetearFiltros);
     return () => window.removeEventListener('compras:reset-filtros', resetearFiltros);
   }, []);
+
+  // Al escribir en búsqueda o cambiar el proveedor, volver a página 1
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [busqueda, proveedorFiltroId]);
 
   // Los de éxito se cierran solos; los de error se quedan hasta que el
   // usuario los cierra a mano (el botón X del banner).
@@ -140,6 +150,15 @@ function ComprasContent() {
     hasOverflow,
     theadProps,
   } = useDragScrollTable([loading, compras, busqueda, proveedorFiltroId]);
+
+  // Paginación
+  const totalPages = Math.ceil(filtradas.length / ITEMS_PER_PAGE);
+  const paginadas = filtradas.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE,
+  );
+  const startId = paginadas.length > 0 ? paginadas[0].id : undefined;
+  const endId = paginadas.length > 0 ? paginadas[paginadas.length - 1].id : undefined;
 
   return (
     <>
@@ -248,42 +267,42 @@ function ComprasContent() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filtradas.map((compra) => (
+                {paginadas.map((compra) => (
                   <tr key={compra.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                    <td className="px-6 py-[7px] text-sm font-medium text-gray-900">
                       {compra.id}
                       {compra.estado === 'CANCELADA' && (
-                        <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Anulada</span>
+                        <span className="ml-2 px-2 py-[2px] rounded-full text-xs font-medium bg-red-100 text-red-800">Anulada</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
+                    <td className="px-6 py-[7px] text-sm text-gray-900">
                       {compra.nombreProveedor ?? <span className="text-gray-500">Sin proveedor</span>}
                       {compra.nombreProveedor && (
                         <span className="block text-xs text-gray-500">NIT: {compra.nitProveedor || '—'}</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{compra.numeroFactura || '—'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{fecha(compra.fechaCompra)}</td>
-                    <td className="px-6 py-4 text-sm text-right font-semibold text-gray-900">
+                    <td className="px-6 py-[7px] text-sm text-gray-700">{compra.numeroFactura || '—'}</td>
+                    <td className="px-6 py-[7px] text-sm text-gray-700">{fecha(compra.fechaCompra)}</td>
+                    <td className="px-6 py-[7px] text-sm text-right font-semibold text-gray-900">
                       {bs(compra.montoTotal)}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-[7px]">
                       <div className="flex items-center justify-center gap-0.5">
                         <button
                           onClick={() => setCompraDetalle(compra)}
-                          className="text-gray-600 hover:text-gray-900 p-1.5"
+                          className="text-gray-600 hover:text-gray-900 p-1 rounded hover:bg-gray-100 transition-colors"
                           title="Ver detalle"
                         >
-                          <Eye size={18} />
+                          <Eye size={16} />
                         </button>
 
                         <button
                           onClick={() => setCompraAAnular(compra)}
                           disabled={compra.estado === 'CANCELADA'}
-                          className="text-red-600 hover:text-red-800 p-1.5 disabled:text-gray-300 disabled:hover:text-gray-300 disabled:cursor-not-allowed"
+                          className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors disabled:text-gray-300 disabled:hover:text-gray-300 disabled:cursor-not-allowed"
                           title="Anular compra"
                         >
-                          <XCircle size={18} />
+                          <XCircle size={16} />
                         </button>
                       </div>
                     </td>
@@ -292,6 +311,20 @@ function ComprasContent() {
               </tbody>
             </table>
           </div>
+        )}
+
+        {/* Paginación */}
+        {filtradas.length > 0 && (
+          <Paginacion
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filtradas.length}
+            itemsPerPage={ITEMS_PER_PAGE}
+            onPageChange={setCurrentPage}
+            itemName="compras"
+            startItem={startId}
+            endItem={endId}
+          />
         )}
       </div>
 
