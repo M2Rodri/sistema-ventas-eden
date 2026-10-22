@@ -5,14 +5,13 @@
 
 ## 1. Descripción
 
-Sistema de ventas e inventario para **Mueblería Edén**, un negocio familiar de camas, colchones y accesorios
-de descanso en Santa Cruz de la Sierra, Bolivia. Tiene dos partes que hablan con un único backend:
+Sistema de ventas e inventario para **Mueblería Edén**, un negocio familiar de camas, colchones y muebles de dormitorio ubicado en Santa Cruz de la Sierra, Bolivia. Tiene dos partes que hablan con un único backend:
 
 - **Web administrativa:** ventas, cobros, clientes, productos, inventario, compras, proveedores, usuarios y reportes.
 - **App móvil (Android):** consulta de catálogo y de ventas, registro de ventas y cobros para el día a día.
 
 | Qué | Dónde |
-|---|---|
+|-----|-------|
 | Web | https://sistema-ventas-eden.vercel.app |
 | API (estado del servicio) | https://sistema-ventas-eden-1.onrender.com/api/v1/salud |
 | App Android (APK) | https://github.com/M2Rodri/sistema-ventas-eden/releases/latest/download/muebleria-eden.apk |
@@ -54,7 +53,7 @@ createdb -U postgres muebleria_eden_db
 psql -U postgres -d muebleria_eden_db -v ON_ERROR_STOP=1 -f backend/database/00_esquema.sql
 ```
 
-`00_esquema.sql` es el estado final de la base. Los scripts numerados `01` a `35` de `backend/database/` son
+`00_esquema.sql` es el estado final de la base. Los scripts numerados `01` a `36` de `backend/database/` son
 los cambios históricos que llevaron hasta ahí: **no se corren encima del esquema**. Detalle en
 [`backend/database/README.md`](backend/database/README.md).
 
@@ -152,7 +151,7 @@ Cada parte trae un `.env.example` con todas sus variables explicadas y **sin val
 ```
 sistema-ventas-eden/
 ├── backend/
-│   ├── database/        00_esquema.sql, scripts 01 a 35 y carga_inicial/
+│   ├── database/        00_esquema.sql, scripts 01 a 36 y carga_inicial/
 │   ├── src/main/java/com/mitienda/ecommerce/
 │   │   ├── controllers/ services/ repositories/ models/ dto/
 │   │   ├── security/ config/ exception/ storage/
@@ -184,8 +183,14 @@ sistema entregado: sus rutas de API responden 404 y sus páginas redirigen al in
   está en [`docs/rutas-api-v1.md`](docs/rutas-api-v1.md).
 - Los errores tienen un solo formato, `{ "error": { "codigo", "mensaje", "campos" } }`, con los códigos HTTP 400,
   401, 403, 404, 409, 422, 429 y 500. La tabla de códigos está en [`docs/errores-api.md`](docs/errores-api.md).
-- La sesión dura 12 horas. Cinco inicios de sesión fallidos de un mismo usuario en 15 minutos lo bloquean
-  15 minutos (429 `DEMASIADOS_INTENTOS`).
+- Cada token dura 4 horas y se renueva solo mientras se usa el sistema (`POST /api/v1/auth/renovar`, con el
+  rol vigente en la base). El tope de una sesión desde el inicio de sesión es de 8 horas en la web, 12 en la
+  app con candado (huella o bloqueo de pantalla) y 4 en la app sin candado. La web cierra la sesión tras
+  30 minutos sin actividad. Una cuenta dada de baja pierde el acceso en la siguiente petición, y el rol se
+  lee de la base en cada una. Se pueden cortar todas las sesiones de un usuario (botón "Cerrar sesiones" en
+  Usuarios, o `POST /api/v1/auth/cerrar-sesiones`), y cambiar la contraseña de alguien también las corta
+  (columna `usuarios.sesiones_validas_desde`, script 36). Cinco inicios de sesión fallidos de un mismo
+  usuario en 15 minutos lo bloquean 15 minutos (429 `DEMASIADOS_INTENTOS`).
 - Los ID de ventas, compras, productos, clientes, proveedores, categorías, inventario, pagos, comprobantes,
   movimientos y usuarios salen de un contador propio (`contadores_id`) dentro de la misma transacción: si una
   operación se revierte, el número no se pierde y la numeración no tiene huecos. Después de una carga masiva
@@ -206,8 +211,8 @@ Las credenciales de acceso **se entregan por canal privado**.
 
 | Qué | Comando | Total actual |
 |---|---|---|
-| Backend | `cd backend && ./mvnw test` | **167** pruebas, 0 fallos |
-| App móvil | `cd app && flutter test` | **56** pruebas, 0 fallos |
+| Backend | `cd backend && ./mvnw test` | **225** pruebas, 0 fallos |
+| App móvil | `cd app && flutter test` | **74** pruebas, 0 fallos |
 | API (Newman) | `cd evidencia/api && npm install && node ejecutar.mjs` | **33** casos, todos aprobados |
 
 - Las pruebas del backend construyen la aplicación completa y validan las entidades contra la base, así que
