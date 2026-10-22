@@ -1389,8 +1389,10 @@
                   "pm.test('CP-13: el período tiene al menos 2 ventas y Bs 200 (solo las de CP-09 y CP-11 ya suman eso)', () => { pm.expect(cuerpo.totalVentas).to.be.at.least(2); pm.expect(Number(cuerpo.montoTotalVentas)).to.be.at.least(200); });",
                   "pm.test('CP-13: ingresosTotales del financiero (' + ingresos + ') es la suma de las ventas COMPLETADA del reporte de ventas (' + suma(completadas).toFixed(2) + ', ' + completadas.length + ' ventas)', () => pm.expect(Math.abs(ingresos - suma(completadas))).to.be.below(0.01));",
                   "pm.test('CP-13: montoTotalVentas (' + cuerpo.montoTotalVentas + ') no es menor que ingresosTotales (' + ingresos + '): el reporte de ventas también cuenta las pendientes de pago', () => pm.expect(Number(cuerpo.montoTotalVentas)).to.be.at.least(ingresos - 0.01));",
-                  "const gananciaFinanciero = Number(vars.get('finGanancia'));",
-                  "pm.test('CP-13: gananciaVentas del reporte de ventas (' + cuerpo.gananciaVentas + ') es igual a la del financiero (' + gananciaFinanciero + ')', () => { pm.expect(cuerpo.gananciaVentas).to.be.a('number'); pm.expect(Math.abs(Number(cuerpo.gananciaVentas) - gananciaFinanciero)).to.be.below(0.01); });"
+                  "const positivas = lista.filter((v) => v.ganancia !== null && v.ganancia !== undefined && Number(v.ganancia) > 0);",
+                  "const sumaPositivas = positivas.reduce((a, v) => a + Number(v.ganancia), 0);",
+                  "pm.test('CP-13: cada venta del reporte trae costoTotal y ganancia (o null si no tiene costo guardado)', () => lista.forEach((v) => { pm.expect(v).to.have.property('costoTotal'); pm.expect(v).to.have.property('ganancia'); }));",
+                  "pm.test('CP-13: gananciaVentas del reporte de ventas (' + cuerpo.gananciaVentas + ') es la suma de las ganancias positivas de sus ventas no canceladas, completadas o pendientes de pago (' + sumaPositivas.toFixed(2) + ', ' + positivas.length + ' ventas); una venta con pérdida no resta', () => { pm.expect(cuerpo.gananciaVentas).to.be.a('number'); pm.expect(Math.abs(Number(cuerpo.gananciaVentas) - sumaPositivas)).to.be.below(0.01); });"
                 ]
               }
             }
