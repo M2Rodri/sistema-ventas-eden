@@ -91,17 +91,61 @@ public class ReporteService {
     }
 
     /**
-     * Ganancia real de lo vendido: solo ventas COMPLETADA y, por cada línea,
+     * Ganancia real de lo vendido para el reporte financiero: solo ventas COMPLETADA y, por cada línea,
      * (precio unitario - costo unitario guardado en detalle_venta) x cantidad.
-     * La usan el reporte de ventas y el financiero, para que den el mismo número.
      */
     private BigDecimal calcularGananciaVentas(List<Venta> ventas) {
         return ventas.stream()
                 .filter(v -> v.getEstado() == EstadoVenta.COMPLETADA)
                 .flatMap(v -> v.getDetalles().stream())
+                .filter(d -> d.getCostoUnitario() != null)
                 .map(d -> d.getPrecioUnitario()
                         .subtract(d.getCostoUnitario())
                         .multiply(BigDecimal.valueOf(d.getCantidad())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    /**
+     * Costo total de una sola venta (suma de costo_unitario x cantidad).
+     * Devuelve null si la venta está CANCELADA o si alguna de sus líneas no tiene costo guardado.
+     */
+    private BigDecimal costoTotalDeUnaVenta(Venta venta) {
+        if (venta.getEstado() == EstadoVenta.CANCELADA || venta.getDetalles() == null || venta.getDetalles().isEmpty()) {
+            return null;
+        }
+        BigDecimal costoAcumulado = BigDecimal.ZERO;
+        for (DetalleVenta d : venta.getDetalles()) {
+            if (d.getCostoUnitario() == null) {
+                return null;
+            }
+            costoAcumulado = costoAcumulado.add(d.getCostoUnitario().multiply(BigDecimal.valueOf(d.getCantidad())));
+        }
+        return costoAcumulado;
+    }
+
+    /**
+     * Ganancia de una sola venta: (precio de venta - costo total).
+     * Devuelve null si la venta está CANCELADA o si alguna de sus líneas no tiene costo guardado.
+     * Muestra ganancia positiva o negativa (pérdida) tanto para COMPLETADA como para PENDIENTE_PAGO.
+     */
+    private BigDecimal gananciaDeUnaVenta(Venta venta) {
+        BigDecimal costoTotal = costoTotalDeUnaVenta(venta);
+        if (costoTotal == null) {
+            return null;
+        }
+        return venta.getMontoTotal().subtract(costoTotal);
+    }
+
+    /**
+     * Ganancia total del reporte de ventas:
+     * Suma las ganancias de ventas no canceladas (COMPLETADA y PENDIENTE_PAGO),
+     * pero ignora las ventas con pérdida (ganancia < 0) para que no resten del total.
+     */
+    private BigDecimal calcularGananciaReporteVentas(List<Venta> ventas) {
+        return ventas.stream()
+                .filter(v -> v.getEstado() != EstadoVenta.CANCELADA)
+                .map(this::gananciaDeUnaVenta)
+                .filter(g -> g != null && g.compareTo(BigDecimal.ZERO) > 0)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
@@ -132,14 +176,16 @@ public class ReporteService {
                         venta.getNombreClienteCompleto(),  // ✅ Corregido: maneja cliente nulo
                         venta.getMontoTotal(),
                         resumirMetodoPago(venta),
-                        venta.getEstado().name()
+                        venta.getEstado().name(),
+                        costoTotalDeUnaVenta(venta),
+                        gananciaDeUnaVenta(venta)
                 ))
                 .collect(Collectors.toList());
 
         return new ReporteVentasResponse(
                 fechaInicio, fechaFin,
                 totalVentas, montoTotalVentas,
-                ticketPromedio, calcularGananciaVentas(ventas), ventasDetalle
+                ticketPromedio, calcularGananciaReporteVentas(ventas), ventasDetalle
         );
     }
 
@@ -487,5 +533,46 @@ public class ReporteService {
                 ingresosTotales, gastosTotales, saldoPeriodo,
                 detalleIngresos, detalleGastos
         );
+    }
+
+    /**
+     * Detalle de ganancia por producto vendido. Solo incluye ventas COMPLETADA
+     * y usa el costo unitario guardado en cada línea de venta.
+     */
+    public List<Map<String, Object>> getGananciasPorProducto(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
+        List<Map<String, Object>> resultado = new ArrayList<>();
+        for (Venta venta : ventaRepository.findByFechaVentaBetweenOrderByFechaVentaDesc(fechaInicio, fechaFin)) {
+            if (venta.getEstado() != EstadoVenta.COMPLETADA) continue;
+            for (DetalleVenta detalle : venta.getDetalles()) {
+                Map<String, Object> fila = new java.util.HashMap<>();
+                BigDecimal costoUnitario = detalle.getCostoUnitario();
+                BigDecimal ganancia = costoUnitario == null
+                        ? null
+                        : detalle.getPrecioUnitario().subtract(costoUnitario)
+                                .multiply(BigDecimal.valueOf(detalle.getCantidad()));
+                fila.put("idVenta", venta.getId());
+                fila.put("fechaVenta", venta.getFechaVenta());
+                fila.put("idProducto", detalle.getProducto().getId());
+                fila.put("nombreProducto", detalle.getProducto().getNombre());
+                fila.put("skuProducto", detalle.getProducto().getSku());
+                fila.put("cantidad", detalle.getCantidad());
+                fila.put("precioUnitario", detalle.getPrecioUnitario());
+                fila.put("costoUnitario", costoUnitario);
+                fila.put("subtotal", detalle.getSubtotal());
+                fila.put("ganancia", ganancia);
+                resultado.add(fila);
+            }
+        }
+        return resultado;
+    }
+
+    /** Fecha del primer registro de venta disponible para limitar filtros históricos. */
+    public LocalDate getFechaInicioRegistros() {
+        return ventaRepository.findAll().stream()
+                .map(Venta::getFechaVenta)
+                .filter(java.util.Objects::nonNull)
+                .map(LocalDateTime::toLocalDate)
+                .min(LocalDate::compareTo)
+                .orElse(null);
     }
 }

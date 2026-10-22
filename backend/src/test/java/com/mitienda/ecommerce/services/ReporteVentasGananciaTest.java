@@ -58,17 +58,19 @@ class ReporteVentasGananciaTest {
     }
 
     @Test
-    void sumaPrecioMenosCostoPorCantidad_soloDeVentasCompletadas() {
+    void sumaPrecioMenosCostoPorCantidad_deVentasCompletadasYPendientesSinPerdidas() {
         when(ventaRepository.findByFechaVentaBetweenOrderByFechaVentaDesc(any(), any())).thenReturn(List.of(
-                venta(1, EstadoVenta.COMPLETADA, "1000.00", "500.00", "300.00", 2),   // 400
-                venta(2, EstadoVenta.COMPLETADA, "250.00", "250.00", "100.00", 1),    // 150
-                venta(3, EstadoVenta.PENDIENTE_PAGO, "800.00", "800.00", "200.00", 1), // no cuenta
-                venta(4, EstadoVenta.CANCELADA, "900.00", "900.00", "100.00", 1)));    // no cuenta
+                venta(1, EstadoVenta.COMPLETADA, "1000.00", "500.00", "300.00", 2),   // 400 (entra)
+                venta(2, EstadoVenta.COMPLETADA, "250.00", "250.00", "100.00", 1),    // 150 (entra)
+                venta(3, EstadoVenta.PENDIENTE_PAGO, "800.00", "800.00", "200.00", 1), // 600 (entra aunque pendiente)
+                venta(4, EstadoVenta.COMPLETADA, "700.00", "700.00", "800.00", 1),    // -100 (pérdida, no resta a la sumatoria)
+                venta(5, EstadoVenta.CANCELADA, "900.00", "900.00", "100.00", 1)));    // cancelada no cuenta
 
         ReporteVentasResponse reporte = servicio.getReporteVentas(INICIO, FIN);
 
-        assertEquals(0, new BigDecimal("550.00").compareTo(reporte.getGananciaVentas()));
-        assertEquals(3L, reporte.getTotalVentas());
+        // 400 + 150 + 600 = 1150
+        assertEquals(0, new BigDecimal("1150.00").compareTo(reporte.getGananciaVentas()));
+        assertEquals(4L, reporte.getTotalVentas()); // 1, 2, 3, 4 no canceladas
     }
 
     @Test
@@ -78,19 +80,5 @@ class ReporteVentasGananciaTest {
         ReporteVentasResponse reporte = servicio.getReporteVentas(INICIO, FIN);
 
         assertEquals(0, BigDecimal.ZERO.compareTo(reporte.getGananciaVentas()));
-    }
-
-    @Test
-    void coincideConLaGananciaDelReporteFinanciero() {
-        when(ventaRepository.findByFechaVentaBetweenOrderByFechaVentaDesc(any(), any())).thenReturn(List.of(
-                venta(1, EstadoVenta.COMPLETADA, "1000.00", "500.00", "300.00", 2),
-                venta(2, EstadoVenta.PENDIENTE_PAGO, "800.00", "800.00", "200.00", 1),
-                venta(3, EstadoVenta.CANCELADA, "900.00", "900.00", "100.00", 1)));
-        when(compraRepository.findByFechaCompraBetweenOrderByFechaCompraDesc(any(), any())).thenReturn(List.of());
-
-        ReporteVentasResponse ventas = servicio.getReporteVentas(INICIO, FIN);
-        ReporteFinancieroResponse financiero = servicio.getReporteFinanciero(INICIO, FIN);
-
-        assertEquals(0, financiero.getGananciaVentas().compareTo(ventas.getGananciaVentas()));
     }
 }

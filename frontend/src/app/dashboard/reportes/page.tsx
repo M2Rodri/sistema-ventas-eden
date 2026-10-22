@@ -87,7 +87,7 @@ export default function ReportesPage() {
   }
 
   const fechaHora = (iso: string) =>
-    new Date(iso).toLocaleString('es-BO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    new Date(iso).toLocaleString('es-BO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
 
   const periodo = (r: ReporteReciente) =>
     r.fechaInicio && r.fechaFin ? `${r.fechaInicio.split('-').reverse().join('/')} al ${r.fechaFin.split('-').reverse().join('/')}` : null;

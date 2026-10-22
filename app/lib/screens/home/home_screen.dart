@@ -26,6 +26,7 @@ import '../ventas/estado_entrega_ui.dart';
 import '../ventas/nueva_venta_screen.dart';
 import '../ventas/venta_detalle_screen.dart';
 import '../ventas/ventas_screen.dart';
+import '../reportes/ganancias_screen.dart';
 
 enum _EstadoResumen { cargando, conDatos, vacio, error }
 
@@ -277,6 +278,14 @@ class _HomeScreenState extends State<HomeScreen> {
       MaterialPageRoute<void>(
         builder: (_) =>
             VentasScreen(token: widget.sesion.token, esAdmin: _esAdmin),
+      ),
+    );
+  }
+
+  void _abrirGanancias() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => GananciasScreen(token: widget.sesion.token),
       ),
     );
   }
@@ -1583,7 +1592,17 @@ class _HomeScreenState extends State<HomeScreen> {
                       onTap: _abrirVentas,
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  if (_esAdmin) ...[
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: _BotonModulo(
+                        icono: Icons.insights_outlined,
+                        titulo: 'Ganancias',
+                        onTap: _abrirGanancias,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(width: 6),
                   Expanded(
                     child: _BotonModulo(
                       icono: Icons.bed_outlined,

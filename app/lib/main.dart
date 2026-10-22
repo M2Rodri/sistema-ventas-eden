@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'data/api_client.dart';
 import 'data/auth_repository.dart';
@@ -44,6 +45,9 @@ class MuebleriaEdenApp extends StatelessWidget {
         return MaterialApp(
           title: 'Mueblería Edén',
           debugShowCheckedModeBanner: false,
+          locale: const Locale('es', 'ES'),
+          localizationsDelegates: GlobalMaterialLocalizations.delegates,
+          supportedLocales: const [Locale('es', 'ES')],
           theme: AppTheme.tema,
           darkTheme: AppTheme.temaOscuro,
           themeMode: esOscuro ? ThemeMode.dark : ThemeMode.light,

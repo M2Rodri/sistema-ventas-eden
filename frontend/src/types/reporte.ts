@@ -34,6 +34,10 @@ export interface VentaDetalleReporte {
   montoTotal: number;
   metodoPago: string;
   estado: string;
+  /** Costo total de los productos vendidos; null si no tiene costo asignado. */
+  costoTotal?: number | null;
+  /** Ganancia de la venta; null si no cuenta o no tiene costo. */
+  ganancia: number | null;
 }
 
 export interface ReporteVentas {

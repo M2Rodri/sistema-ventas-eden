@@ -237,33 +237,87 @@ export default function ReporteVistaPrevia({
             {data.ventas.length === 0 ? (
               <SinDatosReporte />
             ) : (
-              <div className="border border-gray-200 rounded-lg overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
+              <div className="border border-gray-200 rounded-lg overflow-x-auto">
+                <table className="w-full table-fixed min-w-[620px] divide-y divide-gray-200 text-xs">
                   <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Monto</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Método Pago</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+                    <tr className="text-gray-600 font-medium uppercase tracking-wider text-[11px]">
+                      <th className="w-[6%] px-1 py-2 text-left">ID</th>
+                      <th className="w-[11%] px-1 py-2 text-left">Fecha</th>
+                      <th className="w-[20%] px-1.5 py-2 text-left">Cliente</th>
+                      <th className="w-[13%] px-1 py-2 text-center">
+                        <div className="flex flex-col items-center justify-center leading-tight">
+                          <span>COSTO</span>
+                          <span>TOTAL</span>
+                        </div>
+                      </th>
+                      <th className="w-[13%] px-1 py-2 text-center">
+                        <div className="flex flex-col items-center justify-center leading-tight">
+                          <span>PRECIO DE</span>
+                          <span>VENTA</span>
+                        </div>
+                      </th>
+                      <th className="w-[12%] px-1 py-2 text-center">
+                        <div className="flex flex-col items-center justify-center leading-tight">
+                          <span>MÉTODO</span>
+                          <span>PAGO</span>
+                        </div>
+                      </th>
+                      <th className="w-[12%] px-1 py-2 text-center">Ganancia</th>
+                      <th className="w-[13%] px-1 py-2 text-center">Estado</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {data.ventas.map((venta: any) => (
-                      <tr key={venta.idVenta}>
-                        <td className="px-4 py-3 text-sm">#{venta.idVenta}</td>
-                        <td className="px-4 py-3 text-sm">{formatDate(venta.fechaVenta)}</td>
-                        <td className="px-4 py-3 text-sm">{venta.nombreCliente}</td>
-                        <td className="px-4 py-3 text-sm font-semibold">{formatPrice(venta.montoTotal)}</td>
-                        <td className="px-4 py-3 text-sm">{venta.metodoPago}</td>
-                        <td className="px-4 py-3 text-sm">
-                          <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-                            {venta.estado}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
+                    {data.ventas.map((venta: any) => {
+                      const esPendiente = venta.estado === 'PENDIENTE_PAGO' || venta.estado === 'PENDIENTE';
+                      const esCancelada = venta.estado === 'CANCELADA';
+                      const tieneGanancia = venta.ganancia != null;
+                      const esPerdida = tieneGanancia && venta.ganancia < 0;
+
+                      let colorGanancia = 'text-gray-900';
+                      if (tieneGanancia) {
+                        if (esPerdida || esPendiente) {
+                          colorGanancia = 'text-red-600';
+                        } else {
+                          // Completada: negro normal en negrita
+                          colorGanancia = 'text-gray-900';
+                        }
+                      }
+
+                      return (
+                        <tr key={venta.idVenta} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-1 py-[7px] font-medium text-gray-700">#{venta.idVenta}</td>
+                          <td className="px-1 py-[7px] text-gray-600 whitespace-nowrap">{formatDate(venta.fechaVenta)}</td>
+                          <td className="px-1.5 py-[7px] text-gray-900 truncate" title={venta.nombreCliente}>
+                            {venta.nombreCliente || 'Sin cliente'}
+                          </td>
+                          <td className="px-1 py-[7px] text-center font-mono text-gray-600">
+                            {venta.costoTotal != null ? formatPrice(venta.costoTotal) : '—'}
+                          </td>
+                          <td className="px-1 py-[7px] text-center font-mono font-semibold text-gray-900">
+                            {formatPrice(venta.montoTotal)}
+                          </td>
+                          <td className="px-1 py-[7px] text-center text-gray-600 truncate" title={venta.metodoPago}>
+                            {venta.metodoPago || '—'}
+                          </td>
+                          <td className={`px-1 py-[7px] text-center font-mono font-bold ${colorGanancia}`}>
+                            {tieneGanancia ? formatPrice(venta.ganancia) : '—'}
+                          </td>
+                          <td className="px-1 py-[7px] text-center">
+                            <span
+                              className={`inline-block px-2 py-[2px] text-[10px] font-semibold rounded-full ${
+                                esCancelada
+                                  ? 'bg-red-100 text-red-700'
+                                  : esPendiente
+                                  ? 'bg-amber-100 text-amber-700'
+                                  : 'bg-green-100 text-green-700'
+                              }`}
+                            >
+                              {venta.estado}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

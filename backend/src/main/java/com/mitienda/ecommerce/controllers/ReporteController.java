@@ -139,4 +139,23 @@ public class ReporteController {
         ReporteFinancieroResponse reporte = reporteService.getReporteFinanciero(inicio, fin);
         return ResponseEntity.ok(reporte);
     }
+
+    /**
+     * GET /api/v1/reportes/ganancias-por-producto?inicio=...&fin=...
+     * Detalle de ganancia por línea de venta para el módulo móvil de ganancias.
+     */
+    @GetMapping("/ganancias-por-producto")
+    public ResponseEntity<List<Map<String, Object>>> getGananciasPorProducto(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime inicio,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fin) {
+        return ResponseEntity.ok(reporteService.getGananciasPorProducto(inicio, fin));
+    }
+
+    @GetMapping("/fecha-inicio")
+    public ResponseEntity<Map<String, Object>> getFechaInicioRegistros() {
+        var fecha = reporteService.getFechaInicioRegistros();
+        return ResponseEntity.ok(fecha == null
+                ? Map.of()
+                : Map.of("fecha", fecha));
+    }
 }

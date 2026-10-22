@@ -34,5 +34,9 @@ public class ReporteVentasResponse {
         private BigDecimal montoTotal;
         private String metodoPago;
         private String estado;
+        /** Costo total de lo vendido en esta venta (suma de costo_unitario x cantidad); null si alguna línea no tiene costo. */
+        private BigDecimal costoTotal;
+        /** Ganancia de esta venta; null si no tiene costo o es cancelada. */
+        private BigDecimal ganancia;
     }
 }
