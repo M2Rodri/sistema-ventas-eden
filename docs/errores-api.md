@@ -58,6 +58,7 @@ que no existen. Todas las respuestas de error llevan las cabeceras CORS, para qu
 | 400 | `CLIENTE_REQUERIDO` | Venta sin cliente registrado ni nombre de cliente de mostrador | `Debe proporcionar un cliente registrado (idCliente) o el nombre del cliente de mostrador` |
 | 400 | `CIUDAD_REQUERIDA` | Venta por transportadora sin ciudad | `La ciudad es obligatoria para el envío por transportadora` |
 | 400 | `MONTO_INVALIDO` | Monto pagado negativo | `El monto pagado no puede ser negativo` |
+| 400 | `PRECIO_INVALIDO` | Precio unitario acordado menor o igual a 0 | `El precio unitario debe ser mayor a 0` |
 | 400 | `ESTADO_INVALIDO` | Filtro por un estado de venta o de pago que no existe | `Estado de venta inválido: XYZ` |
 | 400 | `ARCHIVO_VACIO` | Se sube una imagen o comprobante sin contenido | `El archivo de imagen no puede estar vacío.` |
 | 400 | `ARCHIVO_MUY_GRANDE` | La imagen supera el tamaño máximo | `El archivo excede el tamaño máximo permitido de N MB` |
@@ -112,7 +113,6 @@ que no existen. Todas las respuestas de error llevan las cabeceras CORS, para qu
 |---|---|---|---|
 | 422 | `STOCK_INSUFICIENTE` | Se vende, o se ajusta con una salida manual, más de lo que hay en inventario | `Stock insuficiente para el producto 'Cama 2 plazas'` (en el ajuste: `Stock insuficiente. Disponible: 5`) |
 | 422 | `PRODUCTO_NO_DISPONIBLE` | Se vende un producto dado de baja | `El producto 'Cama 2 plazas' no está disponible` |
-| 422 | `PRECIO_EXCEDE_CATALOGO` | Se vende por encima del precio de catálogo | `No se puede vender 'Cama 2 plazas' por encima del precio de catálogo (máximo Bs. 500.00)` |
 | 422 | `COMPRA_STOCK_VENDIDO` | Se anula una compra cuya mercadería ya se vendió en parte: el stock no alcanza para devolverla | `No se puede anular: de 'Cama 2 plazas' esta compra trajo 5 y hoy quedan 2 en stock (el resto ya se vendió)` |
 | 422 | `PAGO_EXCEDE_TOTAL` | El monto pagado al registrar la venta supera el total | `El monto pagado no puede superar el total de la venta` |
 | 422 | `PAGO_EXCEDE_SALDO` | Un cobro posterior supera el saldo pendiente | `El monto supera el saldo pendiente de la venta (Bs. 100.00)` |

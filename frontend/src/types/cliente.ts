@@ -59,6 +59,7 @@ export interface DetalleVentaHistorial {
   nombreProducto: string;
   skuProducto?: string;
   cantidad: number;
+  precioUnitarioOriginal?: number;
   precioUnitario: number;
   subtotal: number;
 }

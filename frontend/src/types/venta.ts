@@ -91,8 +91,10 @@ export interface DetalleVenta {
   nombreProducto: string;
   skuProducto?: string;
   cantidad: number;
+  precioUnitarioOriginal?: number;
   precioUnitario: number;
   subtotal: number;
+  costoUnitario?: number | null;
 }
 
 export interface Pago {
@@ -126,6 +128,11 @@ export interface Venta {
   fechaLimitePago?: string | null;
   // La calcula el servidor con su reloj: hay pago pendiente y la fecha ya pasó.
   fechaLimiteVencida?: boolean;
+
+  /** Costo total de mercadería (solo ADMIN) */
+  costoTotal?: number | null;
+  /** Ganancia total de la venta (solo ADMIN) */
+  ganancia?: number | null;
 
   estado: EstadoVenta;
 

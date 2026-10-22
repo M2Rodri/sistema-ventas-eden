@@ -18,6 +18,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -79,6 +80,23 @@ public class VentaService {
     }
 
 
+    /**
+     * La respuesta de una venta, según quién la pide: solo el Admin recibe el costo y la ganancia. El
+     * Empleado nunca debe recibirlos, ni siquiera ocultos en pantalla: la web y la app solo muestran lo que
+     * llega, y lo que no llega no se puede ver con F12 ni con Postman.
+     *
+     * Toda respuesta de una venta pasa por acá (o por aRespuesta, para listas).
+     */
+    private VentaResponse respuesta(Venta venta) {
+        return new VentaResponse(venta, usuarioActualService.esAdmin());
+    }
+
+    /** Igual que respuesta(), para listas: se pregunta por el rol una sola vez y no por cada venta. */
+    private Function<Venta, VentaResponse> aRespuesta() {
+        boolean esAdmin = usuarioActualService.esAdmin();
+        return venta -> new VentaResponse(venta, esAdmin);
+    }
+
     @Transactional(readOnly = true)
     public List<VentaResponse> getAllVentas() {
         // El resto de las consultas del repositorio ya ordenan por fecha
@@ -87,7 +105,7 @@ public class VentaService {
         // mezclada sin relación con el ID ni con la fecha.
         return ventaRepository.findAll(Sort.by(Sort.Direction.DESC, "fechaVenta"))
                 .stream()
-                .map(VentaResponse::new)
+                .map(aRespuesta())
                 .collect(Collectors.toList());
     }
 
@@ -95,7 +113,7 @@ public class VentaService {
     public VentaResponse getVentaById(Long id) {
         Venta venta = ventaRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("VENTA_NO_ENCONTRADA", "Venta no encontrada con ID: " + id));
-        return new VentaResponse(venta);
+        return respuesta(venta);
     }
 
     @Transactional
@@ -179,15 +197,11 @@ public class VentaService {
             BigDecimal precioFinal;
 
             if (item.getPrecioUnitarioConDescuento() != null) {
-                // Un precio "con descuento" que en realidad es igual o mayor
-                // al de catálogo no es un descuento: antes esto se aceptaba
-                // en silencio y se terminaba cobrando el precio normal sin
-                // avisar. Ahora se rechaza, como pide CA-04.2.
-                if (item.getPrecioUnitarioConDescuento().compareTo(precioOriginal) > 0) {
-                    throw new ReglaNegocioException("PRECIO_EXCEDE_CATALOGO", "No se puede vender '" + producto.getNombre() +
-                            "' por encima del precio de catálogo (máximo Bs. " + precioOriginal + ")");
+                if (item.getPrecioUnitarioConDescuento().compareTo(BigDecimal.ZERO) <= 0) {
+                    throw new PeticionInvalidaException("PRECIO_INVALIDO", "El precio unitario debe ser mayor a 0");
                 }
-                // Vender por debajo del costo no se bloquea: es decisión del dueño.
+                // El precio pactado en la venta es independiente del precio de catálogo
+                // (tanto para admin como empleado) y no altera el catálogo.
                 precioFinal = item.getPrecioUnitarioConDescuento();
             } else {
                 precioFinal = precioOriginal;
@@ -243,16 +257,19 @@ public class VentaService {
             BigDecimal descuentoPorcentaje;
 
             if (item.getPrecioUnitarioConDescuento() != null) {
-                // Misma validación que en el cálculo del total: un precio
-                // por encima del catálogo se rechaza, no se corrige solo.
-                if (item.getPrecioUnitarioConDescuento().compareTo(precioOriginal) > 0) {
-                    throw new ReglaNegocioException("PRECIO_EXCEDE_CATALOGO", "No se puede vender '" + producto.getNombre() +
-                            "' por encima del precio de catálogo (máximo Bs. " + precioOriginal + ")");
+                if (item.getPrecioUnitarioConDescuento().compareTo(BigDecimal.ZERO) <= 0) {
+                    throw new PeticionInvalidaException("PRECIO_INVALIDO", "El precio unitario debe ser mayor a 0");
                 }
                 precioFinal = item.getPrecioUnitarioConDescuento();
-                descuentoUnitario = precioOriginal.subtract(precioFinal);
-                descuentoPorcentaje = item.getDescuentoPorcentaje() != null ? item.getDescuentoPorcentaje()
-                        : BigDecimal.ZERO;
+                if (precioFinal.compareTo(precioOriginal) < 0) {
+                    descuentoUnitario = precioOriginal.subtract(precioFinal);
+                    descuentoPorcentaje = item.getDescuentoPorcentaje() != null ? item.getDescuentoPorcentaje()
+                            : BigDecimal.ZERO;
+                } else {
+                    // Precio igual o mayor al catálogo: no hay descuento
+                    descuentoUnitario = BigDecimal.ZERO;
+                    descuentoPorcentaje = BigDecimal.ZERO;
+                }
             } else {
                 precioFinal = precioOriginal;
                 descuentoUnitario = BigDecimal.ZERO;
@@ -323,7 +340,7 @@ public class VentaService {
                 "Venta por Bs " + savedVenta.getMontoTotal()
                         + " a " + savedVenta.getNombreClienteCompleto());
 
-        return new VentaResponse(savedVenta);
+        return respuesta(savedVenta);
     }
 
     @Transactional
@@ -369,7 +386,7 @@ public class VentaService {
                 "Anulacion de la venta #" + cancelada.getId()
                         + " por Bs " + cancelada.getMontoTotal());
 
-        return new VentaResponse(cancelada);
+        return respuesta(cancelada);
     }
 
     /**
@@ -398,7 +415,7 @@ public class VentaService {
         registroAuditoria.registrar("ENTREGAR_VENTA", "ventas", entregada.getId(),
                 "Entrega marcada para la venta #" + entregada.getId());
 
-        return new VentaResponse(entregada);
+        return respuesta(entregada);
     }
 
     /**
@@ -428,7 +445,7 @@ public class VentaService {
         registroAuditoria.registrar("DESHACER_ENTREGA", "ventas", actualizada.getId(),
                 "Entrega corregida en la venta #" + actualizada.getId() + ": de ENTREGADO a PENDIENTE");
 
-        return new VentaResponse(actualizada);
+        return respuesta(actualizada);
     }
 
     /**
@@ -459,7 +476,7 @@ public class VentaService {
         registroAuditoria.registrar("EDITAR_ENTREGA", "ventas", actualizada.getId(),
                 "Datos de entrega editados en la venta #" + actualizada.getId());
 
-        return new VentaResponse(actualizada);
+        return respuesta(actualizada);
     }
 
     /**
@@ -489,7 +506,7 @@ public class VentaService {
         registroAuditoria.registrar("EDITAR_FECHA_LIMITE_PAGO", "ventas", actualizada.getId(),
                 "Fecha límite de pago de la venta #" + actualizada.getId() + ": " + fecha);
 
-        return new VentaResponse(actualizada);
+        return respuesta(actualizada);
     }
 
     /**
@@ -547,7 +564,7 @@ public class VentaService {
     public List<VentaResponse> getVentasByCliente(Long clienteId) {
         return ventaRepository.findByClienteIdOrderByFechaVentaDesc(clienteId)
                 .stream()
-                .map(VentaResponse::new)
+                .map(aRespuesta())
                 .collect(Collectors.toList());
     }
 
@@ -555,7 +572,7 @@ public class VentaService {
     public List<VentaResponse> getVentasByEstado(EstadoVenta estado) {
         return ventaRepository.findByEstadoOrderByFechaVentaDesc(estado)
                 .stream()
-                .map(VentaResponse::new)
+                .map(aRespuesta())
                 .collect(Collectors.toList());
     }
 
@@ -563,7 +580,7 @@ public class VentaService {
     public List<VentaResponse> getVentasDelDia() {
         return ventaRepository.findVentasDelDia()
                 .stream()
-                .map(VentaResponse::new)
+                .map(aRespuesta())
                 .collect(Collectors.toList());
     }
 
@@ -571,7 +588,7 @@ public class VentaService {
     public List<VentaResponse> getUltimasVentas() {
         return ventaRepository.findTop10ByOrderByFechaVentaDesc()
                 .stream()
-                .map(VentaResponse::new)
+                .map(aRespuesta())
                 .collect(Collectors.toList());
     }
 
@@ -579,7 +596,7 @@ public class VentaService {
     public List<VentaResponse> getVentasByFechas(LocalDateTime inicio, LocalDateTime fin) {
         return ventaRepository.findByFechaVentaBetweenOrderByFechaVentaDesc(inicio, fin)
                 .stream()
-                .map(VentaResponse::new)
+                .map(aRespuesta())
                 .collect(Collectors.toList());
     }
 

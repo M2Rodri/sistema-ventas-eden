@@ -3,7 +3,7 @@
 import { formatearFechaLimite } from '@/lib/fechaLimite';
 
 import React, { useState, useEffect } from 'react';
-import { X, User, Calendar, CreditCard, Package, AlertCircle, FileText, Upload, Image as ImageIcon, Banknote, Truck } from 'lucide-react';
+import { X, User, Calendar, CreditCard, Package, AlertCircle, FileText, Upload, Image as ImageIcon, Banknote, Truck, TrendingUp, Briefcase, ChevronDown, ChevronUp } from 'lucide-react';
 import { Venta, Pago, EstadoEntrega, EstadoVenta, ModalidadEntrega } from '@/types/venta';
 import { actualizarFechaLimitePago, adjuntarComprobantePago, marcarVentaEntregada, urlArchivo } from '@/lib/api';
 import { ACCEPT_COMPROBANTE, archivoDeEventoSoltar, errorDeComprobante, imagenDelPortapapeles, TEXTO_FORMATOS_COMPROBANTE, urlEsPdf } from '@/lib/comprobanteImagen';
@@ -48,6 +48,7 @@ export default function DetalleVentaModal({
   const [entregaProcesando, setEntregaProcesando] = useState(false);
   const [guardandoFecha, setGuardandoFecha] = useState(false);
   const [errorFecha, setErrorFecha] = useState<string | null>(null);
+  const [showDesgloseRentabilidad, setShowDesgloseRentabilidad] = useState(false);
 
   // Poner o cambiar la fecha límite del pago pendiente. Los botones mandan los
   // días (el servidor calcula la fecha con su reloj); el calendario, la fecha.
@@ -428,29 +429,42 @@ export default function DetalleVentaModal({
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
                     <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Cantidad</th>
-                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Precio Unit.</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">P. Catálogo</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">P. Venta</th>
                     <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Subtotal</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {venta.detalles.map((detalle, index) => (
-                    <tr key={index}>
-                      {/* NUEVA COLUMNA: Código del producto */}
-                      <td className="px-4 py-2">
-                        <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded text-gray-700">
-                          {detalle.skuProducto}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2">
-                        <div className="text-sm font-medium text-gray-900">{detalle.nombreProducto}</div>
-                      </td>
-                      <td className="px-4 py-2 text-center text-sm text-gray-900">{detalle.cantidad}</td>
-                      <td className="px-4 py-2 text-right text-sm text-gray-900">{formatPrice(detalle.precioUnitario)}</td>
-                      <td className="px-4 py-2 text-right text-sm font-semibold text-gray-900">
-                        {formatPrice(detalle.subtotal)}
-                      </td>
-                    </tr>
-                  ))}
+                  {venta.detalles.map((detalle, index) => {
+                    const precioOriginal = detalle.precioUnitarioOriginal ?? detalle.precioUnitario;
+                    const esMayor = detalle.precioUnitario > precioOriginal;
+                    const esMenor = detalle.precioUnitario < precioOriginal;
+                    return (
+                      <tr key={index}>
+                        {/* NUEVA COLUMNA: Código del producto */}
+                        <td className="px-4 py-2">
+                          <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded text-gray-700">
+                            {detalle.skuProducto}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2">
+                          <div className="text-sm font-medium text-gray-900">{detalle.nombreProducto}</div>
+                        </td>
+                        <td className="px-4 py-2 text-center text-sm text-gray-900">{detalle.cantidad}</td>
+                        <td className="px-4 py-2 text-right text-sm text-gray-500">
+                          {formatPrice(precioOriginal)}
+                        </td>
+                        <td className={`px-4 py-2 text-right text-sm font-medium ${
+                          esMayor ? 'text-emerald-700 font-semibold' : esMenor ? 'text-amber-700 font-semibold' : 'text-gray-900'
+                        }`}>
+                          {formatPrice(detalle.precioUnitario)}
+                        </td>
+                        <td className="px-4 py-2 text-right text-sm font-semibold text-gray-900">
+                          {formatPrice(detalle.subtotal)}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -519,6 +533,105 @@ export default function DetalleVentaModal({
                 </div>
               )}
             </div>
+
+            {/* Tarjeta de Rentabilidad (Solo visible para Administradores) */}
+            {userRole === 'ADMIN' && !esAnulada && venta.ganancia != null && (
+              <div className="mt-3 bg-slate-50 border border-slate-200 rounded-lg p-3.5">
+                <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-200">
+                  <TrendingUp className="text-emerald-600" size={18} />
+                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                    Rentabilidad de la Venta
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center pt-1">
+                  <div>
+                    <span className="block text-[11px] text-slate-500 font-medium">Costo Total</span>
+                    <span className="text-sm font-semibold font-mono text-slate-700">
+                      {venta.costoTotal != null ? formatPrice(venta.costoTotal) : '—'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-[11px] text-slate-500 font-medium">Precio Venta</span>
+                    <span className="text-sm font-semibold font-mono text-slate-900">
+                      {formatPrice(venta.montoTotal)}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-[11px] text-slate-500 font-medium">Ganancia</span>
+                    <span
+                      className={`text-sm font-bold font-mono ${
+                        venta.ganancia < 0
+                          ? 'text-red-600'
+                          : hayDeuda
+                          ? 'text-red-600'
+                          : 'text-emerald-700'
+                      }`}
+                    >
+                      {formatPrice(venta.ganancia)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Botón y Desglose por producto (Solo si hay 2 o más productos distintos) */}
+                {venta.detalles && venta.detalles.length > 1 && (
+                  <div className="mt-3 pt-2 border-t border-slate-200">
+                    <button
+                      type="button"
+                      onClick={() => setShowDesgloseRentabilidad(!showDesgloseRentabilidad)}
+                      className="flex items-center justify-between w-full text-xs font-semibold text-slate-700 hover:text-slate-900 py-1 transition-colors"
+                    >
+                      <span>Ver costos y ganancia por producto</span>
+                      {showDesgloseRentabilidad ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                    </button>
+
+                    {showDesgloseRentabilidad && (
+                      <div className="mt-2 space-y-1.5 text-xs bg-white border border-slate-200 rounded p-2.5">
+                        {venta.detalles.map((detalle, idx) => {
+                          const tieneCosto = detalle.costoUnitario != null;
+                          const costoSubtotal = tieneCosto ? detalle.costoUnitario! * detalle.cantidad : null;
+                          const gananciaSubtotal = tieneCosto ? detalle.subtotal - costoSubtotal! : null;
+
+                          return (
+                            <div
+                              key={idx}
+                              className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 pb-1.5 border-b border-slate-100 last:border-0 last:pb-0"
+                            >
+                              <div className="truncate pr-2">
+                                <span className="font-medium text-slate-800">{detalle.nombreProducto}</span>
+                                <span className="text-slate-500 text-[11px] ml-1.5">({detalle.cantidad} unid.)</span>
+                              </div>
+                              <div className="flex items-center gap-3 font-mono text-[11px] self-end sm:self-auto flex-shrink-0">
+                                <span className="text-slate-500">
+                                  Costo:{' '}
+                                  <strong className="text-slate-700">
+                                    {costoSubtotal != null ? formatPrice(costoSubtotal) : '—'}
+                                  </strong>
+                                </span>
+                                <span className="text-slate-500">
+                                  Venta:{' '}
+                                  <strong className="text-slate-800">{formatPrice(detalle.subtotal)}</strong>
+                                </span>
+                                <span
+                                  className={`font-semibold ${
+                                    gananciaSubtotal != null && gananciaSubtotal < 0
+                                      ? 'text-red-600'
+                                      : hayDeuda
+                                      ? 'text-red-600'
+                                      : 'text-emerald-700'
+                                  }`}
+                                >
+                                  Ganancia: {gananciaSubtotal != null ? formatPrice(gananciaSubtotal) : '—'}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Pagos registrados */}

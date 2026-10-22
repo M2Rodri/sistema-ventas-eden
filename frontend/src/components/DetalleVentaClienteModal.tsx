@@ -105,7 +105,10 @@ export default function DetalleVentaClienteModal({
                       Cantidad
                     </th>
                     <th className="px-4 py-2 text-right text-xs font-medium text-gray-700 uppercase">
-                      Precio Unitario
+                      P. Catálogo
+                    </th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-700 uppercase">
+                      P. Venta
                     </th>
                     <th className="px-4 py-2 text-right text-xs font-medium text-gray-700 uppercase">
                       Subtotal
@@ -113,24 +116,34 @@ export default function DetalleVentaClienteModal({
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {venta.detalles.map((detalle: any, index: number) => (
-                    <tr key={detalle.id || index} className="hover:bg-gray-50">
-                      <td className="px-4 py-2">
-                        <p className="font-medium text-gray-900">{detalle.nombreProducto}</p>
-                      </td>
-                      <td className="px-4 py-2 text-center">
-                        <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-semibold">
-                          {detalle.cantidad}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2 text-right font-medium text-gray-900">
-                        Bs. {detalle.precioUnitario.toFixed(2)}
-                      </td>
-                      <td className="px-4 py-2 text-right font-semibold text-gray-900">
-                        Bs. {detalle.subtotal.toFixed(2)}
-                      </td>
-                    </tr>
-                  ))}
+                  {venta.detalles.map((detalle: any, index: number) => {
+                    const precioOriginal = detalle.precioUnitarioOriginal ?? detalle.precioUnitario;
+                    const esMayor = detalle.precioUnitario > precioOriginal;
+                    const esMenor = detalle.precioUnitario < precioOriginal;
+                    return (
+                      <tr key={detalle.id || index} className="hover:bg-gray-50">
+                        <td className="px-4 py-2">
+                          <p className="font-medium text-gray-900">{detalle.nombreProducto}</p>
+                        </td>
+                        <td className="px-4 py-2 text-center">
+                          <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-semibold">
+                            {detalle.cantidad}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2 text-right text-sm text-gray-500">
+                          Bs. {precioOriginal.toFixed(2)}
+                        </td>
+                        <td className={`px-4 py-2 text-right text-sm font-medium ${
+                          esMayor ? 'text-emerald-700 font-semibold' : esMenor ? 'text-amber-700 font-semibold' : 'text-gray-900'
+                        }`}>
+                          Bs. {detalle.precioUnitario.toFixed(2)}
+                        </td>
+                        <td className="px-4 py-2 text-right font-semibold text-gray-900">
+                          Bs. {detalle.subtotal.toFixed(2)}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

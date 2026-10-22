@@ -67,7 +67,21 @@ public class VentaResponse {
     /** Al menos uno de los pagos de la venta es QR/transferencia sin foto de comprobante. */
     private boolean tienePagosSinRespaldo;
 
+    /** Costo total de lo vendido en la venta (solo disponible para ADMIN); null si no cuenta o empleado. */
+    private BigDecimal costoTotal;
+    /** Ganancia total estimada de la venta (montoTotal - costoTotal) (solo ADMIN); null si no cuenta o empleado. */
+    private BigDecimal ganancia;
+
+    /**
+     * Respuesta sin costos ni ganancia: es lo que ve un Empleado. Es la forma por defecto a propósito:
+     * quien necesite los costos (solo el Admin) tiene que pedirlos con el otro constructor.
+     */
     public VentaResponse(Venta venta) {
+        this(venta, false);
+    }
+
+    /** @param incluirCostos true solo para el Admin: costoTotal, ganancia y el costo unitario de cada línea. */
+    public VentaResponse(Venta venta, boolean incluirCostos) {
         this.id = venta.getId();
 
         if (venta.getCliente() != null) {
@@ -106,7 +120,7 @@ public class VentaResponse {
         this.nombreUsuario = venta.getUsuario() != null ? venta.getUsuario().getNombreCompleto() : null;
 
         this.detalles = venta.getDetalles().stream()
-                .map(DetalleVentaDTO::new)
+                .map(detalle -> new DetalleVentaDTO(detalle, incluirCostos))
                 .collect(Collectors.toList());
         this.pagos = venta.getPagos().stream()
                 .map(PagoDTO::new)
@@ -115,6 +129,23 @@ public class VentaResponse {
 
         this.metodoPago = derivarMetodoPago(venta);
         this.fechaActualizacion = venta.getFechaActualizacion();
+
+        // Rentabilidad: solo para el Admin, y si la venta tiene detalles y no está cancelada
+        if (incluirCostos && venta.getEstado() != EstadoVenta.CANCELADA && venta.getDetalles() != null && !venta.getDetalles().isEmpty()) {
+            boolean tieneCostosCompletos = true;
+            BigDecimal costoAcumulado = BigDecimal.ZERO;
+            for (com.mitienda.ecommerce.models.DetalleVenta d : venta.getDetalles()) {
+                if (d.getCostoUnitario() == null) {
+                    tieneCostosCompletos = false;
+                    break;
+                }
+                costoAcumulado = costoAcumulado.add(d.getCostoUnitario().multiply(BigDecimal.valueOf(d.getCantidad())));
+            }
+            if (tieneCostosCompletos) {
+                this.costoTotal = costoAcumulado;
+                this.ganancia = venta.getMontoTotal().subtract(costoAcumulado);
+            }
+        }
     }
 
     /** Resume en un texto los métodos usados en los pagos de la venta. */

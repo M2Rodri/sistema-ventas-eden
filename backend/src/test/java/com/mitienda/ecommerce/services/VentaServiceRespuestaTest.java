@@ -154,4 +154,27 @@ class VentaServiceRespuestaTest {
         assertEquals(40L, respuesta.getId());
         assertEquals(0, new BigDecimal("100.00").compareTo(respuesta.getMontoTotal()));
     }
+
+    @Test
+    void unaVentaConPrecioMayorAlDeCatalogo_seRegistraConPrecioPactadoYSinCambiarCatalogo() {
+        Producto producto = productoRepository.findById(7L).get();
+        producto.setPrecioVenta(new BigDecimal("80.00"));
+
+        VentaRequest pedido = pedido(MetodoPago.EFECTIVO);
+        pedido.getItems().get(0).setPrecioUnitarioConDescuento(new BigDecimal("90.00"));
+
+        VentaResponse respuesta = servicio.createVentaDirecta(pedido);
+
+        // Monto total calculado con el precio pactado (Bs. 90)
+        assertEquals(0, new BigDecimal("90.00").compareTo(respuesta.getMontoTotal()));
+
+        // Detalle de la venta guarda precio pactado (Bs. 90), precio de catálogo original (Bs. 80) y subtotal
+        assertEquals(1, respuesta.getDetalles().size());
+        assertEquals(0, new BigDecimal("90.00").compareTo(respuesta.getDetalles().get(0).getPrecioUnitario()));
+        assertEquals(0, new BigDecimal("80.00").compareTo(respuesta.getDetalles().get(0).getPrecioUnitarioOriginal()));
+        assertEquals(0, new BigDecimal("90.00").compareTo(respuesta.getDetalles().get(0).getSubtotal()));
+
+        // El catálogo del producto sigue intacto en Bs. 80
+        assertEquals(0, new BigDecimal("80.00").compareTo(producto.getPrecioVenta()));
+    }
 }

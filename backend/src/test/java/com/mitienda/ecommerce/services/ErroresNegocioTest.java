@@ -222,10 +222,10 @@ class ErroresNegocioTest {
     }
 
     @Test
-    void precioMayorAlDeCatalogo_es422() {
+    void precioUnitarioCeroONegativo_es400() {
         productoActivo();
-        esperar(HttpStatus.UNPROCESSABLE_ENTITY, "PRECIO_EXCEDE_CATALOGO",
-                () -> ventas.createVentaDirecta(ventaDe(7L, 1, "500.01")));
+        esperar(HttpStatus.BAD_REQUEST, "PRECIO_INVALIDO",
+                () -> ventas.createVentaDirecta(ventaDe(7L, 1, "0.00")));
     }
 
     @Test

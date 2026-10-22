@@ -382,81 +382,13 @@ class _NuevaVentaScreenState extends State<NuevaVentaScreen> {
 
       if (mounted) Navigator.of(context).pop(true);
     } on ApiException catch (error) {
-      final excedido = error.codigo == 'PRECIO_EXCEDE_CATALOGO'
-          ? _carrito.where((i) => i.precioFinal > i.precioOriginal).firstOrNull
-          : null;
-      setState(() {
-        _errorEnvio = excedido == null ? error.mensaje : null;
-        _enviando = false;
-      });
-      if (excedido != null) await _avisarPrecioExcedido(excedido);
-    } catch (_) {
-      setState(() {
-        _errorEnvio = 'No se pudo registrar la venta.';
-        _enviando = false;
-      });
-    }
-  }
-
-  /// El servidor rechazó un precio por encima del de catálogo. El ADMIN puede
-  /// subir el precio de catálogo y seguir con la venta; el EMPLEADO solo recibe
-  /// el aviso. El carrito no se toca en ningún caso.
-  Future<void> _avisarPrecioExcedido(ItemCarrito item) async {
-    final actualizar = await showDialog<bool>(
-      context: context,
-      builder: (contexto) => AlertDialog(
-        title: Text(
-          'El precio supera el de catálogo (${item.precioOriginal.toStringAsFixed(2)} Bs)',
-        ),
-        content: Text(
-          '${item.nombre}: precio escrito Bs. ${item.precioFinal.toStringAsFixed(2)}.'
-          '${widget.esAdmin ? '' : '\n\nSolo el administrador puede cambiar el precio de venta.'}',
-        ),
-        actions: widget.esAdmin
-            ? <Widget>[
-                TextButton(
-                  onPressed: () => Navigator.of(contexto).pop(false),
-                  child: const Text('Cancelar'),
-                ),
-                FilledButton(
-                  onPressed: () => Navigator.of(contexto).pop(true),
-                  child: const Text('Actualizar precio'),
-                ),
-              ]
-            : <Widget>[
-                FilledButton(
-                  onPressed: () => Navigator.of(contexto).pop(false),
-                  child: const Text('Entendido'),
-                ),
-              ],
-      ),
-    );
-    if (actualizar != true || !mounted) return;
-
-    setState(() => _enviando = true);
-    try {
-      await _catalogoRepository.actualizarPrecioVenta(
-        item.idProducto,
-        item.precioFinal,
-        widget.token,
-      );
-      if (!mounted) return;
-      setState(() {
-        final i = _carrito.indexWhere((x) => x.idProducto == item.idProducto);
-        if (i != -1)
-          _carrito[i] = _carrito[i].copyWith(precioOriginal: item.precioFinal);
-        _enviando = false;
-      });
-    } on ApiException catch (error) {
-      if (!mounted) return;
       setState(() {
         _errorEnvio = error.mensaje;
         _enviando = false;
       });
     } catch (_) {
-      if (!mounted) return;
       setState(() {
-        _errorEnvio = 'No se pudo actualizar el precio del producto.';
+        _errorEnvio = 'No se pudo registrar la venta.';
         _enviando = false;
       });
     }
@@ -1610,7 +1542,7 @@ class _FilaCarrito extends StatelessWidget {
   Widget build(BuildContext context) {
     final distinto = item.precioFinal != item.precioOriginal;
     final colorDiferencia = item.precioFinal > item.precioOriginal
-        ? AppColors.error
+        ? _azulVerdoso
         : AppColors.acAmbar;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
