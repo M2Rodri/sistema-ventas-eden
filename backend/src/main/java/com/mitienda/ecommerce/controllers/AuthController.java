@@ -56,4 +56,27 @@ public class AuthController {
             throw new CredencialesInvalidasException();
         }
     }
+
+    /**
+     * POST /api/v1/auth/renovar
+     * Renueva el token mientras la sesión siga viva y dentro de su tope. Se manda el token
+     * actual en la cabecera Authorization; sin token válido responde 401.
+     */
+    @PostMapping("/renovar")
+    public ResponseEntity<AuthResponse> renovar(
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
+        return ResponseEntity.ok(authService.renovar(authorization));
+    }
+
+    /**
+     * POST /api/v1/auth/cerrar-sesiones
+     * Cierra todas las sesiones del usuario del token (en todos sus dispositivos, incluida esta).
+     * Para cuando se pierde o le roban el celular. Cualquier usuario puede cortar las suyas.
+     */
+    @PostMapping("/cerrar-sesiones")
+    public ResponseEntity<Void> cerrarSesiones(
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
+        authService.cerrarSesiones(authorization);
+        return ResponseEntity.noContent().build();
+    }
 }

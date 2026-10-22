@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getAllUsers, deleteUser, toggleUserStatus, User } from '@/lib/api';
-import { Search, UserPlus, Edit, Trash2, Power, AlertCircle, X } from 'lucide-react';
+import { getAllUsers, deleteUser, toggleUserStatus, cerrarSesionesDeUsuario, User } from '@/lib/api';
+import { Search, UserPlus, Edit, Trash2, Power, AlertCircle, X, LogOut } from 'lucide-react';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import UserModal from '@/components/UserModal';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
@@ -117,6 +117,19 @@ export default function UsuariosPage() {
       await toggleUserStatus(user.id);
       showMessage('success', `Usuario ${user.activo ? 'desactivado' : 'activado'} correctamente`);
       loadUsers();
+    } catch (error: any) {
+      showMessage('error', mensajeError(error));
+    }
+  };
+
+  const handleCerrarSesiones = async (user: User) => {
+    const aviso = `Se cerrarán todas las sesiones abiertas de ${user.usuario} en cualquier dispositivo `
+      + '(celular y computadora). Tendrá que volver a iniciar sesión. ¿Continuar?';
+    if (!window.confirm(aviso)) return;
+
+    try {
+      await cerrarSesionesDeUsuario(user.id);
+      showMessage('success', `Se cerraron las sesiones de ${user.usuario}`);
     } catch (error: any) {
       showMessage('error', mensajeError(error));
     }
@@ -288,6 +301,13 @@ export default function UsuariosPage() {
                         title="Editar"
                       >
                         <Edit size={18} />
+                      </button>
+                      <button
+                        onClick={() => handleCerrarSesiones(user)}
+                        className="p-1 text-amber-600 hover:bg-amber-50 rounded transition-colors"
+                        title="Cerrar sesiones (por ejemplo, si le robaron el celular)"
+                      >
+                        <LogOut size={16} />
                       </button>
                       <button
                         onClick={() => handleDeleteClick(user)}

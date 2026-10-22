@@ -25,6 +25,8 @@ Todas las rutas de la API van con el prefijo `/api/v1`. Una ruta con `/api/` sin
 | Método | Ruta anterior | Ruta nueva | Estado |
 |---|---|---|---|
 | POST | `/api/auth/login` | `/api/v1/auth/login` | versionada |
+| POST | — | `/api/v1/auth/renovar` | nueva |
+| POST | — | `/api/v1/auth/cerrar-sesiones` | nueva |
 | GET | `/api/auth/test` | — | eliminada |
 
 ## Categoria
@@ -274,6 +276,7 @@ Todas las rutas de la API van con el prefijo `/api/v1`. Una ruta con `/api/` sin
 | PUT | `/api/usuarios/{id}` | `/api/v1/usuarios/{id}` | versionada |
 | DELETE | `/api/usuarios/{id}` | `/api/v1/usuarios/{id}` | versionada |
 | PATCH | `/api/usuarios/{id}/toggle-status` | `/api/v1/usuarios/{id}/toggle-status` | versionada |
+| POST | — | `/api/v1/usuarios/{id}/cerrar-sesiones` | nueva |
 | GET | `/api/usuarios/activos` | `/api/v1/usuarios/activos` | versionada |
 | GET | `/api/usuarios/rol/{role}` | `/api/v1/usuarios/rol/{role}` | versionada |
 | GET | `/api/usuarios/estadisticas` | `/api/v1/usuarios/estadisticas` | versionada |

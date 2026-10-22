@@ -42,14 +42,12 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         Usuario user = usuarioRepository.findByUsuario(normalizado)
                 .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + usuario));
 
-        return new org.springframework.security.core.userdetails.User(
+        return new DetalleUsuario(
                 user.getUsuario(),
                 user.getPassword(),
                 user.getActivo(),
-                true,
-                true,
-                true,
-                getAuthorities(user)
+                getAuthorities(user),
+                user.getSesionesValidasDesde()
         );
     }
 

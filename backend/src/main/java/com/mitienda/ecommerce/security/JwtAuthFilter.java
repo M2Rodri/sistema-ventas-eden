@@ -5,7 +5,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -13,7 +12,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Collections;
 
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
@@ -58,13 +56,16 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if (usuario != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = userDetailsService.loadUserByUsername(usuario);
 
-            if (jwtUtil.validateToken(jwt, userDetails)) {
-                // Extraer el rol del token (viene como "ADMIN", "CLIENTE", "EMPLEADO")
-                String roleFromToken = jwtUtil.extractRole(jwt);
-                
-                // Agregar el prefijo ROLE_ para Spring Security
-                String authority = "ROLE_" + roleFromToken;
-                
+            // Además de que el token sea auténtico y no haya vencido: la cuenta tiene que seguir
+            // activa (si dan de baja a alguien, su token deja de servir de inmediato) y su sesión
+            // no puede haber sido cortada ("cerrar sesiones" o cambio de contraseña).
+            if (userDetails.isEnabled()
+                    && jwtUtil.validateToken(jwt, userDetails)
+                    && !sesionCortada(jwt, userDetails)) {
+                // El rol se toma de la base (los userDetails que se acaban de cargar), no del
+                // token: si a alguien le cambian el rol, el cambio rige desde la próxima petición
+                // y no recién cuando venza el token que ya tenía.
+
                 // Aca habia un bloque de println que imprimia usuario, rol y ruta en
                 // CADA peticion autenticada. Se quito: dejaba un rastro de quien
                 // uso el sistema y para que en la consola del servidor, que no es
@@ -72,9 +73,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 // auditorias, con usuario, IP y fecha.
 
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails, 
-                        null, 
-                        Collections.singletonList(new SimpleGrantedAuthority(authority))
+                        userDetails,
+                        null,
+                        userDetails.getAuthorities()
                 );
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
@@ -82,5 +83,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    /** true si el dueño de la cuenta cortó las sesiones después de que empezó la de este token. */
+    private boolean sesionCortada(String jwt, UserDetails userDetails) {
+        return userDetails instanceof DetalleUsuario detalle
+                && detalle.sesionCortada(jwtUtil.extractInicioSesion(jwt));
     }
 }

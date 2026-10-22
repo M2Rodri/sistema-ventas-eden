@@ -69,7 +69,14 @@ spring.jpa.properties.hibernate.default_batch_fetch_size=50
 # para no depender de lo que diga este archivo.
 # Este archivo esta en .gitignore, asi que no viaja al repositorio.
 jwt.secret=${JWT_SECRET}
-jwt.expiration=43200000
+# Vida de cada token: 4 horas (14400000 ms). Mientras se usa el sistema, la web lo renueva solo
+# (POST /api/v1/auth/renovar); si no hay actividad, vence a las 4 horas como máximo.
+jwt.expiration=14400000
+# Tope de una sesión desde el inicio de sesión, aunque se renueve: 8 horas (28800000 ms).
+jwt.sesion-maxima=28800000
+# Tope para la app móvil: 12 horas con candado (huella o bloqueo de pantalla), 4 horas sin ninguno.
+jwt.sesion-maxima-movil=43200000
+jwt.sesion-maxima-movil-sin-candado=14400000
 
 # ==================== SUBIDA DE ARCHIVOS ====================
 spring.servlet.multipart.enabled=true

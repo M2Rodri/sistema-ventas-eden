@@ -77,6 +77,14 @@ public class Usuario {
     @Column(nullable = false)
     private Boolean activo = true; // Usuario activo por defecto
 
+    /**
+     * Corte de sesiones: instante (milisegundos desde 1970, UTC) desde el que valen las sesiones
+     * de este usuario. Un token cuya sesión empezó antes se rechaza y no se puede renovar.
+     * Se actualiza al cerrar todas las sesiones y al cambiar la contraseña. Vacío = sin corte.
+     */
+    @Column(name = "sesiones_validas_desde")
+    private Long sesionesValidasDesde;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime fechaCreacion;

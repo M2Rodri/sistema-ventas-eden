@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { BACKEND_URL_INTERNAL } from '@/lib/backend-url';
+import { aplicarCookiesDeSesion } from '@/lib/cookies-sesion';
+import { DURACION_SESION_RESPALDO_SEGUNDOS } from '@/lib/sesion-config';
+import { segundosRestantes } from '@/lib/token-servidor';
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,52 +41,13 @@ export async function POST(request: NextRequest) {
       ...restoUsuario,
     });
 
-    const isProd = process.env.NODE_ENV === 'production';
-    const maxAge = 43200; // 12 horas en segundos
-
-    // Cookie segura con el token JWT (HttpOnly)
-    response.cookies.set('token', token, {
-      httpOnly: true,
-      secure: isProd,
-      sameSite: 'lax',
-      path: '/',
-      maxAge,
-    });
-
-    // Cookie con datos legibles por el cliente (sin secretos ni token)
-    response.cookies.set(
-      'user_info',
-      JSON.stringify({
-        ...restoUsuario,
-        role: rolLimpio,
-      }),
-      {
-        httpOnly: false,
-        secure: isProd,
-        sameSite: 'lax',
-        path: '/',
-        maxAge,
-      }
-    );
-
-    // Cookie con el rol para el middleware de Next.js
-    response.cookies.set('role', rolLimpio, {
-      httpOnly: false,
-      secure: isProd,
-      sameSite: 'lax',
-      path: '/',
-      maxAge,
-    });
+    // Las cookies duran lo mismo que el token: se lee del propio token (lo fija el backend).
+    const maxAge = segundosRestantes(token) ?? DURACION_SESION_RESPALDO_SEGUNDOS;
 
     // Token CSRF generado para mitigar ataques CSRF en peticiones mutantes
     const csrfToken = crypto.randomUUID();
-    response.cookies.set('csrf-token', csrfToken, {
-      httpOnly: false,
-      secure: isProd,
-      sameSite: 'lax',
-      path: '/',
-      maxAge,
-    });
+
+    aplicarCookiesDeSesion(response, token, { ...restoUsuario, role: rolLimpio }, maxAge, csrfToken);
 
     return response;
   } catch (error) {

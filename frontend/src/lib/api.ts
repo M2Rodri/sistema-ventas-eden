@@ -294,6 +294,19 @@ export const toggleUserStatus = async (id: number): Promise<User> => {
   return response.json();
 };
 
+// Cerrar todas las sesiones abiertas de un usuario, en cualquier dispositivo (solo ADMIN).
+// Para cuando a alguien le roban o pierde el celular: sus tokens dejan de servir de inmediato.
+export const cerrarSesionesDeUsuario = async (id: number): Promise<void> => {
+  const response = await fetch(`${API_URL}/usuarios/${id}/cerrar-sesiones`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    throw await errorDeRespuesta(response, 'Error al cerrar las sesiones del usuario');
+  }
+};
+
 // Filtrar por rol
 export const getUsersByRole = async (role: string): Promise<User[]> => {
   const response = await fetch(`${API_URL}/usuarios/rol/${role}`, {

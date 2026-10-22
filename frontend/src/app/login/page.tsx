@@ -11,7 +11,7 @@ export default function LoginPage() {
     password: "",
   });
   const [error, setError] = useState("");
-  const [sesionExpirada, setSesionExpirada] = useState(false);
+  const [avisoSalida, setAvisoSalida] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Estados para el modal de recuperar contraseña
@@ -21,14 +21,18 @@ export default function LoginPage() {
   // Asegurar que el componente está montado en el cliente
   useEffect(() => {
     setMounted(true);
-    // El motivo lo deja SesionExpiradaWatcher cuando el backend rechaza el
-    // token por vencido. Va en sessionStorage y no en la URL porque useAuth
-    // también redirige acá y pisaría cualquier parámetro.
+    // El motivo lo deja SesionExpiradaWatcher (el backend rechazó el token por
+    // vencido) o InactividadWatcher (30 minutos sin tocar la pantalla). Va en
+    // sessionStorage y no en la URL porque useAuth también redirige acá y
+    // pisaría cualquier parámetro.
     if (typeof window !== "undefined") {
-      if (sessionStorage.getItem("motivoSalida") === "sesion-expirada") {
-        setSesionExpirada(true);
-        sessionStorage.removeItem("motivoSalida");
+      const motivo = sessionStorage.getItem("motivoSalida");
+      if (motivo === "sesion-expirada") {
+        setAvisoSalida("Tu sesión venció. Iniciá sesión de nuevo.");
+      } else if (motivo === "inactividad") {
+        setAvisoSalida("Cerramos tu sesión por inactividad. Iniciá sesión de nuevo.");
       }
+      if (motivo) sessionStorage.removeItem("motivoSalida");
     }
   }, []);
 
@@ -69,11 +73,9 @@ export default function LoginPage() {
         </div>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {sesionExpirada && !error && (
+          {avisoSalida && !error && (
             <div className="rounded-md bg-amber-50 border border-amber-200 p-4">
-              <p className="text-sm text-amber-800">
-                Tu sesión venció. Iniciá sesión de nuevo.
-              </p>
+              <p className="text-sm text-amber-800">{avisoSalida}</p>
             </div>
           )}
 

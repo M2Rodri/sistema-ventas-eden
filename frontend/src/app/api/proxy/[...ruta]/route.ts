@@ -1,5 +1,58 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { BACKEND_URL_INTERNAL } from '@/lib/backend-url';
+import { aplicarCookiesDeSesion } from '@/lib/cookies-sesion';
+import { DURACION_SESION_RESPALDO_SEGUNDOS, UMBRAL_RENOVACION_SEGUNDOS } from '@/lib/sesion-config';
+import { segundosRestantes } from '@/lib/token-servidor';
+
+// Renovaciones que ya están en marcha, por token. Al abrir una pantalla salen varias
+// peticiones juntas: con esto solo una de ellas pide la renovación y las demás esperan esa misma.
+const renovacionesEnCurso = new Map<string, Promise<Record<string, any> | null>>();
+
+function pedirRenovacion(token: string): Promise<Record<string, any> | null> {
+  const enCurso = renovacionesEnCurso.get(token);
+  if (enCurso) return enCurso;
+
+  const promesa = (async () => {
+    try {
+      const res = await fetch(`${BACKEND_URL_INTERNAL}/api/v1/auth/renovar`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(5000),
+      });
+      return res.ok ? await res.json() : null;
+    } catch {
+      return null; // la renovación es una comodidad: si falla, la sesión sigue hasta que venza sola
+    }
+  })();
+
+  renovacionesEnCurso.set(token, promesa);
+  setTimeout(() => renovacionesEnCurso.delete(token), 10_000);
+  return promesa;
+}
+
+/**
+ * Si al token le queda poco, pide uno nuevo al backend y deja las cookies al día en la respuesta.
+ * El backend decide: rechaza si el usuario está dado de baja o si la sesión llegó a su tope,
+ * y el token nuevo trae el rol vigente en la base. Cuando rechaza, no se toca nada.
+ */
+async function renovarSesionSiHaceFalta(
+  request: NextRequest,
+  respuesta: NextResponse,
+  token: string
+): Promise<void> {
+  const restantes = segundosRestantes(token);
+  if (restantes === null || restantes > UMBRAL_RENOVACION_SEGUNDOS) return;
+
+  const nueva = await pedirRenovacion(token);
+  if (!nueva?.token) return;
+
+  const { token: nuevoToken, role, ...restoUsuario } = nueva;
+  const rolLimpio = String(role || '').replace('ROLE_', '').toUpperCase();
+  const maxAge = segundosRestantes(nuevoToken) ?? DURACION_SESION_RESPALDO_SEGUNDOS;
+  const csrfToken = request.cookies.get('csrf-token')?.value ?? crypto.randomUUID();
+
+  aplicarCookiesDeSesion(respuesta, nuevoToken, { ...restoUsuario, role: rolLimpio }, maxAge, csrfToken);
+}
 
 async function manejarProxy(
   request: NextRequest,
@@ -76,6 +129,9 @@ async function manejarProxy(
       respuesta.cookies.delete('token');
       respuesta.cookies.delete('user_info');
       respuesta.cookies.delete('role');
+    } else if (token) {
+      // Mientras se usa el sistema, la sesión se alarga sola (con el tope que fija el backend).
+      await renovarSesionSiHaceFalta(request, respuesta, token);
     }
 
     return respuesta;

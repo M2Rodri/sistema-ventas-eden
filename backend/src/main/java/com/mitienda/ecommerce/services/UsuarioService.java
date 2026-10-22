@@ -188,6 +188,9 @@ public class UsuarioService {
         // Solo actualizar password si se proporcionó uno nuevo
         if (request.getPassword() != null && !request.getPassword().trim().isEmpty()) {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
+            // Cambiar la contraseña corta las sesiones que ya estaban abiertas: si la clave se
+            // cambió porque alguien más la conocía, su token no puede seguir sirviendo.
+            user.setSesionesValidasDesde(System.currentTimeMillis());
         }
 
         boolean cambioPassword = request.getPassword() != null
@@ -237,6 +240,22 @@ public class UsuarioService {
                 "usuarios", updatedUser.getId(), updatedUser.getUsuario());
 
         return new UsuarioResponse(updatedUser);
+    }
+
+    /**
+     * Cerrar todas las sesiones abiertas de un usuario: desde ahora sus tokens anteriores se
+     * rechazan y no se pueden renovar. Tendrá que iniciar sesión de nuevo en cada dispositivo.
+     */
+    @Transactional
+    public void cerrarSesiones(Long id) {
+        Usuario user = usuarioRepository.findById(id)
+                .orElseThrow(() -> new RecursoNoEncontradoException("USUARIO_NO_ENCONTRADO", "Usuario no encontrado con ID: " + id));
+
+        user.setSesionesValidasDesde(System.currentTimeMillis());
+        usuarioRepository.save(user);
+
+        registroAuditoria.registrar("CERRAR_SESIONES", "usuarios", user.getId(),
+                "Cierre de todas las sesiones de " + user.getUsuario());
     }
 
     /**

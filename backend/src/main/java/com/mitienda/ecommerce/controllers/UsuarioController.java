@@ -98,6 +98,17 @@ public class UsuarioController {
     }
 
     /**
+     * POST /api/v1/usuarios/{id}/cerrar-sesiones
+     * Cierra todas las sesiones abiertas de un usuario, en cualquier dispositivo (ADMIN).
+     * Para cuando a alguien del personal le roban o pierde el celular.
+     */
+    @PostMapping("/{id}/cerrar-sesiones")
+    public ResponseEntity<Void> cerrarSesiones(@PathVariable Long id) {
+        usuarioService.cerrarSesiones(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
      * GET /api/v1/usuarios/activos
      * Listar solo usuarios activos
      */

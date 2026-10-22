@@ -6,6 +6,8 @@ import com.mitienda.ecommerce.models.Usuario;
 import com.mitienda.ecommerce.repositories.UsuarioRepository;
 import com.mitienda.ecommerce.security.JwtUtil;
 import com.mitienda.ecommerce.security.LimiteIntentosLogin;
+import io.jsonwebtoken.JwtException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.DisabledException;
@@ -112,7 +114,7 @@ public class AuthService {
         // El rol viaja en el token como texto ("ADMIN", "EMPLEADO"), igual que
         // antes de normalizarlo en tabla. El contrato del token no cambia.
         String nombreRol = user.getRoleName();
-        String token = jwtUtil.generateToken(user.getUsuario(), nombreRol);
+        String token = jwtUtil.generateToken(user.getUsuario(), nombreRol, request.getPerfilSesion());
 
         // registrarPara y no registrar: en este punto la autenticacion todavia
         // no quedo guardada en el SecurityContext, asi que el usuario hay que
@@ -128,5 +130,84 @@ public class AuthService {
                 user.getUsuario(),
                 nombreRol
         );
+    }
+
+    /**
+     * Renueva el token de una sesión que sigue viva.
+     *
+     * La ruta /api/v1/auth/** es pública, así que acá no se confía en el filtro: el propio
+     * token se verifica (firma y vencimiento). Se vuelve a leer al usuario en la base: si lo
+     * dieron de baja se rechaza, y el rol del token nuevo es el vigente hoy, no el del viejo.
+     * Cualquier falla responde 401 (AuthenticationException) y obliga a iniciar sesión de nuevo.
+     */
+    public AuthResponse renovar(String authorization) {
+        SesionVerificada sesion = verificarSesion(authorization);
+        Usuario user = sesion.usuario();
+
+        String nombreRol = user.getRoleName();
+        String nuevoToken;
+        try {
+            nuevoToken = jwtUtil.renovarToken(sesion.token(), nombreRol);
+        } catch (JwtException e) {
+            throw new BadCredentialsException("Token inválido o vencido");
+        }
+
+        return new AuthResponse(
+                nuevoToken,
+                user.getId(),
+                user.getNombre(),
+                user.getApellido(),
+                user.getUsuario(),
+                nombreRol
+        );
+    }
+
+    /**
+     * Cierra todas las sesiones abiertas del usuario del token, en cualquier dispositivo, incluida
+     * la actual: desde este momento los tokens anteriores se rechazan y no se pueden renovar.
+     * Sirve cuando se pierde o le roban el celular a alguien.
+     */
+    @Transactional
+    public void cerrarSesiones(String authorization) {
+        Usuario user = verificarSesion(authorization).usuario();
+        user.setSesionesValidasDesde(System.currentTimeMillis());
+        usuarioRepository.save(user);
+        registroAuditoria.registrarPara(user.getId(), "CERRAR_SESIONES", "usuarios", user.getId(),
+                "Cierre de todas las sesiones de " + user.getUsuario());
+    }
+
+    /** Una sesión que pasó todas las verificaciones: el token auténtico y el usuario que lo tiene. */
+    private record SesionVerificada(String token, Usuario usuario) {}
+
+    /**
+     * Verifica el token de la cabecera Authorization: que exista y sea auténtico y vigente, que su
+     * usuario siga existiendo y activo, y que la sesión no haya sido cortada. Cualquier falla lanza
+     * una AuthenticationException, que se responde con 401.
+     */
+    private SesionVerificada verificarSesion(String authorization) {
+        if (authorization == null || !authorization.startsWith("Bearer ")) {
+            throw new BadCredentialsException("Falta el token");
+        }
+        String token = authorization.substring(7);
+
+        String usuario;
+        long inicioSesion;
+        try {
+            usuario = jwtUtil.extractUsuario(token);
+            inicioSesion = jwtUtil.extractInicioSesion(token);
+        } catch (JwtException | IllegalArgumentException e) {
+            throw new BadCredentialsException("Token inválido o vencido");
+        }
+
+        Usuario user = usuarioRepository.findByUsuario(usuario)
+                .orElseThrow(() -> new BadCredentialsException("Usuario no encontrado"));
+        if (Boolean.FALSE.equals(user.getActivo())) {
+            throw new DisabledException("Usuario inactivo");
+        }
+        Long corte = user.getSesionesValidasDesde();
+        if (corte != null && inicioSesion < corte) {
+            throw new BadCredentialsException("La sesión fue cerrada");
+        }
+        return new SesionVerificada(token, user);
     }
 }

@@ -6,6 +6,7 @@ import { precargarDatos } from '@/lib/api';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import SesionExpiradaWatcher from '@/components/SesionExpiradaWatcher';
+import InactividadWatcher from '@/components/InactividadWatcher';
 import TablasResponsivas from '@/components/TablasResponsivas';
 
 export default function DashboardLayout({
@@ -33,6 +34,7 @@ export default function DashboardLayout({
   return (
     <div className="flex h-dvh md:h-screen overflow-hidden bg-primary-50">
       <SesionExpiradaWatcher />
+      <InactividadWatcher />
       <TablasResponsivas />
       <Sidebar isAdmin={isAdmin()} />
 

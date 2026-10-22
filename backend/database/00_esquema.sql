@@ -6,8 +6,8 @@
 --  QUE ES
 --  ------
 --  Volcado del esquema (solo estructura, sin datos) de la base de produccion
---  del 2026-10-07, ya con los scripts 01 a 35 aplicados. Sirve para crear la
---  base desde cero en otra maquina; los scripts 01 a 35 son los cambios que
+--  del 2026-10-07, ya con los scripts 01 a 36 aplicados. Sirve para crear la
+--  base desde cero en otra maquina; los scripts 01 a 36 son los cambios que
 --  llevaron a este estado y NO se corren encima de este archivo.
 --
 --  Generado con:
@@ -935,7 +935,8 @@ CREATE TABLE public.usuarios (
     nombre character varying(50) NOT NULL,
     password character varying(255) NOT NULL,
     telefono character varying(15),
-    id_rol bigint NOT NULL
+    id_rol bigint NOT NULL,
+    sesiones_validas_desde bigint
 );
 
 
@@ -986,6 +987,13 @@ CREATE TABLE public.ventas (
 --
 
 COMMENT ON COLUMN public.ventas.fecha_limite_pago IS 'Fecha hasta la que el cliente prometió pagar el saldo pendiente. Opcional.';
+
+
+--
+-- Name: COLUMN usuarios.sesiones_validas_desde; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.usuarios.sesiones_validas_desde IS 'Instante (milisegundos desde 1970, UTC) desde el que valen las sesiones del usuario. Los tokens de sesiones anteriores se rechazan. NULL = sin corte.';
 
 
 --
