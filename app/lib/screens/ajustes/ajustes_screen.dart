@@ -78,7 +78,7 @@ class _AjustesScreenState extends State<AjustesScreen> {
 
   Future<void> _cargar() async {
     await _biometria.cargar();
-    final disponible = await _biometria.disponible();
+    final disponible = await _biometria.candadoDisponible();
     if (!mounted) return;
     setState(() {
       _disponible = disponible;
@@ -86,13 +86,13 @@ class _AjustesScreenState extends State<AjustesScreen> {
     });
   }
 
-  /// Activar y desactivar piden la huella: así, quien tenga el celular
-  /// desbloqueado no puede apagar el candado sin ser el dueño.
+  /// Activar y desactivar piden la huella (o el bloqueo del celular): así, quien
+  /// tenga el celular desbloqueado no puede apagar el candado sin ser el dueño.
   Future<void> _cambiar(bool activar) async {
     final ok = await _biometria.autenticar(
       activar
-          ? 'Confirma tu huella para activar el candado'
-          : 'Confirma tu huella para desactivarlo',
+          ? 'Confirma tu identidad para activar el candado'
+          : 'Confirma tu identidad para desactivarlo',
     );
     if (!mounted) return;
 
@@ -100,7 +100,7 @@ class _AjustesScreenState extends State<AjustesScreen> {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          const SnackBar(content: Text('No se pudo verificar la huella.')),
+          const SnackBar(content: Text('No se pudo verificar tu identidad.')),
         );
       return;
     }
@@ -108,7 +108,18 @@ class _AjustesScreenState extends State<AjustesScreen> {
     if (activar) {
       await _biometria.activar();
     } else {
-      await _biometria.desactivar();
+      // Se recuerda que lo apagó él, para no volver a activarlo solo al iniciar sesión.
+      await _biometria.apagar();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Sin candado, la app te pedirá la contraseña cada 4 horas.',
+            ),
+          ),
+        );
     }
   }
 
@@ -157,7 +168,7 @@ class _AjustesScreenState extends State<AjustesScreen> {
                 return ListTile(
                   leading: Icon(Icons.fingerprint_rounded, color: colorIcono),
                   title: Text(
-                    'Entrar con huella digital',
+                    'Candado de la app',
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
                       color: colorTextoPrincipal,
@@ -165,8 +176,8 @@ class _AjustesScreenState extends State<AjustesScreen> {
                   ),
                   subtitle: Text(
                     _cargando || _disponible
-                        ? 'Pide tu huella al abrir la app y al volver después de 1 minuto.'
-                        : 'Este celular no tiene huella o rostro registrados.',
+                        ? 'Protege la app con tu huella, PIN o patrón.'
+                        : 'Este celular no tiene bloqueo de pantalla. Actívalo para proteger la app.',
                     style: TextStyle(color: colorTextoSecundario),
                   ),
                   trailing: Switch(

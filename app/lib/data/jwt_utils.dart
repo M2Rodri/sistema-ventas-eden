@@ -1,25 +1,55 @@
 import 'dart:convert';
 
-/// Revisa el "exp" del JWT para saber si venció, sin llamar al backend.
-/// No valida la firma (para eso está el backend en cada petición real):
-/// esto es solo para decidir si vale la pena entrar directo o mandar de
-/// nuevo a la pantalla de login.
-bool tokenExpirado(String token) {
+/// Lectura del JWT sin llamar al backend. No valida la firma (para eso está el
+/// backend en cada petición real): sirve solo para decidir si vale la pena
+/// entrar directo, renovar el token o mandar de nuevo a la pantalla de login.
+Map<String, dynamic>? _payload(String token) {
   final partes = token.split('.');
-  if (partes.length != 3) return true;
-
+  if (partes.length != 3) return null;
   try {
     final payloadNormalizado = base64Url.normalize(partes[1]);
-    final payload =
-        jsonDecode(utf8.decode(base64Url.decode(payloadNormalizado)))
-            as Map<String, dynamic>;
-    final exp = payload['exp'];
-    if (exp is! int)
-      return false; // sin campo exp, no hay como saber: se deja pasar
-
-    final expiracion = DateTime.fromMillisecondsSinceEpoch(exp * 1000);
-    return DateTime.now().isAfter(expiracion);
+    return jsonDecode(utf8.decode(base64Url.decode(payloadNormalizado)))
+        as Map<String, dynamic>;
   } catch (_) {
-    return true;
+    return null;
   }
+}
+
+/// Revisa el "exp" del JWT para saber si venció.
+bool tokenExpirado(String token) {
+  final payload = _payload(token);
+  if (payload == null) return true;
+
+  final exp = payload['exp'];
+  if (exp is! int) {
+    return false; // sin campo exp, no hay como saber: se deja pasar
+  }
+
+  final expiracion = DateTime.fromMillisecondsSinceEpoch(exp * 1000);
+  return DateTime.now().isAfter(expiracion);
+}
+
+/// Segundos que le quedan al token, o null si no se puede leer su "exp".
+/// Negativo si ya venció.
+int? segundosRestantes(String token) {
+  final exp = _payload(token)?['exp'];
+  if (exp is! int) return null;
+  return exp - DateTime.now().millisecondsSinceEpoch ~/ 1000;
+}
+
+/// Cuándo empezó la sesión del token (el inicio de sesión; las renovaciones lo
+/// conservan). Los tokens viejos sin ese dato valen por su emisión ("iat").
+DateTime? inicioDeSesion(String token) {
+  final payload = _payload(token);
+  if (payload == null) return null;
+
+  final inicio = payload['inicio'];
+  if (inicio is num) {
+    return DateTime.fromMillisecondsSinceEpoch(inicio.toInt());
+  }
+  final emision = payload['iat'];
+  if (emision is num) {
+    return DateTime.fromMillisecondsSinceEpoch(emision.toInt() * 1000);
+  }
+  return null;
 }

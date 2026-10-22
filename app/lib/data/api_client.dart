@@ -5,7 +5,10 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 
 import '../config/api_config.dart';
+import '../models/sesion.dart';
 import 'api_exception.dart';
+import 'jwt_utils.dart';
+import 'token_storage.dart';
 
 /// Envoltorio chico sobre http: arma la URL completa, pone el header de
 /// autorización cuando hay token, y traduce las respuestas de error del
@@ -23,6 +26,88 @@ class ApiClient {
 
   /// Se llama al iniciar sesión: desde ahí, un nuevo 401 vuelve a contar.
   static void sesionIniciada() => _sesionVencidaAvisada = false;
+
+  // ---------------------------------------------------------------------------
+  // Renovación del token. Las pantallas guardan el token con el que se abrió la
+  // sesión y lo pasan en cada llamada; cuando el token se renueva, acá se
+  // recuerda cuál es el vigente y se usa ese en el header, sin que ninguna
+  // pantalla tenga que enterarse.
+  // ---------------------------------------------------------------------------
+
+  /// Cuando al token le queda esto o menos, la próxima llamada lo renueva.
+  static Duration umbralRenovacion = const Duration(hours: 1);
+
+  /// Todos los tokens de la sesión actual (el de inicio y los renovados): las
+  /// pantallas pueden seguir pasando cualquiera de ellos.
+  static final Set<String> _tokensDeLaSesion = <String>{};
+  static String? _tokenVigente;
+  static Future<void>? _renovando;
+
+  /// Una sesión nueva (inicio de sesión o sesión guardada al abrir la app).
+  static void nuevaSesion(String token) {
+    _sesionVencidaAvisada = false;
+    _tokensDeLaSesion
+      ..clear()
+      ..add(token);
+    _tokenVigente = token;
+  }
+
+  /// El token cambió dentro de la misma sesión (renovación o contraseña
+  /// confirmada en el candado): las pantallas siguen con el que tenían.
+  static void reemplazarToken(String nuevo) {
+    _tokensDeLaSesion.add(nuevo);
+    _tokenVigente = nuevo;
+  }
+
+  /// Olvida la sesión (al cerrarla).
+  static void olvidarSesion() {
+    _tokensDeLaSesion.clear();
+    _tokenVigente = null;
+  }
+
+  static String? _vigente(String? token) {
+    if (token != null &&
+        _tokenVigente != null &&
+        _tokensDeLaSesion.contains(token)) {
+      return _tokenVigente;
+    }
+    return token;
+  }
+
+  /// Si al token vigente le queda poco, pide uno nuevo antes de seguir. Si falla
+  /// (sin conexión, sesión cortada, tope alcanzado) no hace nada: la llamada sigue
+  /// con el token que hay y, si ya no sirve, responde 401 como siempre.
+  Future<void> _renovarSiHaceFalta(String? token) async {
+    final actual = _vigente(token);
+    if (actual == null || actual != _tokenVigente) return;
+    final restante = segundosRestantes(actual);
+    if (restante == null || restante > umbralRenovacion.inSeconds) return;
+
+    _renovando ??= _renovarSesion().whenComplete(() => _renovando = null);
+    await _renovando;
+  }
+
+  Future<void> _renovarSesion() async {
+    final vigente = _tokenVigente;
+    if (vigente == null) return;
+    try {
+      final respuesta = await http
+          .post(
+            _uri('/api/v1/auth/renovar'),
+            headers: <String, String>{'Authorization': 'Bearer $vigente'},
+          )
+          .timeout(const Duration(seconds: 8));
+      if (respuesta.statusCode != 200) return;
+      final sesion = Sesion.fromLoginResponse(
+        jsonDecode(respuesta.body) as Map<String, dynamic>,
+      );
+      if (_tokenVigente != vigente) return; // la sesión cambió mientras tanto
+      reemplazarToken(sesion.token);
+      await TokenStorage().guardarSesion(sesion);
+    } catch (_) {
+      // la renovación es una comodidad: si falla, la sesión sigue hasta vencer
+    }
+  }
 
   // ---------------------------------------------------------------------------
   // Caché de lecturas (GET). Vale para TODA la app: cualquier pantalla, actual o
@@ -128,6 +213,7 @@ class ApiClient {
     String? token,
     Future<http.Response> Function() accion,
   ) async {
+    await _renovarSiHaceFalta(token);
     try {
       return await _enviar(accion);
     } finally {
@@ -145,10 +231,13 @@ class ApiClient {
 
   Uri _uri(String path) => Uri.parse('${ApiConfig.baseUrl}$path');
 
-  Map<String, String> _headers(String? token) => <String, String>{
-    'Content-Type': 'application/json',
-    if (token != null) 'Authorization': 'Bearer $token',
-  };
+  Map<String, String> _headers(String? token) {
+    final usar = _vigente(token);
+    return <String, String>{
+      'Content-Type': 'application/json',
+      if (usar != null) 'Authorization': 'Bearer $usar',
+    };
+  }
 
   Future<Map<String, dynamic>> post(
     String path,
@@ -227,7 +316,7 @@ class ApiClient {
   }) async {
     final respuesta = await _escribir(path, token, () async {
       final request = http.MultipartRequest('POST', _uri(path))
-        ..headers['Authorization'] = 'Bearer $token'
+        ..headers['Authorization'] = 'Bearer ${_vigente(token)}'
         ..files.add(await http.MultipartFile.fromPath('file', archivo.path));
       final streamed = await request.send();
       return http.Response.fromStream(streamed);
@@ -236,6 +325,7 @@ class ApiClient {
   }
 
   Future<Map<String, dynamic>> get(String path, {required String token}) async {
+    await _renovarSiHaceFalta(token);
     final respuesta = await _leerConCache(path, token);
     return _decodificar(respuesta, path, token);
   }
@@ -244,6 +334,7 @@ class ApiClient {
   /// (`[...]`) en vez de un objeto (`{...}`), como los listados de
   /// productos e inventario.
   Future<List<dynamic>> getList(String path, {required String token}) async {
+    await _renovarSiHaceFalta(token);
     final respuesta = await _leerConCache(path, token);
     return _decodificarLista(respuesta, path, token);
   }
