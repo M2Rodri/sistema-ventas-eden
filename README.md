@@ -254,7 +254,14 @@ sobre la app ya instalada si está firmada con la misma llave, así que hay que 
 computadora.
 
 **Respaldos.**
-- Base de datos: `pg_dump -Fc --no-owner --no-privileges` contra Supabase, guardado fuera del repositorio.
+- Base de datos, automático: `node scripts/respaldar-base.mjs` hace un `pg_dump` comprimido de Supabase, comprueba que
+  sirva (que pese lo esperado y traiga las tablas usuarios, ventas, productos y clientes), conserva los 30 más
+  recientes y el primero de cada mes, y deja el resultado en `respaldos/respaldo.log`. Las credenciales se leen de
+  `credenciales-supabase.env`, fuera del proyecto (plantilla: `scripts/respaldar-base.env.example`). Para que corra
+  solo todos los días: `powershell -ExecutionPolicy Bypass -File scripts\programar-respaldo.ps1` (si la computadora
+  estaba apagada, corre al prenderse). Con `RESPALDO_COPIA` deja además una copia en otra carpeta o pendrive.
+- Base de datos, a mano (por ejemplo antes de un cambio de esquema): `pg_dump -Fc --no-owner --no-privileges` contra
+  Supabase, guardado fuera del repositorio.
 - Archivos: `node scripts/respaldar-storage.mjs` descarga los buckets `productos` y `comprobantes` a
   `respaldo-storage/` (ignorada por git: tiene comprobantes de pago).
 
