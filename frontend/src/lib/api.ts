@@ -2611,6 +2611,7 @@ export const precargarDatos = async (): Promise<void> => {
   const pedidos: Array<() => Promise<unknown>> = [
     getAllProductos,
     getActiveCategorias,
+    getAllCategorias,
     getAllInventario,
     getAlertasPendientes,
     getAllVentas,
