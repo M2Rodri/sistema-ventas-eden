@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/api_exception.dart';
 import '../../data/auth_repository.dart';
+import '../../data/precarga_datos.dart';
 import '../../models/sesion.dart';
 import '../../theme/app_colors.dart';
 
@@ -55,6 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
         usuario: _usuarioController.text.trim(),
         password: _passwordController.text,
       );
+      PrecargaDatos.adelantarInicio(sesion.token);
       if (!mounted) return;
       widget.onSesionIniciada(sesion);
     } on ApiException catch (error) {

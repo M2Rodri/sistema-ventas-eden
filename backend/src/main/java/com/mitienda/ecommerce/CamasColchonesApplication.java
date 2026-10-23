@@ -15,6 +15,16 @@ public class CamasColchonesApplication {
         TimeZone.setDefault(TimeZone.getTimeZone("America/La_Paz"));
 
         SpringApplication.run(CamasColchonesApplication.class, args);
+
+        System.out.println("\n╔════════════════════════════════════════════════════════════╗");
+        System.out.println("║                                                            ║");
+        System.out.println("║   🛏️  API SISTEMA DE VENTA DE CAMAS Y COLCHONES 🛏️        ║");
+        System.out.println("║                                                            ║");
+        System.out.println("║   🚀 Servidor iniciado: http://localhost:8080             ║");
+        System.out.println("║   📊 Base de datos PostgreSQL: CONECTADA                  ║");
+        System.out.println("║   📖 Documentación API: http://localhost:8080/swagger-ui  ║");
+        System.out.println("║                                                            ║");
+        System.out.println("╚════════════════════════════════════════════════════════════╝\n");
     }
 
     /** CORS: permite las peticiones del frontend (localhost:3000 en desarrollo). */

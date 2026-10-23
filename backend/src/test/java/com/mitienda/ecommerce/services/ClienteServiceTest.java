@@ -224,6 +224,22 @@ class ClienteServiceTest {
     }
 
     @Test
+    void unaVentaCanceladaSeListaPeroNoCuentaEnLasEstadisticas() {
+        Venta buena = venta("2026-09-01T10:00:00", "500.00", "Colchón", 1);
+        Venta cancelada = venta("2026-10-20T10:00:00", "300.00", "Cama", 5);
+        cancelada.setEstado(EstadoVenta.CANCELADA);
+        when(ventaRepository.findByClienteIdOrderByFechaVentaDesc(1L)).thenReturn(List.of(cancelada, buena));
+
+        HistorialComprasResponse h = servicio.getHistorialCompras(1L);
+
+        assertEquals(2, h.getVentas().size());
+        assertEquals(1L, h.getEstadisticas().getTotalCompras());
+        assertEquals(0, new BigDecimal("500.00").compareTo(h.getEstadisticas().getMontoTotal()));
+        assertEquals(LocalDateTime.parse("2026-09-01T10:00:00"), h.getEstadisticas().getUltimaCompra());
+        assertEquals("Colchón", h.getEstadisticas().getProductoMasComprado());
+    }
+
+    @Test
     void elHistorialNoTrajoCostosNiGanancia() {
         when(ventaRepository.findByClienteIdOrderByFechaVentaDesc(1L))
                 .thenReturn(List.of(venta("2026-10-20T10:00:00", "300.00", "Cama", 1)));

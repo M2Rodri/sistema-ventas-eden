@@ -429,7 +429,7 @@ class _ImagenProducto extends StatelessWidget {
         height: tamano,
         fit: BoxFit.cover,
         // Se decodifica a tamaño de miniatura (y se comparte con lo precargado): mucho más liviano que dibujar la foto completa.
-        cacheWidth: tamano <= 100 ? kAnchoMiniatura : (tamano * 2.5).round(),
+        cacheWidth: tamano <= 100 ? kAnchoMiniatura : kAnchoDetalle,
         errorBuilder: (_, _, _) => Container(
           width: tamano,
           height: tamano,

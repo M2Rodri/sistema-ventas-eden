@@ -114,7 +114,8 @@ async function manejarProxy(
       respuestaHeaders.set('content-type', backendContentType);
     }
 
-    const responseBlob = await backendRes.blob();
+    // Un 204 no admite cuerpo: armarlo con uno haría fallar la respuesta.
+    const responseBlob = [204, 205, 304].includes(backendRes.status) ? null : await backendRes.blob();
     const respuesta = new NextResponse(responseBlob, {
       status: backendRes.status,
       headers: respuestaHeaders,

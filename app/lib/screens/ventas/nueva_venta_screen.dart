@@ -2010,7 +2010,7 @@ class _MiniImagen extends StatelessWidget {
         width: tamano,
         height: tamano,
         fit: BoxFit.cover,
-        cacheWidth: tamano <= 100 ? kAnchoMiniatura : (tamano * 2.5).round(),
+        cacheWidth: tamano <= 100 ? kAnchoMiniatura : kAnchoDetalle,
         errorBuilder: (_, _, _) => vacio,
       ),
     );

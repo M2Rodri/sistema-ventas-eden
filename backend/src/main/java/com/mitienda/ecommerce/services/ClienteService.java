@@ -10,6 +10,7 @@ import com.mitienda.ecommerce.dto.VentaResponse;
 import com.mitienda.ecommerce.models.Cliente;
 import com.mitienda.ecommerce.models.Venta;
 import com.mitienda.ecommerce.models.DetalleVenta;
+import com.mitienda.ecommerce.models.EstadoVenta;
 import com.mitienda.ecommerce.repositories.ClienteRepository;
 import com.mitienda.ecommerce.repositories.VentaRepository;
 import org.springframework.stereotype.Service;
@@ -209,29 +210,34 @@ public class ClienteService {
                 .collect(Collectors.toList());
         response.setVentas(ventasResponse);
 
+        // Las ventas canceladas se listan, pero no cuentan en las estadísticas.
+        List<Venta> ventasValidas = ventas.stream()
+                .filter(v -> v.getEstado() != EstadoVenta.CANCELADA)
+                .collect(Collectors.toList());
+
         // Estadísticas de compra
         HistorialComprasResponse.EstadisticasCompra stats = new HistorialComprasResponse.EstadisticasCompra();
         
-        stats.setTotalCompras((long) ventas.size());
+        stats.setTotalCompras((long) ventasValidas.size());
         
-        BigDecimal montoTotal = ventas.stream()
+        BigDecimal montoTotal = ventasValidas.stream()
                 .map(Venta::getMontoTotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         stats.setMontoTotal(montoTotal);
 
-        if (!ventas.isEmpty()) {
+        if (!ventasValidas.isEmpty()) {
             BigDecimal ticketPromedio = montoTotal.divide(
-                BigDecimal.valueOf(ventas.size()), 
+                BigDecimal.valueOf(ventasValidas.size()), 
                 2, 
                 RoundingMode.HALF_UP
             );
             stats.setTicketPromedio(ticketPromedio);
 
             // Última fecha de compra
-            stats.setUltimaCompra(ventas.get(0).getFechaVenta());
+            stats.setUltimaCompra(ventasValidas.get(0).getFechaVenta());
 
             // Producto más comprado
-            Map<String, Long> productosCantidad = ventas.stream()
+            Map<String, Long> productosCantidad = ventasValidas.stream()
                 .flatMap(v -> v.getDetalles().stream())
                 .collect(Collectors.groupingBy(
                     d -> d.getProducto() != null ? d.getProducto().getNombre() : "Producto desconocido",

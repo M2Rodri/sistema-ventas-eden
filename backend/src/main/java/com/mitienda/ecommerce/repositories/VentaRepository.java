@@ -52,7 +52,7 @@ public interface VentaRepository extends JpaRepository<Venta, Long> {
 
     /** Cantidad de ventas, monto total y última compra por cliente en una sola consulta (evita N+1). */
     @Query("SELECT v.cliente.id, COUNT(v), COALESCE(SUM(v.montoTotal), 0), MAX(v.fechaVenta) " +
-           "FROM Venta v GROUP BY v.cliente.id")
+           "FROM Venta v WHERE v.estado <> 'CANCELADA' GROUP BY v.cliente.id")
     List<Object[]> aggregarEstadisticasPorCliente();
 
     // Obtiene una venta por ID, cargando también su cliente en una sola consulta para evitar errores de lazy loading.

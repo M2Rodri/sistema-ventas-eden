@@ -1651,14 +1651,7 @@ class _CuerpoResumen extends StatelessWidget {
   Widget build(BuildContext context) {
     switch (estado) {
       case _EstadoResumen.cargando:
-        return Card(
-          child: Padding(
-            padding: EdgeInsets.symmetric(vertical: 32),
-            child: Center(
-              child: CircularProgressIndicator(color: AppColors.verdeOscuro),
-            ),
-          ),
-        );
+        return const _EsqueletoResumen();
 
       case _EstadoResumen.error:
         // Las tarjetas quedan con "—" en vez de un cero falso y un solo aviso con reintento.
@@ -3219,6 +3212,40 @@ class _PanelNotificaciones extends StatelessWidget {
                 ),
               ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Las cuatro tarjetas en gris mientras llegan los números, con la misma forma que las reales.
+class _EsqueletoResumen extends StatelessWidget {
+  const _EsqueletoResumen();
+
+  Widget _hueco() {
+    return Expanded(
+      child: Container(
+        height: 100,
+        decoration: BoxDecoration(
+          color: AppColors.fondoResumen.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.bordeResumen.withValues(alpha: 0.5)),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: <Widget>[
+            Row(children: <Widget>[_hueco(), const SizedBox(width: 10), _hueco()]),
+            const SizedBox(height: 10),
+            Row(children: <Widget>[_hueco(), const SizedBox(width: 10), _hueco()]),
           ],
         ),
       ),
