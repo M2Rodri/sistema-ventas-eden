@@ -5,14 +5,7 @@ import Link from 'next/link';
 import { Boxes, ScanLine, Truck } from 'lucide-react';
 import { getDatosNegocio, DatosNegocio } from '@/lib/api';
 
-/**
- * Página "Nosotros".
- *
- * El contenido descriptivo se limita a lo que el sistema puede sostener: qué
- * vende el negocio, dónde está y cómo trabaja. Los datos de contacto no están
- * escritos acá: salen de configuracion_sistema, para que se corrijan desde la
- * pantalla de Configuración sin tocar el código.
- */
+/** Página "Nosotros". */
 export default function NosotrosPage() {
   const [negocio, setNegocio] = useState<DatosNegocio>({});
 

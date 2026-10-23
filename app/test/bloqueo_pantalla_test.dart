@@ -3,8 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:muebleria_eden_app/screens/bloqueo/bloqueo_biometrico.dart';
 import 'package:muebleria_eden_app/theme/app_theme.dart';
 
-/// La pantalla del candado: opciones, entrada con contraseña sin cerrar sesión, y el
-/// cierre de sesión como último recurso, con confirmación.
+/// La pantalla del candado: opciones, contraseña sin cerrar sesión y cierre de sesión con confirmación.
 void main() {
   late List<String> contrasenasProbadas;
   late int desbloqueos;

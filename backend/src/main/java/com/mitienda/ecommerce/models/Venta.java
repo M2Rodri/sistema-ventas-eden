@@ -18,33 +18,13 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Entidad Venta - Cabecera de una operación de venta (tabla 'ventas').
- *
- * Cambios respecto del esquema anterior:
- *
- *  - metodoPago se eliminó. Una venta admite varios pagos con métodos
- *    distintos (parte en efectivo, parte por transferencia), así que un único
- *    campo acá no podía representar el caso real. La fuente de verdad es
- *    pagos.metodo_pago.
- *
- *  - nombreClienteDirecto y celularClienteDirecto se eliminaron. Duplicaban
- *    lo que ya modela clientes.tipo_cliente = INVITADO: la venta de mostrador
- *    sin datos del comprador se registra creando un cliente INVITADO.
- *
- *  - subtotal, descuento, saldoPendiente y requiereEnvio se agregaron: existían
- *    en la base pero la entidad no los mapeaba. subtotal es NOT NULL, así que
- *    sin mapearlo todo INSERT de venta fallaba.
- *
- *  - usuario pasa a ser obligatorio: no existe una venta sin vendedor.
- */
+/** Cabecera de una venta (tabla 'ventas'); los cobros viven en 'pagos' y el comprador siempre es un cliente. */
 @Entity
 @Table(name = "ventas")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class Venta {
-
     @Id
     @GeneratedValue(generator = "id_ventas")
     @GenericGenerator(name = "id_ventas", type = GeneradorIdSinHuecos.class,

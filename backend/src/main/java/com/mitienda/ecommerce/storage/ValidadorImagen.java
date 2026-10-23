@@ -8,21 +8,8 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * Revisa en el servidor que un archivo subido sea de verdad una imagen
- * permitida y que no pase del tamaño máximo, antes de mandarlo al
- * almacenamiento.
- *
- * No se confía en lo que dice el navegador: además de la extensión y el tipo
- * declarado, se miran los primeros bytes del archivo (JPEG, PNG o WebP). El
- * nombre con el que se guarda lo elige el servidor (un UUID), así que el nombre
- * original nunca llega a la ruta.
- *
- * Los comprobantes de pago aceptan además .jfif (es un JPEG) y PDF; las fotos de
- * producto, no.
- */
+/** Valida que el archivo sea una imagen permitida (por sus primeros bytes) y no pase del tamaño máximo. */
 public final class ValidadorImagen {
-
     public static final long MAXIMO_FOTO_PRODUCTO = 5L * 1024 * 1024;
     public static final long MAXIMO_COMPROBANTE = 10L * 1024 * 1024;
 

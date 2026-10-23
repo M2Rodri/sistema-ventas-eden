@@ -18,7 +18,6 @@ import java.util.stream.Collectors;
 @NoArgsConstructor
 @AllArgsConstructor
 public class VentaResponse {
-
     private Long id;
     private Long idCliente;
     private String nombreCliente;
@@ -33,10 +32,7 @@ public class VentaResponse {
     private BigDecimal saldoPendiente;
     private LocalDate fechaLimitePago;
 
-    /**
-     * Calculado por el servidor con SU reloj: hay pago pendiente y la fecha límite
-     * ya pasó (el mismo día todavía no cuenta). La web y la app solo lo muestran.
-     */
+    /** Calculado con el reloj del servidor: hay pago pendiente y su fecha límite ya pasó. */
     private Boolean fechaLimiteVencida;
 
     private EstadoVenta estado;
@@ -48,14 +44,7 @@ public class VentaResponse {
     private String transportadora;
     private String guiaRemision;
 
-    /**
-     * Método de pago mostrado en los listados.
-     *
-     * Ya no es un campo de la tabla 'ventas': se deriva de los pagos, porque
-     * una venta admite varios cobros con métodos distintos. Vale el método
-     * cuando hay uno solo, "VARIOS" cuando hay más de uno, y null si todavía
-     * no se cobró nada. El detalle real está en la lista de pagos.
-     */
+    /** Método de pago del listado: el único, "VARIOS" si hay más de uno, o null si no se cobró nada. */
     private String metodoPago;
 
     private Long idUsuario;
@@ -72,10 +61,7 @@ public class VentaResponse {
     /** Ganancia total estimada de la venta (montoTotal - costoTotal) (solo ADMIN); null si no cuenta o empleado. */
     private BigDecimal ganancia;
 
-    /**
-     * Respuesta sin costos ni ganancia: es lo que ve un Empleado. Es la forma por defecto a propósito:
-     * quien necesite los costos (solo el Admin) tiene que pedirlos con el otro constructor.
-     */
+    /** Respuesta sin costos ni ganancia (lo que ve un Empleado); los costos se piden con el otro constructor. */
     public VentaResponse(Venta venta) {
         this(venta, false);
     }

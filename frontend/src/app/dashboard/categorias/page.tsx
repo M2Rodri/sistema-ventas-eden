@@ -92,10 +92,7 @@ export default function CategoriasPage() {
     });
   };
 
-  // Arrastrar la tabla desde el encabezado, como si fuera una barra de
-  // scroll horizontal. Ver hooks/useDragScrollTable.ts. Va antes del
-  // "if (loading) return" de abajo: los hooks no pueden quedar después de
-  // un return condicional.
+  // Arrastrar la tabla desde el encabezado (ver hooks/useDragScrollTable.ts).
   const {
     scrollContainerRef,
     tableRef,

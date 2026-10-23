@@ -6,19 +6,7 @@ import { Bell, AlertTriangle, RefreshCw } from 'lucide-react';
 import { getAlertasPendientes } from '@/lib/api';
 import { AlertaInventario } from '@/types/inventario';
 
-/**
- * Campana de notificaciones.
- *
- * Antes era un botón sin comportamiento con un punto rojo escrito en el HTML:
- * siempre parecía haber avisos sin leer, y al hacer clic no pasaba nada.
- *
- * Ahora muestra lo que reclama atención de quien administra y que hasta hoy
- * solo se veía entrando a la pantalla correspondiente: los productos por
- * debajo del stock mínimo (alertas_inventario).
- *
- * Si no hay ninguno, no se pinta el punto rojo. Un indicador que está siempre
- * encendido deja de significar algo.
- */
+/** Campana de notificaciones. */
 
 /** Cada cuánto se vuelven a pedir los avisos, en milisegundos. */
 const INTERVALO_REFRESCO = 60_000;

@@ -12,11 +12,7 @@ import { resumenCriterios } from '@/lib/reporteCriterios';
 import { agregarReciente, leerRecientes, limpiarRecientes, quitarReciente } from '@/lib/reportesRecientes';
 import { useAuth } from '@/hooks/useAuth';
 
-/**
- * Las cuatro tarjetas son los reportes que más se piden. Todo lo demás (y filtrar por estado,
- * método de pago, cliente, categoría...) sale del generador personalizado, y lo generado queda en
- * "Reportes recientes".
- */
+/** Las cuatro tarjetas son los reportes que más se piden. */
 const configuracionesReportes: ConfiguracionReporte[] = [
   {
     id: 'VENTAS',

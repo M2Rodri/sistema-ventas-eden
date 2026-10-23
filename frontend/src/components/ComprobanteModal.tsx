@@ -66,10 +66,7 @@ export default function ComprobanteModal({ isOpen, onClose, idVenta }: Comproban
     window.print();
   };
 
-  // Convierte el mismo contenido que se imprime en un PDF real (en el
-  // navegador, sin pedirle nada al backend) y lo comparte directo con
-  // navigator.share. Donde el navegador no soporte compartir archivos, se
-  // descarga el PDF para adjuntarlo a mano.
+  // Convierte lo que se imprime en un PDF y lo comparte con navigator.share; si no se puede, lo descarga.
   const handleCompartir = async () => {
     if (!printRef.current || !comprobante) return;
 

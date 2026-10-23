@@ -18,27 +18,15 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
-// Lectura dentro de transacción por defecto: con spring.jpa.open-in-view=false
-// no hay sesión de Hibernate fuera de la transacción, y los DTO de respuesta se
-// arman recorriendo relaciones perezosas. Sin esto, los endpoints de lectura
-// fallaban con LazyInitializationException.
-// Los métodos que escriben llevan su propio @Transactional, que tiene precedencia.
+// Lectura en transacción: con open-in-view=false no hay sesión de Hibernate fuera de ella.
 @Transactional(readOnly = true)
 public class MultimediaProductoService {
-
     private final MultimediaProductoRepository multimediaRepository;
 
     private final ProductoRepository productoRepository;
 
     private final FileStorageService fileStorageService;
 
-    /**
-     * Inyeccion por constructor, no por campo.
-     *
-     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
-     * puede existir a medio construir, y una dependencia circular falla al
-     * arrancar en vez de aparecer en ejecucion.
-     */
     public MultimediaProductoService(MultimediaProductoRepository multimediaRepository,
                                      ProductoRepository productoRepository,
                                      FileStorageService fileStorageService) {
@@ -46,7 +34,6 @@ public class MultimediaProductoService {
         this.productoRepository = productoRepository;
         this.fileStorageService = fileStorageService;
     }
-
 
     // Configuración desde application.properties
     @Value("${file.upload.models3d.max-size:52428800}") // 50MB por defecto
@@ -58,16 +45,7 @@ public class MultimediaProductoService {
     // Extensiones permitidas para imágenes de preview
     private static final List<String> ALLOWED_IMAGE_EXTENSIONS = Arrays.asList(".jpg", ".jpeg", ".png", ".webp");
 
-    /**
-     * ✅ NUEVO: Subir modelo 3D para un producto
-     * 
-     * @param archivoModelo Archivo del modelo 3D (.glb, .gltf, .usdz)
-     * @param archivoPreview Imagen de vista previa (opcional)
-     * @param productoId ID del producto
-     * @param habilitadoRa Si se habilita la realidad aumentada
-     * @return DTO con la información de la multimedia guardada
-     * @throws IOException Si hay error al guardar los archivos
-     */
+    /** Guarda el modelo 3D y su vista previa opcional. */
     @Transactional
     public MultimediaProductoDTO subirModelo3D(
             MultipartFile archivoModelo,
@@ -136,7 +114,6 @@ public class MultimediaProductoService {
             System.out.println("⚠️  Ya existe multimedia para este producto, actualizando...");
             multimedia = existente.get();
             
-            // Eliminar archivos anteriores del disco
             if (multimedia.getUrlModelo3d() != null) {
                 System.out.println("🗑️  Eliminando modelo 3D anterior: " + multimedia.getUrlModelo3d());
                 fileStorageService.deleteFile(multimedia.getUrlModelo3d());
@@ -146,7 +123,6 @@ public class MultimediaProductoService {
                 fileStorageService.deleteFile(multimedia.getUrlVistaPrevia());
             }
             
-            // Actualizar con nuevos valores
             multimedia.setUrlModelo3d(urlModelo3d);
             multimedia.setUrlVistaPrevia(urlVistaPrevia);
             multimedia.setHabilitadoRa(habilitadoRa != null ? habilitadoRa : false);
@@ -176,9 +152,7 @@ public class MultimediaProductoService {
         return convertirADTO(saved);
     }
 
-    /**
-     * Crear multimedia para producto (método original - URLs manuales)
-     */
+    /** Crear multimedia para producto (método original - URLs manuales) */
     @Transactional
     public MultimediaProductoDTO crear(MultimediaProductoRequest request) {
         Producto producto = productoRepository.findById(request.getProductoId())
@@ -195,17 +169,13 @@ public class MultimediaProductoService {
         return convertirADTO(saved);
     }
 
-    /**
-     * Obtener multimedia por producto
-     */
+    /** Obtener multimedia por producto */
     public Optional<MultimediaProductoDTO> obtenerPorProducto(Long productoId) {
         return multimediaRepository.findByProductoId(productoId)
                 .map(this::convertirADTO);
     }
 
-    /**
-     * Actualizar multimedia (URLs manuales)
-     */
+    /** Actualizar multimedia (URLs manuales) */
     @Transactional
     public MultimediaProductoDTO actualizar(Long id, MultimediaProductoRequest request) {
         MultimediaProducto multimedia = multimediaRepository.findById(id)
@@ -219,9 +189,7 @@ public class MultimediaProductoService {
         return convertirADTO(updated);
     }
 
-    /**
-     * Eliminar multimedia (incluye archivos físicos)
-     */
+    /** Eliminar multimedia (incluye archivos físicos) */
     @Transactional
     public void eliminar(Long id) {
         MultimediaProducto multimedia = multimediaRepository.findById(id)
@@ -229,7 +197,6 @@ public class MultimediaProductoService {
         
         System.out.println("🗑️  Eliminando multimedia ID: " + id);
         
-        // Eliminar archivos físicos del disco
         if (multimedia.getUrlModelo3d() != null) {
             System.out.println("🗑️  Eliminando modelo 3D: " + multimedia.getUrlModelo3d());
             fileStorageService.deleteFile(multimedia.getUrlModelo3d());
@@ -239,14 +206,11 @@ public class MultimediaProductoService {
             fileStorageService.deleteFile(multimedia.getUrlVistaPrevia());
         }
         
-        // Eliminar registro de la base de datos
         multimediaRepository.deleteById(id);
         System.out.println("✅ Multimedia eliminada correctamente");
     }
 
-    /**
-     * Listar productos con RA habilitado
-     */
+    /** Listar productos con RA habilitado */
     public List<MultimediaProductoDTO> obtenerProductosConRA() {
         return multimediaRepository.findByHabilitadoRaTrueAndActivoTrue()
                 .stream()
@@ -254,9 +218,7 @@ public class MultimediaProductoService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Convertir entidad a DTO
-     */
+    /** Convertir entidad a DTO */
     private MultimediaProductoDTO convertirADTO(MultimediaProducto multimedia) {
         MultimediaProductoDTO dto = new MultimediaProductoDTO();
         dto.setId(multimedia.getId());

@@ -7,22 +7,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
-/**
- * Resuelve el usuario autenticado de la petición actual a partir del JWT.
- *
- * Antes Venta, Compra y el ajuste manual de inventario recibían el id del
- * usuario como parámetro puesto por el cliente (idUsuario en el body o la
- * query), lo que permitía firmar cualquiera de esas operaciones con el id de
- * otra persona. El único origen posible ahora es el token: JwtAuthFilter deja
- * el usuario autenticado en el SecurityContext, y acá se resuelve contra la
- * tabla usuarios.
- *
- * Extraído de RegistroAuditoria, que tenía este mismo mecanismo pero privado
- * y sin reutilizar.
- */
+/** Resuelve el usuario autenticado a partir del JWT; es el único origen del vendedor de una operación. */
 @Service
 public class UsuarioActualService {
-
     private final UsuarioRepository usuarioRepository;
 
     public UsuarioActualService(UsuarioRepository usuarioRepository) {
@@ -50,12 +37,7 @@ public class UsuarioActualService {
         return usuarioRepository.findByUsuario(usuario).orElse(null);
     }
 
-    /**
-     * Igual que {@link #obtener()}, pero para operaciones que exigen un
-     * usuario conocido (venta, compra, ajuste de inventario). Los endpoints
-     * que las exponen ya exigen autenticación, así que esto solo dispara si
-     * el token es válido pero el usuario ya no corresponde a ningún registro.
-     */
+    /** Como obtener(), pero falla si el token es válido y el usuario ya no existe. */
     public Usuario obtenerRequerido() {
         Usuario usuario = obtener();
         if (usuario == null) {
@@ -64,16 +46,7 @@ public class UsuarioActualService {
         return usuario;
     }
 
-    /**
-     * True solo si quien hace la petición es ADMIN. False para EMPLEADO y
-     * para cualquiera sin sesión (incluida la tienda pública, que lee
-     * /api/v1/productos sin login).
-     *
-     * Se usa para no incluir precioCompra (ni nada calculado a partir de
-     * él, como el valor total del inventario) en respuestas que un EMPLEADO
-     * o un visitante anónimo puedan recibir. El rol EMPLEADO existe
-     * justamente para no ver costos ni márgenes.
-     */
+    /** True solo si quien pide es ADMIN; evita enviar costos y márgenes a un EMPLEADO. */
     public boolean esAdmin() {
         Usuario usuario = obtener();
         return usuario != null && "ADMIN".equals(usuario.getRoleName());

@@ -9,18 +9,13 @@ import org.springframework.test.web.servlet.MockMvc;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
-/**
- * En desarrollo con disco local, /uploads/** sigue abierta: las pantallas
- * muestran las fotos con <img>/<a href>, que no pueden mandar el token. Un
- * archivo que no existe responde 404, no 401 ni 403.
- */
+/** Con disco local, /uploads/** sigue abierta; un archivo inexistente responde 404. */
 @SpringBootTest(properties = {
         "SUPABASE_URL=",
         "SUPABASE_SERVICE_KEY="
 })
 @AutoConfigureMockMvc
 class ArchivosSubidosLocalesTest {
-
     @Autowired
     private MockMvc mvc;
 

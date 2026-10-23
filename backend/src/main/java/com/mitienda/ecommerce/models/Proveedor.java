@@ -17,16 +17,13 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Entidad Proveedor - Representa los proveedores de productos
- */
+/** Entidad Proveedor - Representa los proveedores de productos */
 @Entity
 @Table(name = "proveedores")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class Proveedor {
-
     @Id
     @GeneratedValue(generator = "id_proveedores")
     @GenericGenerator(name = "id_proveedores", type = GeneradorIdSinHuecos.class,
@@ -73,11 +70,7 @@ public class Proveedor {
     @Column(nullable = false)
     private LocalDateTime fechaActualizacion;
 
-    // Relación con compras. Sin cascade: las compras las administra
-    // CompraService de forma independiente, y un proveedor nunca se borra de
-    // verdad (solo se desactiva). Con CascadeType.ALL, borrar un Proveedor
-    // por error se hubiera llevado puesto todo su historial de compras
-    // (mismo motivo que en Cliente.java).
+    // Sin cascade: un proveedor nunca se borra, solo se desactiva.
     @OneToMany(mappedBy = "proveedor", fetch = FetchType.LAZY)
     private List<Compra> compras = new ArrayList<>();
 

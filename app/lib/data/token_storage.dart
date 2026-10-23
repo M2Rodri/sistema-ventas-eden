@@ -4,10 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../models/sesion.dart';
 
-/// Guarda la sesión (token + usuario) en Keychain (iOS) / EncryptedSharedPreferences
-/// (Android), no en SharedPreferences: SharedPreferences guarda en texto
-/// plano, cualquiera con acceso al teléfono (o un backup) podría leer el
-/// token directo.
+/// Guarda la sesión (token + usuario) en Keychain (iOS) / EncryptedSharedPreferences (Android), no en SharedPreferences.
 class TokenStorage {
   TokenStorage();
 
@@ -28,8 +25,7 @@ class TokenStorage {
     try {
       return Sesion.fromJson(jsonDecode(crudo) as Map<String, dynamic>);
     } catch (_) {
-      // Dato corrupto o de un formato viejo: mejor borrarlo que romper el
-      // arranque de la app.
+      // Dato corrupto o de un formato viejo: mejor borrarlo que romper el arranque de la app.
       await borrarSesion();
       return null;
     }

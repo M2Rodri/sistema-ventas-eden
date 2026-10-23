@@ -1,4 +1,3 @@
-// src/app/tienda/layout.tsx
 // NO se pone 'use client' aquí
 import React from 'react';
 import NavbarCliente from '@/components/tienda/NavbarCliente'; // Importa el componente de cliente
@@ -71,9 +70,9 @@ const FooterTienda = () => {
 const TiendaLayout = ({ children }: { children: React.ReactNode }) => {
   // Este componente ahora es de servidor (por defecto)
   return (
-    <div className="min-h-screen flex flex-col overflow-x-hidden bg-gray-50"> {/* <--- Añadido bg-gray-50 para un fondo menos blanco */}
-      <NavbarCliente /> {/* <--- Este componente es de cliente y se renderiza aquí, ahora es fixed */}
-      <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 pt-24"> {/* <--- Añadido pt-24 para compensar el navbar fixed */}
+    <div className="min-h-screen flex flex-col overflow-x-hidden bg-gray-50">
+      <NavbarCliente />
+      <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 pt-24">
         {children}
       </main>
       <FooterTienda />

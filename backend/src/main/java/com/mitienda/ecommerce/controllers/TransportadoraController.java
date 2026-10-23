@@ -12,53 +12,33 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Controlador REST para gestión de transportadoras
- */
+/** Controlador REST para gestión de transportadoras */
 @RestController
 @RequestMapping("/api/transportadoras")
 @CrossOrigin(origins = "http://localhost:3000")
 @PreAuthorize("hasAnyRole('ADMIN', 'EMPLEADO')")
 public class TransportadoraController {
-
     private final TransportadoraService transportadoraService;
 
-    /**
-     * Inyeccion por constructor, no por campo.
-     *
-     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
-     * puede existir a medio construir, y una dependencia circular falla al
-     * arrancar en vez de aparecer en ejecucion.
-     */
     public TransportadoraController(TransportadoraService transportadoraService) {
         this.transportadoraService = transportadoraService;
     }
 
-
-    /**
-     * GET /api/transportadoras
-     * Listar todas las transportadoras
-     */
+    /** Listar todas las transportadoras */
     @GetMapping
     public ResponseEntity<List<TransportadoraResponse>> getAllTransportadoras() {
         List<TransportadoraResponse> transportadoras = transportadoraService.getAllTransportadoras();
         return ResponseEntity.ok(transportadoras);
     }
 
-    /**
-     * GET /api/transportadoras/activas
-     * Listar solo transportadoras activas
-     */
+    /** Listar solo transportadoras activas */
     @GetMapping("/activas")
     public ResponseEntity<List<TransportadoraResponse>> getActiveTransportadoras() {
         List<TransportadoraResponse> transportadoras = transportadoraService.getActiveTransportadoras();
         return ResponseEntity.ok(transportadoras);
     }
 
-    /**
-     * GET /api/transportadoras/{id}
-     * Obtener transportadora por ID
-     */
+    /** Obtener transportadora por ID */
     @GetMapping("/{id}")
     public ResponseEntity<?> getTransportadoraById(@PathVariable Long id) {
         try {
@@ -70,10 +50,7 @@ public class TransportadoraController {
         }
     }
 
-    /**
-     * POST /api/transportadoras
-     * Crear nueva transportadora (ADMIN)
-     */
+    /** Crear nueva transportadora (ADMIN) */
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> createTransportadora(@Valid @RequestBody TransportadoraRequest request) {
@@ -86,10 +63,7 @@ public class TransportadoraController {
         }
     }
 
-    /**
-     * PUT /api/transportadoras/{id}
-     * Actualizar transportadora (ADMIN)
-     */
+    /** Actualizar transportadora (ADMIN) */
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> updateTransportadora(@PathVariable Long id, 
@@ -103,10 +77,7 @@ public class TransportadoraController {
         }
     }
 
-    /**
-     * DELETE /api/transportadoras/{id}
-     * Eliminar transportadora (ADMIN)
-     */
+    /** Eliminar transportadora (ADMIN) */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deleteTransportadora(@PathVariable Long id) {
@@ -119,10 +90,7 @@ public class TransportadoraController {
         }
     }
 
-    /**
-     * PATCH /api/transportadoras/{id}/toggle-status
-     * Activar/Desactivar transportadora (ADMIN)
-     */
+    /** Activar/Desactivar transportadora (ADMIN) */
     @PatchMapping("/{id}/toggle-status")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> toggleTransportadoraStatus(@PathVariable Long id) {
@@ -135,10 +103,7 @@ public class TransportadoraController {
         }
     }
 
-    /**
-     * GET /api/transportadoras/estadisticas
-     * Obtener estadísticas de transportadoras (ADMIN)
-     */
+    /** Obtener estadísticas de transportadoras (ADMIN) */
     @GetMapping("/estadisticas")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getTransportadoraStatistics() {

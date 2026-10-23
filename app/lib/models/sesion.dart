@@ -1,15 +1,13 @@
 import 'usuario.dart';
 
-/// Token JWT + datos del usuario. Lo que se guarda en flutter_secure_storage
-/// y se manda en cada petición como header `Authorization: Bearer TOKEN`.
+/// Token JWT + datos del usuario.
 class Sesion {
   const Sesion({required this.token, required this.usuario});
 
   final String token;
   final Usuario usuario;
 
-  /// POST /api/v1/auth/login devuelve todo en un solo objeto plano
-  /// (token, tipo, id, nombre, apellido, usuario, role), no anidado.
+  /// El login devuelve token y datos del usuario en un solo objeto plano.
   factory Sesion.fromLoginResponse(Map<String, dynamic> json) {
     return Sesion(
       token: json['token'] as String,

@@ -2,9 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-/// Guarda en el teléfono (cifrado, igual que la sesión) lo último que mostró el
-/// inicio, para que al abrir la app las tarjetas aparezcan AL INSTANTE mientras
-/// llegan los números nuevos. Se borra al cerrar sesión.
+/// Guarda cifrado lo último que mostró el inicio, para pintarlo al instante mientras llegan los datos nuevos.
 class InicioGuardado {
   InicioGuardado._();
 

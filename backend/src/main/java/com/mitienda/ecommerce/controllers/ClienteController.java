@@ -15,34 +15,18 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * Controlador REST para gestión de clientes
- * Cumple con CU6 - Gestionar Clientes
- */
+/** Gestión de clientes (CU6). */
 @RestController
 @RequestMapping("/api/v1/clientes")
 @CrossOrigin(origins = "http://localhost:3000")
 public class ClienteController {
-
     private final ClienteService clienteService;
 
-    /**
-     * Inyeccion por constructor, no por campo.
-     *
-     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
-     * puede existir a medio construir, y una dependencia circular falla al
-     * arrancar en vez de aparecer en ejecucion.
-     */
     public ClienteController(ClienteService clienteService) {
         this.clienteService = clienteService;
     }
 
-
-    /**
-     * GET /api/v1/clientes
-     * Listar todos los clientes (ADMIN/EMPLEADO)
-     * Interfaz P6.1
-     */
+    /** Lista todos los clientes (ADMIN/EMPLEADO). */
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLEADO')")
     public ResponseEntity<List<ClienteResponse>> getAllClientes() {
@@ -50,21 +34,14 @@ public class ClienteController {
         return ResponseEntity.ok(clientes);
     }
 
-    /**
-     * GET /api/v1/clientes/con-estadisticas
-     * Listar todos los clientes con número de compras, monto total y última
-     * compra, para la tabla de Clientes (ADMIN/EMPLEADO).
-     */
+    /** Clientes con número de compras, monto total y última compra (ADMIN/EMPLEADO). */
     @GetMapping("/con-estadisticas")
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLEADO')")
     public ResponseEntity<List<ClienteConEstadisticasResponse>> getAllClientesConEstadisticas() {
         return ResponseEntity.ok(clienteService.getAllClientesConEstadisticas());
     }
 
-    /**
-     * GET /api/v1/clientes/{id}
-     * Obtener cliente por ID (ADMIN/EMPLEADO)
-     */
+    /** Obtener cliente por ID (ADMIN/EMPLEADO) */
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLEADO')")
     public ResponseEntity<?> getClienteById(@PathVariable Long id) {
@@ -72,27 +49,14 @@ public class ClienteController {
         return ResponseEntity.ok(cliente);
     }
 
-    /**
-     * POST /api/v1/clientes
-     * Crear nuevo cliente (ADMIN/EMPLEADO).
-     *
-     * Sin @PreAuthorize propio, pero no es público: la tienda virtual quedó
-     * fuera de alcance (ver SecurityConfig), así que la regla general
-     * `anyRequest().authenticated()` ya exige sesión acá. En la práctica hoy
-     * nadie llama esto directo: un cliente nuevo se crea solo al registrar
-     * su primera venta (ver VentaService).
-     */
+    /** Crea un cliente; en la práctica se crea solo al registrar su primera venta (ver VentaService). */
     @PostMapping
     public ResponseEntity<?> createCliente(@Valid @RequestBody ClienteRequest request) {
         ClienteResponse createdCliente = clienteService.createCliente(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdCliente);
     }
 
-    /**
-     * PUT /api/v1/clientes/{id}
-     * Actualizar cliente (ADMIN/EMPLEADO)
-     * CU: Modificar Cliente - Interfaz P6.2
-     */
+    /** Actualiza un cliente (ADMIN/EMPLEADO). */
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLEADO')")
     public ResponseEntity<?> updateCliente(@PathVariable Long id, 
@@ -101,11 +65,7 @@ public class ClienteController {
         return ResponseEntity.ok(updatedCliente);
     }
 
-    /**
-     * GET /api/v1/clientes/buscar?q=...
-     * Buscar clientes por nombre, teléfono o NIT/CI (ADMIN/EMPLEADO)
-     * CU: Buscar/Consultar Cliente - Interfaz P6.1
-     */
+    /** Busca por nombre, teléfono o NIT/CI (ADMIN/EMPLEADO). */
     @GetMapping("/buscar")
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLEADO')")
     public ResponseEntity<List<ClienteResponse>> searchClientes(@RequestParam String q) {
@@ -113,11 +73,7 @@ public class ClienteController {
         return ResponseEntity.ok(clientes);
     }
 
-    /**
-     * GET /api/v1/clientes/{id}/historial-compras
-     * Obtener historial completo de compras de un cliente
-     * CU: Ver Historial de Compras del Cliente - Interfaz P6.3
-     */
+    /** Historial completo de compras de un cliente. */
     @GetMapping("/{id}/historial-compras")
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLEADO')")
     public ResponseEntity<?> getHistorialCompras(@PathVariable Long id) {
@@ -125,11 +81,7 @@ public class ClienteController {
         return ResponseEntity.ok(historial);
     }
 
-    /**
-     * GET /api/v1/clientes/{id}/historial-compras/filtrado?inicio=...&fin=...
-     * Obtener historial de compras filtrado por fechas
-     * CU: Ver Historial de Compras del Cliente - Filtro de fechas
-     */
+    /** Historial de compras de un cliente entre dos fechas. */
     @GetMapping("/{id}/historial-compras/filtrado")
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLEADO')")
     public ResponseEntity<?> getHistorialComprasFiltrado(

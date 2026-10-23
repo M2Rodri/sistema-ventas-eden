@@ -61,7 +61,6 @@ export default function ModificarClienteModal({
   };
 
   const validarFormulario = (): boolean => {
-    // Validar nombre completo (obligatorio)
     if (!formData.nombre.trim()) {
       setError('El nombre es obligatorio');
       return false;
@@ -76,20 +75,17 @@ export default function ModificarClienteModal({
       return false;
     }
 
-    // Validar teléfono (obligatorio)
     if (!formData.telefono || !formData.telefono.trim()) {
       setError('El número de teléfono es obligatorio');
       return false;
     }
 
-    // Validar formato de teléfono (números y espacios, 7-15 caracteres)
     const telefonoRegex = /^[0-9\s]{7,15}$/;
     if (!telefonoRegex.test(formData.telefono.trim())) {
       setError('Ingrese un número de teléfono válido (7-15 dígitos)');
       return false;
     }
 
-    // Validar formato de correo electrónico (si existe)
     if (formData.email && formData.email.trim()) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(formData.email.trim())) {

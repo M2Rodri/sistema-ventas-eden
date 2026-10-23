@@ -12,12 +12,7 @@ interface DetalleCompraModalProps {
   onClose: () => void;
 }
 
-/**
- * Detalle de una compra, con lo mismo que ya tiene el comprobante de venta:
- * imprimir/guardar PDF y compartir. Antes esta información solo vivía en
- * pantalla — para cotejarla contra la factura física del proveedor hace
- * falta poder sacarla de acá.
- */
+/** Detalle de una compra, con lo mismo que ya tiene el comprobante de venta: imprimir/guardar PDF y compartir. */
 export default function DetalleCompraModal({ compra, onClose }: DetalleCompraModalProps) {
   const printRef = useRef<HTMLDivElement>(null);
   const [compartiendo, setCompartiendo] = useState(false);
@@ -50,10 +45,7 @@ export default function DetalleCompraModal({ compra, onClose }: DetalleCompraMod
     });
   };
 
-
-  // Misma mecánica que el comprobante de venta: .area-impresion (definida en
-  // globals.css) oculta todo lo demás de la pantalla al imprimir, así que
-  // alcanza con pedir la impresión — no hace falta armar una vista aparte.
+  // Igual que el comprobante de venta: .area-impresion oculta lo demás al imprimir (ver globals.css).
   const handleImprimir = () => {
     window.print();
   };

@@ -1,13 +1,4 @@
-/**
- * Exportación real a CSV, que Excel abre directamente.
- *
- * Antes los botones "Exportar a Excel" solo mostraban un alert diciendo
- * "Archivo generado exitosamente" sin generar ningún archivo. Acá se arma
- * el contenido de verdad y el navegador lo descarga.
- *
- * Se usa CSV y no .xlsx porque el formato de Excel es un ZIP con XML adentro
- * y necesitaría una librería externa; el CSV se abre igual con doble clic.
- */
+/** Exportación real a CSV, que Excel abre directamente. */
 
 /** Escapa un valor según RFC 4180: comillas dobles y separadores. */
 function escaparCampo(valor: unknown): string {

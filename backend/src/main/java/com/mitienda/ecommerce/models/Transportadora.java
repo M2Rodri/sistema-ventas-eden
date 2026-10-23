@@ -15,16 +15,13 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Entidad Transportadora - Empresas de envío
- */
+/** Entidad Transportadora - Empresas de envío */
 @Entity
 @Table(name = "transportadoras")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class Transportadora {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

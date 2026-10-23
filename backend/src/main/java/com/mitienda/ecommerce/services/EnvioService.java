@@ -12,14 +12,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-// Lectura dentro de transacción por defecto: con spring.jpa.open-in-view=false
-// no hay sesión de Hibernate fuera de la transacción, y los DTO de respuesta se
-// arman recorriendo relaciones perezosas. Sin esto, los endpoints de lectura
-// fallaban con LazyInitializationException.
-// Los métodos que escriben llevan su propio @Transactional, que tiene precedencia.
+// Lectura en transacción: con open-in-view=false no hay sesión de Hibernate fuera de ella.
 @Transactional(readOnly = true)
 public class EnvioService {
-
     private final EnvioRepository envioRepository;
 
     private final VentaRepository ventaRepository;
@@ -28,13 +23,6 @@ public class EnvioService {
 
     private final UsuarioRepository usuarioRepository;
 
-    /**
-     * Inyeccion por constructor, no por campo.
-     *
-     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
-     * puede existir a medio construir, y una dependencia circular falla al
-     * arrancar en vez de aparecer en ejecucion.
-     */
     public EnvioService(EnvioRepository envioRepository,
                         VentaRepository ventaRepository,
                         TransportadoraRepository transportadoraRepository,
@@ -44,7 +32,6 @@ public class EnvioService {
         this.transportadoraRepository = transportadoraRepository;
         this.usuarioRepository = usuarioRepository;
     }
-
 
     /** Asigna el empleado responsable del envío, si el request lo trae. */
     private void asignarResponsable(Envio envio, EnvioRequest request) {

@@ -7,18 +7,10 @@ import lombok.Setter;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-/**
- * Cliente junto con sus estadísticas de compra, para la tabla de Clientes.
- *
- * Antes el frontend armaba esto pidiendo el historial de cada cliente por
- * separado (una consulta HTTP por fila de la tabla). Acá se arma con una
- * sola consulta agregada (ver VentaRepository#aggregarEstadisticasPorCliente),
- * así que la pantalla entera sale en dos consultas en vez de N+1.
- */
+/** Cliente con sus estadísticas de compra, armado con una sola consulta agregada (ver VentaRepository). */
 @Getter
 @Setter
 public class ClienteConEstadisticasResponse extends ClienteResponse {
-
     private Long numeroCompras;
     private BigDecimal montoTotalComprado;
     private LocalDateTime ultimaFechaCompra;

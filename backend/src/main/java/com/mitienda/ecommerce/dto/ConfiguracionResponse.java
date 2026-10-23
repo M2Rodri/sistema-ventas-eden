@@ -7,14 +7,11 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-/**
- * DTO para respuestas de configuración
- */
+/** DTO para respuestas de configuración */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class ConfiguracionResponse {
-
     private Long id;
     private String clave;
     private String valor;

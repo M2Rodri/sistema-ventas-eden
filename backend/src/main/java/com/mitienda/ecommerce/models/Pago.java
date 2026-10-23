@@ -14,16 +14,13 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-/**
- * Entidad Pago - Registro de pagos de ventas
- */
+/** Entidad Pago - Registro de pagos de ventas */
 @Entity
 @Table(name = "pagos")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class Pago {
-
     @Id
     @GeneratedValue(generator = "id_pagos")
     @GenericGenerator(name = "id_pagos", type = GeneradorIdSinHuecos.class,
@@ -51,11 +48,7 @@ public class Pago {
     @Column(length = 100)
     private String referencia; // Número de referencia del pago
 
-    /**
-     * Nota libre del cobro. La columna existía en la base y la entidad no la
-     * mapeaba: sirve para anotar el contexto de un pago (a cuenta, cheque
-     * diferido, quién lo entregó).
-     */
+    /** Nota libre del cobro (a cuenta, cheque diferido, quién lo entregó). */
     @Column(columnDefinition = "text")
     private String observacion;
 
@@ -63,20 +56,11 @@ public class Pago {
     @Column(nullable = false, length = 20)
     private EstadoPago estado = EstadoPago.COMPLETADO;
 
-    /**
-     * Foto del comprobante (QR/transferencia). Opcional siempre: si falta en
-     * un pago que no es EFECTIVO, el pago queda "sin respaldo" (ver
-     * PagoDTO.sinRespaldo), pero nunca bloquea el registro. Se puede
-     * adjuntar en el momento o después, sobre un pago ya guardado.
-     */
+    /** Foto del comprobante; opcional, y un pago no EFECTIVO sin ella queda "sin respaldo" (ver PagoDTO.sinRespaldo). */
     @Column(length = 500)
     private String urlComprobante;
 
-    /**
-     * Quién registró el cobro. Nullable porque los pagos ya existentes no
-     * tienen este dato; para los nuevos sale del token, nunca de un
-     * parámetro que mande el cliente (ver UsuarioActualService).
-     */
+    /** Quién registró el cobro; nulo en pagos antiguos, en los nuevos sale del token. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_usuario")
     private Usuario usuario;

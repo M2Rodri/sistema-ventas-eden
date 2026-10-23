@@ -33,28 +33,16 @@ export default function ProductosPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [filteredProductos, setFilteredProductos] = useState<Producto[]>([]);
-  // Stock actual por producto, tal cual vive en Inventario. Solo se muestra
-  // acá, no se duplica el dato: la fuente sigue siendo la pantalla de
-  // Inventario, esto es nomás una lectura de esa misma información.
+  // Stock actual por producto, tal como vive en Inventario (solo lectura).
   const [stockPorProducto, setStockPorProducto] = useState<Map<number, number>>(new Map());
   const [fallosCarga, setFallosCarga] = useState<string[]>([]);
-  // IDs de producto cuya foto no cargó (por ejemplo, se perdió del disco del
-  // backend en un redeploy/reinicio de Render). Sin esto se ve un ícono de
-  // imagen rota; con esto se muestra el mismo placeholder que un producto
-  // sin foto todavía.
+  // Ids de productos cuya foto no cargó; se muestra el placeholder en vez de una imagen rota.
   const [imagenesConError, setImagenesConError] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
-  // El buscador de la cabecera navega hasta aca con ?q=<texto>. Se copia al
-  // filtro de la pantalla para que el elemento que se eligio alla quede a la
-  // vista sin tener que volver a escribirlo.
-  //
-  // Se lee de window y no con useSearchParams a proposito: ese hook obliga a
-  // envolver la pagina en un <Suspense> y, sin eso, el build de produccion
-  // falla. Aca el valor solo hace falta despues de montar, asi que alcanza con
-  // mirar la URL dentro del efecto.
+  // El buscador de la cabecera navega con ?q=<texto>; se lee de window porque useSearchParams exige un Suspense.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const q = params.get('q');
@@ -64,7 +52,7 @@ export default function ProductosPage() {
   }, []);
   const [categoriaFilter, setCategoriaFilter] = useState<string>('TODOS');
   const [statusFilter, setStatusFilter] = useState<string>('TODOS');
-  
+
   // Modals
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -85,9 +73,7 @@ export default function ProductosPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      // allSettled: sin categorias el filtro queda vacio, y sin inventario
-      // la columna de stock queda en blanco, pero la lista de productos se
-      // sigue viendo.
+      // allSettled: sin categorías o inventario igual se ve la lista de productos.
       const [rProductos, rCategorias, rInventario] = await Promise.allSettled([
         getAllProductos(),
         getActiveCategorias(),
@@ -137,8 +123,7 @@ export default function ProductosPage() {
     setFilteredProductos(filtered);
   }, [searchTerm, categoriaFilter, statusFilter, productos]);
 
-  // Los de éxito se cierran solos; los de error se quedan hasta que el
-  // usuario los cierra a mano (el botón X del banner).
+  // Los avisos de éxito se cierran solos; los de error esperan a que el usuario los cierre.
   const showMessage = (type: 'success' | 'error', text: string) => {
     setMessage({ type, text });
     if (type === 'success') {
@@ -155,31 +140,18 @@ export default function ProductosPage() {
 
   const handleEditProducto = async (producto: Producto) => {
     try {
-      console.log("=== INICIANDO EDICIÓN DE PRODUCTO ===");
-      console.log("1. Producto seleccionado:", producto);
-      
       setSelectedProducto(producto);
       setLoadingImages(true);
-      
-      console.log("2. Llamando a getProductoById con ID:", producto.id);
       const productoCompleto = await getProductoById(producto.id);
-      
-      console.log("3. Producto completo recibido:", productoCompleto);
-      console.log("4. Imágenes del producto:", productoCompleto.imagenes);
-      console.log("5. Cantidad de imágenes:", productoCompleto.imagenes?.length || 0);
-      
+
       setProductoToEdit(productoCompleto);
-      
-      // ✅ CORREGIR: Asegurar que orden esté definido
+
       const imagenesConOrden = (productoCompleto.imagenes || []).map((img, index) => ({
         ...img,
         orden: img.orden ?? index
       }));
       setImagenesDelProducto(imagenesConOrden);
-      
-      console.log("6. Estado actualizado - imagenesDelProducto:", imagenesConOrden);
-      console.log("=== ABRIENDO MODAL ===");
-      
+
       setIsModalOpen(true);
     } catch (error: any) {
       console.error("❌ ERROR en handleEditProducto:", error);
@@ -268,8 +240,7 @@ export default function ProductosPage() {
     }).format(price);
   };
 
-  // Arrastrar la tabla desde el encabezado, como si fuera una barra de
-  // scroll horizontal. Ver hooks/useDragScrollTable.ts.
+  // Arrastrar la tabla desde el encabezado (ver hooks/useDragScrollTable.ts).
   const {
     scrollContainerRef,
     tableRef,
@@ -300,7 +271,7 @@ export default function ProductosPage() {
           <h1 className="text-2xl font-bold text-gray-900">Gestión de Productos</h1>
           <p className="text-gray-600 mt-1">Administra el catálogo de productos</p>
         </div>
-        
+
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />

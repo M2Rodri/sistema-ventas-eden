@@ -4,15 +4,11 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * DTO para respuestas de autenticación
- * Contiene el token JWT y datos del usuario
- */
+/** Respuesta de autenticación: token JWT y datos del usuario. */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class AuthResponse {
-
     private String token;
     private String tipo = "Bearer";
     private Long id;
@@ -20,13 +16,7 @@ public class AuthResponse {
     private String apellido;
     private String usuario;
 
-    /**
-     * Nombre del rol como texto plano ("ADMIN", "EMPLEADO").
-     * Antes era el enum Role. Se deja como String a propósito: al normalizar
-     * los roles en tabla, serializar la entidad produciría un objeto
-     * {id, nombre, descripcion} y rompería al frontend, que espera
-     * response.role === "ADMIN". El contrato de la API no cambia.
-     */
+    /** Rol como texto plano ("ADMIN", "EMPLEADO"), que es lo que espera el frontend. */
     private String role;
 
     public AuthResponse(String token, Long id, String nombre, String apellido, String usuario, String role) {

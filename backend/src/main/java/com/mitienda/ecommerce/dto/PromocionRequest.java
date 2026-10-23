@@ -9,14 +9,11 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
-/**
- * DTO para crear o actualizar promociones
- */
+/** DTO para crear o actualizar promociones */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class PromocionRequest {
-
     @NotBlank(message = "La descripción es obligatoria")
     @Size(min = 5, max = 200, message = "La descripción debe tener entre 5 y 200 caracteres")
     private String nombre;

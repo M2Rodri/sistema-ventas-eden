@@ -12,13 +12,7 @@ interface HistorialComprasModalProps {
   clienteId: number;
 }
 
-/**
- * Historial de compras de un cliente (Interfaz P6.3)
- *
- * Antes esta pantalla mostraba solo los datos del cliente y, debajo, tres
- * cajas grises simulando contenido: nunca consultaba las compras. El endpoint
- * y el modal de detalle ya existían sin conectar.
- */
+/** Historial de compras de un cliente (Interfaz P6.3) */
 export default function HistorialComprasModal({
   isOpen,
   onClose,

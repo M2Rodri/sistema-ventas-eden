@@ -12,11 +12,7 @@ interface DeshacerEntregaModalProps {
   onHecho: (venta: Venta) => void;
 }
 
-/**
- * Corregir una entrega marcada por error: ENTREGADO -> PENDIENTE (solo ADMIN),
- * con confirmación. Queda registrado en la auditoría. Al volver a PENDIENTE
- * reaparece el ícono para marcarla como entregada.
- */
+/** Corregir una entrega marcada por error: ENTREGADO -> PENDIENTE (solo ADMIN), con confirmación. */
 export default function DeshacerEntregaModal({ venta, onClose, onHecho }: DeshacerEntregaModalProps) {
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState<string | null>(null);

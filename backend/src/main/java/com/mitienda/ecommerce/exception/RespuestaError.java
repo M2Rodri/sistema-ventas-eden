@@ -9,20 +9,9 @@ import org.springframework.http.MediaType;
 import java.io.IOException;
 import java.util.Map;
 
-/**
- * Formato único de error de la API, en todas las rutas:
- * <pre>
- * { "error": { "codigo": "VENTA_NO_ENCONTRADA", "mensaje": "texto para el usuario", "campos": { "campo": "detalle" } } }
- * </pre>
- * "campos" solo viene en los errores de validación de campos.
- *
- * Códigos genéricos, solo para errores globales: VALIDACION, PETICION_INVALIDA,
- * NO_AUTENTICADO, SIN_PERMISO, RUTA_NO_ENCONTRADA, METODO_NO_PERMITIDO,
- * TIPO_NO_SOPORTADO, ERROR_INTERNO. El resto son propios de cada error.
- */
+/** Formato único de error: { "error": { "codigo", "mensaje", "campos" } }; "campos" solo en errores de validación. */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record RespuestaError(Detalle error) {
-
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record Detalle(String codigo, String mensaje, Map<String, String> campos) {
     }
@@ -37,11 +26,7 @@ public record RespuestaError(Detalle error) {
         return new RespuestaError(new Detalle(codigo, mensaje, campos));
     }
 
-    /**
-     * Escribe el error directamente en la respuesta. Lo usan los filtros y los
-     * manejadores de seguridad (401, 403, ruta sin versión), que actúan antes de
-     * que exista un controlador y por eso no pasan por el manejador global.
-     */
+    /** Escribe el error en la respuesta, para los filtros y manejadores de seguridad que actúan antes del controlador. */
     public static void escribir(HttpServletResponse response, HttpStatus estado, String codigo, String mensaje)
             throws IOException {
         response.setStatus(estado.value());

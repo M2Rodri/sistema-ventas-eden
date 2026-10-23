@@ -22,14 +22,9 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
-// Lectura dentro de transacción por defecto: con spring.jpa.open-in-view=false
-// no hay sesión de Hibernate fuera de la transacción, y los DTO de respuesta se
-// arman recorriendo relaciones perezosas. Sin esto, los endpoints de lectura
-// fallaban con LazyInitializationException.
-// Los métodos que escriben llevan su propio @Transactional, que tiene precedencia.
+// Lectura en transacción: con open-in-view=false no hay sesión de Hibernate fuera de ella.
 @Transactional(readOnly = true)
 public class VentaService {
-
     private final VentaRepository ventaRepository;
 
     private final DetalleVentaRepository detalleVentaRepository;
@@ -50,13 +45,6 @@ public class VentaService {
 
     private final UsuarioActualService usuarioActualService;
 
-    /**
-     * Inyeccion por constructor, no por campo.
-     *
-     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
-     * puede existir a medio construir, y una dependencia circular falla al
-     * arrancar en vez de aparecer en ejecucion.
-     */
     public VentaService(VentaRepository ventaRepository,
                         DetalleVentaRepository detalleVentaRepository,
                         PagoRepository pagoRepository,
@@ -79,14 +67,7 @@ public class VentaService {
         this.usuarioActualService = usuarioActualService;
     }
 
-
-    /**
-     * La respuesta de una venta, según quién la pide: solo el Admin recibe el costo y la ganancia. El
-     * Empleado nunca debe recibirlos, ni siquiera ocultos en pantalla: la web y la app solo muestran lo que
-     * llega, y lo que no llega no se puede ver con F12 ni con Postman.
-     *
-     * Toda respuesta de una venta pasa por acá (o por aRespuesta, para listas).
-     */
+    /** Respuesta de la venta según el rol: solo el Admin recibe costo y ganancia; al Empleado no le llegan ni ocultos. */
     private VentaResponse respuesta(Venta venta) {
         return new VentaResponse(venta, usuarioActualService.esAdmin());
     }
@@ -99,10 +80,6 @@ public class VentaService {
 
     @Transactional(readOnly = true)
     public List<VentaResponse> getAllVentas() {
-        // El resto de las consultas del repositorio ya ordenan por fecha
-        // descendente (ventas del día, últimas ventas, por cliente...);
-        // esta era la única que quedaba sin orden, por eso la lista salía
-        // mezclada sin relación con el ID ni con la fecha.
         return ventaRepository.findAll(Sort.by(Sort.Direction.DESC, "fechaVenta"))
                 .stream()
                 .map(aRespuesta())
@@ -123,18 +100,13 @@ public class VentaService {
                     "Debe proporcionar un cliente registrado (idCliente) o el nombre del cliente de mostrador");
         }
 
-        // El vendedor sale del token, no de lo que mande el cliente: ver
-        // UsuarioActualService.
+        // El vendedor sale del token, no del cliente (ver UsuarioActualService).
         Usuario usuario = usuarioActualService.obtenerRequerido();
 
         ModalidadEntrega modalidadEntrega = request.getModalidadEntrega() != null
                 ? request.getModalidadEntrega() : ModalidadEntrega.RETIRO;
 
-        // Datos de entrega según la modalidad:
-        //   RETIRO:         ninguno.
-        //   DOMICILIO:      dirección opcional (sirve para coordinar); no se pide ciudad.
-        //   TRANSPORTADORA: ciudad obligatoria; dirección, transportadora y
-        //                   guía opcionales (se completan después si hace falta).
+        // Entrega: RETIRO sin datos; DOMICILIO con dirección opcional; TRANSPORTADORA con ciudad obligatoria.
         if (modalidadEntrega == ModalidadEntrega.TRANSPORTADORA && esVacio(request.getCiudad())) {
             throw new PeticionInvalidaException("CIUDAD_REQUERIDA", "La ciudad es obligatoria para el envío por transportadora");
         }
@@ -148,11 +120,7 @@ public class VentaService {
                     .orElseThrow(() -> new RecursoNoEncontradoException("CLIENTE_NO_ENCONTRADO", "Cliente no encontrado con ID: " + request.getIdCliente()));
             venta.setCliente(cliente);
         } else if (request.esClienteRapido()) {
-            // Venta de mostrador: en lugar de guardar el nombre suelto dentro de
-            // la venta, se crea un cliente. Así hay un solo mecanismo para
-            // identificar al comprador y el dato queda disponible para el
-            // resto del sistema (comprobante, envío, historial).
-            // Queda como cualquier otro cliente: no se distingue de los demás.
+            // Venta de mostrador: se crea un cliente para tener un único mecanismo de comprador.
             Cliente invitado = new Cliente();
             invitado.setNombre(request.getNombreClienteInvitado().trim());
             invitado.setTelefono(request.getTelefonoClienteInvitado() != null
@@ -163,8 +131,7 @@ public class VentaService {
             venta.setCliente(clienteRepository.save(invitado));
         }
 
-        // El método de pago ya no se guarda en la venta: viaja al Pago (PASO 4),
-        // porque una venta admite varios cobros con métodos distintos.
+        // El método de pago vive en Pago (PASO 4): una venta admite varios cobros.
         venta.setUsuario(usuario);
 
         venta.setModalidadEntrega(modalidadEntrega);
@@ -178,7 +145,7 @@ public class VentaService {
             venta.setGuiaRemision(textoOpcional(request.getGuiaRemision()));
         }
 
-        // PASO 1: CALCULAR TOTAL
+        // PASO 1: calcular total
         BigDecimal total = BigDecimal.ZERO;
 
         for (VentaRequest.ItemVentaRequest item : request.getItems()) {
@@ -200,8 +167,7 @@ public class VentaService {
                 if (item.getPrecioUnitarioConDescuento().compareTo(BigDecimal.ZERO) <= 0) {
                     throw new PeticionInvalidaException("PRECIO_INVALIDO", "El precio unitario debe ser mayor a 0");
                 }
-                // El precio pactado en la venta es independiente del precio de catálogo
-                // (tanto para admin como empleado) y no altera el catálogo.
+                // El precio pactado es independiente del de catálogo y no lo altera.
                 precioFinal = item.getPrecioUnitarioConDescuento();
             } else {
                 precioFinal = precioOriginal;
@@ -210,16 +176,12 @@ public class VentaService {
             total = total.add(precioFinal.multiply(BigDecimal.valueOf(item.getCantidad())));
         }
 
-        // PASO 2: GUARDAR VENTA
-        // subtotal es NOT NULL en la base. Sin descuento general, subtotal y
-        // montoTotal coinciden; el descuento por línea ya está aplicado en
-        // cada precio unitario y queda registrado en detalle_venta.
+        // PASO 2: guardar venta. Sin descuento general, subtotal y montoTotal coinciden.
         venta.setSubtotal(total);
         venta.setDescuento(BigDecimal.ZERO);
         venta.setMontoTotal(total);
 
-        // Si no se indica montoPagado, se asume que se cobró todo (comportamiento
-        // previo a la venta a crédito).
+        // Sin montoPagado se asume cobro total.
         BigDecimal montoPagado = request.getMontoPagado() != null ? request.getMontoPagado() : total;
         if (montoPagado.compareTo(BigDecimal.ZERO) < 0) {
             throw new PeticionInvalidaException("MONTO_INVALIDO", "El monto pagado no puede ser negativo");
@@ -240,7 +202,7 @@ public class VentaService {
 
         Venta savedVenta = ventaRepository.save(venta);
 
-        // PASO 3: CREAR DETALLES Y REDUCIR INVENTARIO
+        // PASO 3: crear detalles y reducir inventario
         for (VentaRequest.ItemVentaRequest item : request.getItems()) {
             Producto producto = productoRepository.findById(item.getIdProducto())
                     .orElseThrow(() -> new RecursoNoEncontradoException("PRODUCTO_NO_ENCONTRADO", "Producto no encontrado"));
@@ -266,7 +228,6 @@ public class VentaService {
                     descuentoPorcentaje = item.getDescuentoPorcentaje() != null ? item.getDescuentoPorcentaje()
                             : BigDecimal.ZERO;
                 } else {
-                    // Precio igual o mayor al catálogo: no hay descuento
                     descuentoUnitario = BigDecimal.ZERO;
                     descuentoPorcentaje = BigDecimal.ZERO;
                 }
@@ -284,16 +245,11 @@ public class VentaService {
             detalle.setPrecioUnitario(precioFinal);
             detalle.setDescuentoUnitario(descuentoUnitario);
             detalle.setDescuentoPorcentaje(descuentoPorcentaje);
-            // Costo al momento de la venta: si el precio de compra del
-            // producto cambia despues, la ganancia de esta venta no se mueve.
-            // costo_unitario no admite null en la base: sin precio de compra
-            // cargado, queda en 0 (el margen de esa venta no se puede saber,
-            // pero la venta no se bloquea por eso).
+            // Costo congelado al vender; sin precio de compra queda en 0 (la columna no admite null).
             detalle.setCostoUnitario(producto.getPrecioCompra() != null
                     ? producto.getPrecioCompra() : BigDecimal.ZERO);
             detalle.calcularSubtotal();
-            // Se agrega también a la lista de la venta en memoria: la respuesta se arma
-            // desde ahí y, si no, saldría sin los productos recién guardados.
+            // También en la lista en memoria: la respuesta se arma desde ahí.
             savedVenta.getDetalles().add(detalleVentaRepository.save(detalle));
 
             inventarioService.reducirStock(producto.getId(), item.getCantidad());
@@ -310,9 +266,7 @@ public class VentaService {
                     usuario.getId());
         }
 
-        // PASO 4: REGISTRAR PAGO
-        // Si montoPagado vino en 0 (venta enteramente a crédito), no hay pago
-        // que registrar: Pago exige un monto mayor a 0.
+        // PASO 4: registrar pago (Pago exige monto mayor a 0, así que una venta toda a crédito no lo crea).
         if (montoPagado.compareTo(BigDecimal.ZERO) > 0) {
             Pago pago = new Pago();
             pago.setVenta(savedVenta);
@@ -321,20 +275,11 @@ public class VentaService {
             pago.setReferencia(request.getReferenciaPago());
             pago.setUsuario(usuario);
             pago.setEstado(EstadoPago.COMPLETADO);
-            // Se agrega también a la lista de la venta en memoria: la respuesta se arma
-            // desde ahí. Sin esto salía con pagos vacíos y la web, que sube la foto del
-            // comprobante a pagos[0] al registrar la venta, nunca la subía.
+            // También en la lista en memoria: la web sube la foto del comprobante a pagos[0].
             savedVenta.getPagos().add(pagoRepository.save(pago));
         }
 
-        // El comprobante se genera aparte, después de que esta transacción
-        // confirme (ver VentaController). Antes se generaba acá adentro
-        // envuelto en try/catch: como createComprobante es @Transactional y
-        // comparte esta misma transacción, si fallaba (por ejemplo un
-        // numeroComprobante repetido), Spring marcaba TODA la transacción
-        // como rollback-only. El catch de acá no evitaba nada: la venta
-        // igual se revertía entera al terminar el método, con un error
-        // "Transaction silently rolled back" que no explicaba la causa real.
+        // El comprobante se genera aparte, tras confirmar la transacción (ver VentaController).
 
         registroAuditoria.registrar("CREAR_VENTA", "ventas", savedVenta.getId(),
                 "Venta por Bs " + savedVenta.getMontoTotal()
@@ -373,15 +318,11 @@ public class VentaService {
         }
 
         venta.setEstado(EstadoVenta.CANCELADA);
-        // Una venta cancelada no le debe nada a nadie: sin esto, una
-        // PENDIENTE_PAGO cancelada quedaba con su saldoPendiente viejo
-        // pegado en la base para siempre, como si la deuda siguiera viva.
+        // Una venta cancelada no debe quedar con saldo pendiente.
         venta.setSaldoPendiente(BigDecimal.ZERO);
         venta.setFechaLimitePago(null);
         Venta cancelada = ventaRepository.save(venta);
 
-        // Cancelar una venta devuelve mercaderia al stock y anula plata cobrada:
-        // es de las operaciones que mas conviene poder rastrear despues.
         registroAuditoria.registrar("CANCELAR_VENTA", "ventas", cancelada.getId(),
                 "Anulacion de la venta #" + cancelada.getId()
                         + " por Bs " + cancelada.getMontoTotal());
@@ -389,15 +330,7 @@ public class VentaService {
         return respuesta(cancelada);
     }
 
-    /**
-     * Marca la entrega de una venta como completada. La pueden hacer ADMIN y
-     * EMPLEADO, en cualquier venta no cancelada y sin importar desde qué
-     * estado.
-     *
-     * El saldo pendiente NO bloquea la entrega: el sistema registra lo que
-     * pasa en el negocio, y la decisión de entregar con saldo es del dueño.
-     * (Antes, RF-07 lo impedía; se quitó por decisión del negocio.)
-     */
+    /** Marca la entrega como completada; el saldo pendiente no la bloquea (decisión del dueño). */
     @Transactional
     public VentaResponse marcarEntregado(Long id) {
         Venta venta = buscarVenta(id);
@@ -418,13 +351,7 @@ public class VentaService {
         return respuesta(entregada);
     }
 
-    /**
-     * Corrige una entrega ya marcada: ENTREGADO -> PENDIENTE. Solo ADMIN: lo
-     * exige el controlador. Queda registrado en la auditoría. Si la venta
-     * vuelve a PENDIENTE, vuelve a ofrecerse marcarla como entregada.
-     *
-     * En una venta en tienda (RETIRO) no se ofrece: siempre es ENTREGADO.
-     */
+    /** Corrige una entrega marcada (ENTREGADO a PENDIENTE); solo ADMIN. Una venta RETIRO siempre es ENTREGADO. */
     @Transactional
     public VentaResponse deshacerEntrega(Long id) {
         Venta venta = buscarVenta(id);
@@ -448,13 +375,7 @@ public class VentaService {
         return respuesta(actualizada);
     }
 
-    /**
-     * Completa o corrige los datos de entrega de una venta ya registrada:
-     * dirección (DOMICILIO o TRANSPORTADORA) y transportadora y guía (solo
-     * TRANSPORTADORA). Solo ADMIN: lo exige el controlador.
-     *
-     * Un valor vacío borra el dato. No toca la ciudad ni el estado.
-     */
+    /** Completa o corrige dirección, transportadora y guía de la entrega; un valor vacío borra el dato. Solo ADMIN. */
     @Transactional
     public VentaResponse actualizarDatosEntrega(Long id, DatosEntregaRequest datos) {
         Venta venta = buscarVenta(id);
@@ -479,10 +400,7 @@ public class VentaService {
         return respuesta(actualizada);
     }
 
-    /**
-     * Pone o cambia la fecha límite del pago pendiente de una venta ya
-     * registrada (ADMIN y EMPLEADO). Solo si todavía hay saldo pendiente.
-     */
+    /** Pone o cambia la fecha límite del pago pendiente, solo si queda saldo. */
     @Transactional
     public VentaResponse actualizarFechaLimitePago(Long id, FechaLimitePagoRequest datos) {
         Venta venta = buscarVenta(id);
@@ -509,11 +427,7 @@ public class VentaService {
         return respuesta(actualizada);
     }
 
-    /**
-     * La fecha límite sale del reloj del SERVIDOR, nunca del aparato del
-     * usuario: si vienen días, es hoy más esos días; si viene una fecha, no
-     * puede ser anterior a hoy. Si no viene nada, no hay fecha (null).
-     */
+    /** La fecha límite sale del reloj del servidor: hoy más N días, o una fecha no anterior a hoy. */
     private LocalDate resolverFechaLimitePago(Integer plazoDias, LocalDate fecha) {
         if (plazoDias != null) {
             return LocalDate.now().plusDays(plazoDias);
@@ -542,14 +456,7 @@ public class VentaService {
         return esVacio(texto) ? null : texto.trim();
     }
 
-    /**
-     * Estado de entrega con el que nace una venta.
-     *
-     *   RETIRO:         siempre ENTREGADO (el cliente se lleva el producto en el momento).
-     *   sin indicar:    PENDIENTE.
-     *   PENDIENTE:      cualquier modalidad.
-     *   ENTREGADO:      DOMICILIO o TRANSPORTADORA, ADMIN y EMPLEADO.
-     */
+    /** Estado de entrega inicial: RETIRO siempre ENTREGADO; en otros casos, el indicado o PENDIENTE. */
     private EstadoEntrega resolverEstadoInicial(ModalidadEntrega modalidad, EstadoEntrega pedido) {
         if (modalidad == ModalidadEntrega.RETIRO) {
             return EstadoEntrega.ENTREGADO;

@@ -8,14 +8,11 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
-/**
- * DTO para crear o actualizar productos
- */
+/** DTO para crear o actualizar productos */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProductoRequest {
-
     @NotBlank(message = "El SKU es obligatorio")
     @Size(max = 50, message = "El SKU no puede exceder 50 caracteres")
     private String sku;
@@ -60,9 +57,7 @@ public class ProductoRequest {
     // Por defecto 1: el formulario ya no lo pide; se ajusta desde Inventario.
     private Integer stockMinimo = 1;
 
-    // Solo se usa al crear: es la cantidad que ya hay en el local. Vacío o 0
-    // significa "sin stock todavía". Al editar se ignora: el stock se cambia
-    // desde Inventario, con motivo.
+    // Solo al crear: cantidad que ya hay en el local; al editar se ignora (el stock se cambia desde Inventario).
     @Min(value = 0, message = "El stock inicial no puede ser negativo")
     private Integer stockInicial;
 

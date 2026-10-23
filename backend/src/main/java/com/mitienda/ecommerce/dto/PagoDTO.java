@@ -11,14 +11,11 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-/**
- * DTO para pagos
- */
+/** DTO para pagos */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class PagoDTO {
-
     private Long id;
     private Long idVenta;
     private BigDecimal monto;
@@ -34,11 +31,7 @@ public class PagoDTO {
     private Long idUsuario;
     private String nombreUsuario;
 
-    /**
-     * Un pago que no es EFECTIVO y no tiene foto de respaldo. Se calcula acá
-     * en vez de guardarse en la tabla: así nunca puede quedar desincronizado
-     * del dato real (metodoPago + urlComprobante).
-     */
+    /** Pago no EFECTIVO sin foto de respaldo; se calcula al responder para no desincronizarse. */
     private boolean sinRespaldo;
 
     // Constructor desde entidad

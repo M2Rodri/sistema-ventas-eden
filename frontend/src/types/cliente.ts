@@ -23,16 +23,7 @@ export interface ClienteResponse {
   fechaActualizacion: string;
 }
 
-/**
- * Historial de compras de un cliente
- * Para Interfaz P6.3
- *
- * El backend devuelve las ventas completas (el mismo VentaResponse que usa
- * el módulo de ventas), no un resumen aparte. Antes este archivo declaraba
- * un tipo VentaCliente propio con campos que el backend nunca envió
- * (productosResumen, cantidadTotalProductos), y por eso el historial no
- * se podía renderizar.
- */
+/** Historial de compras de un cliente Para Interfaz P6.3 */
 export interface HistorialComprasResponse {
   cliente: ClienteResponse;
   ventas: VentaHistorial[];
@@ -73,9 +64,7 @@ export interface EstadisticasCompra {
   cantidadProductoMasComprado?: number;
 }
 
-/**
- * Cliente con estadísticas para tabla P6.1
- */
+/** Cliente con estadísticas para tabla P6.1 */
 export interface ClienteConEstadisticas extends ClienteResponse {
   numeroCompras: number;
   montoTotalComprado: number;

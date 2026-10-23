@@ -29,7 +29,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 class FormatoErrorApiTest {
-
     private static final String BASE = "/api/v1/prueba-errores";
     private static final String ORIGEN = "http://localhost:3000";
 

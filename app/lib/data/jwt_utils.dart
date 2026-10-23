@@ -1,8 +1,6 @@
 import 'dart:convert';
 
-/// Lectura del JWT sin llamar al backend. No valida la firma (para eso está el
-/// backend en cada petición real): sirve solo para decidir si vale la pena
-/// entrar directo, renovar el token o mandar de nuevo a la pantalla de login.
+/// Lectura del JWT sin llamar al backend.
 Map<String, dynamic>? _payload(String token) {
   final partes = token.split('.');
   if (partes.length != 3) return null;
@@ -29,16 +27,14 @@ bool tokenExpirado(String token) {
   return DateTime.now().isAfter(expiracion);
 }
 
-/// Segundos que le quedan al token, o null si no se puede leer su "exp".
-/// Negativo si ya venció.
+/// Segundos que le quedan al token, o null si no se puede leer su "exp". Negativo si ya venció.
 int? segundosRestantes(String token) {
   final exp = _payload(token)?['exp'];
   if (exp is! int) return null;
   return exp - DateTime.now().millisecondsSinceEpoch ~/ 1000;
 }
 
-/// Cuándo empezó la sesión del token (el inicio de sesión; las renovaciones lo
-/// conservan). Los tokens viejos sin ese dato valen por su emisión ("iat").
+/// Cuándo empezó la sesión del token (el inicio de sesión; las renovaciones lo conservan).
 DateTime? inicioDeSesion(String token) {
   final payload = _payload(token);
   if (payload == null) return null;

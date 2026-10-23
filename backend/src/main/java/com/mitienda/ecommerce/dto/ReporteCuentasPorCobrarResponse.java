@@ -9,14 +9,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * DTO para reporte de cuentas por cobrar (ventas con saldo pendiente)
- */
+/** DTO para reporte de cuentas por cobrar (ventas con saldo pendiente) */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class ReporteCuentasPorCobrarResponse {
-
     private Long cantidadVentasPendientes;
     private BigDecimal totalPorCobrar;
     private List<VentaPendienteDTO> ventas;

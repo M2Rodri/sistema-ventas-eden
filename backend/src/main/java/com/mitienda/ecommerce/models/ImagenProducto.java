@@ -9,16 +9,13 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
-/**
- * Entidad ImagenProducto - Múltiples imágenes por producto
- */
+/** Entidad ImagenProducto - Múltiples imágenes por producto */
 @Entity
 @Table(name = "imagenes_producto")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class ImagenProducto {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

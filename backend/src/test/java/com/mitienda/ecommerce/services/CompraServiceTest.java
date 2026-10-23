@@ -46,7 +46,6 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class CompraServiceTest {
-
     @Mock private CompraRepository compraRepository;
     @Mock private DetalleCompraRepository detalleCompraRepository;
     @Mock private ProveedorRepository proveedorRepository;

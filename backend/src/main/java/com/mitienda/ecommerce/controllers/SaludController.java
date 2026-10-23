@@ -14,18 +14,10 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDateTime;
 import java.util.Map;
 
-/**
- * Ruta de salud publica (sin login), requerida por la plataforma de
- * despliegue para confirmar que el backend sigue arriba. El CORS ya lo
- * resuelve el bean global en CorsConfig, no hace falta anotarlo acá.
- *
- * Además de que el servicio responda, comprueba que la base de datos
- * conteste (SELECT 1). Si no contesta, responde 503 con el formato único de error.
- */
+/** Salud pública para el monitoreo del despliegue; responde 503 si la base no contesta. */
 @RestController
 @RequestMapping("/api/v1")
 public class SaludController {
-
     private static final Logger log = LoggerFactory.getLogger(SaludController.class);
 
     private final JdbcTemplate jdbc;

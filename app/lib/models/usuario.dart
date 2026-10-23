@@ -1,5 +1,4 @@
-/// Usuario autenticado. Mismos campos que devuelve el backend en
-/// POST /api/v1/auth/login (AuthResponse): id, nombre, apellido, usuario, role.
+/// Usuario autenticado.
 class Usuario {
   const Usuario({
     required this.id,

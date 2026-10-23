@@ -23,21 +23,11 @@ import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 
-/**
- * Herramienta SOLO de desarrollo para saber por qué una pantalla tarda.
- *
- * Por cada petición a /api/ anota en target/medicion-rendimiento.log cuánto
- * tardó el servidor en responder, cuántas sentencias SQL mandó a la base y
- * cuánto pesó la respuesta. Muchas consultas para una sola pantalla suelen
- * indicar consultas repetidas (el problema "N+1").
- *
- * Solo existe con el perfil "dev": en producción no se crea.
- */
+/** Solo en desarrollo (perfil dev): anota tiempo, consultas SQL y peso de cada petición para detectar N+1. */
 @Component
 @Profile("dev")
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class MedicionRendimiento extends OncePerRequestFilter {
-
     private static final ThreadLocal<int[]> CONSULTAS = ThreadLocal.withInitial(() -> new int[1]);
     private static final Path ARCHIVO = Path.of("target", "medicion-rendimiento.log");
 

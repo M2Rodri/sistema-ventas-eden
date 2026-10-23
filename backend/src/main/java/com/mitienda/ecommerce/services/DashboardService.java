@@ -19,7 +19,6 @@ import java.util.stream.Collectors;
 
 @Service
 public class DashboardService {
-
     private final VentaRepository ventaRepository;
 
     private final ProductoRepository productoRepository;
@@ -34,13 +33,6 @@ public class DashboardService {
 
     private final UsuarioActualService usuarioActualService;
 
-    /**
-     * Inyeccion por constructor, no por campo.
-     *
-     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
-     * puede existir a medio construir, y una dependencia circular falla al
-     * arrancar en vez de aparecer en ejecucion.
-     */
     public DashboardService(VentaRepository ventaRepository,
                             ProductoRepository productoRepository,
                             InventarioRepository inventarioRepository,
@@ -57,22 +49,12 @@ public class DashboardService {
         this.usuarioActualService = usuarioActualService;
     }
 
-
-    /**
-     * Estadísticas del panel de inicio.
-     *
-     * Requiere transacción: getProductosMasVendidos() agrupa por el Producto de
-     * cada DetalleVenta, que es una relación perezosa. Con
-     * spring.jpa.open-in-view=false no hay sesión abierta fuera de la
-     * transacción, y sin esta anotación el endpoint fallaba entero con
-     * LazyInitializationException.
-     */
+    /** Estadísticas del panel de inicio; requiere transacción porque agrupa por relaciones perezosas. */
     @Transactional(readOnly = true)
     public DashboardResponse getDashboardStats() {
         DashboardResponse dashboard = new DashboardResponse();
 
-        // Una consulta por tema: cada ida y vuelta a la base pesa en
-        // producción, así que se piden las cifras agrupadas.
+        // Una consulta por tema: cada ida y vuelta a la base pesa en producción.
         Object[] inventario = inventarioRepository.resumenInventario().get(0);
         dashboard.setVentasStats(getVentasStats());
         dashboard.setProductosStats(getProductosStats(inventario));
@@ -92,10 +74,7 @@ public class DashboardService {
         LocalDateTime inicioMes = LocalDate.now().withDayOfMonth(1).atStartOfDay();
         LocalDateTime inicioAño = LocalDate.now().withDayOfYear(1).atStartOfDay();
 
-        // El conteo cuenta las mismas ventas que suma el monto (COMPLETADA):
-        // antes el conteo incluía todos los estados y el monto solo las
-        // completadas, y quedaba "3 ventas registradas" al lado de un monto
-        // que en realidad era la suma de 2 — parecía que faltaba plata.
+        // El conteo usa los mismos estados que el monto (COMPLETADA).
         Object[] fila = ventaRepository.resumenVentasCompletadas(hoy, finHoy, inicioMes, inicioAño).get(0);
         Long totalVentasHoy = aLong(fila[0]);
         BigDecimal montoVentasHoy = aDecimal(fila[1]);
@@ -127,8 +106,7 @@ public class DashboardService {
     private DashboardResponse.InventarioStats getInventarioStats(Object[] inventario) {
         Long alertasInventario = alertaInventarioRepository.countByEstado(EstadoAlerta.PENDIENTE);
 
-        // Se calcula con precioCompra: el rol EMPLEADO no debe verlo, asi
-        // que para EMPLEADO (o sin sesion) esta tarjeta queda en null.
+        // Usa precioCompra: para EMPLEADO (o sin sesión) queda en null.
         BigDecimal valorTotal = usuarioActualService.esAdmin() ? aDecimal(inventario[2]) : null;
 
         Integer ajustesDelMes = 0;
@@ -158,45 +136,22 @@ public class DashboardService {
         return valor == null ? BigDecimal.ZERO : new BigDecimal(valor.toString());
     }
 
-    /**
-     * "Cuotas" es el nombre historico del campo, pero en 'ventas' no hay tabla
-     * de cuotas: lo que hay es saldoPendiente por venta. Por cobrar = ventas
-     * con saldo o que nunca se marcaron como completadas.
-     *
-     * No hay fecha de vencimiento en 'ventas', asi que no existe "vencidas".
-     */
+    /** Por cobrar: ventas con saldo pendiente. 'Cuotas' es un nombre histórico y no hay fecha de vencimiento. */
     private DashboardResponse.PagosStats getPagosStats() {
         Object[] fila = ventaRepository.resumenPorCobrar().get(0);
         return new DashboardResponse.PagosStats(aLong(fila[0]), aDecimal(fila[1]));
     }
 
-    /**
-     * Productos mas vendidos de toda la historia del negocio.
-     *
-     * Antes este metodo traia la tabla detalle_venta completa con findAll() y
-     * agrupaba en memoria, sin filtrar por estado: las ventas canceladas
-     * seguian sumando al ranking. Ahora agrupa la base de datos y solo cuenta
-     * las ventas COMPLETADAS.
-     */
+    /** Productos más vendidos de toda la historia, solo ventas COMPLETADA. */
     private List<DashboardResponse.ProductoMasVendidoDTO> getProductosMasVendidos(int limite) {
-        // Desde una fecha bien anterior a cualquier venta posible: equivale a
-        // "sin limite inferior", sin necesitar una segunda consulta.
+        // Fecha anterior a cualquier venta: equivale a no tener límite inferior.
         return getMasVendidosEntre(LocalDateTime.of(2000, 1, 1, 0, 0),
                 LocalDateTime.now().plusDays(1), limite);
     }
 
-    /**
-     * Productos mas vendidos dentro de un rango.
-     *
-     * Se expone aparte porque el aviso de cierre del dia necesita responder
-     * "que se vendio hoy", y el metodo anterior solo sabia de toda la historia.
-     *
-     * @param desde  inclusive
-     * @param hasta  exclusive
-     */
+    /** Productos más vendidos en un rango (desde inclusive, hasta exclusive); lo usa el aviso de cierre del día. */
     public List<DashboardResponse.ProductoMasVendidoDTO> getMasVendidosEntre(
             LocalDateTime desde, LocalDateTime hasta, int limite) {
-
         Pageable tope = PageRequest.of(0, limite);
 
         return detalleVentaRepository.findMasVendidosEntre(desde, hasta, tope)
@@ -205,30 +160,20 @@ public class DashboardService {
                         (Long) fila[0],
                         (String) fila[1],
                         (String) fila[2],
-                        // SUM sobre un Integer devuelve Long en JPQL; SUM sobre
-                        // un BigDecimal devuelve BigDecimal.
+                        // SUM de Integer da Long en JPQL; SUM de BigDecimal da BigDecimal.
                         ((Number) fila[3]).longValue(),
                         (BigDecimal) fila[4]
                 ))
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Lo que se vendio hoy, para el aviso de cierre del dia.
-     *
-     * El dia va de las 00:00 de hoy a las 00:00 de manana, sin incluir ese
-     * limite: asi una venta registrada a las 23:59:59 entra en el dia correcto.
-     */
+    /** Lo vendido hoy, de 00:00 a 00:00 de mañana (exclusive), para el aviso de cierre. */
     public List<DashboardResponse.ProductoMasVendidoDTO> getMasVendidosHoy(int limite) {
         LocalDateTime inicioDelDia = LocalDate.now().atStartOfDay();
         return getMasVendidosEntre(inicioDelDia, inicioDelDia.plusDays(1), limite);
     }
 
-    /**
-     * Ventas completadas de la semana calendario (lunes a domingo) que contiene
-     * a la fecha dada; sin fecha, la semana en curso. El lunes a las 00:00
-     * arranca en cero y el domingo a las 23:59 cierra: no es una ventana móvil.
-     */
+    /** Ventas completadas de la semana calendario (lunes a domingo) de la fecha dada, o de la actual. */
     @Transactional(readOnly = true)
     public VentasSemanalResponse getVentasSemanal(LocalDate fecha) {
         LocalDate referencia = fecha != null ? fecha : LocalDate.now();
@@ -281,11 +226,9 @@ public class DashboardService {
             long cantidadVentas = 0;
             BigDecimal montoTotal = BigDecimal.ZERO;
             for (Object[] v : ventas) {
-                if (((LocalDateTime) v[0]).toLocalDate().equals(fecha)) {
+                if (((LocalDateTime) v[0]).toLocalDate().equals(fecha) && v[1] == EstadoVenta.COMPLETADA) {
                     cantidadVentas++;
-                    if (v[1] == EstadoVenta.COMPLETADA) {
-                        montoTotal = montoTotal.add((BigDecimal) v[2]);
-                    }
+                    montoTotal = montoTotal.add((BigDecimal) v[2]);
                 }
             }
             ventasPorDia.add(new DashboardResponse.VentaPorDiaDTO(

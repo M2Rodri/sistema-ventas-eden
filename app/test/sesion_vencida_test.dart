@@ -4,8 +4,7 @@ import 'package:http/testing.dart';
 import 'package:muebleria_eden_app/data/api_client.dart';
 import 'package:muebleria_eden_app/data/api_exception.dart';
 
-/// Una petición con sesión que recibe 401 avisa que la sesión venció; el login
-/// rechazado, un 403 o una petición sin token no.
+/// Un 401 con sesión avisa que venció; el login rechazado, un 403 o una petición sin token no.
 void main() {
   late int avisos;
 

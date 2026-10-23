@@ -1,10 +1,4 @@
-// Ayudas para adjuntar el comprobante de pago: validar el archivo antes de
-// subirlo, tomar una imagen pegada desde el portapapeles (captura de pantalla,
-// "Copiar imagen" del navegador o de WhatsApp Web) y recibir un archivo
-// arrastrado.
-//
-// Son los mismos límites que revisa el servidor (ValidadorImagen): JPG, JPEG,
-// JFIF, PNG, WebP o PDF, de hasta 10 MB.
+// Ayudas para adjuntar el comprobante: validar el archivo, tomar una imagen pegada del portapapeles y recibir un archivo arrastrado.
 
 export const EXTENSIONES_COMPROBANTE = ['.jpg', '.jpeg', '.jfif', '.png', '.webp', '.pdf'];
 export const ACCEPT_COMPROBANTE = EXTENSIONES_COMPROBANTE.join(',');

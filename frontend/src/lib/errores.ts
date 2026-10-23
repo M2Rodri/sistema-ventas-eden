@@ -1,23 +1,5 @@
-/**
- * Traduce un error de una llamada a la API a un mensaje que el usuario
- * pueda entender.
- *
- * Cuando el backend no responde (apagado, sin red, CORS), fetch() rechaza
- * con un TypeError genérico del navegador ("Failed to fetch", "NetworkError
- * when attempting to fetch resource", "Load failed", según el navegador).
- * Mostrar ese texto tal cual no le dice nada al usuario, así que se
- * reemplaza por un mensaje de conexión.
- *
- * Cuando el backend sí respondió pero con un error (404, 400, 500...), las
- * funciones de src/lib/api.ts ya lanzan un Error con el mensaje propio del
- * servidor, y ese se muestra sin modificar.
- */
-/**
- * Error que devuelve la API. Formato único de la API:
- *   { "error": { "codigo": "VENTA_NO_ENCONTRADA", "mensaje": "...", "campos": { "campo": "detalle" } } }
- * "campos" solo viene en errores de validación. Mientras el backend publicado
- * todavía use el formato anterior ({ "error": "texto" }), también se lee ese.
- */
+/** Traduce un error de una llamada a la API a un mensaje que el usuario pueda entender. */
+/** Error que devuelve la API. */
 export class ErrorApi extends Error {
   constructor(
     mensaje: string,

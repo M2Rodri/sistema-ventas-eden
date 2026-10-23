@@ -16,16 +16,13 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Entidad Categoria - Representa las categorías de productos
- */
+/** Entidad Categoria - Representa las categorías de productos */
 @Entity
 @Table(name = "categorias")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class Categoria {
-
     @Id
     @GeneratedValue(generator = "id_categorias")
     @GenericGenerator(name = "id_categorias", type = GeneradorIdSinHuecos.class,
@@ -40,13 +37,7 @@ public class Categoria {
     @Column(length = 500)
     private String descripcion;
 
-    /**
-     * Qué tipo de producto agrupa esta categoría. Antes se pedía el tipo de
-     * producto suelto en cada producto, duplicando la categoría (en este
-     * negocio, cada categoría es un tipo: "Camas" = CAMA, "Colchones" =
-     * COLCHON). Ahora se define acá, una sola vez por categoría, y el
-     * producto lo hereda automáticamente al elegir su categoría.
-     */
+    /** Tipo de producto que agrupa la categoría; el producto lo hereda al elegirla. */
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo_producto", nullable = false, length = 20)
     private TipoProducto tipoProducto;

@@ -28,20 +28,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * La sesión de punta a punta, con la aplicación completa y la seguridad real (filtro JWT, reglas de
- * acceso, base de datos): iniciar sesión, renovar, cortar sesiones, dar de baja, cambiar el rol y la
- * contraseña, y los topes según desde dónde se entra.
- *
- * Usa la base local (la que ya usan las demás pruebas de la aplicación completa). Cada prueba crea sus
- * propios usuarios y @Transactional revierte todo al terminar, incluidos los contadores de ID, así que
- * no queda nada en la base.
- */
+/** La sesión de punta a punta con la seguridad real: login, renovar, cortar, dar de baja y topes por origen. */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
 class SesionesIntegracionTest {
-
     private static final String CLAVE = "clave-de-prueba-123";
 
     @Autowired private MockMvc mvc;
@@ -51,11 +42,7 @@ class SesionesIntegracionTest {
     @Autowired private PasswordEncoder codificador;
     @Autowired private JwtUtil jwtUtil;
 
-    /**
-     * La auditoría se guarda en una transacción aparte, que @Transactional no revierte: sin este
-     * reemplazo, cada corrida dejaría filas sueltas en la tabla de auditoría de la base local.
-     * Que se audite cada acción ya lo comprueban las pruebas de cada servicio.
-     */
+    /** La auditoría usa su propia transacción y no se revierte: se reemplaza para no dejar filas en la base local. */
     @MockitoBean private RegistroAuditoria registroAuditoria;
 
     private Usuario admin;

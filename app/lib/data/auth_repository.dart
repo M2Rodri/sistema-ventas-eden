@@ -6,8 +6,7 @@ import 'biometria_service.dart';
 import 'jwt_utils.dart';
 import 'token_storage.dart';
 
-/// Capa de datos para login/sesión. Las pantallas hablan con esto, nunca
-/// directo con ApiClient o TokenStorage.
+/// Capa de datos para login/sesión. Las pantallas hablan con esto, nunca directo con ApiClient o TokenStorage.
 class AuthRepository {
   AuthRepository({
     ApiClient? apiClient,
@@ -21,16 +20,14 @@ class AuthRepository {
   final TokenStorage _storage;
   final BiometriaService _biometria;
 
-  /// Perfiles de sesión que entiende el backend. Con candado la sesión puede
-  /// durar más (12 horas); sin ninguno, menos (4 horas).
+  /// Perfiles de sesión que entiende el backend.
   static const perfilConCandado = 'MOVIL_CON_CANDADO';
   static const perfilSinCandado = 'MOVIL_SIN_CANDADO';
 
   /// Sin candado, la sesión de la app no pasa de este tiempo desde que se inició.
   static const topeSinCandado = Duration(hours: 4);
 
-  /// La sesión tendrá candado si el celular lo permite y el usuario no lo apagó
-  /// a propósito.
+  /// La sesión tendrá candado si el celular lo permite y el usuario no lo apagó a propósito.
   Future<bool> _habraCandado() async {
     if (!await _biometria.candadoDisponible()) return false;
     return await _biometria.preferencia() != false;
@@ -50,18 +47,14 @@ class AuthRepository {
     await _storage.guardarSesion(sesion);
     ApiClient.nuevaSesion(sesion.token);
 
-    // El candado se activa solo la primera vez, salvo que el usuario lo haya
-    // apagado a propósito: así ningún celular queda sin protección por descuido.
+    // El candado se activa solo la primera vez, salvo que el usuario lo haya apagado a propósito.
     if (conCandado && await _biometria.preferencia() == null) {
       await _biometria.activar();
     }
     return sesion;
   }
 
-  /// Confirma la contraseña del usuario de la sesión guardada, sin cerrar la
-  /// sesión ni cambiar de pantalla: sirve para desbloquear el candado cuando la
-  /// huella y el bloqueo del celular no responden. Lanza ApiException si la
-  /// contraseña es incorrecta (o si hay demasiados intentos).
+  /// Confirma la contraseña del usuario de la sesión guardada, sin cerrar la sesión ni cambiar de pantalla.
   Future<void> reautenticar(String password) async {
     final guardada = await _storage.leerSesion();
     if (guardada == null) {
@@ -82,10 +75,7 @@ class AuthRepository {
     ApiClient.reemplazarToken(nueva.token);
   }
 
-  /// Sesión guardada, solo si existe, el token todavía no venció y, si el
-  /// celular no tiene candado, no pasó el tope de ese caso. Si no sirve, la
-  /// borra: así la próxima vez que se llame no hay que volver a chequear la
-  /// fecha, ya no hay nada guardado.
+  /// Sesión guardada, si existe, el token no venció y no pasó el tope (sin candado).
   Future<Sesion?> sesionValidaGuardada() async {
     final sesion = await _storage.leerSesion();
     if (sesion == null) return null;
@@ -101,9 +91,7 @@ class AuthRepository {
     return sesion;
   }
 
-  /// Si el candado está apagado (o el celular no tiene ninguno), la sesión no
-  /// puede durar más que [topeSinCandado] desde que se inició, aunque el
-  /// token pidiera más: por ejemplo, si el usuario apagó el candado después.
+  /// Sin candado, la sesión no puede durar más que [topeSinCandado] desde que se inició.
   Future<bool> _pasoElTopeSinCandado(Sesion sesion) async {
     await _biometria.cargar();
     final candadoActivo =
@@ -115,8 +103,7 @@ class AuthRepository {
     return DateTime.now().difference(inicio) > topeSinCandado;
   }
 
-  /// Sin sesión no hay nada que proteger: se borra también el candado de
-  /// huella, y quien inicie sesión después lo activa de nuevo si lo quiere.
+  /// Sin sesión se borra también el candado; quien inicie después lo activa de nuevo si quiere.
   Future<void> cerrarSesion() async {
     ApiClient.vaciarCache();
     ApiClient.olvidarSesion();

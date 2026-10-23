@@ -6,14 +6,11 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * DTO para crear o actualizar inventario
- */
+/** DTO para crear o actualizar inventario */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class InventarioRequest {
-
     @NotNull(message = "El producto es obligatorio")
     private Long idProducto;
 

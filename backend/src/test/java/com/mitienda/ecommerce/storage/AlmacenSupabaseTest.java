@@ -28,7 +28,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Supabase Storage: no hace falta conexión ni claves reales.
  */
 class AlmacenSupabaseTest {
-
     private static final String CLAVE = "clave-de-prueba-123";
 
     private HttpServer servidor;

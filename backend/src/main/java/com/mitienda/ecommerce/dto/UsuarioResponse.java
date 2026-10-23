@@ -6,14 +6,11 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-/**
- * DTO para respuestas de usuario (sin password)
- */
+/** DTO para respuestas de usuario (sin password) */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class UsuarioResponse {
-
     private Long id;
     private String nombre;
     private String apellido;

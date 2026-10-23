@@ -1,4 +1,3 @@
-// src/main/java/com/mitienda/ecommerce/repositories/InventarioRepository.java
 package com.mitienda.ecommerce.repositories;
 
 import com.mitienda.ecommerce.models.Inventario;
@@ -10,70 +9,36 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Repositorio para gestión de inventario
- */
+/** Repositorio para gestión de inventario */
 public interface InventarioRepository extends JpaRepository<Inventario, Long> {
-
-    /*
-     * InventarioResponse lee producto, y ademas la categoria del producto. Sin
-     * esto eran dos consultas extra por cada fila del inventario; la pantalla
-     * tardaba mas de 3 segundos contra Supabase. Ver el comentario equivalente
-     * en ProductoRepository.
-     */
+    // Trae producto y categoría en la misma consulta para evitar dos consultas extra por fila.
 
     /** Listado completo, con el producto y su categoria ya cargados. */
     @Override
     @EntityGraph(attributePaths = {"producto", "producto.categoria"})
     List<Inventario> findAll();
 
-    /**
-     * Buscar inventario por ID de producto
-     */
+    /** Buscar inventario por ID de producto */
     Optional<Inventario> findByProductoId(Long idProducto);
 
-    /**
-     * Verificar si existe inventario para un producto
-     */
+    /** Verificar si existe inventario para un producto */
     boolean existsByProductoId(Long idProducto);
 
-    /**
-     * Obtener productos con stock bajo (stock <= stock mínimo; un mínimo de 0 no genera alerta)
-     */
+    /** Obtener productos con stock bajo (stock <= stock mínimo; un mínimo de 0 no genera alerta) */
     @Query("SELECT i FROM Inventario i WHERE i.producto.stockMinimo > 0 AND i.cantidadDisponible <= i.producto.stockMinimo")
     List<Inventario> findProductosConStockBajo();
 
-    /**
-     * Obtener productos sin stock (stock = 0)
-     */
+    /** Obtener productos sin stock (stock = 0) */
     @Query("SELECT i FROM Inventario i WHERE i.cantidadDisponible = 0")
     List<Inventario> findProductosSinStock();
 
-    /**
-     * Contar productos con stock bajo
-     */
+    /** Contar productos con stock bajo */
     @Query("SELECT COUNT(i) FROM Inventario i WHERE i.producto.stockMinimo > 0 AND i.cantidadDisponible <= i.producto.stockMinimo")
     Long countProductosConStockBajo();
 
     /**
-     * Catálogo con precio y stock en una sola consulta, para la app móvil
-     * (Catálogo, Alertas de stock y Nueva venta comparten este mismo dato:
-     * ver InventarioController#getCatalogoApp).
-     *
-     * Arranca desde Inventario, no desde Producto: cada producto activo ya
-     * tiene su fila de inventario (se crea junto con el producto, ver
-     * ProductoService.createProducto), así que no hace falta un LEFT JOIN.
-     *
-     * "nombre IS NULL OR ..." y "soloBajoMinimo = false OR ..." son el mismo
-     * truco: cuando el filtro no aplica, esa mitad del OR es true y no
-     * descarta filas.
-     *
-     * CAST(:nombre AS string): sin esto, Postgres tira "no existe la función
-     * lower(bytea)" cada vez que nombre viaja null (o sea, siempre que no se
-     * manda filtro). Al preparar la consulta, Postgres necesita el tipo de
-     * cada parámetro de antemano; sin una pista explícita, un parámetro nulo
-     * usado dentro de LOWER() lo resuelve mal. El cast fuerza el tipo y
-     * saca la ambigüedad.
+     * Catálogo con precio y stock en una consulta (ver InventarioController#getCatalogoApp). Parte de Inventario
+     * porque todo producto activo tiene su fila. CAST(:nombre AS string) evita el error lower(bytea) de Postgres con parámetros null.
      */
     @EntityGraph(attributePaths = {"producto", "producto.categoria", "producto.imagenes"})
     @Query("SELECT i FROM Inventario i "
@@ -83,11 +48,7 @@ public interface InventarioRepository extends JpaRepository<Inventario, Long> {
             + "ORDER BY i.producto.nombre")
     List<Inventario> findCatalogoApp(@Param("nombre") String nombre, @Param("soloBajoMinimo") boolean soloBajoMinimo);
 
-    /**
-     * Cifras de inventario del panel de Inicio en una sola consulta.
-     * Una fila: [sinStock, bajoStock, valorAPrecioDeCompra]. Los productos sin
-     * precio de compra no suman al valor.
-     */
+    /** Cifras del panel de Inicio en una consulta: [sinStock, bajoStock, valorAPrecioDeCompra]. */
     @Query("SELECT COUNT(CASE WHEN i.cantidadDisponible = 0 THEN 1 END), "
             + "COUNT(CASE WHEN p.stockMinimo > 0 AND i.cantidadDisponible <= p.stockMinimo THEN 1 END), "
             + "COALESCE(SUM(CASE WHEN p.precioCompra IS NOT NULL THEN p.precioCompra * i.cantidadDisponible END), 0) "

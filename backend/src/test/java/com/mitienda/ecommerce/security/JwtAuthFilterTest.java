@@ -24,7 +24,6 @@ import static org.mockito.Mockito.when;
  * no fue cortada; y el rol sale de la base, no del token.
  */
 class JwtAuthFilterTest {
-
     private static final String CLAVE = "clave-de-prueba-para-firmar-tokens-de-al-menos-64-caracteres-0123456789";
 
     private JwtUtil jwtUtil;

@@ -24,9 +24,7 @@ export interface ParametrosReporte {
   formato?: FormatoExportacion;
 }
 
-// ============================================
-// REPORTE DE VENTAS
-// ============================================
+// Reporte de ventas
 export interface VentaDetalleReporte {
   idVenta: number;
   fechaVenta: string;
@@ -50,9 +48,7 @@ export interface ReporteVentas {
   ventas: VentaDetalleReporte[];
 }
 
-// ============================================
-// REPORTE DE PRODUCTOS MÁS VENDIDOS
-// ============================================
+// Reporte de productos más vendidos
 export interface ProductoReporte {
   idProducto: number;
   nombreProducto: string;
@@ -68,9 +64,7 @@ export interface ReporteProductos {
   productos: ProductoReporte[];
 }
 
-// ============================================
-// REPORTE DE CLIENTES FRECUENTES
-// ============================================
+// Reporte de clientes frecuentes
 export interface ClienteReporte {
   idCliente: number;
   nombreCliente: string;
@@ -86,9 +80,7 @@ export interface ReporteClientes {
   clientes: ClienteReporte[];
 }
 
-// ============================================
-// REPORTE DE INVENTARIO VALORIZADO
-// ============================================
+// Reporte de inventario valorizado
 export interface InventarioReporte {
   idProducto: number;
   nombreProducto: string;
@@ -105,27 +97,21 @@ export interface ReporteInventarioValorizado {
   totalProductos: number;
 }
 
-// ============================================
-// REPORTE DE VENTAS POR CATEGORÍA
-// ============================================
+// Reporte de ventas por categoría
 export interface VentaPorCategoria {
   categoria: string;
   cantidadVendida: number;
   montoTotal: number;
 }
 
-// ============================================
-// REPORTE DE VENTAS POR MÉTODO DE PAGO
-// ============================================
+// Reporte de ventas por método de pago
 export interface VentaPorMetodoPago {
   metodoPago: string;
   cantidadVentas: number;
   montoTotal: number;
 }
 
-// ============================================
-// REPORTE DE VENTAS POR PRODUCTO
-// ============================================
+// Reporte de ventas por producto
 /** Un producto vendido en una venta: de estas filas salen el resumen por producto y el detalle. */
 export interface VentaPorProductoFila {
   idVenta: number;
@@ -140,9 +126,7 @@ export interface VentaPorProductoFila {
   subtotal: number;
 }
 
-// ============================================
-// REPORTE DE INVENTARIO STOCK BAJO
-// ============================================
+// Reporte de inventario stock bajo
 export interface ProductoStockBajo {
   idProducto: number;
   nombreProducto: string;
@@ -158,9 +142,7 @@ export interface ReporteInventarioStockBajo {
   productos: ProductoStockBajo[];
 }
 
-// ============================================
-// REPORTE DE PROVEEDORES
-// ============================================
+// Reporte de proveedores
 export interface ProveedorReporte {
   idProveedor: number;
   nombreProveedor: string;
@@ -178,9 +160,7 @@ export interface ReporteProveedores {
   proveedores: ProveedorReporte[];
 }
 
-// ============================================
-// REPORTE DE TRANSPORTADORAS
-// ============================================
+// Reporte de transportadoras
 export interface TransportadoraReporte {
   idTransportadora: number;
   nombreTransportadora: string;
@@ -198,9 +178,7 @@ export interface ReporteTransportadoras {
   transportadoras: TransportadoraReporte[];
 }
 
-// ============================================
-// REPORTE DE CUENTAS POR COBRAR
-// ============================================
+// Reporte de cuentas por cobrar
 export interface VentaPendienteReporte {
   idVenta: number;
   fechaVenta: string;
@@ -219,9 +197,7 @@ export interface ReporteCuentasPorCobrar {
   ventas: VentaPendienteReporte[];
 }
 
-// ============================================
-// REPORTE FINANCIERO
-// ============================================
+// Reporte financiero
 export interface ReporteFinanciero {
   fechaInicio: string;
   fechaFin: string;
@@ -235,9 +211,7 @@ export interface ReporteFinanciero {
   detalleGastos: Array<{ fecha: string; monto: number }>;
 }
 
-// ============================================
-// CONFIGURACIÓN DE REPORTES
-// ============================================
+// Configuración de reportes
 export interface ConfiguracionReporte {
   id: TipoReporte;
   titulo: string;
@@ -249,9 +223,7 @@ export interface ConfiguracionReporte {
   categorias: string[];
 }
 
-// ============================================
-// REPORTES PERSONALIZADOS Y RECIENTES
-// ============================================
+// Reportes personalizados y recientes
 /** Un reporte personalizado ya generado: guarda lo necesario para volver a abrirlo igual. */
 export interface ReporteReciente {
   id: string;

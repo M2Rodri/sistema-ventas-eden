@@ -21,12 +21,7 @@ export interface Producto {
   tipoProducto: TipoProducto;
   activo: boolean;
 
-  /**
-   * Atributos propios del rubro. En la base son texto libre, no una lista
-   * cerrada: "Firme", "Resortes ensacados", "Viscoelástica". Antes estaban
-   * tipados como uniones en minúscula que ningún dato real cumplía.
-   * tipoCama se eliminó: duplicaba tipoProducto y la columna ya no existe.
-   */
+  /** Atributos propios del rubro. */
   firmeza?: string;
   materialNucleo?: string;
   color?: string;

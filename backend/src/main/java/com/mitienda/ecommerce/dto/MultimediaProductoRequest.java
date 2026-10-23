@@ -10,7 +10,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class MultimediaProductoRequest {
-
     @NotNull(message = "El ID del producto es obligatorio")
     private Long productoId;
 

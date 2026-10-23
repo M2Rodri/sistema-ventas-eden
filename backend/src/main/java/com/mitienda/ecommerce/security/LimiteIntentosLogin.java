@@ -13,23 +13,12 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Límite de intentos fallidos de inicio de sesión, por usuario.
- *
- * Cinco fallos dentro de 15 minutos bloquean ese usuario durante 15 minutos: mientras
- * dure el bloqueo, el login responde 429 DEMASIADOS_INTENTOS sin ni siquiera revisar la
- * contraseña. Un inicio de sesión correcto borra el contador.
- *
- * El contador vive en memoria: se pierde al reiniciar el servidor y no se comparte entre
- * varias copias del backend. Con una sola instancia (Render, hoy) alcanza.
- *
- * Se cuenta por el nombre que se escribió, exista o no el usuario, para que la respuesta
- * no delate qué usuarios existen. El costo es que alguien puede bloquear a propósito a un
- * usuario real escribiendo mal su clave cinco veces; el bloqueo dura solo 15 minutos y
- * queda registrado en la auditoría.
+ * Cinco fallos de inicio de sesión en 15 minutos bloquean al usuario 15 minutos (429), sin revisar la contraseña;
+ * un acierto borra el contador. Vive en memoria (se pierde al reiniciar; alcanza con una sola instancia) y cuenta por
+ * el nombre escrito, exista o no, para no delatar usuarios.
  */
 @Component
 public class LimiteIntentosLogin {
-
     public static final int MAX_FALLOS = 5;
     public static final Duration VENTANA = Duration.ofMinutes(15);
     public static final Duration BLOQUEO = Duration.ofMinutes(15);
@@ -72,10 +61,7 @@ public class LimiteIntentosLogin {
         }
     }
 
-    /**
-     * Anota un intento fallido. Devuelve true si con este fallo el usuario queda bloqueado
-     * (para que quien llama lo deje en la auditoría una sola vez).
-     */
+    /** Anota un intento fallido; true si con este el usuario queda bloqueado (para auditarlo una sola vez). */
     public boolean registrarFallo(String usuario) {
         Instant ahora = reloj.instant();
         limpiarVencidosSiHaceFalta(ahora);

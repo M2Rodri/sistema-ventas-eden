@@ -1,8 +1,6 @@
 package com.mitienda.ecommerce.models;
 
-/**
- * Enum para estados de envíos
- */
+/** Enum para estados de envíos */
 public enum EstadoEnvio {
     PENDIENTE,          // Sin asignar transportadora
     EN_PREPARACION,     // Preparando paquete

@@ -6,8 +6,7 @@ import 'package:http/testing.dart';
 import 'package:muebleria_eden_app/data/api_client.dart';
 import 'package:muebleria_eden_app/data/api_exception.dart';
 
-/// La caché de lecturas de ApiClient: reutiliza lecturas recientes, comparte las
-/// que van a la vez, se vacía al guardar algo y nunca mezcla sesiones ni guarda errores.
+/// La caché de lecturas: reutiliza, comparte las simultáneas, se vacía al guardar y no mezcla sesiones.
 void main() {
   late List<String> pedidos;
   late int estadoRespuesta;

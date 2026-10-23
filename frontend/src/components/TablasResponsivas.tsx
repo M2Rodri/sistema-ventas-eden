@@ -2,15 +2,7 @@
 
 import { useEffect } from 'react';
 
-/**
- * En celular las tablas se muestran como tarjetas (una por fila, con "Etiqueta: valor").
- * Los estilos están en globals.css y solo actúan en pantallas angostas; este componente
- * se limita a marcar cada tabla y a copiar el título de cada columna en sus celdas
- * (data-label), para que la tarjeta sepa cómo rotular cada dato.
- *
- * Las tablas dentro de .area-impresion (comprobantes, reportes y PDF) se dejan como están:
- * son documentos y deben verse igual en cualquier pantalla.
- */
+/** En celular las tablas se muestran como tarjetas (una por fila, con "Etiqueta: valor"). */
 function prepararTabla(tabla: HTMLTableElement) {
   if (tabla.closest('.area-impresion')) return;
   const cabeceras = Array.from(tabla.querySelectorAll('thead th')).map((th) =>

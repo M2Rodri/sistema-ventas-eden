@@ -7,14 +7,11 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
-/**
- * DTO para detalle de compra
- */
+/** DTO para detalle de compra */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class DetalleCompraDTO {
-
     private Long id;
     private Long idProducto;
     private String nombreProducto;

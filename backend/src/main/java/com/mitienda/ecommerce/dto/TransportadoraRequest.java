@@ -10,14 +10,11 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
-/**
- * DTO para crear o actualizar transportadoras
- */
+/** DTO para crear o actualizar transportadoras */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class TransportadoraRequest {
-
     @NotBlank(message = "El nombre es obligatorio")
     @Size(min = 2, max = 100, message = "El nombre debe tener entre 2 y 100 caracteres")
     private String nombre;

@@ -12,40 +12,19 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Controlador REST para gestión de configuraciones del sistema
- */
+/** Controlador REST para gestión de configuraciones del sistema */
 @RestController
 @RequestMapping("/api/configuracion")
 @CrossOrigin(origins = "http://localhost:3000")
 @PreAuthorize("hasRole('ADMIN')")
 public class ConfiguracionController {
-
     private final ConfiguracionService configuracionService;
 
-    /**
-     * Inyeccion por constructor, no por campo.
-     *
-     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
-     * puede existir a medio construir, y una dependencia circular falla al
-     * arrancar en vez de aparecer en ejecucion.
-     */
     public ConfiguracionController(ConfiguracionService configuracionService) {
         this.configuracionService = configuracionService;
     }
 
-
-    /**
-     * GET /api/configuracion/negocio
-     *
-     * Datos del negocio (nombre, dirección, teléfono, horario). Antes era
-     * público para que la tienda virtual los mostrara sin login; la tienda
-     * quedó fuera del alcance del proyecto, así que ahora hereda el
-     * @PreAuthorize de la clase (solo ADMIN) como el resto de configuración.
-     *
-     * Devuelve únicamente las claves que empiezan con "negocio_": así, agregar
-     * un parámetro interno nuevo nunca lo publica por accidente.
-     */
+    /** Datos del negocio (solo claves "negocio_", para no publicar por accidente un parámetro interno); solo ADMIN. */
     @GetMapping("/negocio")
     public ResponseEntity<Map<String, String>> getDatosNegocio() {
         Map<String, String> datos = configuracionService.getAllConfiguraciones().stream()
@@ -56,20 +35,14 @@ public class ConfiguracionController {
         return ResponseEntity.ok(datos);
     }
 
-    /**
-     * GET /api/configuracion
-     * Listar todas las configuraciones
-     */
+    /** Listar todas las configuraciones */
     @GetMapping
     public ResponseEntity<List<ConfiguracionResponse>> getAllConfiguraciones() {
         List<ConfiguracionResponse> configuraciones = configuracionService.getAllConfiguraciones();
         return ResponseEntity.ok(configuraciones);
     }
 
-    /**
-     * GET /api/configuracion/{id}
-     * Obtener configuración por ID
-     */
+    /** Obtener configuración por ID */
     @GetMapping("/{id}")
     public ResponseEntity<?> getConfiguracionById(@PathVariable Long id) {
         try {
@@ -81,10 +54,7 @@ public class ConfiguracionController {
         }
     }
 
-    /**
-     * GET /api/configuracion/clave/{clave}
-     * Obtener configuración por clave
-     */
+    /** Obtener configuración por clave */
     @GetMapping("/clave/{clave}")
     public ResponseEntity<?> getConfiguracionByClave(@PathVariable String clave) {
         try {
@@ -96,10 +66,7 @@ public class ConfiguracionController {
         }
     }
 
-    /**
-     * GET /api/configuracion/valor/{clave}
-     * Obtener solo el valor de una configuración
-     */
+    /** Obtener solo el valor de una configuración */
     @GetMapping("/valor/{clave}")
     public ResponseEntity<?> getValorConfiguracion(@PathVariable String clave) {
         try {
@@ -111,10 +78,7 @@ public class ConfiguracionController {
         }
     }
 
-    /**
-     * POST /api/configuracion
-     * Crear nueva configuración
-     */
+    /** Crear nueva configuración */
     @PostMapping
     public ResponseEntity<?> createConfiguracion(@Valid @RequestBody ConfiguracionRequest request) {
         try {
@@ -126,10 +90,7 @@ public class ConfiguracionController {
         }
     }
 
-    /**
-     * PUT /api/configuracion/{id}
-     * Actualizar configuración existente
-     */
+    /** Actualizar configuración existente */
     @PutMapping("/{id}")
     public ResponseEntity<?> updateConfiguracion(@PathVariable Long id, 
                                                  @Valid @RequestBody ConfiguracionRequest request) {
@@ -142,10 +103,7 @@ public class ConfiguracionController {
         }
     }
 
-    /**
-     * PATCH /api/configuracion/clave/{clave}
-     * Actualizar solo el valor de una configuración
-     */
+    /** Actualizar solo el valor de una configuración */
     @PatchMapping("/clave/{clave}")
     public ResponseEntity<?> updateValorByClave(@PathVariable String clave, 
                                                @RequestParam String nuevoValor) {
@@ -158,10 +116,7 @@ public class ConfiguracionController {
         }
     }
 
-    /**
-     * DELETE /api/configuracion/{id}
-     * Eliminar configuración
-     */
+    /** Eliminar configuración */
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteConfiguracion(@PathVariable Long id) {
         try {
@@ -173,10 +128,7 @@ public class ConfiguracionController {
         }
     }
 
-    /**
-     * POST /api/configuracion/inicializar
-     * Inicializar configuraciones por defecto
-     */
+    /** Inicializar configuraciones por defecto */
     @PostMapping("/inicializar")
     public ResponseEntity<?> inicializarConfiguraciones() {
         try {

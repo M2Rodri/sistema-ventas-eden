@@ -78,9 +78,7 @@ function InventarioContent() {
     loadData();
   }, []);
 
-  // Clickear "Inventario" en el menú, aunque ya estés en esta pantalla,
-  // tiene que volver todo a su estado normal (mismo mecanismo que Ventas:
-  // ver Sidebar.tsx).
+  // Clic en "Inventario" del menú estando en esta pantalla la devuelve a su estado normal (ver Sidebar.tsx).
   useEffect(() => {
     const resetearFiltros = () => {
       setSearchTerm('');
@@ -95,8 +93,7 @@ function InventarioContent() {
   const loadData = async () => {
     try {
       setLoading(true);
-      // allSettled y no all: si se cae el endpoint de alertas, igual queremos
-      // mostrar el inventario, que es lo principal.
+      // allSettled: si falla el endpoint de alertas, igual se muestra el inventario.
       const [rInventario, rAlertas] = await Promise.allSettled([
         getAllInventario(),
         getAlertasPendientes(),
@@ -123,8 +120,7 @@ function InventarioContent() {
   useEffect(() => {
     let filtered = inventario;
 
-    // Filtro por búsqueda. Sin tildes: nadie escribe tildes buscando rápido,
-    // y antes "colchon" no encontraba "Colchón" (mismo criterio que Ventas).
+    // Búsqueda sin tildes, como en Ventas.
     if (searchTerm) {
       const normalizar = (s: string) =>
         s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -229,8 +225,7 @@ function InventarioContent() {
     setFilteredMovimientos(filtrados);
   }, [searchMovimiento, filtroFecha, fechaElegida, filtroOperacion, movimientos]);
 
-  // Los de éxito se cierran solos; los de error se quedan hasta que el
-  // usuario los cierra a mano (el botón X del banner).
+  // Los avisos de éxito se cierran solos; los de error esperan a que el usuario los cierre.
   const showMessage = (type: 'success' | 'error', text: string) => {
     setMessage({ type, text });
     if (type === 'success') {
@@ -248,10 +243,7 @@ function InventarioContent() {
     setIsDetalleModalOpen(true);
   };
 
-  // La campanita de notificaciones linkea acá con ?producto=<id> para que la
-  // alerta de un producto lleve directo a su detalle, no solo a la pantalla
-  // en general. Se limpia el parámetro de la URL para no reabrir el modal si
-  // el usuario recarga la página.
+  // La campanita enlaza con ?producto=<id> para abrir el detalle; el parámetro se limpia para no reabrir el modal al recargar.
   useEffect(() => {
     if (loading) return;
     const idProducto = searchParams.get('producto');
@@ -350,16 +342,13 @@ function InventarioContent() {
   // Indicadores calculados sobre el inventario ya cargado
   const totalProductos = inventario.length;
   const productosConAlerta = inventario.filter(i => i.bajoStockMinimo).length;
-  // Antes esto multiplicaba cada unidad por 1500 Bs "simulando un precio
-  // promedio", así que esta pantalla y el panel de inicio mostraban dos
-  // valores distintos del mismo inventario. Ahora usa el costo real.
+  // Usa el costo real del inventario, igual que el panel de inicio.
   const valorTotalInventario = inventario.reduce(
     (sum, item) => sum + item.cantidadDisponible * Number(item.precioCompra ?? 0),
     0
   );
 
-  // Arrastrar la tabla desde el encabezado, como si fuera una barra de
-  // scroll horizontal. Ver hooks/useDragScrollTable.ts.
+  // Arrastrar la tabla desde el encabezado (ver hooks/useDragScrollTable.ts).
   const inventarioDrag = useDragScrollTable([loading, filteredInventario]);
 
   // Paginación: se calcula a partir de filteredInventario
@@ -1079,8 +1068,7 @@ function InventarioContent() {
           inventario={selectedInventario}
           onClose={() => setIsStockMinimoModalOpen(false)}
           onSuccess={() => {
-            // Sin este loadData la tabla seguía mostrando el mínimo viejo
-            // hasta que el usuario recargaba con F5.
+            // loadData evita mostrar el mínimo viejo hasta recargar.
             loadData();
             setIsStockMinimoModalOpen(false);
             showMessage('success', 'Stock mínimo configurado exitosamente');

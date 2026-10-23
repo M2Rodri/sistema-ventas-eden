@@ -7,14 +7,11 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * DTO para crear comprobantes
- */
+/** DTO para crear comprobantes */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class ComprobanteRequest {
-
     @NotNull(message = "La venta es obligatoria")
     private Long idVenta;
 

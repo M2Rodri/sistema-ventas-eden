@@ -5,18 +5,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
-/**
- * Repositorio para operaciones con transportadoras
- */
+/** Repositorio para operaciones con transportadoras */
 public interface TransportadoraRepository extends JpaRepository<Transportadora, Long> {
-
-    /**
-     * Listar solo transportadoras activas
-     */
+    /** Listar solo transportadoras activas */
     List<Transportadora> findByActivoTrue();
 
-    /**
-     * Contar transportadoras activas
-     */
+    /** Contar transportadoras activas */
     Long countByActivo(Boolean activo);
 }

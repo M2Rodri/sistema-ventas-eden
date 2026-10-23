@@ -1,8 +1,6 @@
 package com.mitienda.ecommerce.models;
 
-/**
- * Enum para tipos de comprobantes simples
- */
+/** Enum para tipos de comprobantes simples */
 public enum TipoComprobante {
     RECIBO,
     COMPROBANTE,

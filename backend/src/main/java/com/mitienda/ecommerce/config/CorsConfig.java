@@ -13,10 +13,7 @@ import java.util.List;
 
 @Configuration
 public class CorsConfig {
-
-    // Dominios extra separados por coma (por ejemplo, la URL publica del
-    // frontend una vez desplegado), sin tener que tocar el codigo para
-    // agregarlos. Los de abajo quedan siempre permitidos como base.
+    // Dominios extra separados por coma (p. ej. la URL del frontend desplegado), sin tocar el código.
     @Value("${CORS_ALLOWED_ORIGINS:}")
     private String origenesExtra;
 
@@ -39,7 +36,7 @@ public class CorsConfig {
         }
         configuration.setAllowedOrigins(origenes);
 
-        // Métodos HTTP permitidos (AGREGADO PATCH)
+        // Métodos HTTP permitidos
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 
         // Headers permitidos

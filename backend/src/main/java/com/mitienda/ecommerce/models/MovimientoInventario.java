@@ -14,16 +14,13 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
-/**
- * Entidad MovimientoInventario - Auditoría de cambios de stock
- */
+/** Entidad MovimientoInventario - Auditoría de cambios de stock */
 @Entity
 @Table(name = "movimientos_inventario")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class MovimientoInventario {
-
     @Id
     @GeneratedValue(generator = "id_movimientos_inventario")
     @GenericGenerator(name = "id_movimientos_inventario", type = GeneradorIdSinHuecos.class,

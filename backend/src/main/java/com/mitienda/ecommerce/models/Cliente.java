@@ -17,26 +17,13 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Entidad Cliente - Quien compra en el negocio (tabla 'clientes').
- *
- * No tiene credenciales: los clientes no inician sesión, los registra el
- * vendedor en el mostrador. El personal del sistema vive en la entidad Usuario.
- *
- * Campos alineados con el esquema tras el ajuste de la base:
- *   correo    -> email      (unificado con usuarios, proveedores, transportadoras)
- *   celular   -> telefono   (unificado con el resto del esquema)
- *   tipo      -> tipoCliente (una columna llamada solo "tipo" era ambigua)
- *   direccion -> eliminada  (las direcciones viven en direcciones_cliente,
- *                            que admite varias y marca una como principal)
- */
+/** Quien compra en el negocio (tabla 'clientes'); no inicia sesión, lo registra el vendedor. */
 @Entity
 @Table(name = "clientes")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class Cliente {
-
     @Id
     @GeneratedValue(generator = "id_clientes")
     @GenericGenerator(name = "id_clientes", type = GeneradorIdSinHuecos.class,
@@ -76,11 +63,7 @@ public class Cliente {
     @Column(nullable = false)
     private LocalDateTime fechaActualizacion;
 
-    // Relación con ventas. Sin cascade: las ventas las administra VentaService
-    // de forma independiente, y un cliente nunca se borra de verdad (solo se
-    // desactiva, ver activo). Con CascadeType.ALL, si alguna vez alguien
-    // borrara un Cliente por error, Hibernate se hubiera llevado puesto todo
-    // su historial de ventas con él.
+    // Sin cascade: un cliente nunca se borra, solo se desactiva, y sus ventas las administra VentaService.
     @OneToMany(mappedBy = "cliente", fetch = FetchType.LAZY)
     private List<Venta> ventas = new ArrayList<>();
 

@@ -14,22 +14,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * Servicio para gestión de categorías
- */
+/** Servicio para gestión de categorías */
 @Service
-// Lectura dentro de transacción por defecto: con spring.jpa.open-in-view=false
-// no hay sesión de Hibernate fuera de la transacción, y los DTO de respuesta se
-// arman recorriendo relaciones perezosas. Sin esto, los endpoints de lectura
-// fallaban con LazyInitializationException.
-// Los métodos que escriben llevan su propio @Transactional, que tiene precedencia.
+// Lectura en transacción: con open-in-view=false no hay sesión de Hibernate fuera de ella.
 @Transactional(readOnly = true)
 public class CategoriaService {
-
-    /**
-     * Nombres conocidos: si el nombre escrito coincide con uno, se guarda con esta forma y
-     * con su tipo de producto. Cualquier otro nombre es una categoría libre.
-     */
+    /** Nombres conocidos: se guardan con esta forma y su tipo; cualquier otro es una categoría libre. */
     private static final Map<String, TipoProducto> CATEGORIAS_CONOCIDAS = Map.ofEntries(
             Map.entry("Camas", TipoProducto.CAMA),
             Map.entry("Colchones", TipoProducto.COLCHON),
@@ -43,22 +33,12 @@ public class CategoriaService {
 
     private final CategoriaRepository categoriaRepository;
 
-    /**
-     * Inyeccion por constructor, no por campo.
-     *
-     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
-     * puede existir a medio construir, y una dependencia circular falla al
-     * arrancar en vez de aparecer en ejecucion.
-     */
     public CategoriaService(CategoriaRepository categoriaRepository) {
         this.categoriaRepository = categoriaRepository;
     }
 
-
-    /**
-     * Listar todas las categorías
-     */
-    @Transactional(readOnly = true) // <--- AÑADIR ESTA ANOTACIÓN
+    /** Listar todas las categorías */
+    @Transactional(readOnly = true)
     public List<CategoriaResponse> getAllCategorias() {
         List<Categoria> categorias = categoriaRepository.findAll();
         return categorias.stream()
@@ -66,10 +46,8 @@ public class CategoriaService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Listar solo categorías activas
-     */
-    @Transactional(readOnly = true) // <--- AÑADIR ESTA ANOTACIÓN
+    /** Listar solo categorías activas */
+    @Transactional(readOnly = true)
     public List<CategoriaResponse> getActiveCategorias() {
         List<Categoria> categorias = categoriaRepository.findByActivoTrue();
         return categorias.stream()
@@ -77,21 +55,15 @@ public class CategoriaService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Obtener categoría por ID
-     */
-    @Transactional(readOnly = true) // <--- AÑADIR ESTA ANOTACIÓN
+    /** Obtener categoría por ID */
+    @Transactional(readOnly = true)
     public CategoriaResponse getCategoriaById(Long id) {
         Categoria categoria = categoriaRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("CATEGORIA_NO_ENCONTRADA", "Categoría no encontrada con ID: " + id));
         return new CategoriaResponse(categoria); // Se ejecuta dentro de la transacción
     }
 
-    /**
-     * El nombre es libre. El tipo de producto no lo escribe el usuario: sale del nombre si es uno
-     * de los conocidos ("Camas", "Colchones"...); si no, una categoría nueva queda como ACCESORIO
-     * (sin medidas ni firmeza) y una existente conserva el tipo que ya tenía.
-     */
+    /** El tipo sale del nombre si es conocido; una categoría nueva queda como ACCESORIO y una existente conserva su tipo. */
     private void resolverTipo(CategoriaRequest request, TipoProducto tipoActual) {
         String nombre = request.getNombre() == null ? "" : request.getNombre().trim();
         request.setNombre(nombre);
@@ -107,13 +79,10 @@ public class CategoriaService {
         }
     }
 
-    /**
-     * Crear nueva categoría
-     */
+    /** Crear nueva categoría */
     @Transactional
     public CategoriaResponse createCategoria(CategoriaRequest request) {
         resolverTipo(request, null);
-        // Validar que el nombre no exista
         if (categoriaRepository.existsByNombreIgnoreCase(request.getNombre().trim())) {
             throw new ConflictoEstadoException("CATEGORIA_DUPLICADA", "Ya existe una categoría con el nombre: " + request.getNombre());
         }
@@ -128,9 +97,7 @@ public class CategoriaService {
         return new CategoriaResponse(savedCategoria);
     }
 
-    /**
-     * Actualizar categoría existente
-     */
+    /** Actualizar categoría existente */
     @Transactional
     public CategoriaResponse updateCategoria(Long id, CategoriaRequest request) {
         Categoria categoria = categoriaRepository.findById(id)
@@ -138,7 +105,6 @@ public class CategoriaService {
 
         resolverTipo(request, categoria.getTipoProducto());
 
-        // Validar nombre único (si cambió)
         if (!categoria.getNombre().equalsIgnoreCase(request.getNombre().trim()) &&
             categoriaRepository.existsByNombreIgnoreCase(request.getNombre().trim())) {
             throw new ConflictoEstadoException("CATEGORIA_DUPLICADA", "Ya existe una categoría con el nombre: " + request.getNombre());
@@ -153,15 +119,12 @@ public class CategoriaService {
         return new CategoriaResponse(updatedCategoria);
     }
 
-    /**
-     * Eliminar categoría (desactivar)
-     */
+    /** Eliminar categoría (desactivar) */
     @Transactional
     public void deleteCategoria(Long id) {
         Categoria categoria = categoriaRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("CATEGORIA_NO_ENCONTRADA", "Categoría no encontrada con ID: " + id));
 
-        // Verificar que no tenga productos asociados
         // Este acceso también se beneficia de estar dentro de la transacción
         if (!categoria.getProductos().isEmpty()) {
             throw new ConflictoEstadoException("CATEGORIA_CON_PRODUCTOS", "No se puede eliminar una categoría con productos asociados");
@@ -171,9 +134,7 @@ public class CategoriaService {
         categoriaRepository.save(categoria);
     }
 
-    /**
-     * Activar/Desactivar categoría
-     */
+    /** Activar/Desactivar categoría */
     @Transactional
     public CategoriaResponse toggleCategoriaStatus(Long id) {
         Categoria categoria = categoriaRepository.findById(id)
@@ -184,10 +145,8 @@ public class CategoriaService {
         return new CategoriaResponse(updatedCategoria);
     }
 
-    /**
-     * Contar categorías activas
-     */
-    @Transactional(readOnly = true) // <--- AÑADIR ESTA ANOTACIÓN (buena práctica)
+    /** Contar categorías activas */
+    @Transactional(readOnly = true)
     public Long countActiveCategorias() {
         return categoriaRepository.countByActivo(true);
     }

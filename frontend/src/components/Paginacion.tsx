@@ -2,13 +2,7 @@
 
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-/**
- * Estilo 1 — Híbrido Redondeado con IDs Reales
- *
- * - Muestra el rango de IDs reales según las filas visibles (ej: 12 - 6 de 12 productos)
- * - Botones circulares redonditos (rounded-full)
- * - Flechas compactas sin texto (‹ y ›)
- */
+/** Paginación con el rango real de IDs visibles, botones redondos y flechas compactas. */
 
 interface PaginacionProps {
   currentPage: number;

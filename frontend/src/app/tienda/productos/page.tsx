@@ -1,12 +1,9 @@
-// src/app/tienda/productos/page.tsx
 'use client';
 
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { BACKEND_URL, urlArchivo } from '@/lib/api';
-// Se usa el tipo compartido en lugar de una copia local: las interfaces
-// duplicadas de esta página habían quedado desactualizadas (seguían con
-// precioUnitario y sin marca, firmeza ni materialNucleo).
+// Se usa el tipo compartido en lugar de una copia local.
 import { Producto, ImagenProducto } from '@/types/producto';
 import { useSearchParams } from 'next/navigation';
 import { FiFilter, FiShoppingCart } from 'react-icons/fi';
@@ -28,17 +25,9 @@ const ProductoCard = ({ producto }: { producto: Producto }) => {
   const productoHref = `/tienda/productos/${producto.id}`;
   const ar3dHref = `/tienda/visualizacion-3d-ar?id=${producto.id}`;
 
-
   // Generar etiquetas dinámicas (ej: Promocion, Nuevo)
   const etiquetas: { texto: string; clase: string }[] = [];
-  // Ejemplo: Si el producto tiene un descuento, mostrar "Promocion"
-  // Esta lógica dependerá de tu backend o de cómo definas promociones
-  // if (producto.tieneDescuento) {
-  //   etiquetas.push({ texto: "Promocion", clase: "bg-secondary-600" });
-  // }
-  // if (producto.esNuevo) {
-  //   etiquetas.push({ texto: "Nuevo", clase: "bg-primary-600" });
-  // }
+  // Ejemplo: Si el producto tiene un descuento, mostrar "Promocion" Esta lógica dependerá de tu backend o de cómo definas promociones if (producto.tieneDescuento) { etiquetas.push({ texto: "Promocion", clase: "bg-secondary-600" }); } if (producto.esNuevo) { etiquetas.push({ texto: "Nuevo", clase: "bg-primary-600" }); }
 
   return (
     <div className="group relative flex transform flex-col overflow-hidden rounded-lg bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg border border-gray-200">
@@ -76,7 +65,6 @@ const ProductoCard = ({ producto }: { producto: Producto }) => {
         <div className="my-4 flex items-baseline gap-2">
           <span className="text-2xl font-bold text-primary-600">Bs. {precioVenta.toFixed(2)}</span>
         </div>
-
 
         {/*
           Antes acá había tres afirmaciones fijas — "Garantía 2 años" y
@@ -229,13 +217,7 @@ const CatalogoContent = () => {
       try {
         setLoading(true);
         setError(null); // Limpiar error previo
-        // allSettled y no all: los productos son el catálogo y las categorías
-        // solo alimentan el filtro lateral. Antes, si fallaba cualquiera de las
-        // dos, la tienda entera mostraba el mensaje de error y no se veía ni un
-        // producto. Ahora las categorías pueden faltar sin tapar el catálogo.
-        //
-        // fetch solo rechaza ante un fallo de red, no ante un 500, así que
-        // además hay que mirar el .ok de cada respuesta.
+        // allSettled y no all: los productos son el catálogo y las categorías solo alimentan el filtro lateral.
         const [rProductos, rCategorias] = await Promise.allSettled([
           fetch(`${BACKEND_URL}/api/productos/activos`),
           fetch(`${BACKEND_URL}/api/categorias/activas`)

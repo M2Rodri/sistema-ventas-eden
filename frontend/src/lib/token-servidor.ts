@@ -1,9 +1,4 @@
-/**
- * Lectura del vencimiento de un JWT, solo para uso en el servidor (rutas /api).
- *
- * No verifica la firma: eso lo hace el backend en cada petición. Acá solo se necesita saber
- * cuánto le queda al token para ajustar la cookie y decidir si hay que renovarlo.
- */
+/** Lectura del vencimiento de un JWT, solo para uso en el servidor (rutas /api). */
 export function segundosRestantes(token: string): number | null {
   try {
     const partes = token.split('.');

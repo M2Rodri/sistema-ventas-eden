@@ -13,37 +13,18 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Consultas enviadas desde la tienda.
- *
- * La tienda quedó fuera del alcance del proyecto, así que ya no hay ningún
- * cliente sin login que necesite escribir acá: todos los métodos requieren
- * ADMIN o EMPLEADO.
- */
+/** Consultas de contacto; requieren ADMIN o EMPLEADO. */
 @RestController
 @RequestMapping("/api/mensajes-contacto")
 @CrossOrigin(origins = "http://localhost:3000")
 public class MensajeContactoController {
-
     private final MensajeContactoService mensajeContactoService;
 
-    /**
-     * Inyeccion por constructor, no por campo.
-     *
-     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
-     * puede existir a medio construir, y una dependencia circular falla al
-     * arrancar en vez de aparecer en ejecucion.
-     */
     public MensajeContactoController(MensajeContactoService mensajeContactoService) {
         this.mensajeContactoService = mensajeContactoService;
     }
 
-
-    /**
-     * POST /api/mensajes-contacto
-     * Registrar una consulta. Ya no hay tienda pública que la envíe, pero se
-     * deja como registro manual de ADMIN/EMPLEADO en vez de borrar el endpoint.
-     */
+    /** Registra una consulta a mano (ADMIN/EMPLEADO). */
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLEADO')")
     public ResponseEntity<?> enviarMensaje(@Valid @RequestBody MensajeContactoRequest request,

@@ -12,14 +12,11 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.util.List;
 
-/**
- * DTO para crear compra
- */
+/** DTO para crear compra */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class CompraRequest {
-
     /** Opcional: una compra puede registrarse sin proveedor. */
     private Long idProveedor;
 
@@ -34,14 +31,11 @@ public class CompraRequest {
     @Valid
     private List<ItemCompraRequest> items;
 
-    /**
-     * Clase interna para items de la compra
-     */
+    /** Clase interna para items de la compra */
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ItemCompraRequest {
-
         @NotNull(message = "El ID del producto es obligatorio")
         private Long idProducto;
 

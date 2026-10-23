@@ -67,12 +67,7 @@ class ActualizacionException implements Exception {
   String toString() => mensaje;
 }
 
-/// Busca, descarga e instala las versiones nuevas de la app, sin pasar por la
-/// tienda: la versión publicada vive en un archivo version.json y el APK al lado.
-///
-/// Android no deja instalar sin que la persona lo confirme: la app descarga el
-/// APK y abre el instalador del sistema, donde se toca "Instalar". Solo se
-/// actualiza si el APK nuevo está firmado con la misma llave que el instalado.
+/// Busca, descarga e instala las versiones nuevas de la app, sin pasar por la tienda.
 class ActualizacionRepository {
   ActualizacionRepository({http.Client? cliente, String? urlVersion})
     : _cliente = cliente ?? http.Client(),
@@ -87,9 +82,7 @@ class ActualizacionRepository {
     return int.tryParse(info.buildNumber) ?? 0;
   }
 
-  /// Compara la versión publicada con la instalada. Si no hay internet o el
-  /// archivo no se puede leer, devuelve [ResultadoBusqueda.sinConexion] en vez
-  /// de fallar: buscar actualizaciones nunca debe molestar al usuario.
+  /// Compara la versión publicada con la instalada.
   Future<RespuestaBusqueda> buscar() async {
     try {
       final respuesta = await _cliente
@@ -113,8 +106,7 @@ class ActualizacionRepository {
     }
   }
 
-  /// Descarga el APK a una carpeta temporal, avisando el avance (0 a 1), y
-  /// comprueba su huella si version.json la trae. Devuelve el archivo.
+  /// Descarga el APK a una carpeta temporal, avisando el avance (0 a 1), y comprueba su huella si version.json la trae.
   Future<File> descargar(
     InfoVersion version, {
     void Function(double avance)? alAvanzar,

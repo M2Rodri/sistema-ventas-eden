@@ -1,4 +1,3 @@
-// src/app/tienda/page.tsx
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -6,14 +5,7 @@ import Link from 'next/link';
 import { getActiveProductos, getActiveCategorias, urlArchivo } from '@/lib/api';
 import { Producto, Categoria } from '@/types/producto';
 
-/**
- * Portada de la tienda.
- *
- * Antes mostraba tres categorías y cuatro "productos destacados" escritos a
- * mano — "Cama King Size Premium Bs. 4.500", "Colchón Ortopédico Lux
- * Bs. 3.200" — que no existían en el catálogo, y sus enlaces apuntaban a
- * /tienda/producto/1, una ruta inexistente. Ahora todo sale del backend.
- */
+/** Portada de la tienda. */
 
 const CategoriaCard = ({ nombre, href }: { nombre: string; href: string }) => (
   <Link href={href} className="block group">

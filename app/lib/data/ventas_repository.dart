@@ -4,12 +4,6 @@ import '../models/venta.dart';
 import 'api_client.dart';
 
 /// Capa de datos para Ventas y entregas.
-///
-///   GET /api/v1/ventas          -> lista (VentaResponse[])
-///   GET /api/v1/ventas/{id}     -> detalle, mismo shape
-///   POST /api/v1/pagos          -> registrar un pago sobre el saldo pendiente
-///   PATCH /api/v1/ventas/{id}/entregar -> marcar entregada (rechaza en el
-///     propio backend si queda saldo pendiente)
 class VentasRepository {
   VentasRepository({ApiClient? apiClient})
     : _apiClient = apiClient ?? const ApiClient();
@@ -41,8 +35,7 @@ class VentasRepository {
       'metodoPago': metodoPago.valorApi,
       if (referencia != null && referencia.isNotEmpty) 'referencia': referencia,
     }, token: token);
-    // El pago no devuelve la venta actualizada, solo el pago: se vuelve a
-    // pedir la venta para tener el saldoPendiente y el estado al día.
+    // El pago no devuelve la venta actualizada, solo el pago.
     return obtenerVenta(idVenta, token);
   }
 
@@ -63,9 +56,7 @@ class VentasRepository {
     return Venta.desdeApi(json);
   }
 
-  /// Pone o cambia la fecha límite del pago pendiente (ADMIN y EMPLEADO). Se
-  /// manda el plazo en días (el servidor calcula la fecha con su reloj) o una
-  /// fecha exacta.
+  /// Pone o cambia la fecha límite del pago pendiente (ADMIN y EMPLEADO).
   Future<Venta> actualizarFechaLimitePago(
     int idVenta, {
     int? plazoDias,
@@ -87,8 +78,7 @@ class VentasRepository {
     return Venta.desdeApi(json);
   }
 
-  /// Solo ADMIN. Un valor vacío borra el dato. La transportadora y la guía
-  /// solo se guardan en ventas por transportadora.
+  /// Solo ADMIN. Un valor vacío borra el dato.
   Future<Venta> actualizarDatosEntrega(
     int idVenta, {
     String? direccionDestino,
@@ -117,9 +107,7 @@ class VentasRepository {
     return Venta.desdeApi(json);
   }
 
-  /// El comprobante viaja aparte, sobre un pago ya creado: si esto falla la
-  /// venta ya quedó registrada igual (mismo comportamiento que el formulario
-  /// web, que avisa el error pero no revierte nada).
+  /// El comprobante viaja aparte, sobre un pago ya creado.
   Future<void> adjuntarComprobante(
     int idPago,
     File archivo,

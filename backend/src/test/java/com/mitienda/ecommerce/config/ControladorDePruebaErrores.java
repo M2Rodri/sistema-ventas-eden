@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/prueba-errores")
 class ControladorDePruebaErrores {
-
     record Datos(@NotBlank(message = "El nombre es obligatorio") String nombre,
                  @Min(value = 1, message = "El precio debe ser mayor a 0") int precio) {
     }

@@ -31,18 +31,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * Servicio para generación de reportes
- */
 @Service
-// Lectura dentro de transacción por defecto: con spring.jpa.open-in-view=false
-// no hay sesión de Hibernate fuera de la transacción, y los DTO de respuesta se
-// arman recorriendo relaciones perezosas. Sin esto, los endpoints de lectura
-// fallaban con LazyInitializationException.
-// Los métodos que escriben llevan su propio @Transactional, que tiene precedencia.
+// Lectura en transacción: con open-in-view=false no hay sesión de Hibernate fuera de ella.
 @Transactional(readOnly = true)
 public class ReporteService {
-
     private final VentaRepository ventaRepository;
 
     private final DetalleVentaRepository detalleVentaRepository;
@@ -51,13 +43,6 @@ public class ReporteService {
 
     private final CompraRepository compraRepository;
 
-    /**
-     * Inyeccion por constructor, no por campo.
-     *
-     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
-     * puede existir a medio construir, y una dependencia circular falla al
-     * arrancar en vez de aparecer en ejecucion.
-     */
     public ReporteService(VentaRepository ventaRepository,
                           DetalleVentaRepository detalleVentaRepository,
                           InventarioRepository inventarioRepository,
@@ -68,12 +53,7 @@ public class ReporteService {
         this.compraRepository = compraRepository;
     }
 
-
-    /**
-     * Resume en un texto los métodos de pago usados en una venta.
-     * El método dejó de ser un campo de 'ventas' y vive en 'pagos', porque una
-     * venta admite varios cobros con métodos distintos.
-     */
+    /** Métodos de pago de una venta en un texto; viven en 'pagos', no en 'ventas'. */
     private String resumirMetodoPago(Venta venta) {
         if (venta.getPagos() == null || venta.getPagos().isEmpty()) {
             return "SIN PAGOS";
@@ -90,10 +70,7 @@ public class ReporteService {
         return metodos.size() == 1 ? metodos.get(0) : "VARIOS";
     }
 
-    /**
-     * Ganancia real de lo vendido para el reporte financiero: solo ventas COMPLETADA y, por cada línea,
-     * (precio unitario - costo unitario guardado en detalle_venta) x cantidad.
-     */
+    /** Ganancia real: ventas COMPLETADA, (precio - costo guardado en detalle_venta) x cantidad. */
     private BigDecimal calcularGananciaVentas(List<Venta> ventas) {
         return ventas.stream()
                 .filter(v -> v.getEstado() == EstadoVenta.COMPLETADA)
@@ -105,10 +82,7 @@ public class ReporteService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    /**
-     * Costo total de una sola venta (suma de costo_unitario x cantidad).
-     * Devuelve null si la venta está CANCELADA o si alguna de sus líneas no tiene costo guardado.
-     */
+    /** Costo total de una venta; null si está CANCELADA o alguna línea no tiene costo. */
     private BigDecimal costoTotalDeUnaVenta(Venta venta) {
         if (venta.getEstado() == EstadoVenta.CANCELADA || venta.getDetalles() == null || venta.getDetalles().isEmpty()) {
             return null;
@@ -123,11 +97,7 @@ public class ReporteService {
         return costoAcumulado;
     }
 
-    /**
-     * Ganancia de una sola venta: (precio de venta - costo total).
-     * Devuelve null si la venta está CANCELADA o si alguna de sus líneas no tiene costo guardado.
-     * Muestra ganancia positiva o negativa (pérdida) tanto para COMPLETADA como para PENDIENTE_PAGO.
-     */
+    /** Ganancia de una venta (puede ser pérdida); null si está CANCELADA o falta algún costo. */
     private BigDecimal gananciaDeUnaVenta(Venta venta) {
         BigDecimal costoTotal = costoTotalDeUnaVenta(venta);
         if (costoTotal == null) {
@@ -136,11 +106,7 @@ public class ReporteService {
         return venta.getMontoTotal().subtract(costoTotal);
     }
 
-    /**
-     * Ganancia total del reporte de ventas:
-     * Suma las ganancias de ventas no canceladas (COMPLETADA y PENDIENTE_PAGO),
-     * pero ignora las ventas con pérdida (ganancia < 0) para que no resten del total.
-     */
+    /** Ganancia del reporte de ventas: suma las positivas de las ventas no canceladas. */
     private BigDecimal calcularGananciaReporteVentas(List<Venta> ventas) {
         return ventas.stream()
                 .filter(v -> v.getEstado() != EstadoVenta.CANCELADA)
@@ -149,12 +115,8 @@ public class ReporteService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    /**
-     * Reporte de ventas por período
-     */
     public ReporteVentasResponse getReporteVentas(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
-        // Una venta CANCELADA devuelve el stock al inventario, como si nunca
-        // hubiera pasado: no cuenta como venta real en ningún reporte.
+        // Una venta CANCELADA devolvió el stock: no cuenta en ningún reporte.
         List<Venta> ventas = ventaRepository.findByFechaVentaBetweenOrderByFechaVentaDesc(fechaInicio, fechaFin)
                 .stream()
                 .filter(v -> v.getEstado() != EstadoVenta.CANCELADA)
@@ -173,7 +135,7 @@ public class ReporteService {
                 .map(venta -> new ReporteVentasResponse.VentaDetalleDTO(
                         venta.getId(),
                         venta.getFechaVenta(),
-                        venta.getNombreClienteCompleto(),  // ✅ Corregido: maneja cliente nulo
+                        venta.getNombreClienteCompleto(),
                         venta.getMontoTotal(),
                         resumirMetodoPago(venta),
                         venta.getEstado().name(),
@@ -189,18 +151,12 @@ public class ReporteService {
         );
     }
 
-    /**
-     * Reporte de productos más vendidos
-     */
     public ReporteProductosResponse getReporteProductosMasVendidos(Integer limite) {
-        // Mismo criterio que el resto de reportes: una venta CANCELADA
-        // devolvió el stock, no se vendió de verdad.
         List<DetalleVenta> detalles = detalleVentaRepository.findAll()
                 .stream()
                 .filter(d -> d.getVenta().getEstado() != EstadoVenta.CANCELADA)
                 .collect(Collectors.toList());
 
-        // Agrupar por producto
         Map<Producto, Long> productosCantidad = detalles.stream()
                 .collect(Collectors.groupingBy(
                         DetalleVenta::getProducto,
@@ -237,21 +193,15 @@ public class ReporteService {
         return new ReporteProductosResponse(limite, productos);
     }
 
-    /**
-     * Reporte de clientes frecuentes
-     */
     public ReporteClientesResponse getReporteClientesFrecuentes(Integer limite) {
         List<Venta> ventas = ventaRepository.findAll();
 
-        // Filtrar ventas con cliente != null antes de agrupar, y las
-        // CANCELADA: devolvieron el stock, no cuentan como compra real del
-        // cliente.
+        // Solo ventas con cliente y no canceladas.
         List<Venta> ventasConCliente = ventas.stream()
                 .filter(venta -> venta.getCliente() != null)
                 .filter(venta -> venta.getEstado() != EstadoVenta.CANCELADA)
                 .collect(Collectors.toList());
 
-        // Agrupar por cliente (solo ventas con cliente registrado)
         Map<Cliente, Long> clientesCantidad = ventasConCliente.stream()
                 .collect(Collectors.groupingBy(
                         Venta::getCliente,
@@ -290,15 +240,10 @@ public class ReporteService {
         return new ReporteClientesResponse(limite, clientes);
     }
 
-    /**
-     * Reporte de inventario valorizado
-     */
     public Map<String, Object> getReporteInventarioValorizado() {
         List<Map<String, Object>> inventarios = inventarioRepository.findAll().stream()
                 .map(inv -> {
-                    // Map.of no admite valores null, y un producto sin precio
-                    // de compra cargado sí puede darse: por eso un mapa
-                    // mutable en vez de Map.of, y el cálculo solo si hay dato.
+                    // Mapa mutable porque Map.of no admite null (producto sin precio de compra).
                     BigDecimal precioCompra = inv.getProducto().getPrecioCompra();
                     BigDecimal valorItem = precioCompra != null
                             ? precioCompra.multiply(BigDecimal.valueOf(inv.getCantidadDisponible()))
@@ -329,11 +274,7 @@ public class ReporteService {
         );
     }
 
-    /**
-     * Reporte de ventas por categoría
-     */
     public List<Map<String, Object>> getReporteVentasPorCategoria(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
-        // Mismo criterio: una venta CANCELADA devolvió el stock, no cuenta.
         List<Venta> ventas = ventaRepository.findByFechaVentaBetweenOrderByFechaVentaDesc(fechaInicio, fechaFin)
                 .stream()
                 .filter(v -> v.getEstado() != EstadoVenta.CANCELADA)
@@ -363,11 +304,7 @@ public class ReporteService {
         return resultado;
     }
 
-    /**
-     * Ventas por producto: una fila por cada producto vendido en cada venta del período (sin las
-     * canceladas, que devolvieron el stock), de la más reciente a la más antigua. Con esto se arma
-     * tanto el resumen por producto como el detalle de a quién se le vendió.
-     */
+    /** Una fila por producto vendido en cada venta del período, sin canceladas, de la más reciente a la más antigua. */
     public List<Map<String, Object>> getReporteVentasPorProducto(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
         List<Map<String, Object>> filas = new ArrayList<>();
         for (Venta venta : ventaRepository.findByFechaVentaBetweenOrderByFechaVentaDesc(fechaInicio, fechaFin)) {
@@ -393,20 +330,11 @@ public class ReporteService {
         return filas;
     }
 
-    /**
-     * Reporte de cobros por método de pago.
-     *
-     * Se calcula sobre los pagos y no sobre las ventas. Antes cada venta tenía
-     * un único metodo_pago, lo que obligaba a elegir uno cuando el cliente
-     * pagaba parte en efectivo y parte por transferencia, y el reporte salía
-     * mal. Recorriendo los pagos, cada cobro suma en su propio método y los
-     * totales cuadran contra la caja.
-     */
+    /** Cobros por método de pago, calculados sobre los pagos y no sobre las ventas (un cobro puede mezclar métodos). */
     public List<Map<String, Object>> getReporteVentasPorMetodoPago(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
         List<Venta> ventas = ventaRepository.findByFechaVentaBetweenOrderByFechaVentaDesc(fechaInicio, fechaFin);
 
-        // Cancelar una venta no toca el registro del pago (sigue COMPLETADO):
-        // sin este filtro, la plata de una venta anulada seguia sumando acá.
+        // Cancelar una venta no cambia su pago: se filtra para no sumar plata de ventas anuladas.
         List<Pago> pagos = ventas.stream()
                 .filter(v -> v.getEstado() != EstadoVenta.CANCELADA)
                 .flatMap(v -> v.getPagos().stream())
@@ -437,14 +365,7 @@ public class ReporteService {
         return resultado;
     }
 
-    /**
-     * Reporte de cuentas por cobrar: ventas con saldo pendiente.
-     *
-     * No es un reporte por periodo -- es una foto del momento (a quien le
-     * falta cobrar hoy), asi que no recibe rango de fechas. Solo cuentan
-     * las ventas PENDIENTE_PAGO: una CANCELADA no genero una deuda real
-     * (se anulo entera) y una COMPLETADA ya no tiene saldo pendiente.
-     */
+    /** Cuentas por cobrar: foto del momento, solo ventas PENDIENTE_PAGO (sin rango de fechas). */
     public ReporteCuentasPorCobrarResponse getReporteCuentasPorCobrar() {
         List<Venta> ventasPendientes = ventaRepository.findAll().stream()
                 .filter(v -> v.getEstado() == EstadoVenta.PENDIENTE_PAGO)
@@ -474,25 +395,7 @@ public class ReporteService {
                 (long) ventasPendientes.size(), totalPorCobrar, detalle);
     }
 
-    /**
-     * Reporte financiero del periodo.
-     *
-     * Separa dos cosas que antes se mezclaban en un solo numero
-     * (ventas menos compras del periodo, mostrado como "ganancia"):
-     *
-     * - gananciaVentas: ganancia real de lo vendido. Por cada linea de
-     *   venta, precio unitario menos costo unitario (el costo que quedo
-     *   fijo al momento de esa venta), por la cantidad.
-     * - ingresosTotales / gastosTotales / saldoPeriodo: flujo de caja del
-     *   periodo (ventas contra compras). No es ganancia: un mes de compra
-     *   grande para abastecerse puede dar saldo negativo aunque lo vendido
-     *   haya dejado margen positivo.
-     *
-     * Solo ADMIN llega a este metodo (el controller exige ese rol): el
-     * costo por producto no debe llegarle a un EMPLEADO en ninguna
-     * respuesta, por eso el calculo vive aca y no se expone
-     * detalle_venta.costo_unitario en ningun DTO de venta.
-     */
+    /** Reporte financiero: gananciaVentas (precio menos costo guardado) y flujo de caja (ingresos, gastos, saldo). */
     public ReporteFinancieroResponse getReporteFinanciero(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
         List<Venta> ventas = ventaRepository.findByFechaVentaBetweenOrderByFechaVentaDesc(fechaInicio, fechaFin)
                 .stream()
@@ -535,10 +438,7 @@ public class ReporteService {
         );
     }
 
-    /**
-     * Detalle de ganancia por producto vendido. Solo incluye ventas COMPLETADA
-     * y usa el costo unitario guardado en cada línea de venta.
-     */
+    /** Ganancia por producto vendido, solo ventas COMPLETADA y con el costo guardado en cada línea. */
     public List<Map<String, Object>> getGananciasPorProducto(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
         List<Map<String, Object>> resultado = new ArrayList<>();
         for (Venta venta : ventaRepository.findByFechaVentaBetweenOrderByFechaVentaDesc(fechaInicio, fechaFin)) {

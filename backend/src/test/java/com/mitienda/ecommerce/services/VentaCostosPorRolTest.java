@@ -36,16 +36,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 
-/**
- * El costo y la ganancia de una venta solo le llegan al Admin. Al Empleado no le llegan ni ocultos en
- * pantalla: la web y la app solo muestran lo que reciben, y lo que no llega no se ve con F12 ni con Postman.
- *
- * Costo de la venta de la prueba: 2 camas a Bs 300 de costo y Bs 500 de precio.
- */
+/** El costo y la ganancia de una venta solo le llegan al Admin. */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class VentaCostosPorRolTest {
-
     @Mock private VentaRepository ventaRepository;
     @Mock private DetalleVentaRepository detalleVentaRepository;
     @Mock private PagoRepository pagoRepository;

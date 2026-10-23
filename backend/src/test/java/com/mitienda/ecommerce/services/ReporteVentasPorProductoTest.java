@@ -29,7 +29,6 @@ import static org.mockito.Mockito.when;
 /** Ventas por producto: una fila por producto de cada venta del período, sin las canceladas. */
 @ExtendWith(MockitoExtension.class)
 class ReporteVentasPorProductoTest {
-
     @Mock private VentaRepository ventaRepository;
     @Mock private DetalleVentaRepository detalleVentaRepository;
     @Mock private InventarioRepository inventarioRepository;

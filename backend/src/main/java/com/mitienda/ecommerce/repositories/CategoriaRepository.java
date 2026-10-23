@@ -6,34 +6,20 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Repositorio para operaciones con categorías
- */
+/** Repositorio para operaciones con categorías */
 public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
-
-    /**
-     * Buscar categoría por nombre
-     */
+    /** Buscar categoría por nombre */
     Optional<Categoria> findByNombre(String nombre);
 
-    /**
-     * Verificar si existe una categoría con ese nombre
-     */
+    /** Verificar si existe una categoría con ese nombre */
     Boolean existsByNombre(String nombre);
 
-    /**
-     * Igual que existsByNombre pero sin distinguir mayúsculas: "Camas" y
-     * "camas" cuentan como la misma categoría.
-     */
+    /** Como existsByNombre pero sin distinguir mayúsculas. */
     Boolean existsByNombreIgnoreCase(String nombre);
 
-    /**
-     * Listar solo categorías activas
-     */
+    /** Listar solo categorías activas */
     List<Categoria> findByActivoTrue();
 
-    /**
-     * Contar categorías activas
-     */
+    /** Contar categorías activas */
     Long countByActivo(Boolean activo);
 }

@@ -11,17 +11,13 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
-/**
- * Entidad DetalleVenta - Productos dentro de una venta
- * Incluye soporte para descuentos y auditoría de precios
- */
+/** Producto dentro de una venta, con descuento. */
 @Entity
 @Table(name = "detalle_venta")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class DetalleVenta {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -64,13 +60,7 @@ public class DetalleVenta {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal subtotal;
 
-    /**
-     * Costo del producto en el momento de la venta (copiado de
-     * producto.precioCompra al crear el detalle). Queda fijo: si el
-     * precio de compra cambia despues, la ganancia de esta venta no se
-     * recalcula sola. No se expone en DetalleVentaDTO: el rol EMPLEADO
-     * puede ver ventas y no tiene que ver costos ni margenes.
-     */
+    /** Costo del producto al vender (copia de precioCompra); queda fijo y no se expone al Empleado. */
     @NotNull(message = "El costo unitario es obligatorio")
     @DecimalMin(value = "0.0", message = "El costo no puede ser negativo")
     @Column(name = "costo_unitario", nullable = false, precision = 10, scale = 2)
@@ -88,9 +78,7 @@ public class DetalleVenta {
         this.subtotal = precioUnitario.multiply(BigDecimal.valueOf(cantidad));
     }
 
-    /**
-     * Constructor con descuento
-     */
+    /** Constructor con descuento */
     public DetalleVenta(Venta venta, Producto producto, Integer cantidad, 
                        BigDecimal precioOriginal, BigDecimal precioConDescuento) {
         this.venta = venta;
@@ -99,10 +87,8 @@ public class DetalleVenta {
         this.precioUnitarioOriginal = precioOriginal;
         this.precioUnitario = precioConDescuento;
         
-        // Calcular descuento
         this.descuentoUnitario = precioOriginal.subtract(precioConDescuento);
         
-        // Calcular porcentaje de descuento
         if (precioOriginal.compareTo(BigDecimal.ZERO) > 0) {
             this.descuentoPorcentaje = this.descuentoUnitario
                 .divide(precioOriginal, 4, RoundingMode.HALF_UP)
@@ -113,16 +99,12 @@ public class DetalleVenta {
         this.subtotal = precioConDescuento.multiply(BigDecimal.valueOf(cantidad));
     }
 
-    /**
-     * Calcular subtotal automáticamente
-     */
+    /** Calcular subtotal automáticamente */
     public void calcularSubtotal() {
         this.subtotal = this.precioUnitario.multiply(BigDecimal.valueOf(this.cantidad));
     }
 
-    /**
-     * Aplicar descuento porcentual
-     */
+    /** Aplicar descuento porcentual */
     public void aplicarDescuentoPorcentaje(BigDecimal porcentaje) {
         if (this.precioUnitarioOriginal == null) {
             this.precioUnitarioOriginal = this.precioUnitario;
@@ -130,7 +112,6 @@ public class DetalleVenta {
         
         this.descuentoPorcentaje = porcentaje;
         
-        // Calcular precio con descuento
         BigDecimal descuentoDecimal = porcentaje.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
         this.descuentoUnitario = this.precioUnitarioOriginal.multiply(descuentoDecimal);
         this.precioUnitario = this.precioUnitarioOriginal.subtract(this.descuentoUnitario);
@@ -138,9 +119,7 @@ public class DetalleVenta {
         calcularSubtotal();
     }
 
-    /**
-     * Aplicar precio manual (calcula descuento automático)
-     */
+    /** Aplicar precio manual (calcula descuento automático) */
     public void aplicarPrecioManual(BigDecimal nuevoPrecio) {
         if (this.precioUnitarioOriginal == null) {
             this.precioUnitarioOriginal = this.precioUnitario;
@@ -149,7 +128,6 @@ public class DetalleVenta {
         this.precioUnitario = nuevoPrecio;
         this.descuentoUnitario = this.precioUnitarioOriginal.subtract(nuevoPrecio);
         
-        // Calcular porcentaje
         if (this.precioUnitarioOriginal.compareTo(BigDecimal.ZERO) > 0) {
             this.descuentoPorcentaje = this.descuentoUnitario
                 .divide(this.precioUnitarioOriginal, 4, RoundingMode.HALF_UP)
@@ -160,9 +138,7 @@ public class DetalleVenta {
         calcularSubtotal();
     }
 
-    /**
-     * Obtener monto total de descuento (unitario * cantidad)
-     */
+    /** Obtener monto total de descuento (unitario * cantidad) */
     public BigDecimal getDescuentoTotal() {
         return this.descuentoUnitario.multiply(BigDecimal.valueOf(this.cantidad));
     }

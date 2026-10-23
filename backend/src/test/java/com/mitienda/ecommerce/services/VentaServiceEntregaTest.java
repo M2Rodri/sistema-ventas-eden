@@ -36,18 +36,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * Reglas de entrega de una venta: quién puede pasar de un estado a otro, cómo
- * se retrocede, qué datos se piden según la modalidad y, sobre todo, que el
- * saldo pendiente NO bloquea ninguno de esos pasos.
- *
- * Son pruebas de la lógica del servicio con los repositorios simulados: no
- * tocan la base de datos ni levantan el servidor.
- */
+/** Reglas de entrega de una venta; el saldo pendiente no bloquea ningún paso. */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class VentaServiceEntregaTest {
-
     @Mock private VentaRepository ventaRepository;
     @Mock private DetalleVentaRepository detalleVentaRepository;
     @Mock private PagoRepository pagoRepository;

@@ -37,7 +37,6 @@ import Paginacion from '@/components/Paginacion';
 
 const ITEMS_PER_PAGE = 30;
 
-
 export default function VentasPage() {
   const router = useRouter();
   const { user } = useAuth();
@@ -46,9 +45,7 @@ export default function VentasPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // Reemplaza los alert() nativos del navegador (mostraban "localhost dice"
-  // en vez de un mensaje con la identidad del sistema) por el mismo cartel
-  // con estilo que ya usan Usuarios y Productos.
+  // Reemplaza los alert() del navegador por el mismo cartel de Usuarios y Productos.
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const showMessage = (type: 'success' | 'error', text: string) => {
     setMessage({ type, text });
@@ -80,11 +77,7 @@ export default function VentasPage() {
     loadVentas();
   }, []);
 
-  // Clickear "Ventas" en el menú, aunque ya estés en esta pantalla, tiene
-  // que volver todo a su estado normal — si no, una vez que tocás una
-  // tarjeta no hay forma de volver sin tocar cada filtro a mano. El link
-  // del Sidebar dispara este evento (ver Sidebar.tsx) porque Next no
-  // re-renderiza solo por navegar a la misma ruta en la que ya estás.
+  // Clic en "Ventas" del menú estando aquí devuelve la pantalla a su estado normal (ver Sidebar.tsx).
   useEffect(() => {
     const resetearFiltros = () => {
       setBusqueda('');
@@ -98,8 +91,7 @@ export default function VentasPage() {
     return () => window.removeEventListener('ventas:reset-filtros', resetearFiltros);
   }, []);
 
-  // El "Período" que llega desde una tarjeta de Inicio (ej. "Ventas del
-  // mes") queda ya filtrado acá, sin tener que volver a elegirlo a mano.
+  // El período que llega desde una tarjeta de Inicio queda ya filtrado.
   useEffect(() => {
     const periodo = new URLSearchParams(window.location.search).get('periodo');
     if (periodo === 'HOY' || periodo === 'SEMANA' || periodo === 'MES') {
@@ -127,9 +119,7 @@ export default function VentasPage() {
   const aplicarFiltros = () => {
     let resultado = [...ventas];
 
-    // Filtro por búsqueda (cliente, ID, celular o producto). Sin tildes:
-    // nadie escribe tildes buscando rápido, y antes "colchon" no encontraba
-    // "Colchón".
+    // Búsqueda por cliente, ID, celular o producto, sin tildes.
     if (busqueda.trim()) {
       const normalizar = (s: string) =>
         s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -173,8 +163,7 @@ export default function VentasPage() {
           resultado = resultado.filter(v => new Date(v.fechaVenta) >= hoy);
           break;
         case 'SEMANA': {
-          // Semana calendario, de lunes a hoy: la misma que cuenta la tarjeta
-          // "Ventas de la semana" del Inicio.
+          // Semana calendario de lunes a hoy, la misma de la tarjeta de Inicio.
           const lunes = new Date();
           lunes.setHours(0, 0, 0, 0);
           lunes.setDate(lunes.getDate() - ((lunes.getDay() + 6) % 7));
@@ -291,8 +280,7 @@ export default function VentasPage() {
     });
   };
 
-  // Arrastrar la tabla desde el encabezado, como si fuera una barra de
-  // scroll horizontal. Ver hooks/useDragScrollTable.ts.
+  // Arrastrar la tabla desde el encabezado (ver hooks/useDragScrollTable.ts).
   const {
     scrollContainerRef,
     tableRef,
@@ -429,10 +417,7 @@ export default function VentasPage() {
         const startId = ventasPaginadas.length > 0 ? ventasPaginadas[0].id : undefined;
         const endId = ventasPaginadas.length > 0 ? ventasPaginadas[ventasPaginadas.length - 1].id : undefined;
 
-        // El casillero de una acción se reserva en TODA la tabla, no fila
-        // por fila: si ninguna venta visible la necesita, no ocupa espacio
-        // en ninguna; en cuanto una la necesita, vuelve a reservarse en
-        // todas para mantener la columna alineada.
+        // El casillero de una acción se reserva en toda la tabla para mantener la columna alineada.
         const hayEntregaPendiente = ventasFiltradas.some(esPorEntregar);
         const haySaldoPendiente = ventasFiltradas.some(v =>
           v.estado === EstadoVenta.PENDIENTE_PAGO && (v.saldoPendiente ?? 0) > 0
@@ -492,9 +477,12 @@ export default function VentasPage() {
                 ventasPaginadas.map((venta) => (
                   <tr key={venta.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-3 py-2.5 whitespace-nowrap">
-                      <span className="text-sm font-bold text-primary-700">{venta.id}</span>
-                      {venta.estado === EstadoVenta.CANCELADA && (
-                        <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Cancelada</span>
+                      {venta.estado === EstadoVenta.CANCELADA ? (
+                        <span className="relative inline-block px-2 -mx-2 py-0.5 rounded-full text-sm font-bold bg-red-100 text-red-800" title="Venta cancelada">
+                          {venta.id}
+                        </span>
+                      ) : (
+                        <span className="text-sm font-bold text-primary-700">{venta.id}</span>
                       )}
                     </td>
                     <td className="px-3 py-2.5 whitespace-nowrap max-w-[9.5rem]">
@@ -579,20 +567,11 @@ export default function VentasPage() {
                           porque la utilidad "invisible" de Tailwind no está
                           generada en este proyecto (se probó y no aplicaba). */}
                       {(() => {
-                        // El ícono de entregar se ofrece en toda venta por entregar
-                        // (pendiente o despachada, no cancelada). El saldo
-                        // pendiente no la bloquea: el modal de confirmación solo
-                        // lo avisa. Corregir a pendiente y editar los datos de
-                        // entrega están en el detalle de la venta.
+                        // Entregar se ofrece en toda venta por entregar y no cancelada.
                         const puedeEntregar = esPorEntregar(venta);
                         const puedeCobrarSaldo = venta.estado === EstadoVenta.PENDIENTE_PAGO
                           && (venta.saldoPendiente ?? 0) > 0;
-                        // Antes solo se ofrecía para Completada: el backend
-                        // ya permite cancelar una venta con saldo pendiente
-                        // (por ejemplo, una seña que nunca se terminó de
-                        // pagar), pero el botón nunca aparecía para ese
-                        // caso. Ahora se ofrece para cualquier venta que no
-                        // esté cancelada ya.
+                        // Cancelar se ofrece en cualquier venta no cancelada, también con saldo pendiente.
                         const puedeCancelar = user?.role === 'ADMIN' && venta.estado !== EstadoVenta.CANCELADA;
 
                         return (
@@ -706,9 +685,7 @@ export default function VentasPage() {
           }}
           onSuccess={async () => {
             loadVentas();
-              // Si la venta que se acaba de cobrar es la que está abierta en
-            // el detalle, se refresca también ahí (si no, queda mostrando
-            // el saldo y los pagos viejos hasta cerrar y volver a abrir).
+              // Si la venta cobrada está abierta en el detalle, se refresca también ahí.
             if (ventaSeleccionada && ventaACobrar && ventaSeleccionada.id === ventaACobrar.id) {
               try {
                 const actualizada = await getVentaById(ventaACobrar.id);

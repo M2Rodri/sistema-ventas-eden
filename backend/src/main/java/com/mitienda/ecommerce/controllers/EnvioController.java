@@ -13,43 +13,26 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Controlador REST para gestión de envíos
- */
+/** Controlador REST para gestión de envíos */
 @RestController
 @RequestMapping("/api/envios")
 @CrossOrigin(origins = "http://localhost:3000")
 @PreAuthorize("hasAnyRole('ADMIN', 'EMPLEADO')")
 public class EnvioController {
-
     private final EnvioService envioService;
 
-    /**
-     * Inyeccion por constructor, no por campo.
-     *
-     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
-     * puede existir a medio construir, y una dependencia circular falla al
-     * arrancar en vez de aparecer en ejecucion.
-     */
     public EnvioController(EnvioService envioService) {
         this.envioService = envioService;
     }
 
-
-    /**
-     * GET /api/envios
-     * Listar todos los envíos
-     */
+    /** Listar todos los envíos */
     @GetMapping
     public ResponseEntity<List<EnvioResponse>> getAllEnvios() {
         List<EnvioResponse> envios = envioService.getAllEnvios();
         return ResponseEntity.ok(envios);
     }
 
-    /**
-     * GET /api/envios/{id}
-     * Obtener envío por ID
-     */
+    /** Obtener envío por ID */
     @GetMapping("/{id}")
     public ResponseEntity<?> getEnvioById(@PathVariable Long id) {
         try {
@@ -61,10 +44,7 @@ public class EnvioController {
         }
     }
 
-    /**
-     * GET /api/envios/venta/{idVenta}
-     * Obtener envío por venta
-     */
+    /** Obtener envío por venta */
     @GetMapping("/venta/{idVenta}")
     public ResponseEntity<?> getEnvioByVenta(@PathVariable Long idVenta) {
         try {
@@ -76,10 +56,7 @@ public class EnvioController {
         }
     }
 
-    /**
-     * GET /api/envios/guia/{guiaRemision}
-     * Obtener envío por guía de remisión (público para tracking)
-     */
+    /** Obtener envío por guía de remisión (público para tracking) */
     @GetMapping("/guia/{guiaRemision}")
     @PreAuthorize("permitAll()")
     public ResponseEntity<?> getEnvioByGuia(@PathVariable String guiaRemision) {
@@ -92,10 +69,7 @@ public class EnvioController {
         }
     }
 
-    /**
-     * POST /api/envios
-     * Crear nuevo envío
-     */
+    /** Crear nuevo envío */
     @PostMapping
     public ResponseEntity<?> createEnvio(@Valid @RequestBody EnvioRequest request) {
         try {
@@ -107,10 +81,7 @@ public class EnvioController {
         }
     }
 
-    /**
-     * PUT /api/envios/{id}
-     * Actualizar envío existente
-     */
+    /** Actualizar envío existente */
     @PutMapping("/{id}")
     public ResponseEntity<?> updateEnvio(@PathVariable Long id,
                                          @Valid @RequestBody EnvioRequest request) {
@@ -123,10 +94,7 @@ public class EnvioController {
         }
     }
 
-    /**
-     * PATCH /api/envios/{id}/estado
-     * Cambiar estado del envío
-     */
+    /** Cambiar estado del envío */
     @PatchMapping("/{id}/estado")
     public ResponseEntity<?> cambiarEstadoEnvio(@PathVariable Long id,
                                                 @RequestParam EstadoEnvio nuevoEstado) {
@@ -139,10 +107,7 @@ public class EnvioController {
         }
     }
 
-    /**
-     * PATCH /api/envios/{id}/entregar
-     * Marcar envío como entregado
-     */
+    /** Marcar envío como entregado */
     @PatchMapping("/{id}/entregar")
     public ResponseEntity<?> marcarComoEntregado(@PathVariable Long id) {
         try {
@@ -154,10 +119,7 @@ public class EnvioController {
         }
     }
 
-    /**
-     * GET /api/envios/estado/{estado}
-     * Filtrar envíos por estado
-     */
+    /** Filtrar envíos por estado */
     @GetMapping("/estado/{estado}")
     public ResponseEntity<?> getEnviosByEstado(@PathVariable String estado) {
         try {
@@ -170,50 +132,35 @@ public class EnvioController {
         }
     }
 
-    /**
-     * GET /api/envios/transportadora/{idTransportadora}
-     * Envíos por transportadora
-     */
+    /** Envíos por transportadora */
     @GetMapping("/transportadora/{idTransportadora}")
     public ResponseEntity<List<EnvioResponse>> getEnviosByTransportadora(@PathVariable Long idTransportadora) {
         List<EnvioResponse> envios = envioService.getEnviosByTransportadora(idTransportadora);
         return ResponseEntity.ok(envios);
     }
 
-    /**
-     * GET /api/envios/pendientes
-     * Envíos pendientes
-     */
+    /** Envíos pendientes */
     @GetMapping("/pendientes")
     public ResponseEntity<List<EnvioResponse>> getEnviosPendientes() {
         List<EnvioResponse> envios = envioService.getEnviosPendientes();
         return ResponseEntity.ok(envios);
     }
 
-    /**
-     * GET /api/envios/en-camino
-     * Envíos en camino
-     */
+    /** Envíos en camino */
     @GetMapping("/en-camino")
     public ResponseEntity<List<EnvioResponse>> getEnviosEnCamino() {
         List<EnvioResponse> envios = envioService.getEnviosEnCamino();
         return ResponseEntity.ok(envios);
     }
 
-    /**
-     * GET /api/envios/por-entregar
-     * Envíos por entregar hoy o atrasados
-     */
+    /** Envíos por entregar hoy o atrasados */
     @GetMapping("/por-entregar")
     public ResponseEntity<List<EnvioResponse>> getEnviosPorEntregar() {
         List<EnvioResponse> envios = envioService.getEnviosPorEntregar();
         return ResponseEntity.ok(envios);
     }
 
-    /**
-     * GET /api/envios/estadisticas
-     * Obtener estadísticas de envíos (ADMIN)
-     */
+    /** Obtener estadísticas de envíos (ADMIN) */
     @GetMapping("/estadisticas")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getEnvioStatistics() {

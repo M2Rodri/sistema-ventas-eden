@@ -10,14 +10,11 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
-/**
- * DTO para registrar un pago
- */
+/** DTO para registrar un pago */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class PagoRequest {
-
     @NotNull(message = "La venta es obligatoria")
     private Long idVenta;
 

@@ -9,10 +9,8 @@ import java.nio.file.Paths;
 
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
-
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // Obtener la ruta absoluta del directorio uploads
         String currentDir = System.getProperty("user.dir");
         
         // ========== IMÁGENES (Ya existente) ==========

@@ -17,39 +17,13 @@ import java.util.Optional;
 @RequestMapping("/api/multimedia-productos")
 @CrossOrigin(origins = "http://localhost:3000")
 public class MultimediaProductoController {
-
     private final MultimediaProductoService multimediaService;
 
-    /**
-     * Inyeccion por constructor, no por campo.
-     *
-     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
-     * puede existir a medio construir, y una dependencia circular falla al
-     * arrancar en vez de aparecer en ejecucion.
-     */
     public MultimediaProductoController(MultimediaProductoService multimediaService) {
         this.multimediaService = multimediaService;
     }
 
-
-    /**
-     * ✅ NUEVO ENDPOINT: Subir modelo 3D con archivos
-     * POST /api/multimedia-productos/subir-modelo/{productoId}
-     * 
-     * @param archivoModelo Archivo del modelo 3D (.glb, .gltf, .usdz) - OBLIGATORIO
-     * @param archivoPreview Imagen de vista previa (.jpg, .png) - OPCIONAL
-     * @param productoId ID del producto al que pertenece el modelo
-     * @param habilitadoRa Si se habilita la funcionalidad de realidad aumentada (default: false)
-     * @return MultimediaProductoDTO con la información guardada
-     * 
-     * EJEMPLO DE USO CON POSTMAN/THUNDER CLIENT:
-     * - Method: POST
-     * - URL: http://localhost:8080/api/multimedia-productos/subir-modelo/1
-     * - Body: form-data
-     *   - archivoModelo: [seleccionar archivo .glb]
-     *   - archivoPreview: [seleccionar archivo .jpg] (opcional)
-     *   - habilitadoRa: true
-     */
+    /** Sube el modelo 3D (.glb, .gltf, .usdz) del producto, con vista previa opcional y realidad aumentada opcional. */
     @PostMapping("/subir-modelo/{productoId}")
     public ResponseEntity<?> subirModelo3D(
             @RequestParam("archivoModelo") MultipartFile archivoModelo,
@@ -69,7 +43,6 @@ public class MultimediaProductoController {
         System.out.println("===========================================");
         
         try {
-            // Validar que el archivo modelo no esté vacío
             if (archivoModelo == null || archivoModelo.isEmpty()) {
                 System.err.println("❌ Archivo del modelo 3D vacío o nulo");
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -127,18 +100,7 @@ public class MultimediaProductoController {
         }
     }
 
-    /**
-     * Crear multimedia para producto (método original - URLs manuales)
-     * POST /api/multimedia-productos
-     * 
-     * Body JSON:
-     * {
-     *   "productoId": 1,
-     *   "urlModelo3d": "/uploads/modelos-3d/modelo.glb",
-     *   "urlVistaPrevia": "/uploads/previews/preview.jpg",
-     *   "habilitadoRa": true
-     * }
-     */
+    /** Crea la multimedia de un producto con URLs manuales. */
     @PostMapping
     public ResponseEntity<?> crear(@Valid @RequestBody MultimediaProductoRequest request) {
         try {
@@ -149,24 +111,7 @@ public class MultimediaProductoController {
         }
     }
 
-    /**
-     * Obtener multimedia por producto
-     * GET /api/multimedia-productos/producto/{productoId}
-     * 
-     * Ejemplo: GET http://localhost:8080/api/multimedia-productos/producto/1
-     * 
-     * Respuesta si existe:
-     * {
-     *   "id": 1,
-     *   "productoId": 1,
-     *   "urlModelo3d": "/uploads/modelos-3d/uuid_modelo.glb",
-     *   "urlVistaPrevia": "/uploads/modelos-3d/previews/uuid_preview.jpg",
-     *   "habilitadoRa": true,
-     *   "activo": true
-     * }
-     * 
-     * Respuesta si NO existe: 404 Not Found
-     */
+    /** Multimedia de un producto; 404 si no existe. */
     @GetMapping("/producto/{productoId}")
     public ResponseEntity<?> obtenerPorProducto(@PathVariable Long productoId) {
         System.out.println("🔍 Buscando multimedia para producto ID: " + productoId);
@@ -186,10 +131,7 @@ public class MultimediaProductoController {
         }
     }
 
-    /**
-     * Actualizar multimedia (URLs manuales)
-     * PUT /api/multimedia-productos/{id}
-     */
+    /** Actualiza la multimedia (URLs manuales). */
     @PutMapping("/{id}")
     public ResponseEntity<?> actualizar(
             @PathVariable Long id, 
@@ -203,12 +145,7 @@ public class MultimediaProductoController {
         }
     }
 
-    /**
-     * Eliminar multimedia
-     * DELETE /api/multimedia-productos/{id}
-     * 
-     * IMPORTANTE: Elimina tanto el registro de la BD como los archivos físicos
-     */
+    /** Elimina el registro y los archivos físicos. */
     @DeleteMapping("/{id}")
     public ResponseEntity<?> eliminar(@PathVariable Long id) {
         try {
@@ -225,12 +162,7 @@ public class MultimediaProductoController {
         }
     }
 
-    /**
-     * Listar productos con RA habilitado
-     * GET /api/multimedia-productos/ra-habilitados
-     * 
-     * Retorna lista de todos los productos que tienen realidad aumentada activa
-     */
+    /** Productos con realidad aumentada habilitada. */
     @GetMapping("/ra-habilitados")
     public ResponseEntity<List<MultimediaProductoDTO>> obtenerConRA() {
         System.out.println("🔍 Obteniendo productos con RA habilitado...");
@@ -239,10 +171,7 @@ public class MultimediaProductoController {
         return ResponseEntity.ok(multimedia);
     }
 
-    /**
-     * ✅ ENDPOINT DE PRUEBA: Health check
-     * GET /api/multimedia-productos/health
-     */
+    /** GET /api/multimedia-productos/health */
     @GetMapping("/health")
     public ResponseEntity<?> health() {
         return ResponseEntity.ok(Map.of(

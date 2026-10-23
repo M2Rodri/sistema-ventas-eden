@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Mueblería Edén: pruebas de la API",
-    "description": "Casos CP-02 a CP-43 del apartado 2.8 Pruebas. Las credenciales NO están en este archivo: el ejecutor (ejecutar.mjs) las toma de las variables de entorno ADMIN_USER, ADMIN_PASS, EMP_USER y EMP_PASS. Crea datos con nombre \"Prueba\" y al final los anula (no borra datos reales).",
+    "description": "Casos CP-02 a CP-48 del apartado 2.8 Pruebas. Las credenciales NO están en este archivo: el ejecutor (ejecutar.mjs) las toma de las variables de entorno ADMIN_USER, ADMIN_PASS, EMP_USER y EMP_PASS. Crea datos con nombre \"Prueba\" y al final los anula (no borra datos reales).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -795,58 +795,6 @@
                   "",
                   "pm.test('CP-06: responde HTTP 400', () => pm.response.to.have.status(400));",
                   "pm.test('CP-06: código de error VALIDACION', () => pm.expect(codigoError).to.eql('VALIDACION'));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "CP-08 Venta con precio mayor al de catálogo",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{adminToken}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/ventas",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "ventas"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"idCliente\": {{clienteAId}},\n  \"metodoPago\": \"EFECTIVO\",\n  \"items\": [\n    {\n      \"idProducto\": {{productoAId}},\n      \"cantidad\": 1,\n      \"precioUnitarioConDescuento\": 150\n    }\n  ],\n  \"modalidadEntrega\": \"RETIRO\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
-                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
-                  "const vars = pm.collectionVariables;",
-                  "",
-                  "pm.test('CP-08: responde HTTP 422', () => pm.response.to.have.status(422));",
-                  "pm.test('CP-08: código de error PRECIO_EXCEDE_CATALOGO', () => pm.expect(codigoError).to.eql('PRECIO_EXCEDE_CATALOGO'));"
                 ]
               }
             }
@@ -2386,6 +2334,277 @@
           ]
         },
         {
+          "name": "CP-46 (preparación) Login del usuario de prueba",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"usuario\": \"{{usuarioNuevo}}\", \"password\": \"{{claveNueva}}\" }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-46: el usuario de prueba inicia sesión (HTTP 200)', () => { pm.response.to.have.status(200); pm.expect(cuerpo.token).to.be.a('string'); });",
+                  "vars.set('usuarioNuevoToken', cuerpo.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-46 La sesión abierta funciona",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{usuarioNuevoToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/productos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "productos"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-46: con la sesión abierta se consulta (HTTP 200)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-46 Un EMPLEADO no puede cerrar sesiones de otro",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{empToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/usuarios/{{usuarioNuevoId}}/cerrar-sesiones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "usuarios",
+                "{{usuarioNuevoId}}",
+                "cerrar-sesiones"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-46: el EMPLEADO recibe HTTP 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-46 El ADMIN cierra las sesiones del usuario",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/usuarios/{{usuarioNuevoId}}/cerrar-sesiones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "usuarios",
+                "{{usuarioNuevoId}}",
+                "cerrar-sesiones"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-46: el ADMIN cierra las sesiones (HTTP 204)', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-46 El token anterior deja de servir",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{usuarioNuevoToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/productos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "productos"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-46: el token anterior responde HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('CP-46: código de error NO_AUTENTICADO', () => pm.expect(codigoError).to.eql('NO_AUTENTICADO'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-46 El usuario puede iniciar sesión de nuevo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"usuario\": \"{{usuarioNuevo}}\", \"password\": \"{{claveNueva}}\" }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-46: el usuario vuelve a iniciar sesión (HTTP 200)', () => { pm.response.to.have.status(200); pm.expect(cuerpo.token).to.be.a('string'); });",
+                  "vars.set('usuarioNuevoToken2', cuerpo.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "CP-42 Historial de compras de un cliente",
           "request": {
             "method": "GET",
@@ -2528,6 +2747,525 @@
                   "pm.test('CP-36: idUsuario de la venta (' + cuerpo.idUsuario + ') es el del EMPLEADO (' + emp + '), no el del ADMIN (' + admin + ') que se mandó en el cuerpo', () => { pm.expect(emp).to.not.eql(admin); pm.expect(cuerpo.idUsuario).to.eql(emp); });",
                   "pm.test('CP-36: nombreUsuario (' + cuerpo.nombreUsuario + ') es el nombre del EMPLEADO', () => pm.expect(cuerpo.nombreUsuario).to.eql(vars.get('empNombre')));",
                   "vars.set('ventaEmpleadoId', cuerpo.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-44 Lista de ventas como EMPLEADO: sin costos ni ganancia",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{empToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ventas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ventas"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "const CLAVES = ['costoTotal', 'ganancia', 'costoUnitario'];",
+                  "const contar = (n) => Array.isArray(n) ? n.reduce((s, x) => s + contar(x), 0)",
+                  "  : (n && typeof n === 'object') ? Object.entries(n).reduce((s, [k, v]) => s + (CLAVES.includes(k) && v !== null && v !== undefined ? 1 : 0) + contar(v), 0) : 0;",
+                  "pm.test('CP-44: responde HTTP 200 con ventas (' + (Array.isArray(cuerpo) ? cuerpo.length : 0) + ')', () => { pm.response.to.have.status(200); pm.expect(cuerpo).to.be.an('array').that.is.not.empty; });",
+                  "pm.test('CP-44: ninguna venta trae costo ni ganancia (campos con valor: ' + contar(cuerpo) + ')', () => pm.expect(contar(cuerpo)).to.eql(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-44 Detalle de una venta como EMPLEADO: sin costos ni ganancia",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{empToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ventas/{{ventaEmpleadoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ventas",
+                "{{ventaEmpleadoId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "const CLAVES = ['costoTotal', 'ganancia', 'costoUnitario'];",
+                  "const contar = (n) => Array.isArray(n) ? n.reduce((s, x) => s + contar(x), 0)",
+                  "  : (n && typeof n === 'object') ? Object.entries(n).reduce((s, [k, v]) => s + (CLAVES.includes(k) && v !== null && v !== undefined ? 1 : 0) + contar(v), 0) : 0;",
+                  "pm.test('CP-44: el detalle responde HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('CP-44: el detalle no trae costo ni ganancia (campos con valor: ' + contar(cuerpo) + ')', () => pm.expect(contar(cuerpo)).to.eql(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-44 (control) Lista de ventas como ADMIN: sí trae costos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ventas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ventas"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "const CLAVES = ['costoTotal', 'ganancia', 'costoUnitario'];",
+                  "const contar = (n) => Array.isArray(n) ? n.reduce((s, x) => s + contar(x), 0)",
+                  "  : (n && typeof n === 'object') ? Object.entries(n).reduce((s, [k, v]) => s + (CLAVES.includes(k) && v !== null && v !== undefined ? 1 : 0) + contar(v), 0) : 0;",
+                  "pm.test('CP-44: el ADMIN recibe costo y ganancia (campos con valor: ' + contar(cuerpo) + ')', () => { pm.response.to.have.status(200); pm.expect(contar(cuerpo)).to.be.above(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-45 Renovar el token con una sesión vigente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/renovar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "renovar"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "const decodificar = (t) => { let b = t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'); while (b.length % 4) b += '='; return JSON.parse(atob(b)); };",
+                  "pm.test('CP-45: la renovación responde HTTP 200 con un token nuevo', () => { pm.response.to.have.status(200); pm.expect(cuerpo.token).to.be.a('string'); });",
+                  "const antes = decodificar(vars.get('adminToken')); const despues = decodificar(cuerpo.token);",
+                  "pm.test('CP-45: conserva el inicio de la sesión (inicio ' + despues.inicio + ')', () => pm.expect(despues.inicio).to.eql(antes.inicio));",
+                  "pm.test('CP-45: conserva el tope de la sesión', () => pm.expect(despues.tope).to.eql(antes.tope));",
+                  "pm.test('CP-45: el vencimiento no es anterior al del token viejo', () => pm.expect(despues.exp).to.be.at.least(antes.exp));",
+                  "vars.set('adminTokenRenovado', cuerpo.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-45 El token renovado sirve para consultar",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminTokenRenovado}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/productos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "productos"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-45: con el token renovado se consulta (HTTP 200)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-45 Renovar sin token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/renovar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "renovar"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-45: renovar sin token responde HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('CP-45: código de error NO_AUTENTICADO', () => pm.expect(codigoError).to.eql('NO_AUTENTICADO'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-45 Renovar con un token inventado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer aaaa.bbbb.cccc"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/renovar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "renovar"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-45: renovar con un token falso responde HTTP 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-48 (preparación) Crear un segundo ADMIN temporal",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/usuarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "usuarios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"nombre\": \"Admin\", \"apellido\": \"Temporal\", \"usuario\": \"{{adminTemporal}}\", \"password\": \"{{claveAdminTemporal}}\", \"role\": \"ADMIN\", \"activo\": true }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('adminTemporal', 'prueba_adm_' + (Date.now() % 1000000000)); pm.collectionVariables.set('claveAdminTemporal', 'x' + Math.random().toString(36).slice(2) + 'Qq7');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-48: el segundo ADMIN se crea (HTTP 201)', () => { pm.response.to.have.status(201); pm.expect(cuerpo.id).to.exist; });",
+                  "vars.set('adminTemporalId', cuerpo.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-48 (preparación) Login del segundo ADMIN",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"usuario\": \"{{adminTemporal}}\", \"password\": \"{{claveAdminTemporal}}\" }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-48: el segundo ADMIN inicia sesión (HTTP 200)', () => { pm.response.to.have.status(200); pm.expect(cuerpo.token).to.be.a('string'); });",
+                  "vars.set('adminTemporalToken', cuerpo.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-48 (preparación) Buscar al administrador principal",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/usuarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "usuarios"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "const principal = Array.isArray(cuerpo) ? cuerpo.find((u) => u.usuario === 'admin') : undefined;",
+                  "pm.test('CP-48: existe el usuario admin (administrador principal)', () => pm.expect(principal).to.exist);",
+                  "if (principal) vars.set('adminPrincipalId', principal.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-48 Otro ADMIN intenta editar al administrador principal",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminTemporalToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/usuarios/{{adminPrincipalId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "usuarios",
+                "{{adminPrincipalId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"nombre\": \"Admin\", \"apellido\": \"Principal\", \"usuario\": \"admin\", \"role\": \"ADMIN\", \"activo\": true }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-48: responde HTTP 403', () => pm.response.to.have.status(403));",
+                  "pm.test('CP-48: código de error ADMIN_PRINCIPAL_PROTEGIDO', () => pm.expect(codigoError).to.eql('ADMIN_PRINCIPAL_PROTEGIDO'));"
                 ]
               }
             }
@@ -2835,6 +3573,105 @@
               }
             }
           ]
+        },
+        {
+          "name": "CP-08 Venta con precio pactado mayor al de catálogo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ventas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ventas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idCliente\": {{clienteAId}},\n  \"metodoPago\": \"EFECTIVO\",\n  \"items\": [\n    {\n      \"idProducto\": {{productoAId}},\n      \"cantidad\": 1,\n      \"precioUnitarioConDescuento\": 150\n    }\n  ],\n  \"modalidadEntrega\": \"RETIRO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-08: la venta con precio pactado de 150 (catálogo 100) se acepta (HTTP 201)', () => { pm.response.to.have.status(201); pm.expect(cuerpo.id).to.exist; });",
+                  "const det = (cuerpo.detalles || [])[0] || {};",
+                  "pm.test('CP-08: el detalle guarda el precio pactado (' + det.precioUnitario + ')', () => pm.expect(Number(det.precioUnitario)).to.eql(150));",
+                  "pm.test('CP-08: el total de la venta es el pactado (' + cuerpo.montoTotal + ')', () => pm.expect(Number(cuerpo.montoTotal)).to.eql(150));",
+                  "vars.set('ventaPrecioPactadoId', cuerpo.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-08 El precio del catálogo no cambia",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/productos/{{productoAId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "productos",
+                "{{productoAId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-08: el producto A sigue en HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('CP-08: su precio de venta de catálogo sigue en 100 (' + cuerpo.precioVenta + ')', () => pm.expect(Number(cuerpo.precioVenta)).to.eql(100));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -2951,6 +3788,50 @@
                 "v1",
                 "ventas",
                 "{{ventaEmpleadoId}}",
+                "cancelar"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('Limpieza: venta anulada (HTTP 200)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Anular venta CP-08",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ventas/{{ventaPrecioPactadoId}}/cancelar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ventas",
+                "{{ventaPrecioPactadoId}}",
                 "cancelar"
               ]
             }
@@ -3136,6 +4017,140 @@
                   "const vars = pm.collectionVariables;",
                   "",
                   "pm.test('Limpieza: usuario de prueba dado de baja (HTTP 200)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dar de baja el segundo ADMIN temporal (CP-48)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/usuarios/{{adminTemporalId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "usuarios",
+                "{{adminTemporalId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('Limpieza: ADMIN temporal dado de baja (HTTP 200)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-47 El token del usuario dado de baja deja de servir",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{usuarioNuevoToken2}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/productos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "productos"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-47: tras la baja, el token vigente responde HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('CP-47: código de error NO_AUTENTICADO', () => pm.expect(codigoError).to.eql('NO_AUTENTICADO'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CP-47 El usuario dado de baja no puede iniciar sesión",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"usuario\": \"{{usuarioNuevo}}\", \"password\": \"{{claveNueva}}\" }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const cuerpo = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "const codigoError = cuerpo && cuerpo.error ? cuerpo.error.codigo : undefined;",
+                  "const vars = pm.collectionVariables;",
+                  "",
+                  "pm.test('CP-47: el login de la cuenta dada de baja responde HTTP 401', () => pm.response.to.have.status(401));"
                 ]
               }
             }

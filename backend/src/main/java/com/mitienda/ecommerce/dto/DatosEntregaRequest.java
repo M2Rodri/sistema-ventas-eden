@@ -5,19 +5,11 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * Datos de entrega que se pueden completar o corregir después de registrar
- * la venta (solo ADMIN).
- *
- * Un campo vacío o en blanco lo deja sin valor: así se puede borrar un dato
- * cargado por error. La transportadora y la guía solo aplican a ventas por
- * TRANSPORTADORA; en DOMICILIO solo se edita la dirección.
- */
+/** Datos de entrega a completar o corregir tras la venta (solo ADMIN); un campo vacío borra el dato. */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class DatosEntregaRequest {
-
     @Size(max = 300, message = "La dirección no puede exceder 300 caracteres")
     private String direccionDestino;
 

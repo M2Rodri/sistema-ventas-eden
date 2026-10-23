@@ -46,8 +46,7 @@ class _AjustesScreenState extends State<AjustesScreen> {
     setState(() => _versionInstalada = info.version);
   }
 
-  /// Busca a pedido de la persona y, a diferencia de la revisión automática, le
-  /// cuenta siempre qué pasó: hay una nueva, ya está al día o no hay conexión.
+  /// Busca a pedido de la persona y, a diferencia de la revisión automática, le cuenta siempre qué pasó.
   Future<void> _buscarActualizacion() async {
     setState(() => _buscandoActualizacion = true);
     final respuesta = await _actualizacion.buscar();
@@ -86,8 +85,7 @@ class _AjustesScreenState extends State<AjustesScreen> {
     });
   }
 
-  /// Activar y desactivar piden la huella (o el bloqueo del celular): así, quien
-  /// tenga el celular desbloqueado no puede apagar el candado sin ser el dueño.
+  /// Activar y desactivar piden la huella (o el bloqueo del celular).
   Future<void> _cambiar(bool activar) async {
     final ok = await _biometria.autenticar(
       activar

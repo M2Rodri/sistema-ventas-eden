@@ -50,8 +50,7 @@ export default function DetalleVentaModal({
   const [errorFecha, setErrorFecha] = useState<string | null>(null);
   const [showDesgloseRentabilidad, setShowDesgloseRentabilidad] = useState(false);
 
-  // Poner o cambiar la fecha límite del pago pendiente. Los botones mandan los
-  // días (el servidor calcula la fecha con su reloj); el calendario, la fecha.
+  // Pone o cambia la fecha límite del pago pendiente: los botones mandan días y el calendario una fecha.
   const guardarFechaLimite = async (datos: { plazoDiasPago?: number; fechaLimitePago?: string }) => {
     setErrorFecha(null);
     setGuardandoFecha(true);
@@ -69,8 +68,7 @@ export default function DetalleVentaModal({
   const [subiendoId, setSubiendoId] = useState<number | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  // Si venta.pagos cambia (por ejemplo, al cobrar el saldo pendiente desde
-  // este mismo modal), este estado local se pone al día.
+  // Si venta.pagos cambia (p. ej. al cobrar el saldo desde este modal), el estado local se actualiza.
   useEffect(() => {
     setPagosState(venta.pagos);
   }, [venta.pagos]);
@@ -92,9 +90,7 @@ export default function DetalleVentaModal({
 
   const tienePagosSinRespaldo = pagosState.some((p) => p.sinRespaldo);
 
-  // Total pagado: lo que ya se cobró. En una venta anulada el saldo queda en 0,
-  // así que no sirve restarlo: se suman los pagos registrados. No se sabe si el
-  // dinero se devolvió, por eso en ese caso la fila dice "antes de anular".
+  // Total pagado = suma de los pagos; en una venta anulada dice "antes de anular" porque no se sabe si se devolvió.
   const esAnulada = venta.estado === 'CANCELADA';
   const totalPagado = Math.round(
     (esAnulada
@@ -128,8 +124,7 @@ export default function DetalleVentaModal({
     }
   };
 
-  // Entregar devuelve la venta actualizada: se la pasa al padre
-  // para que la tabla y este detalle muestren el estado nuevo.
+  // Entregar devuelve la venta actualizada: se pasa al padre para refrescar la tabla y este detalle.
   const ejecutarAccionEntrega = async (accion: () => Promise<Venta>) => {
     setEntregaError(null);
     setEntregaProcesando(true);
@@ -183,8 +178,7 @@ export default function DetalleVentaModal({
       TRANSFERENCIA: '🏦',
       QR: '📱',
     };
-    // metodoPago puede venir vacío (venta sin cobros) o como "VARIOS"
-    // cuando la venta se pagó con más de un método.
+    // metodoPago puede venir vacío (sin cobros) o como "VARIOS".
     return icons[venta.metodoPago ?? ''] || '💰';
   };
 
@@ -201,14 +195,7 @@ export default function DetalleVentaModal({
     setShowComprobanteModal(true);
   };
 
-  // Antes había acá dos botones simulados: "Imprimir Comprobante" y
-  // "Descargar PDF", que solo mostraban un alert. Se quitaron porque
-  // "Ver Comprobante" ya abre el comprobante real, y desde ahí se imprime
-  // o se guarda como PDF con el diálogo del navegador.
-  //
-  // También había una observación inventada que aparecía en toda venta cuyo
-  // id fuera múltiplo de 3. La tabla ventas no tiene columna de
-  // observaciones, así que la sección se eliminó.
+  // "Ver Comprobante" abre el comprobante real; desde ahí se imprime o se guarda como PDF.
 
   const estadoBadge = getEstadoBadge();
 
@@ -412,8 +399,6 @@ export default function DetalleVentaModal({
               </div>
             </div>
           )}
-
-
 
           {/* Detalle de Productos */}
           <div className="px-5 pb-6">

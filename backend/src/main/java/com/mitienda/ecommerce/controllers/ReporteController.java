@@ -15,33 +15,19 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Controlador REST para generación de reportes
- */
+/** Controlador REST para generación de reportes */
 @RestController
 @RequestMapping("/api/v1/reportes")
 @CrossOrigin(origins = "http://localhost:3000")
 @PreAuthorize("hasRole('ADMIN')")
 public class ReporteController {
-
     private final ReporteService reporteService;
 
-    /**
-     * Inyeccion por constructor, no por campo.
-     *
-     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
-     * puede existir a medio construir, y una dependencia circular falla al
-     * arrancar en vez de aparecer en ejecucion.
-     */
     public ReporteController(ReporteService reporteService) {
         this.reporteService = reporteService;
     }
 
-
-    /**
-     * GET /api/v1/reportes/ventas?inicio=...&fin=...
-     * Reporte de ventas por período
-     */
+    /** Reporte de ventas por período */
     @GetMapping("/ventas")
     public ResponseEntity<ReporteVentasResponse> getReporteVentas(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime inicio,
@@ -50,10 +36,7 @@ public class ReporteController {
         return ResponseEntity.ok(reporte);
     }
 
-    /**
-     * GET /api/v1/reportes/productos-mas-vendidos?limite=10
-     * Reporte de productos más vendidos
-     */
+    /** Reporte de productos más vendidos */
     @GetMapping("/productos-mas-vendidos")
     public ResponseEntity<ReporteProductosResponse> getReporteProductosMasVendidos(
             @RequestParam(defaultValue = "10") Integer limite) {
@@ -61,10 +44,7 @@ public class ReporteController {
         return ResponseEntity.ok(reporte);
     }
 
-    /**
-     * GET /api/v1/reportes/clientes-frecuentes?limite=10
-     * Reporte de clientes frecuentes
-     */
+    /** Reporte de clientes frecuentes */
     @GetMapping("/clientes-frecuentes")
     public ResponseEntity<ReporteClientesResponse> getReporteClientesFrecuentes(
             @RequestParam(defaultValue = "10") Integer limite) {
@@ -72,20 +52,14 @@ public class ReporteController {
         return ResponseEntity.ok(reporte);
     }
 
-    /**
-     * GET /api/v1/reportes/inventario-valorizado
-     * Reporte de inventario valorizado.
-     */
+    /** Reporte de inventario valorizado. */
     @GetMapping("/inventario-valorizado")
     public ResponseEntity<Map<String, Object>> getReporteInventarioValorizado() {
         Map<String, Object> reporte = reporteService.getReporteInventarioValorizado();
         return ResponseEntity.ok(reporte);
     }
 
-    /**
-     * GET /api/v1/reportes/ventas-por-categoria?inicio=...&fin=...
-     * Reporte de ventas por categoría
-     */
+    /** Reporte de ventas por categoría */
     @GetMapping("/ventas-por-categoria")
     public ResponseEntity<List<Map<String, Object>>> getReporteVentasPorCategoria(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime inicio,
@@ -94,10 +68,7 @@ public class ReporteController {
         return ResponseEntity.ok(reporte);
     }
 
-    /**
-     * GET /api/v1/reportes/ventas-por-producto?inicio=...&fin=...
-     * Cada producto vendido en cada venta del período (sin las canceladas)
-     */
+    /** Cada producto vendido en cada venta del período (sin las canceladas) */
     @GetMapping("/ventas-por-producto")
     public ResponseEntity<List<Map<String, Object>>> getReporteVentasPorProducto(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime inicio,
@@ -105,10 +76,7 @@ public class ReporteController {
         return ResponseEntity.ok(reporteService.getReporteVentasPorProducto(inicio, fin));
     }
 
-    /**
-     * GET /api/v1/reportes/ventas-por-metodo-pago?inicio=...&fin=...
-     * Reporte de ventas por método de pago
-     */
+    /** Reporte de ventas por método de pago */
     @GetMapping("/ventas-por-metodo-pago")
     public ResponseEntity<List<Map<String, Object>>> getReporteVentasPorMetodoPago(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime inicio,
@@ -117,21 +85,14 @@ public class ReporteController {
         return ResponseEntity.ok(reporte);
     }
 
-    /**
-     * GET /api/v1/reportes/cuentas-por-cobrar
-     * Ventas con saldo pendiente de cobro, ordenadas por antigüedad
-     */
+    /** Ventas con saldo pendiente de cobro, ordenadas por antigüedad */
     @GetMapping("/cuentas-por-cobrar")
     public ResponseEntity<ReporteCuentasPorCobrarResponse> getReporteCuentasPorCobrar() {
         ReporteCuentasPorCobrarResponse reporte = reporteService.getReporteCuentasPorCobrar();
         return ResponseEntity.ok(reporte);
     }
 
-    /**
-     * GET /api/v1/reportes/financiero?inicio=...&fin=...
-     * Reporte financiero: ganancia real de lo vendido, e ingresos/egresos
-     * del periodo.
-     */
+    /** Reporte financiero: ganancia real de lo vendido e ingresos y egresos del período. */
     @GetMapping("/financiero")
     public ResponseEntity<ReporteFinancieroResponse> getReporteFinanciero(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime inicio,
@@ -140,10 +101,7 @@ public class ReporteController {
         return ResponseEntity.ok(reporte);
     }
 
-    /**
-     * GET /api/v1/reportes/ganancias-por-producto?inicio=...&fin=...
-     * Detalle de ganancia por línea de venta para el módulo móvil de ganancias.
-     */
+    /** Detalle de ganancia por línea de venta para el módulo móvil de ganancias. */
     @GetMapping("/ganancias-por-producto")
     public ResponseEntity<List<Map<String, Object>>> getGananciasPorProducto(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime inicio,

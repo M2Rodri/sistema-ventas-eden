@@ -10,44 +10,26 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 
-/**
- * Controlador REST para el dashboard con estadísticas
- */
+/** Controlador REST para el dashboard con estadísticas */
 @RestController
 @RequestMapping("/api/v1/dashboard")
 @CrossOrigin(origins = "http://localhost:3000")
 @PreAuthorize("hasAnyRole('ADMIN', 'EMPLEADO')")
 public class DashboardController {
-
     private final DashboardService dashboardService;
 
-    /**
-     * Inyeccion por constructor, no por campo.
-     *
-     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
-     * puede existir a medio construir, y una dependencia circular falla al
-     * arrancar en vez de aparecer en ejecucion.
-     */
     public DashboardController(DashboardService dashboardService) {
         this.dashboardService = dashboardService;
     }
 
-
-    /**
-     * GET /api/v1/dashboard/estadisticas
-     * Obtener todas las estadísticas del dashboard
-     */
+    /** Obtener todas las estadísticas del dashboard */
     @GetMapping("/estadisticas")
     public ResponseEntity<DashboardResponse> getDashboardStats() {
         DashboardResponse dashboard = dashboardService.getDashboardStats();
         return ResponseEntity.ok(dashboard);
     }
 
-    /**
-     * GET /api/v1/dashboard/ventas-semanal?fecha=2026-09-28
-     * Ventas de la semana calendario (lunes a domingo) que contiene a la fecha;
-     * sin parámetro, la semana en curso.
-     */
+    /** Ventas de la semana calendario (lunes a domingo) de la fecha dada; sin fecha, la actual. */
     @GetMapping("/ventas-semanal")
     public ResponseEntity<VentasSemanalResponse> getVentasSemanal(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha) {

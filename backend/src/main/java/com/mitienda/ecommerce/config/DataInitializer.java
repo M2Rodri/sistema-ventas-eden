@@ -15,38 +15,12 @@ import org.springframework.stereotype.Component;
 import java.util.regex.Pattern;
 
 /**
- * Deja la base lista para usarse al arrancar: los roles del sistema y, si hace falta, el
- * primer administrador.
- *
- * ROLES
- *
- * Los roles son estructura, no datos de negocio: sin ADMIN y EMPLEADO en la
- * tabla, nadie puede iniciar sesión y el sistema queda inutilizable. Por eso se
- * aseguran en cada arranque, y por eso se hace sin pisar lo que ya exista.
- *
- * ADMINISTRADOR INICIAL
- *
- * Una base creada desde cero (backend/database/00_esquema.sql) no tiene usuarios, y sin
- * usuarios nadie puede entrar. Si la tabla usuarios está VACÍA y están definidas las
- * variables de entorno ADMIN_INICIAL_USUARIO y ADMIN_INICIAL_CLAVE, se crea con ellas un
- * administrador (la contraseña se guarda con BCrypt, como en cualquier alta de usuario).
- * Si falta alguna de las dos variables, o ya hay usuarios, no se hace nada: nunca se crea
- * ni se modifica un usuario en una base que ya está en uso. La contraseña nunca se escribe
- * en el registro.
- *
- * Esto NO es lo que había antes, y conviene no confundirlos. Antes esta clase creaba en cada
- * arranque el usuario admin@mitienda.com con una contraseña escrita en el código fuente y,
- * si el usuario ya existía, le reescribía la contraseña: una cuenta de administrador con
- * clave conocida, imposible de cerrar. Se quitó. Ahora la clave sale del entorno del
- * servidor, solo sirve para la primera vez y no vuelve a tocar nada una vez que existe un
- * usuario. Una vez que se entró, conviene sacar la clave del entorno.
- *
- * Las altas de usuarios siguientes se hacen desde la pantalla de Usuarios, que exige rol
- * ADMIN y deja registro en la auditoría.
+ * Deja la base lista al arrancar: asegura los roles ADMIN y EMPLEADO y, si la tabla usuarios está vacía y están
+ * definidas ADMIN_INICIAL_USUARIO y ADMIN_INICIAL_CLAVE, crea el primer administrador. En una base con usuarios
+ * no modifica nada, y la clave nunca se escribe en el log.
  */
 @Component
 public class DataInitializer implements CommandLineRunner {
-
     private static final Logger log = LoggerFactory.getLogger(DataInitializer.class);
 
     /** Mismas reglas que valida la entidad Usuario (usuario de 3 a 30 caracteres, clave de 6 o más). */
@@ -80,8 +54,7 @@ public class DataInitializer implements CommandLineRunner {
             asegurarRol("ADMIN", "Administrador / Dueño");
             asegurarRol("EMPLEADO", "Vendedor / Personal");
         } catch (Exception e) {
-            // No se corta el arranque: si los roles ya están en la base, el
-            // sistema funciona igual. Solo se deja constancia.
+            // No se corta el arranque: si los roles ya están en la base, el sistema funciona igual.
             log.error("No se pudieron verificar los roles del sistema: {}", e.getMessage());
         }
 
@@ -99,10 +72,7 @@ public class DataInitializer implements CommandLineRunner {
         }
     }
 
-    /**
-     * Crea el administrador inicial solo si hay variables definidas y la tabla usuarios está
-     * vacía. Nunca imprime ni deja en un error la contraseña.
-     */
+    /** Crea el administrador inicial solo con las variables definidas y la tabla usuarios vacía. */
     private void crearAdministradorInicial() {
         if (adminInicialUsuario == null || adminInicialUsuario.isBlank()
                 || adminInicialClave == null || adminInicialClave.isBlank()) {

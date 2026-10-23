@@ -24,18 +24,11 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Servicio para gestión de pagos
- */
+/** Servicio para gestión de pagos */
 @Service
-// Lectura dentro de transacción por defecto: con spring.jpa.open-in-view=false
-// no hay sesión de Hibernate fuera de la transacción, y los DTO de respuesta se
-// arman recorriendo relaciones perezosas. Sin esto, los endpoints de lectura
-// fallaban con LazyInitializationException.
-// Los métodos que escriben llevan su propio @Transactional, que tiene precedencia.
+// Lectura en transacción: con open-in-view=false no hay sesión de Hibernate fuera de ella.
 @Transactional(readOnly = true)
 public class PagoService {
-
     private final PagoRepository pagoRepository;
 
     private final VentaRepository ventaRepository;
@@ -46,13 +39,6 @@ public class PagoService {
 
     private static final Logger log = LoggerFactory.getLogger(PagoService.class);
 
-    /**
-     * Inyeccion por constructor, no por campo.
-     *
-     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
-     * puede existir a medio construir, y una dependencia circular falla al
-     * arrancar en vez de aparecer en ejecucion.
-     */
     public PagoService(PagoRepository pagoRepository, VentaRepository ventaRepository,
                         AlmacenArchivos almacen, UsuarioActualService usuarioActualService) {
         this.pagoRepository = pagoRepository;
@@ -61,10 +47,7 @@ public class PagoService {
         this.usuarioActualService = usuarioActualService;
     }
 
-
-    /**
-     * Listar todos los pagos
-     */
+    /** Listar todos los pagos */
     public List<PagoDTO> getAllPagos() {
         return pagoRepository.findAll()
                 .stream()
@@ -72,21 +55,16 @@ public class PagoService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Obtener pago por ID
-     */
+    /** Obtener pago por ID */
     public PagoDTO getPagoById(Long id) {
         Pago pago = pagoRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("PAGO_NO_ENCONTRADO", "Pago no encontrado con ID: " + id));
         return new PagoDTO(pago);
     }
 
-    /**
-     * Registrar un pago
-     */
+    /** Registrar un pago */
     @Transactional
     public PagoDTO registrarPago(PagoRequest request) {
-        // Validar venta
         Venta venta = ventaRepository.findById(request.getIdVenta())
                 .orElseThrow(() -> new RecursoNoEncontradoException("VENTA_NO_ENCONTRADA", "Venta no encontrada con ID: " + request.getIdVenta()));
 
@@ -98,7 +76,6 @@ public class PagoService {
                     + venta.getSaldoPendiente() + ")");
         }
 
-        // Crear pago
         Pago pago = new Pago();
         pago.setVenta(venta);
         pago.setMonto(request.getMonto());
@@ -120,12 +97,7 @@ public class PagoService {
         return new PagoDTO(savedPago);
     }
 
-    /**
-     * Adjunta (o reemplaza) la foto de comprobante de un pago ya registrado.
-     *
-     * La foto va al bucket privado "comprobantes" de Supabase Storage; en la base
-     * se guarda el nombre del objeto y la URL firmada se genera al responder.
-     */
+    /** Adjunta o reemplaza la foto del comprobante de un pago (bucket privado; la URL firmada se genera al responder). */
     @Transactional
     public PagoDTO adjuntarComprobante(Long idPago, MultipartFile file) throws IOException {
         Pago pago = pagoRepository.findById(idPago)
@@ -165,9 +137,7 @@ public class PagoService {
         }
     }
 
-    /**
-     * Obtener pagos de una venta
-     */
+    /** Obtener pagos de una venta */
     public List<PagoDTO> getPagosByVenta(Long ventaId) {
         return pagoRepository.findByVentaIdOrderByFechaPagoDesc(ventaId)
                 .stream()
@@ -175,9 +145,7 @@ public class PagoService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Filtrar pagos por estado
-     */
+    /** Filtrar pagos por estado */
     public List<PagoDTO> getPagosByEstado(EstadoPago estado) {
         return pagoRepository.findByEstadoOrderByFechaPagoDesc(estado)
                 .stream()
@@ -185,9 +153,7 @@ public class PagoService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Contar pagos por estado
-     */
+    /** Contar pagos por estado */
     public Long countPagosByEstado(EstadoPago estado) {
         return pagoRepository.countByEstado(estado);
     }

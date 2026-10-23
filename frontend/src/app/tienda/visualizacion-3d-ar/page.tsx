@@ -29,7 +29,6 @@ interface ProductoConMultimedia extends Producto {
 
 // Componente para mostrar galería de productos con 3D
 function GaleriaProductos3D({ productos }: { productos: ProductoConMultimedia[] }) {
-
   if (productos.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-16rem)] py-12 px-4">
@@ -144,7 +143,7 @@ function VisorProducto({ producto, multimedia }: { producto: Producto; multimedi
   const modelUrl = `${BACKEND_URL}${multimedia.urlModelo3d}`;
   const posterUrl = multimedia.urlVistaPrevia ? `${BACKEND_URL}${multimedia.urlVistaPrevia}` : undefined;
 
-  // 🔍 DEBUG 1: Mostrar URLs en consola
+  // Mostrar URLs en consola
   useEffect(() => {
     console.log('═══════════════════════════════════════════════════════');
     console.log('🔍 DEBUG - INICIO DE DIAGNÓSTICO DEL MODELO 3D');
@@ -167,7 +166,7 @@ function VisorProducto({ producto, multimedia }: { producto: Producto; multimedi
     console.log('═══════════════════════════════════════════════════════');
   }, []);
 
-  // 🔍 DEBUG 2: Detectar cuando model-viewer está disponible
+  // Detectar cuando model-viewer está disponible
   useEffect(() => {
     console.log('⏳ Esperando que model-viewer se cargue...');
     
@@ -194,7 +193,7 @@ function VisorProducto({ producto, multimedia }: { producto: Producto; multimedi
     };
   }, [scriptLoaded]);
 
-  // 🔍 DEBUG 3: Verificar si la URL del modelo es accesible
+  // Verificar si la URL del modelo es accesible
   useEffect(() => {
     if (modelUrl) {
       console.log('');
@@ -280,7 +279,7 @@ function VisorProducto({ producto, multimedia }: { producto: Producto; multimedi
     }
   }, [modelUrl]);
 
-  // 🔍 DEBUG 4: Monitor de eventos del model-viewer CON LISTENERS NATIVOS
+  // Monitor de eventos del model-viewer CON LISTENERS NATIVOS
   useEffect(() => {
     if (!scriptLoaded) return;
 
@@ -304,7 +303,6 @@ function VisorProducto({ producto, multimedia }: { producto: Producto; multimedi
       console.log('  - poster:', modelViewer.getAttribute('poster'));
       console.log('  - ar:', modelViewer.getAttribute('ar'));
       
-      // ✅ EVENTOS NATIVOS DEL DOM (más confiables que props de React)
       const handleLoad = () => {
         console.log('');
         console.log('🎉🎉🎉 EVENTO NATIVO: load - ¡Modelo cargado!');
@@ -344,7 +342,7 @@ function VisorProducto({ producto, multimedia }: { producto: Producto; multimedi
       
       console.log('✅ Event listeners nativos registrados correctamente');
       
-      // ⏰ TIMEOUT DE SEGURIDAD: Si después de 15 segundos el modelo no carga, ocultar spinner
+      // Timeout de seguridad: Si después de 15 segundos el modelo no carga, ocultar spinner
       const safetyTimeout = setTimeout(() => {
         console.warn('');
         console.warn('⏰⏰⏰ TIMEOUT: 15 segundos pasaron');
@@ -620,10 +618,7 @@ function Visualizacion3DARContent() {
           console.log('🌐 Endpoint producto:', `${BACKEND_URL}/api/productos/${productoId}`);
           console.log('🌐 Endpoint multimedia:', `${BACKEND_URL}/api/multimedia-productos/producto/${productoId}`);
           
-          // allSettled y no all: mas abajo la multimedia ya se trata como
-          // opcional, pero con Promise.all esa intencion no se cumplia. Si el
-          // endpoint de multimedia no respondia a nivel de red, fetch lanzaba y
-          // el producto tampoco se mostraba.
+          // allSettled y no all: mas abajo la multimedia ya se trata como opcional, pero con Promise.all esa intencion no se cumplia.
           const [rProducto, rMultimedia] = await Promise.allSettled([
             fetch(`${BACKEND_URL}/api/productos/${productoId}`),
             fetch(`${BACKEND_URL}/api/multimedia-productos/producto/${productoId}`)
@@ -682,10 +677,7 @@ function Visualizacion3DARContent() {
 
             setProductosConRA(productosCon3D);
           } else {
-            // Acá se usa Promise.all a propósito: la galería combina las dos
-            // listas, así que sin una de ellas no hay nada que mostrar. Un
-            // fallo de red cae en el catch, pero un 500 dejaba la galería
-            // vacía y en silencio, sin distinguirse de "no hay productos 3D".
+            // Acá se usa Promise.all a propósito: la galería combina las dos listas, así que sin una de ellas no hay nada que mostrar.
             throw new Error('No se pudo cargar la galería de productos 3D');
           }
         }
@@ -693,7 +685,6 @@ function Visualizacion3DARContent() {
         console.log('═══════════════════════════════════════════════════════');
         console.log('✅ CARGA DE DATOS COMPLETADA');
         console.log('═══════════════════════════════════════════════════════');
-
       } catch (err) {
         console.error('');
         console.error('═══════════════════════════════════════════════════════');

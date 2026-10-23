@@ -38,14 +38,11 @@ const menuItems: MenuItem[] = [
   { name: 'Compras', icon: <ShoppingCart size={20} />, href: '/dashboard/compras', adminOnly: true },
   { name: 'Proveedores', icon: <Building2 size={20} />, href: '/dashboard/proveedores', adminOnly: true },
   { name: 'Clientes', icon: <Contact size={20} />, href: '/dashboard/clientes' },
-  // Entrega pasó a vivir en la venta (modalidadEntrega/estadoEntrega). El
-  // módulo de Envíos/Transportadoras se deja de exponer en el menú para no
-  // tener dos caminos para lo mismo, pero el código y las tablas siguen ahí.
+  // Envíos y Transportadoras salen del menú: la entrega vive en la venta (modalidadEntrega/estadoEntrega).
   // { name: 'Envíos', icon: <Truck size={20} />, href: '/dashboard/envios' },
   // { name: 'Pagos', icon: <CreditCard size={20} />, href: '/dashboard/pagos' },
   { name: 'Reportes', icon: <BarChart3 size={20} />, href: '/dashboard/reportes', adminOnly: true },
-  // Promociones y Configuración se sacan del menú a pedido, sin tocar las
-  // pantallas ni las rutas: siguen existiendo, solo dejan de estar a un clic.
+  // Promociones y Configuración salen del menú pero sus pantallas siguen existiendo.
   // { name: 'Promociones', icon: <Tag size={20} />, href: '/dashboard/promociones' },
   // { name: 'Configuración', icon: <Settings size={20} />, href: '/dashboard/configuracion', adminOnly: true },
 ];
@@ -57,8 +54,7 @@ interface SidebarProps {
 export default function Sidebar({ isAdmin }: SidebarProps) {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  // Una pantalla puede pedir más lugar (por ejemplo, Compras con el panel de nuevo producto):
-  // el menú se achica mientras dura y vuelve a como estaba.
+  // Una pantalla puede pedir más lugar (p. ej. Compras con el panel de nuevo producto): el menú se achica y luego vuelve.
   const estabaCerrado = useRef(false);
   // En celular el menú es un cajón que se abre desde el botón del encabezado.
   const [esMovil, setEsMovil] = useState(false);
@@ -160,9 +156,7 @@ export default function Sidebar({ isAdmin }: SidebarProps) {
               title={colapsado ? item.name : ''}
               onClick={(e) => {
                 setCajonAbierto(false);
-                // Clickear un módulo tiene que volver esa pantalla a su
-                // estado normal, incluso si ya estás ahí. Cada pantalla
-                // escucha su propio evento y reinicia sus filtros.
+                // Clic en un módulo devuelve su pantalla al estado normal, aunque ya estés ahí; cada pantalla escucha su evento.
                 const eventosDeReseteo: Record<string, string> = {
                   '/dashboard/ventas': 'ventas:reset-filtros',
                   '/dashboard/inventario': 'inventario:reset-filtros',
@@ -170,14 +164,7 @@ export default function Sidebar({ isAdmin }: SidebarProps) {
                 };
                 const evento = eventosDeReseteo[item.href];
                 if (evento) {
-                  // Si ya estás en esa ruta, no hace falta navegar a
-                  // ningún lado — el reset es todo con estado de React.
-                  // Dejar que el Link navegue igual (a la misma URL) es lo
-                  // que generaba una carrera: a veces esa navegación de
-                  // más terminaba pisando el reset, o incluso disparaba
-                  // una recarga completa en vez de la transición suave.
-                  // pathname (sin query) es lo único que Link puede ver:
-                  // por eso alcanza con comparar contra la ruta actual.
+                  // Si ya estás en esa ruta no se navega: el reset es solo estado de React y navegar de más pisaba el reset.
                   if (window.location.pathname === item.href) {
                     e.preventDefault();
                   }

@@ -4,13 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { borrarSesionLocal } from '@/lib/sesion';
 
-/**
- * Detecta la expiración de sesión y devuelve al login.
- *
- * El token JWT dura 4 horas y se renueva solo mientras se usa el sistema (ver el proxy en
- * /api/proxy), con un tope de 8 horas por sesión. Cuando vence, el backend responde 401.
- * Con el BFF proxy, las llamadas al backend pasan por /api/proxy/...
- */
+/** Detecta la expiración de sesión y devuelve al login. */
 export default function SesionExpiradaWatcher() {
   const router = useRouter();
 

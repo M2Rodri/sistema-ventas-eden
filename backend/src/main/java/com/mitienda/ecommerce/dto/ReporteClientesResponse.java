@@ -7,14 +7,11 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.util.List;
 
-/**
- * DTO para reporte de clientes frecuentes
- */
+/** DTO para reporte de clientes frecuentes */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class ReporteClientesResponse {
-
     private Integer limite;
     private List<ClienteReporteDTO> clientes;
 

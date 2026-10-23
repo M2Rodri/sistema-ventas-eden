@@ -16,16 +16,13 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Entidad Compra - Representa las compras a proveedores
- */
+/** Entidad Compra - Representa las compras a proveedores */
 @Entity
 @Table(name = "compras")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class Compra {
-
     @Id
     @GeneratedValue(generator = "id_compras")
     @GenericGenerator(name = "id_compras", type = GeneradorIdSinHuecos.class,
@@ -41,11 +38,7 @@ public class Compra {
     @Column(nullable = false, updatable = false)
     private LocalDateTime fechaCompra;
 
-    /**
-     * Número de factura del proveedor. Es el respaldo legal del gasto: sin él
-     * la compra no es auditable. La base impide cargar dos veces la misma
-     * factura del mismo proveedor.
-     */
+    /** Número de factura del proveedor; la base impide repetirlo para el mismo proveedor. */
     @Column(name = "numero_factura", length = 50)
     private String numeroFactura;
 
@@ -57,15 +50,7 @@ public class Compra {
     @Column(precision = 10, scale = 2)
     private BigDecimal descuento = BigDecimal.ZERO;
 
-    /**
-     * Antes se llamaba costoTotal. Se renombró a montoTotal por simetría con
-     * ventas.monto_total: las dos mitades del negocio se leen igual.
-     *
-     * No lleva @DecimalMin: la compra se crea con importes en cero y recién
-     * al agregar las líneas se recalcula el total. Validar "mayor a 0" acá
-     * impedía crearla. El importe positivo lo garantizan el CHECK de la base
-     * y la validación de cada línea (cantidad > 0, precio >= 0).
-     */
+    /** Sin @DecimalMin: la compra nace con importes en cero y el total se recalcula al agregar líneas. */
     @NotNull(message = "El monto total es obligatorio")
     @Column(name = "monto_total", nullable = false, precision = 10, scale = 2)
     private BigDecimal montoTotal;

@@ -1,5 +1,4 @@
-// Modelos de venta: cliente, importes, entrega y sus pagos. Salen de
-// GET /api/v1/ventas y GET /api/v1/ventas/{id} (VentaResponse en el backend).
+// Modelos de venta: cliente, importes, entrega y sus pagos.
 
 enum EstadoVenta { completada, pendientePago, cancelada }
 
@@ -15,9 +14,7 @@ EstadoVenta estadoVentaDesdeApi(String valor) {
   }
 }
 
-/// ENTREGADO significa que el cliente ya recibió el producto, en cualquier
-/// modalidad. RETIRO nace ENTREGADO; DOMICILIO y TRANSPORTADORA van de
-/// PENDIENTE a ENTREGADO, y un ADMIN puede corregir un ENTREGADO a PENDIENTE.
+/// ENTREGADO significa que el cliente ya recibió el producto, en cualquier modalidad.
 enum EstadoEntrega { pendiente, entregado }
 
 EstadoEntrega estadoEntregaDesdeApi(String valor) {
@@ -162,8 +159,7 @@ class Pago {
   }
 }
 
-/// Un producto elegido en el carrito de Nueva venta, con la cantidad y el
-/// precio acordado (que puede venir con descuento respecto al de catálogo).
+/// Producto del carrito de Nueva venta, con cantidad y precio acordado.
 class ItemCarrito {
   const ItemCarrito({
     required this.idProducto,
@@ -185,8 +181,7 @@ class ItemCarrito {
 
   double get subtotal => precioFinal * cantidad;
 
-  /// % de descuento respecto al precio de catálogo. Se deriva, igual que en
-  /// el formulario web: no se tipea directo.
+  /// % de descuento respecto al precio de catálogo. Se deriva, igual que en el formulario web: no se tipea directo.
   double get descuentoPorcentaje {
     if (precioOriginal <= 0 || precioFinal >= precioOriginal) return 0;
     return ((precioOriginal - precioFinal) / precioOriginal) * 100;
@@ -209,9 +204,7 @@ class ItemCarrito {
   }
 }
 
-/// Lo que manda POST /api/v1/ventas (VentaRequest en el backend). Mismos
-/// campos y las mismas reglas de armado que RegistrarVentaModal.tsx.
-/// yyyy-MM-dd, el formato que el servidor espera para una fecha sin hora.
+/// Lo que manda POST /api/v1/ventas (VentaRequest en el backend).
 String _fechaIso(DateTime f) {
   String dos(int n) => n.toString().padLeft(2, '0');
   return '${f.year}-${dos(f.month)}-${dos(f.day)}';
@@ -249,13 +242,11 @@ class NuevaVentaRequest {
   /// Hasta cuándo se espera el pago del saldo pendiente. Opcional.
   final DateTime? fechaLimitePago;
 
-  /// Alternativa a la fecha: "dentro de N días". El servidor calcula la fecha con
-  /// su reloj. Si se manda, la fecha no se envía.
+  /// Alternativa a la fecha: "dentro de N días". El servidor calcula la fecha con su reloj.
   final int? plazoDiasPago;
   final ModalidadEntrega modalidadEntrega;
 
-  /// Estado con el que se registra. En tienda el backend lo deja ENTREGADO por
-  /// su cuenta.
+  /// Estado con el que se registra. En tienda el backend lo deja ENTREGADO por su cuenta.
   final EstadoEntrega? estadoEntrega;
   final String? direccionDestino;
   final String? ciudad;
@@ -279,8 +270,7 @@ class NuevaVentaRequest {
             (item) => <String, dynamic>{
               'idProducto': item.idProducto,
               'cantidad': item.cantidad,
-              // Si el precio escrito difiere del de catálogo se manda tal cual
-              // (también si es mayor: el servidor lo rechaza con 422).
+              // Si el precio escrito difiere del de catálogo se manda tal cual (también si es mayor.
               if (item.precioFinal != item.precioOriginal)
                 'precioUnitarioConDescuento': item.precioFinal,
               if (item.descuentoPorcentaje > 0)
@@ -296,8 +286,7 @@ class NuevaVentaRequest {
       'modalidadEntrega': _modalidadValorApi(modalidadEntrega),
       if (modalidadEntrega != ModalidadEntrega.retiro && estadoEntrega != null)
         'estadoEntrega': estadoEntrega!.valorApi,
-      // Dirección: opcional en domicilio y transportadora. Ciudad: solo la
-      // pide la transportadora. Transportadora y guía: opcionales.
+      // Dirección: opcional en domicilio y transportadora. Ciudad: solo la pide la transportadora.
       if (modalidadEntrega != ModalidadEntrega.retiro &&
           _hayTexto(direccionDestino))
         'direccionDestino': direccionDestino,
@@ -356,8 +345,7 @@ class Venta {
   /// Hasta cuándo se espera el pago del saldo pendiente (solo la fecha).
   final DateTime? fechaLimitePago;
 
-  /// La calcula el servidor con SU reloj (hay pago pendiente y la fecha ya pasó):
-  /// un reloj mal puesto en el teléfono no cambia nada.
+  /// La calcula el servidor con SU reloj (hay pago pendiente y la fecha ya pasó).
   final bool fechaLimiteVencida;
   final EstadoVenta estado;
   final ModalidadEntrega modalidadEntrega;
@@ -379,14 +367,12 @@ class Venta {
     return '${dos(f.day)}/${dos(f.month)}/${f.year}';
   }
 
-  /// "Por entregar": estado de entrega distinto de ENTREGADO y venta no
-  /// cancelada. Es la misma definición que usan el backend y la web.
+  /// "Por entregar": estado de entrega distinto de ENTREGADO y venta no cancelada.
   bool get porEntregar =>
       estado != EstadoVenta.cancelada &&
       estadoEntrega != EstadoEntrega.entregado;
 
-  /// Una venta por transportadora sin la transportadora o sin la guía. No
-  /// bloquea nada: solo se muestra la etiqueta "Falta completar".
+  /// Una venta por transportadora sin la transportadora o sin la guía.
   bool get faltaCompletarEnvio =>
       estado != EstadoVenta.cancelada &&
       modalidadEntrega == ModalidadEntrega.transportadora &&

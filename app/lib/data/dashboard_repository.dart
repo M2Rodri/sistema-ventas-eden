@@ -18,8 +18,7 @@ class DashboardRepository {
     return DashboardResumen.fromJson(json);
   }
 
-  /// Semana calendario (lunes a domingo) que contiene a [fecha]; sin fecha,
-  /// la semana en curso.
+  /// Semana calendario (lunes a domingo) que contiene a [fecha]; sin fecha, la semana en curso.
   Future<VentasSemanal> obtenerVentasSemanal(
     String token, {
     DateTime? fecha,

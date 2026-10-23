@@ -11,14 +11,11 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * DTO para respuestas de producto
- */
+/** DTO para respuestas de producto */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProductoResponse {
-
     private Long id;
     private String sku;
     private String nombre;
@@ -33,16 +30,14 @@ public class ProductoResponse {
     private String nombreCategoria;
     private String calidad;
     private BigDecimal precioCompra;
-    // Si es true, precioCompra ya lo gobierna una compra confirmada y no se
-    // puede editar a mano en Productos. Si es false, sigue siendo una
-    // estimación inicial y se puede corregir.
+    // true si una compra confirmada ya gobierna precioCompra y no se edita a mano.
     private Boolean tieneComprasConfirmadas;
     private BigDecimal precioVenta;
     private String dimensiones;
     private Integer stockMinimo;
     private TipoProducto tipoProducto;
     private Boolean activo;
-    private List<ImagenProductoDTO> imagenes; // Asegúrate que ImagenProductoDTO esté correctamente definido
+    private List<ImagenProductoDTO> imagenes;
     private LocalDateTime fechaCreacion;
     private LocalDateTime fechaActualizacion;
 
@@ -70,7 +65,7 @@ public class ProductoResponse {
         this.activo = producto.getActivo();
         // Mapeo de la lista de entidades ImagenProducto a DTOs ImagenProductoDTO
         this.imagenes = producto.getImagenes().stream()
-                .map(ImagenProductoDTO::new) // Asegúrate que ImagenProductoDTO tenga un constructor ImagenProductoDTO(ImagenProducto entity)
+                .map(ImagenProductoDTO::new)
                 .collect(Collectors.toList());
         this.fechaCreacion = producto.getFechaCreacion();
         this.fechaActualizacion = producto.getFechaActualizacion();

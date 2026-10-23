@@ -10,13 +10,7 @@ const EVENTOS = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'c
 const CADA_CUANTO_REVISAR_MS = 30_000;
 const CADA_CUANTO_GUARDAR_MS = 5_000;
 
-/**
- * Cierra la sesión cuando no se toca la pantalla durante INACTIVIDAD_MAXIMA_MS (30 minutos).
- *
- * Cubre el caso más realista: una computadora que alguien deja abierta. La última actividad
- * se guarda en localStorage para que valga entre pestañas: si se está usando otra pestaña, esta
- * no cierra la sesión. Si localStorage no está disponible, se usa una variable en memoria.
- */
+/** Cierra la sesión cuando no se toca la pantalla durante INACTIVIDAD_MAXIMA_MS (30 minutos). */
 export default function InactividadWatcher() {
   const router = useRouter();
 

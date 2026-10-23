@@ -7,18 +7,11 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * Consulta enviada desde la tienda.
- *
- * Las validaciones son estrictas a propósito: este es el único endpoint de
- * escritura público del sistema, así que es la única puerta por la que entra
- * texto sin que nadie haya iniciado sesión.
- */
+/** Consulta de contacto; validaciones estrictas porque es el único endpoint de escritura sin sesión. */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class MensajeContactoRequest {
-
     @NotBlank(message = "El nombre es obligatorio")
     @Size(min = 2, max = 100, message = "El nombre debe tener entre 2 y 100 caracteres")
     private String nombre;

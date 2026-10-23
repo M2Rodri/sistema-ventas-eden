@@ -7,9 +7,7 @@ import 'package:http/testing.dart';
 import 'package:muebleria_eden_app/data/actualizacion_repository.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
-/// La app compara la versión publicada (version.json) con la instalada y solo
-/// avisa si la publicada es más nueva. Buscar actualizaciones nunca debe fallar
-/// ni molestar: sin internet o con un archivo roto, simplemente no hay aviso.
+/// La app compara la versión publicada (version.json) con la instalada y solo avisa si la publicada es más nueva.
 void main() {
   setUp(() {
     PackageInfo.setMockInitialValues(

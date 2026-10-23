@@ -18,20 +18,10 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Guarda los archivos en Supabase Storage usando su API REST.
- *
- * La clave de servicio da acceso total al proyecto: solo la usa este backend y
- * se lee únicamente de la variable de entorno SUPABASE_SERVICE_KEY. Nunca se
- * manda al frontend ni a la app.
- *
- * Qué se guarda en la base de datos:
- *   bucket "productos" (público):    la URL pública del archivo.
- *   bucket "comprobantes" (privado): el nombre del objeto; la URL firmada se
- *                                    genera al responder, con vencimiento.
- *   registros viejos:                rutas "/uploads/..." del disco local.
+ * Guarda en Supabase Storage por su API REST. La clave de servicio solo la usa este backend (SUPABASE_SERVICE_KEY).
+ * Bucket "productos" (público) guarda la URL pública; "comprobantes" (privado) guarda el nombre del objeto.
  */
 public class AlmacenSupabase implements AlmacenArchivos {
-
     private static final Logger log = LoggerFactory.getLogger(AlmacenSupabase.class);
 
     /** Una URL firmada se reutiliza hasta que le queden menos de estos minutos. */
@@ -166,8 +156,7 @@ public class AlmacenSupabase implements AlmacenArchivos {
             firmadas.put(clave, new Firmada(url, ahora + vigencia.toMillis()));
             return url;
         } catch (IOException e) {
-            // Sin URL el frontend simplemente no muestra el enlace; el resto del
-            // sistema sigue funcionando.
+            // Sin URL el frontend no muestra el enlace y el resto sigue funcionando.
             log.warn("No se pudo firmar la URL de {}: {}", clave, e.getMessage());
             return null;
         }

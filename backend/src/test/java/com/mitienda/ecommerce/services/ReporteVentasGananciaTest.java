@@ -27,7 +27,6 @@ import static org.mockito.Mockito.when;
 /** gananciaVentas del reporte de ventas: mismo cálculo que el financiero (solo COMPLETADA, con el costo guardado). */
 @ExtendWith(MockitoExtension.class)
 class ReporteVentasGananciaTest {
-
     private static final LocalDateTime INICIO = LocalDateTime.of(2026, 9, 1, 0, 0);
     private static final LocalDateTime FIN = LocalDateTime.of(2026, 9, 30, 23, 59);
 

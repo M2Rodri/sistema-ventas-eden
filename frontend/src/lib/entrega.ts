@@ -2,11 +2,7 @@
 // y las tarjetas de la web digan lo mismo (y coincidan con el backend y la app).
 import { EstadoEntrega, EstadoVenta, ModalidadEntrega, Venta } from '@/types/venta';
 
-/**
- * "Por entregar": estado de entrega distinto de ENTREGADO y venta no cancelada.
- * Es la misma definición que usan el backend y la app. Retiro en tienda no
- * aparece porque nace ENTREGADO.
- */
+/** "Por entregar": estado de entrega distinto de ENTREGADO y venta no cancelada. */
 export const esPorEntregar = (venta: Venta): boolean =>
   venta.estado !== EstadoVenta.CANCELADA && venta.estadoEntrega !== EstadoEntrega.ENTREGADO;
 

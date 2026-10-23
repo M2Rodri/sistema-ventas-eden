@@ -18,20 +18,11 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/v1/imagenes-producto")
 public class ImagenProductoController {
-
     private final ImagenProductoService imagenProductoService;
 
-    /**
-     * Inyeccion por constructor, no por campo.
-     *
-     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
-     * puede existir a medio construir, y una dependencia circular falla al
-     * arrancar en vez de aparecer en ejecucion.
-     */
     public ImagenProductoController(ImagenProductoService imagenProductoService) {
         this.imagenProductoService = imagenProductoService;
     }
-
 
     @GetMapping("/producto/{idProducto}")
     public ResponseEntity<List<ImagenProductoDTO>> getImagenesByProductoId(@PathVariable Long idProducto) {

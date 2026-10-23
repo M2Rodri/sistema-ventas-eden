@@ -22,32 +22,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * Servicio para gestión de clientes
- * Cumple con CU6 - Gestionar Clientes
- */
+/** Gestión de clientes (CU6). */
 @Service
-// Lectura dentro de transacción por defecto: con spring.jpa.open-in-view=false
-// no hay sesión de Hibernate fuera de la transacción, y los DTO de respuesta se
-// arman recorriendo relaciones perezosas. Sin esto, los endpoints de lectura
-// fallaban con LazyInitializationException.
-// Los métodos que escriben llevan su propio @Transactional, que tiene precedencia.
+// Lectura en transacción: con open-in-view=false no hay sesión de Hibernate fuera de ella.
 @Transactional(readOnly = true)
 public class ClienteService {
-
     private final ClienteRepository clienteRepository;
 
     private final VentaRepository ventaRepository;
 
     private final RegistroAuditoria registroAuditoria;
 
-    /**
-     * Inyeccion por constructor, no por campo.
-     *
-     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
-     * puede existir a medio construir, y una dependencia circular falla al
-     * arrancar en vez de aparecer en ejecucion.
-     */
     public ClienteService(ClienteRepository clienteRepository,
                           VentaRepository ventaRepository,
                           RegistroAuditoria registroAuditoria) {
@@ -56,10 +41,7 @@ public class ClienteService {
         this.registroAuditoria = registroAuditoria;
     }
 
-
-    /**
-     * Listar todos los clientes
-     */
+    /** Listar todos los clientes */
     @Transactional(readOnly = true)
     public List<ClienteResponse> getAllClientes() {
         return clienteRepository.findAll()
@@ -68,12 +50,7 @@ public class ClienteService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Listar todos los clientes con sus estadísticas de compra (número de
-     * compras, monto total, última compra), para la tabla de Clientes.
-     * Una sola consulta agregada en vez de pedir el historial de cada
-     * cliente por separado.
-     */
+    /** Clientes con sus estadísticas de compra, en una sola consulta agregada. */
     @Transactional(readOnly = true)
     public List<ClienteConEstadisticasResponse> getAllClientesConEstadisticas() {
         Map<Long, Object[]> statsPorCliente = ventaRepository.aggregarEstadisticasPorCliente().stream()
@@ -90,9 +67,7 @@ public class ClienteService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Obtener cliente por ID
-     */
+    /** Obtener cliente por ID */
     @Transactional(readOnly = true)
     public ClienteResponse getClienteById(Long id) {
         Cliente cliente = clienteRepository.findById(id)
@@ -100,9 +75,7 @@ public class ClienteService {
         return new ClienteResponse(cliente);
     }
 
-    /**
-     * Buscar cliente por email
-     */
+    /** Buscar cliente por email */
     @Transactional(readOnly = true)
     public ClienteResponse getClienteByCorreo(String email) {
         Cliente cliente = clienteRepository.findByEmail(email)
@@ -110,18 +83,14 @@ public class ClienteService {
         return new ClienteResponse(cliente);
     }
 
-    /**
-     * Crear nuevo cliente
-     */
+    /** Crear nuevo cliente */
     @Transactional
     public ClienteResponse createCliente(ClienteRequest request) {
-        // Validar que el email no exista (si se proporcionó)
         if (request.getEmail() != null && !request.getEmail().isEmpty() 
             && clienteRepository.existsByEmail(request.getEmail())) {
             throw new ConflictoEstadoException("EMAIL_DUPLICADO", "Ya existe un cliente con el email: " + request.getEmail());
         }
 
-        // Validar NIT/CI único (si se proporcionó)
         if (request.getNitCi() != null && !request.getNitCi().isEmpty()
             && clienteRepository.findByNitCi(request.getNitCi()).isPresent()) {
             throw new ConflictoEstadoException("NIT_CI_DUPLICADO", "El NIT o CI ya está registrado para otro cliente");
@@ -143,23 +112,17 @@ public class ClienteService {
         return new ClienteResponse(savedCliente);
     }
 
-    /**
-     * Actualizar cliente existente
-     * CU: Modificar Cliente
-     */
     @Transactional
     public ClienteResponse updateCliente(Long id, ClienteRequest request) {
         Cliente cliente = clienteRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("CLIENTE_NO_ENCONTRADO", "Cliente no encontrado con ID: " + id));
 
-        // Validar email único (si cambió y no es nulo)
         if (request.getEmail() != null && !request.getEmail().isEmpty()
             && !request.getEmail().equals(cliente.getEmail())
             && clienteRepository.existsByEmail(request.getEmail())) {
             throw new ConflictoEstadoException("EMAIL_DUPLICADO", "Ya existe un cliente con el email: " + request.getEmail());
         }
 
-        // Validar NIT/CI único (si cambió y no es nulo)
         if (request.getNitCi() != null && !request.getNitCi().isEmpty()
             && !request.getNitCi().equals(cliente.getNitCi())) {
             clienteRepository.findByNitCi(request.getNitCi()).ifPresent(c -> {
@@ -184,13 +147,9 @@ public class ClienteService {
         return new ClienteResponse(updatedCliente);
     }
 
-    /**
-     * Buscar clientes por nombre, teléfono o NIT/CI
-     * CU: Buscar/Consultar Cliente
-     */
+    /** Busca por nombre, teléfono o NIT/CI. */
     @Transactional(readOnly = true)
     public List<ClienteResponse> searchClientes(String query) {
-        // Buscar por nombre, apellido, telefono o NIT/CI
         List<Cliente> resultados = clienteRepository.searchByNombre(query);
         
         // También buscar por telefono
@@ -212,10 +171,7 @@ public class ClienteService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Obtener historial completo de compras de un cliente
-     * CU: Ver Historial de Compras del Cliente
-     */
+    /** Historial completo de compras de un cliente. */
     @Transactional(readOnly = true)
     public HistorialComprasResponse getHistorialCompras(Long clienteId) {
         Cliente cliente = clienteRepository.findById(clienteId)
@@ -226,10 +182,7 @@ public class ClienteService {
         return construirHistorialCompras(cliente, ventas);
     }
 
-    /**
-     * Obtener historial de compras filtrado por fechas
-     * CU: Ver Historial de Compras del Cliente - Filtro de fechas
-     */
+    /** Historial de compras de un cliente entre dos fechas. */
     @Transactional(readOnly = true)
     public HistorialComprasResponse getHistorialComprasFiltrado(Long clienteId, LocalDateTime inicio, LocalDateTime fin) {
         Cliente cliente = clienteRepository.findById(clienteId)
@@ -243,9 +196,7 @@ public class ClienteService {
         return construirHistorialCompras(cliente, ventasFiltradas);
     }
 
-    /**
-     * Construir respuesta de historial de compras con estadísticas
-     */
+    /** Construir respuesta de historial de compras con estadísticas */
     private HistorialComprasResponse construirHistorialCompras(Cliente cliente, List<Venta> ventas) {
         HistorialComprasResponse response = new HistorialComprasResponse();
         
@@ -279,7 +230,6 @@ public class ClienteService {
             // Última fecha de compra
             stats.setUltimaCompra(ventas.get(0).getFechaVenta());
 
-            // Producto más comprado
             // Producto más comprado
             Map<String, Long> productosCantidad = ventas.stream()
                 .flatMap(v -> v.getDetalles().stream())

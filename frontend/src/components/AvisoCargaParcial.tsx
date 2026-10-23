@@ -9,16 +9,7 @@ interface AvisoCargaParcialProps {
   onReintentar: () => void;
 }
 
-/**
- * Aviso fijo para cuando una pantalla cargó a medias.
- *
- * Se muestra arriba de todo y no desaparece solo, a diferencia de los mensajes
- * de éxito que se van a los pocos segundos: si falta un dato, el usuario tiene
- * que poder verlo mientras mira la pantalla, no durante cuatro segundos.
- *
- * Importa sobre todo para no confundir "no hay registros" con "no pude traer
- * los registros", que en pantalla se ven igual.
- */
+/** Aviso fijo para cuando una pantalla cargó a medias. */
 export default function AvisoCargaParcial({ fallos, onReintentar }: AvisoCargaParcialProps) {
   if (fallos.length === 0) return null;
 

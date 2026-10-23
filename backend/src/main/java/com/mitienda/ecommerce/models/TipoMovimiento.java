@@ -1,8 +1,6 @@
 package com.mitienda.ecommerce.models;
 
-/**
- * Enum para tipos de movimiento de inventario
- */
+/** Enum para tipos de movimiento de inventario */
 public enum TipoMovimiento {
     ENTRADA,        // Aumento de stock manual
     SALIDA,         // Disminución de stock manual

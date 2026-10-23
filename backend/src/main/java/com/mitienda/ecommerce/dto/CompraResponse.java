@@ -11,14 +11,11 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * DTO para respuestas de compra
- */
+/** DTO para respuestas de compra */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class CompraResponse {
-
     private Long id;
     private Long idProveedor;
     private String nombreProveedor;

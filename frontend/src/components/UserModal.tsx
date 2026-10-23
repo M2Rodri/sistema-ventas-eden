@@ -45,7 +45,6 @@ export default function UserModal({ user, onClose, onSuccess }: UserModalProps) 
     setLoading(true);
 
     try {
-      // Validar contraseña solo al crear
       if (!user && !formData.password) {
         setError('La contraseña es obligatoria');
         setLoading(false);

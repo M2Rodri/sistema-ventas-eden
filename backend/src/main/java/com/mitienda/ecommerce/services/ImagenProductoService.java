@@ -17,14 +17,9 @@ import java.io.IOException;
 import java.util.List;
 
 @Service
-// Lectura dentro de transacción por defecto: con spring.jpa.open-in-view=false
-// no hay sesión de Hibernate fuera de la transacción, y los DTO de respuesta se
-// arman recorriendo relaciones perezosas. Sin esto, los endpoints de lectura
-// fallaban con LazyInitializationException.
-// Los métodos que escriben llevan su propio @Transactional, que tiene precedencia.
+// Lectura en transacción: con open-in-view=false no hay sesión de Hibernate fuera de ella.
 @Transactional(readOnly = true)
 public class ImagenProductoService {
-
     private final ImagenProductoRepository imagenProductoRepository;
 
     private final ProductoRepository productoRepository;
@@ -33,13 +28,6 @@ public class ImagenProductoService {
 
     private static final Logger log = LoggerFactory.getLogger(ImagenProductoService.class);
 
-    /**
-     * Inyeccion por constructor, no por campo.
-     *
-     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
-     * puede existir a medio construir, y una dependencia circular falla al
-     * arrancar en vez de aparecer en ejecucion.
-     */
     public ImagenProductoService(ImagenProductoRepository imagenProductoRepository,
                                  ProductoRepository productoRepository,
                                  AlmacenArchivos almacen) {
@@ -47,7 +35,6 @@ public class ImagenProductoService {
         this.productoRepository = productoRepository;
         this.almacen = almacen;
     }
-
 
     public List<ImagenProducto> getImagenesByProductoId(Long idProducto) {
         return imagenProductoRepository.findByProductoIdOrderByOrdenAsc(idProducto);
@@ -103,8 +90,7 @@ public class ImagenProductoService {
         ImagenProducto imagen = imagenProductoRepository.findById(idImagen)
                 .orElseThrow(() -> new RecursoNoEncontradoException("IMAGEN_NO_ENCONTRADA", "Imagen no encontrada con ID: " + idImagen));
 
-        // Primero el archivo en el bucket: si no se puede borrar, se avisa y el
-        // registro queda para reintentar, en vez de dejar un archivo huérfano.
+        // Primero el archivo del bucket: si no se borra, el registro queda para reintentar.
         try {
             almacen.eliminar(AlmacenArchivos.BUCKET_PRODUCTOS, imagen.getUrlImagen());
         } catch (IOException e) {

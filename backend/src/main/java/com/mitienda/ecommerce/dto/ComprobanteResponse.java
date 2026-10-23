@@ -9,14 +9,11 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-/**
- * DTO para respuestas de comprobante
- */
+/** DTO para respuestas de comprobante */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class ComprobanteResponse {
-
     private Long id;
     private Long idVenta;
     private String numeroComprobante;

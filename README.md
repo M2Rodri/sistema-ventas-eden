@@ -178,6 +178,8 @@ sistema-ventas-eden/
 El repositorio conserva código de módulos que quedaron fuera del alcance del trabajo. No forman parte del
 sistema entregado: sus rutas de API responden 404 y sus páginas redirigen al inicio de sesión.
 
+La auditoría es un caso aparte: el registro funciona (cada acción sensible queda en la tabla `auditorias` con usuario, fecha e IP), pero la consulta desde la web o la app quedó fuera del alcance y sus rutas están apagadas (ver [`docs/rutas-api-v1.md`](docs/rutas-api-v1.md)).
+
 **Convenciones de la API**
 - Todas las rutas llevan el prefijo `/api/v1`; una ruta `/api/...` sin versión responde 404. La lista completa
   está en [`docs/rutas-api-v1.md`](docs/rutas-api-v1.md).
@@ -211,9 +213,9 @@ Las credenciales de acceso **se entregan por canal privado**.
 
 | Qué | Comando | Total actual |
 |---|---|---|
-| Backend | `cd backend && ./mvnw test` | **225** pruebas, 0 fallos |
+| Backend | `cd backend && ./mvnw test` | **270** pruebas, 0 fallos |
 | App móvil | `cd app && flutter test` | **74** pruebas, 0 fallos |
-| API (Newman) | `cd evidencia/api && npm install && node ejecutar.mjs` | **33** casos, todos aprobados |
+| API (Newman) | `cd evidencia/api && npm install && node ejecutar.mjs` | **38** casos, todos aprobados |
 
 - Las pruebas del backend construyen la aplicación completa y validan las entidades contra la base, así que
   necesitan PostgreSQL local con el esquema cargado (sección 4.1).

@@ -1,5 +1,6 @@
 package com.mitienda.ecommerce.services;
 
+import com.mitienda.ecommerce.exception.AccesoProhibidoException;
 import com.mitienda.ecommerce.exception.ConflictoEstadoException;
 import com.mitienda.ecommerce.exception.PeticionInvalidaException;
 import com.mitienda.ecommerce.exception.RecursoNoEncontradoException;
@@ -10,6 +11,8 @@ import com.mitienda.ecommerce.models.Role;
 import com.mitienda.ecommerce.models.Usuario;
 import com.mitienda.ecommerce.repositories.RoleRepository;
 import com.mitienda.ecommerce.repositories.UsuarioRepository;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,18 +20,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Servicio para gestión de usuarios (CRUD completo)
- */
+/** Servicio para gestión de usuarios (CRUD completo) */
 @Service
-// Lectura dentro de transacción por defecto: con spring.jpa.open-in-view=false
-// no hay sesión de Hibernate fuera de la transacción, y los DTO de respuesta se
-// arman recorriendo relaciones perezosas. Sin esto, los endpoints de lectura
-// fallaban con LazyInitializationException.
-// Los métodos que escriben llevan su propio @Transactional, que tiene precedencia.
+// Lectura en transacción: con open-in-view=false no hay sesión de Hibernate fuera de ella.
 @Transactional(readOnly = true)
 public class UsuarioService {
-
     private final UsuarioRepository usuarioRepository;
 
     private final RoleRepository roleRepository;
@@ -37,13 +33,6 @@ public class UsuarioService {
 
     private final RegistroAuditoria registroAuditoria;
 
-    /**
-     * Inyeccion por constructor, no por campo.
-     *
-     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
-     * puede existir a medio construir, y una dependencia circular falla al
-     * arrancar en vez de aparecer en ejecucion.
-     */
     public UsuarioService(UsuarioRepository usuarioRepository,
                           RoleRepository roleRepository,
                           PasswordEncoder passwordEncoder,
@@ -54,11 +43,7 @@ public class UsuarioService {
         this.registroAuditoria = registroAuditoria;
     }
 
-
-    /**
-     * Busca el rol por su nombre. El frontend envía "ADMIN" o "EMPLEADO"
-     * como texto; acá se traduce a la fila correspondiente de la tabla 'roles'.
-     */
+    /** Traduce el nombre de rol que envía el frontend ("ADMIN", "EMPLEADO") a su fila de 'roles'. */
     private Role resolverRol(String nombreRol) {
         if (nombreRol == null || nombreRol.isBlank()) {
             throw new PeticionInvalidaException("ROL_REQUERIDO", "El rol es obligatorio");
@@ -67,13 +52,24 @@ public class UsuarioService {
                 .orElseThrow(() -> new PeticionInvalidaException("ROL_INVALIDO", "Rol no válido: " + nombreRol));
     }
 
-    /**
-     * Evita que una edición, baja o cambio de estado deje al sistema sin
-     * ningún administrador activo. Sin esto, un admin puede desactivarse a
-     * sí mismo (o cambiarse el rol) y quedar afuera sin que nadie, ni él
-     * mismo, pueda revertirlo desde la interfaz: la pantalla de Usuarios ya
-     * no aparece para un EMPLEADO, y el login rechaza cuentas inactivas.
-     */
+    /** Nombre de usuario del administrador principal: solo él puede modificarse a sí mismo. */
+    public static final String ADMIN_PRINCIPAL = "admin";
+
+    /** Solo el administrador principal puede modificarse a sí mismo; otro ADMIN recibe 403. */
+    private void validarNoEsAdminPrincipalAjeno(Usuario objetivo) {
+        if (!ADMIN_PRINCIPAL.equalsIgnoreCase(objetivo.getUsuario())) {
+            return;
+        }
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean esElMismo = auth != null && auth.isAuthenticated()
+                && ADMIN_PRINCIPAL.equalsIgnoreCase(auth.getName());
+        if (!esElMismo) {
+            throw new AccesoProhibidoException("ADMIN_PRINCIPAL_PROTEGIDO",
+                    "Solo el administrador principal puede modificar su propia cuenta.");
+        }
+    }
+
+    /** Impide dejar el sistema sin ningún administrador activo. */
     private void validarQuedeUnAdminActivo(Usuario usuario, boolean seguiraSiendoAdminActivo) {
         if (seguiraSiendoAdminActivo) {
             return;
@@ -92,9 +88,7 @@ public class UsuarioService {
         }
     }
 
-    /**
-     * Listar todos los usuarios
-     */
+    /** Listar todos los usuarios */
     public List<UsuarioResponse> getAllUsers() {
         return usuarioRepository.findAll()
                 .stream()
@@ -102,36 +96,27 @@ public class UsuarioService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Obtener usuario por ID
-     */
+    /** Obtener usuario por ID */
     public UsuarioResponse getUserById(Long id) {
         Usuario user = usuarioRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("USUARIO_NO_ENCONTRADO", "Usuario no encontrado con ID: " + id));
         return new UsuarioResponse(user);
     }
 
-    /**
-     * Crear nuevo usuario
-     */
+    /** Crear nuevo usuario */
     @Transactional
     public UsuarioResponse createUser(UsuarioRequest request) {
-        // Se guarda siempre en minúsculas: la comparación en la base es
-        // sensible a mayúsculas/minúsculas y esto evita duplicados como
-        // "Juan" y "juan".
+        // Siempre en minúsculas: la base distingue mayúsculas y evita duplicados ("Juan" y "juan").
         String usuarioNormalizado = request.getUsuario().trim().toLowerCase();
 
-        // Validar que el usuario no exista
         if (usuarioRepository.existsByUsuario(usuarioNormalizado)) {
             throw new ConflictoEstadoException("USUARIO_DUPLICADO", "El usuario ya está registrado: " + usuarioNormalizado);
         }
 
-        // Validar que la contraseña no esté vacía al crear
         if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
             throw new PeticionInvalidaException("PASSWORD_REQUERIDA", "La contraseña es obligatoria al crear un usuario");
         }
 
-        // Crear nuevo usuario
         Usuario user = new Usuario();
         user.setNombre(request.getNombre());
         user.setApellido(request.getApellido());
@@ -147,25 +132,27 @@ public class UsuarioService {
 
         Usuario savedUser = usuarioRepository.save(user);
 
-        // Nunca se registra la contrasena ni su hash, solo quien creo la cuenta
-        // y con que rol.
+        // Nunca se registra la contraseña ni su hash.
         registroAuditoria.registrar("CREAR_USUARIO", "usuarios", savedUser.getId(),
                 "Alta de " + savedUser.getUsuario() + " con rol " + savedUser.getRoleName());
 
         return new UsuarioResponse(savedUser);
     }
 
-    /**
-     * Actualizar usuario existente
-     */
+    /** Actualizar usuario existente */
     @Transactional
     public UsuarioResponse updateUser(Long id, UsuarioRequest request) {
         Usuario user = usuarioRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("USUARIO_NO_ENCONTRADO", "Usuario no encontrado con ID: " + id));
+        validarNoEsAdminPrincipalAjeno(user);
 
         String usuarioNormalizado = request.getUsuario().trim().toLowerCase();
 
-        // Validar usuario único (si cambió)
+        // Renombrarlo dejaría el nombre "admin" libre y sin protección.
+        if (ADMIN_PRINCIPAL.equalsIgnoreCase(user.getUsuario()) && !ADMIN_PRINCIPAL.equals(usuarioNormalizado)) {
+            throw new ReglaNegocioException("ADMIN_PRINCIPAL_NO_RENOMBRABLE", "El administrador principal no puede cambiar su nombre de usuario.");
+        }
+
         if (!user.getUsuario().equals(usuarioNormalizado) &&
             usuarioRepository.existsByUsuario(usuarioNormalizado)) {
             throw new ConflictoEstadoException("USUARIO_DUPLICADO", "El usuario ya está registrado: " + usuarioNormalizado);
@@ -176,7 +163,6 @@ public class UsuarioService {
                 && Boolean.TRUE.equals(request.getActivo());
         validarQuedeUnAdminActivo(user, seguiraSiendoAdminActivo);
 
-        // Actualizar campos
         user.setNombre(request.getNombre());
         user.setApellido(request.getApellido());
         user.setUsuario(usuarioNormalizado);
@@ -188,8 +174,7 @@ public class UsuarioService {
         // Solo actualizar password si se proporcionó uno nuevo
         if (request.getPassword() != null && !request.getPassword().trim().isEmpty()) {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
-            // Cambiar la contraseña corta las sesiones que ya estaban abiertas: si la clave se
-            // cambió porque alguien más la conocía, su token no puede seguir sirviendo.
+            // Cambiar la contraseña corta las sesiones abiertas: si otro la conocía, su token deja de servir.
             user.setSesionesValidasDesde(System.currentTimeMillis());
         }
 
@@ -205,13 +190,12 @@ public class UsuarioService {
         return new UsuarioResponse(updatedUser);
     }
 
-    /**
-     * Eliminar usuario (desactivar)
-     */
+    /** Eliminar usuario (desactivar) */
     @Transactional
     public void deleteUser(Long id) {
         Usuario user = usuarioRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("USUARIO_NO_ENCONTRADO", "Usuario no encontrado con ID: " + id));
+        validarNoEsAdminPrincipalAjeno(user);
 
         // Desactivar en lugar de eliminar
         validarQuedeUnAdminActivo(user, false);
@@ -222,13 +206,12 @@ public class UsuarioService {
                 "Baja de " + user.getUsuario());
     }
 
-    /**
-     * Activar/Desactivar usuario
-     */
+    /** Activar/Desactivar usuario */
     @Transactional
     public UsuarioResponse toggleUserStatus(Long id) {
         Usuario user = usuarioRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("USUARIO_NO_ENCONTRADO", "Usuario no encontrado con ID: " + id));
+        validarNoEsAdminPrincipalAjeno(user);
 
         boolean nuevoActivo = !user.getActivo();
         validarQuedeUnAdminActivo(user, nuevoActivo);
@@ -242,14 +225,12 @@ public class UsuarioService {
         return new UsuarioResponse(updatedUser);
     }
 
-    /**
-     * Cerrar todas las sesiones abiertas de un usuario: desde ahora sus tokens anteriores se
-     * rechazan y no se pueden renovar. Tendrá que iniciar sesión de nuevo en cada dispositivo.
-     */
+    /** Corta las sesiones abiertas de un usuario: sus tokens anteriores se rechazan y no se pueden renovar. */
     @Transactional
     public void cerrarSesiones(Long id) {
         Usuario user = usuarioRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("USUARIO_NO_ENCONTRADO", "Usuario no encontrado con ID: " + id));
+        validarNoEsAdminPrincipalAjeno(user);
 
         user.setSesionesValidasDesde(System.currentTimeMillis());
         usuarioRepository.save(user);
@@ -258,9 +239,7 @@ public class UsuarioService {
                 "Cierre de todas las sesiones de " + user.getUsuario());
     }
 
-    /**
-     * Listar usuarios por rol
-     */
+    /** Listar usuarios por rol */
     public List<UsuarioResponse> getUsersByRole(String role) {
         return usuarioRepository.findAll()
                 .stream()
@@ -269,9 +248,7 @@ public class UsuarioService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Listar solo usuarios activos
-     */
+    /** Listar solo usuarios activos */
     public List<UsuarioResponse> getActiveUsers() {
         return usuarioRepository.findAll()
                 .stream()
@@ -280,9 +257,7 @@ public class UsuarioService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Contar usuarios por rol
-     */
+    /** Contar usuarios por rol */
     public Long countUsersByRole(String role) {
         return usuarioRepository.findAll()
                 .stream()
@@ -290,9 +265,7 @@ public class UsuarioService {
                 .count();
     }
 
-    /**
-     * Contar usuarios activos
-     */
+    /** Contar usuarios activos */
     public Long countActiveUsers() {
         return usuarioRepository.countByActivo(true);
     }

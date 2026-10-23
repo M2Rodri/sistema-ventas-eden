@@ -35,20 +35,7 @@ const TIPOS: { valor: TipoProducto; etiqueta: string }[] = [
 
 const normalizar = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
-/**
- * Registro de una compra a proveedor.
- *
- * Los productos se eligen desde un modal aparte: buscador + filtro por
- * categoría + tildar los que querés y agregarlos todos juntos de una — como
- * elegir productos para una venta, pero permitiendo marcar varios antes de
- * confirmar en vez de agregar de a uno.
- *
- * El costo unitario arranca vacío a propósito, sin sugerir ningún precio:
- * el sistema solo sabe lo que se pagó la ÚLTIMA vez (y eso puede ya no ser
- * lo que se está pagando ahora), así que sugerirlo podía hacer pensar que
- * "ya está bien puesto" cuando en realidad hay que cargar el precio real de
- * esta compra.
- */
+/** Registro de una compra a proveedor. */
 export default function CompraModal({
   idProveedor,
   nombreProveedor,

@@ -47,17 +47,10 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 
-/**
- * Cada regla de negocio sale con su código HTTP y su código de error: recurso
- * inexistente (404), conflicto con el estado actual (409), regla de negocio (422)
- * y dato inválido (400). El formato JSON de la respuesta lo cubre FormatoErrorApiTest.
- *
- * Son pruebas de la lógica de los servicios con los repositorios simulados.
- */
+/** Cada regla de negocio sale con su código HTTP y de error: 404, 409, 422 y 400. */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class ErroresNegocioTest {
-
     @Mock private VentaRepository ventaRepository;
     @Mock private DetalleVentaRepository detalleVentaRepository;
     @Mock private PagoRepository pagoRepository;

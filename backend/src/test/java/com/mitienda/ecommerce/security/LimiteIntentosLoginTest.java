@@ -18,7 +18,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Cinco fallos en 15 minutos bloquean al usuario 15 minutos; un acierto borra la cuenta. */
 class LimiteIntentosLoginTest {
-
     /** Reloj que se mueve a mano, para no esperar 15 minutos de verdad. */
     private static final class RelojManual extends Clock {
         private Instant ahora = Instant.parse("2026-10-07T12:00:00Z");

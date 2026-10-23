@@ -7,14 +7,11 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * DTO para crear o actualizar proveedores
- */
+/** DTO para crear o actualizar proveedores */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProveedorRequest {
-
     @NotBlank(message = "El nombre de la empresa es obligatorio")
     @Size(min = 2, max = 200, message = "El nombre debe tener entre 2 y 200 caracteres")
     private String nombreEmpresa;

@@ -14,7 +14,6 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class EnvioResponse {
-
     private Long id;
     private Long idVenta;
     private String nombreCliente;

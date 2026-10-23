@@ -1,6 +1,7 @@
 package com.mitienda.ecommerce.services;
 
 import com.mitienda.ecommerce.dto.AuditoriaResponse;
+import com.mitienda.ecommerce.exception.RecursoNoEncontradoException;
 import com.mitienda.ecommerce.models.Auditoria;
 import com.mitienda.ecommerce.models.Usuario;
 import com.mitienda.ecommerce.repositories.AuditoriaRepository;
@@ -12,38 +13,21 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Servicio para gestión de auditorías
- */
+/** Servicio para gestión de auditorías */
 @Service
-// Lectura dentro de transacción por defecto: con spring.jpa.open-in-view=false
-// no hay sesión de Hibernate fuera de la transacción, y los DTO de respuesta se
-// arman recorriendo relaciones perezosas. Sin esto, los endpoints de lectura
-// fallaban con LazyInitializationException.
-// Los métodos que escriben llevan su propio @Transactional, que tiene precedencia.
+// Lectura en transacción: con open-in-view=false no hay sesión de Hibernate fuera de ella.
 @Transactional(readOnly = true)
 public class AuditoriaService {
-
     private final AuditoriaRepository auditoriaRepository;
 
     private final UsuarioRepository usuarioRepository;
 
-    /**
-     * Inyeccion por constructor, no por campo.
-     *
-     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
-     * puede existir a medio construir, y una dependencia circular falla al
-     * arrancar en vez de aparecer en ejecucion.
-     */
     public AuditoriaService(AuditoriaRepository auditoriaRepository, UsuarioRepository usuarioRepository) {
         this.auditoriaRepository = auditoriaRepository;
         this.usuarioRepository = usuarioRepository;
     }
 
-
-    /**
-     * Listar todas las auditorías
-     */
+    /** Listar todas las auditorías */
     public List<AuditoriaResponse> getAllAuditorias() {
         return auditoriaRepository.findAll()
                 .stream()
@@ -51,18 +35,14 @@ public class AuditoriaService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Obtener auditoría por ID
-     */
+    /** Obtener auditoría por ID */
     public AuditoriaResponse getAuditoriaById(Long id) {
         Auditoria auditoria = auditoriaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Auditoría no encontrada con ID: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("AUDITORIA_NO_ENCONTRADA", "Auditoría no encontrada con ID: " + id));
         return new AuditoriaResponse(auditoria);
     }
 
-    /**
-     * Registrar una auditoría
-     */
+    /** Registrar una auditoría */
     @Transactional
     public AuditoriaResponse registrarAuditoria(Long idUsuario, String accion, String tablaAfectada, 
                                                String idRegistro, String detalles, String ipDispositivo) {
@@ -83,9 +63,7 @@ public class AuditoriaService {
         return new AuditoriaResponse(savedAuditoria);
     }
 
-    /**
-     * Auditorías de un usuario
-     */
+    /** Auditorías de un usuario */
     public List<AuditoriaResponse> getAuditoriasByUsuario(Long idUsuario) {
         return auditoriaRepository.findByUsuarioIdOrderByFechaHoraDesc(idUsuario)
                 .stream()
@@ -93,9 +71,7 @@ public class AuditoriaService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Auditorías de una tabla específica
-     */
+    /** Auditorías de una tabla específica */
     public List<AuditoriaResponse> getAuditoriasByTabla(String tablaAfectada) {
         return auditoriaRepository.findByTablaAfectadaOrderByFechaHoraDesc(tablaAfectada)
                 .stream()
@@ -103,9 +79,7 @@ public class AuditoriaService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Auditorías de una acción específica
-     */
+    /** Auditorías de una acción específica */
     public List<AuditoriaResponse> getAuditoriasByAccion(String accion) {
         return auditoriaRepository.findByAccionOrderByFechaHoraDesc(accion)
                 .stream()
@@ -113,9 +87,7 @@ public class AuditoriaService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Auditorías entre fechas
-     */
+    /** Auditorías entre fechas */
     public List<AuditoriaResponse> getAuditoriasByFechas(LocalDateTime inicio, LocalDateTime fin) {
         return auditoriaRepository.findByFechaHoraBetweenOrderByFechaHoraDesc(inicio, fin)
                 .stream()
@@ -123,9 +95,7 @@ public class AuditoriaService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Últimas 100 auditorías
-     */
+    /** Últimas 100 auditorías */
     public List<AuditoriaResponse> getUltimasAuditorias() {
         return auditoriaRepository.findTop100ByOrderByFechaHoraDesc()
                 .stream()
@@ -133,9 +103,7 @@ public class AuditoriaService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Auditorías del día
-     */
+    /** Auditorías del día */
     public List<AuditoriaResponse> getAuditoriasDelDia() {
         return auditoriaRepository.findAuditoriasDelDia()
                 .stream()
@@ -143,9 +111,7 @@ public class AuditoriaService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Métodos helper para registrar acciones comunes
-     */
+    /** Métodos helper para registrar acciones comunes */
 
     @Transactional
     public void registrarCreacion(Long idUsuario, String tabla, String idRegistro, String ip) {

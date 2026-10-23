@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AlmacenConfigTest {
-
     private final AlmacenConfig config = new AlmacenConfig();
 
     private static MockEnvironment entorno(String perfil) {

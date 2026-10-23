@@ -22,14 +22,7 @@ import StatCard from '@/components/StatCard';
 import { mensajeError } from '@/lib/errores';
 import { useDragScrollTable } from '@/hooks/useDragScrollTable';
 
-/**
- * Panel de inicio.
- *
- * Todas las cifras salen de /api/v1/dashboard/estadisticas. Antes esta pantalla
- * mostraba valores fijos escritos en el código ($250.000 en ventas, 1.200
- * productos, 350 usuarios, 4.8/5 en reseñas y tres productos destacados
- * inventados), que no correspondían a ningún dato del sistema.
- */
+/** Panel de inicio. */
 export default function DashboardPage() {
   const { user } = useAuth();
   const router = useRouter();
@@ -71,8 +64,7 @@ export default function DashboardPage() {
 
   const num = (valor?: number) => Number(valor ?? 0).toLocaleString('es-BO');
 
-  // Arrastrar la tabla desde el encabezado, como si fuera una barra de
-  // scroll horizontal. Ver hooks/useDragScrollTable.ts.
+  // Arrastrar la tabla desde el encabezado (ver hooks/useDragScrollTable.ts).
   const {
     scrollContainerRef,
     tableRef,

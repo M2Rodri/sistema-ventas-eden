@@ -3,10 +3,6 @@ import 'api_client.dart';
 import 'inicio_guardado.dart';
 
 /// Capa de datos para el catálogo de consulta (precio y stock).
-///
-/// GET /api/v1/inventario/catalogo devuelve nombre, precio y stock ya cruzados
-/// en el servidor: antes esto pedía /api/v1/productos/activos y /api/v1/inventario
-/// por separado y los cruzaba acá.
 class CatalogoRepository {
   CatalogoRepository({ApiClient? apiClient})
     : _apiClient = apiClient ?? const ApiClient();
@@ -39,9 +35,7 @@ class CatalogoRepository {
     }
   }
 
-  /// Solo ADMIN. Cambia el precio de venta de un producto con el endpoint de
-  /// edición (PUT /api/v1/productos/{id}), que pide el producto completo: se
-  /// lee tal como está y se reenvía igual, salvo el precio.
+  /// Solo ADMIN.
   Future<void> actualizarPrecioVenta(
     int idProducto,
     double nuevoPrecio,

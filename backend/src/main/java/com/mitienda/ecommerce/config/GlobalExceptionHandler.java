@@ -26,21 +26,12 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Único lugar donde una excepción se convierte en respuesta de error, con el
- * formato único de la API (ver {@link RespuestaError}).
- *
- * - Las {@link ApiException} (no encontrado, conflicto, regla de negocio...) llevan su
- *   propio código HTTP y código de error.
- * - Los errores que Spring detecta antes de llegar al controlador (validación de campos,
- *   JSON mal formado, tipo de parámetro incorrecto, método no permitido...) se resuelven
- *   en la clase base y se les da el mismo formato en {@link #handleExceptionInternal}.
- * - 401 y 403 de las anotaciones @PreAuthorize también pasan por acá; los de las reglas de
- *   URL los escribe SecurityConfig con el mismo formato.
- * - Cualquier otra excepción es un 500 sin detalles internos ni traza: el detalle va solo al log.
+ * Único lugar donde una excepción se convierte en respuesta de error, con el formato único de la API (ver RespuestaError).
+ * Las ApiException llevan su código HTTP; los errores de Spring antes del controlador se formatean en handleExceptionInternal;
+ * cualquier otra excepción es un 500 sin detalles internos (el detalle va al log).
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
-
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(ApiException.class)

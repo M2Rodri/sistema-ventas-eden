@@ -10,19 +10,8 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.time.Duration;
 
-/**
- * Convierte, al armar la respuesta JSON, lo que hay guardado como comprobante
- * en la URL con la que se puede ver la foto.
- *
- * El bucket de comprobantes es privado: lo guardado es el nombre del objeto, y
- * acá se cambia por una URL firmada que vence a la hora. Así ninguna foto de
- * pago tiene una URL permanente, y no hay que tocar cada lugar del backend que
- * arma un PagoDTO.
- *
- * Los registros viejos (/uploads/...) se devuelven tal cual.
- */
+/** Cambia el comprobante guardado por una URL firmada de 1 hora; los registros viejos salen tal cual. */
 public class ComprobanteUrlSerializer extends StdSerializer<String> {
-
     static final Duration VIGENCIA = Duration.ofHours(1);
 
     private static final Logger log = LoggerFactory.getLogger(ComprobanteUrlSerializer.class);

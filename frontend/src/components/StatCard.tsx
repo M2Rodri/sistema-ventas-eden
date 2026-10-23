@@ -10,27 +10,7 @@ interface StatCardProps {
   className?: string;
 }
 
-/**
- * Componente centralizado de tarjeta de estadísticas / métricas.
- * 
- * TEMA SELECCIONADO: Pizarra Oscuro (Slate 75% con efecto Glassmorphism)
- * - Fondo translúcido con desenfoque de fondo (backdrop-blur-md)
- * - Títulos en slate-200 (+5% brillo)
- * - Subtítulos en slate-300 (+5% brillo)
- * - Cifras y números en blanco puro (text-white)
- * - Íconos unificados en blanco puro (text-white)
- * 
- * ALTERNATIVA (Negro Zinc 75% comentada para referencia futura):
- * // cardBg: 'bg-zinc-900/75 backdrop-blur-md shadow-md'
- * // cardBorder: 'border-zinc-800/75'
- * // cardHoverBorder: 'hover:border-zinc-500 hover:bg-zinc-900/85'
- * // labelColor: 'text-zinc-200'
- * // valueColor: 'text-white'
- * // sublabelColor: 'text-zinc-300'
- * // iconBg: 'bg-zinc-800/55'
- * // iconBorder: 'border-zinc-700/55'
- * // iconColor: 'text-white'
- */
+/** Componente centralizado de tarjeta de estadísticas / métricas. */
 export default function StatCard({
   titulo,
   valor,

@@ -8,14 +8,11 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * DTO para reporte de ventas
- */
+/** DTO para reporte de ventas */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class ReporteVentasResponse {
-
     private LocalDateTime fechaInicio;
     private LocalDateTime fechaFin;
     private Long totalVentas;

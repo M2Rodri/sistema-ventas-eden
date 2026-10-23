@@ -8,23 +8,11 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 
-/**
- * Poner o cambiar la fecha límite del pago pendiente de una venta ya
- * registrada (ADMIN y EMPLEADO).
- *
- * Se manda UNA de las dos cosas:
- *   - plazoDiasPago: "dentro de N días". El servidor calcula la fecha con su
- *     propio reloj, así que no depende de la hora del teléfono ni del
- *     navegador.
- *   - fechaLimitePago: una fecha exacta (yyyy-MM-dd), que no puede ser
- *     anterior a hoy.
- * Si vienen las dos, manda plazoDiasPago.
- */
+/** Fecha límite del pago pendiente: en N días (plazoDiasPago) o una fecha exacta; si vienen las dos, manda el plazo. */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class FechaLimitePagoRequest {
-
     private LocalDate fechaLimitePago;
 
     @Min(value = 1, message = "El plazo debe ser de al menos 1 día")

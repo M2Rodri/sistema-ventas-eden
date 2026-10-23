@@ -6,16 +6,10 @@ import '../../models/sesion.dart';
 import '../../theme/app_colors.dart';
 
 /// Pantalla de inicio de sesión.
-///
-/// El "entrar directo si el token guardado es válido" se resuelve en
-/// main.dart (ahí se decide qué pantalla mostrar al abrir la app), no acá:
-/// esta pantalla es específicamente el formulario para cuando hace falta
-/// loguearse.
 class LoginScreen extends StatefulWidget {
   LoginScreen({super.key, required this.onSesionIniciada, this.aviso});
 
-  /// Se llama con la sesión recién creada. Quien use LoginScreen decide a
-  /// dónde navegar desde ahí.
+  /// Se llama con la sesión recién creada. Quien use LoginScreen decide a dónde navegar desde ahí.
   final ValueChanged<Sesion> onSesionIniciada;
 
   /// Mensaje que se muestra al abrir el login (por ejemplo, "Tu sesión venció").
@@ -66,10 +60,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } on ApiException catch (error) {
       setState(() => _errorMensaje = error.mensaje);
     } catch (error, stackTrace) {
-      // Cualquier error que no sea de la API (por ejemplo, uno de
-      // navegación al volver de esta pantalla) queda en el log en vez de
-      // perderse: el mensaje que ve el usuario no dice nada útil para
-      // depurar.
+      // Cualquier error ajeno a la API queda en el log en vez de perderse.
       debugPrint('Error inesperado en login: $error\n$stackTrace');
       setState(
         () => _errorMensaje = 'Ocurrió un error inesperado. Probá de nuevo.',

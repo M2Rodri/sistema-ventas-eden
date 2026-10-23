@@ -1,30 +1,9 @@
 import { useEffect, useRef, useState, type DependencyList, type DragEvent, type MouseEvent, type PointerEvent } from 'react';
 
 /**
- * Arrastrar una tabla desde su <thead>, como si fuera una barra de scroll
- * horizontal: se aprieta sobre el encabezado, se arrastra y la tabla se
- * mueve, sin tener que bajar hasta la barra de scroll del final.
- *
- * Se activa solo cuando la tabla realmente desborda (scrollWidth >
- * clientWidth del contenedor). Eso se recalcula con un ResizeObserver sobre
- * el contenedor y la tabla, más un chequeo inmediato cuando cambian las
- * `deps` (por ejemplo, la lista filtrada: filtrar puede hacer que el
- * desborde aparezca o desaparezca sin que cambie el tamaño de la ventana).
- *
- * El estado del arrastre vive en un ref (no en useState) para no
- * re-renderizar en cada pointermove. Usa Pointer Events con captura: el
- * pointerup de un gesto llega garantizado al thead que empezó el arrastre,
- * aunque el mouse termine fuera de la ventana. `stopDragging` es el único
- * lugar que apaga el estado (soltar, cancelar, el mouse se va de la
- * ventana, la ventana pierde el foco caen todos ahí), así nunca queda el
- * arrastre prendido por un camino de salida que no se cubrió.
- *
- * Uso:
- *   const { scrollContainerRef, tableRef, theadRef, hasOverflow, theadProps }
- *     = useDragScrollTable([listaFiltrada]);
- *   <div className="overflow-x-auto" ref={scrollContainerRef}>
- *     <table ref={tableRef}>
- *       <thead ref={theadRef} className={hasOverflow ? 'cursor-grab select-none' : ''} {...theadProps}>
+ * Arrastrar una tabla desde su <thead> como si fuera una barra de scroll horizontal; solo se activa cuando la tabla desborda.
+ * El estado del arrastre vive en un ref y stopDragging es el único lugar que lo apaga.
+ * Uso: const { scrollContainerRef, tableRef, theadRef, hasOverflow, theadProps } = useDragScrollTable([listaFiltrada]);
  */
 export function useDragScrollTable(deps: DependencyList = []) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -39,8 +18,7 @@ export function useDragScrollTable(deps: DependencyList = []) {
       if (!el) return;
       const overflowing = el.scrollWidth > el.clientWidth;
       setHasOverflow(overflowing);
-      // Si el desborde desaparece a mitad de un arrastre (cambia el zoom,
-      // por ejemplo), se corta el arrastre.
+      // Si el desborde desaparece a mitad del arrastre (cambia el zoom), se corta.
       if (!overflowing && dragStateRef.current.isDragging) {
         dragStateRef.current.isDragging = false;
         if (theadRef.current) theadRef.current.style.cursor = '';
@@ -98,15 +76,13 @@ export function useDragScrollTable(deps: DependencyList = []) {
 
   const handleTheadPointerDown = (e: PointerEvent<HTMLTableSectionElement>) => {
     if (!hasOverflow || !scrollContainerRef.current) return;
-    // Sin esto el navegador arranca su propio arrastre de selección/imagen,
-    // se traga el pointerup y el estado queda colgado.
+    // Evita el arrastre nativo de selección o imagen, que se traga el pointerup.
     e.preventDefault();
     dragStateRef.current.isDragging = true;
     dragStateRef.current.startX = e.pageX;
     dragStateRef.current.scrollLeftStart = scrollContainerRef.current.scrollLeft;
     dragStateRef.current.moved = 0;
-    // Con la captura, el pointerup de este gesto llega garantizado a este
-    // mismo elemento, aunque el mouse termine fuera de la ventana.
+    // Con la captura, el pointerup llega a este elemento aunque el mouse salga de la ventana.
     e.currentTarget.setPointerCapture(e.pointerId);
     if (theadRef.current) theadRef.current.style.cursor = 'grabbing';
   };
@@ -115,10 +91,7 @@ export function useDragScrollTable(deps: DependencyList = []) {
     e.preventDefault();
   };
 
-  // Si hubo arrastre real (>= 5px), no dejar que el clic llegue a los
-  // encabezados: así, si alguna columna ordena por clic, arrastrar no lo
-  // dispara por error. Va en la fase de captura para llegar antes que el
-  // onClick de la columna.
+  // Tras un arrastre real (>= 5px) el clic no llega a los encabezados, para no disparar un orden por error.
   const handleTheadClickCapture = (e: MouseEvent) => {
     if (dragStateRef.current.moved >= 5) {
       e.stopPropagation();

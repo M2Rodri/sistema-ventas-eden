@@ -1,9 +1,4 @@
-// Fecha límite del pago pendiente de una venta: fechas "yyyy-MM-dd" (las mismas que
-// manda y recibe el servidor en `fechaLimitePago`). Se manejan como texto para que la
-// zona horaria nunca corra la fecha un día.
-//
-// Si una fecha ya venció NO se calcula aquí: lo decide el servidor con su reloj y llega
-// en `fechaLimiteVencida`, así un reloj mal puesto en el navegador no cambia nada.
+// Fecha límite del pago pendiente: texto "yyyy-MM-dd", como la manda y recibe el servidor (fechaLimitePago).
 
 const dosDigitos = (n: number): string => String(n).padStart(2, '0');
 

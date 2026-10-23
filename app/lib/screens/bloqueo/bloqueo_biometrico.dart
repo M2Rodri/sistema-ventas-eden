@@ -8,16 +8,6 @@ import '../../theme/app_colors.dart';
 import '../login/login_navegacion.dart';
 
 /// Candado sobre toda la app.
-///
-/// Si está activado, tapa la app y pide la huella (o, si no responde, el
-/// bloqueo de pantalla del celular) en dos casos:
-///   - siempre que la app se abre de cero;
-///   - al volver de segundo plano después de más de [_tiempoDeGracia] fuera
-///     (el minuto cubre sacar la foto de un comprobante o atender una llamada).
-///
-/// Si nada de eso responde, se puede entrar con la contraseña sin cerrar la
-/// sesión: la pantalla en la que se estaba, con lo que se había cargado, queda
-/// tal cual. Cerrar sesión es el último recurso y avisa que se pierde lo no guardado.
 class BloqueoBiometrico extends StatefulWidget {
   BloqueoBiometrico({
     super.key,
@@ -38,8 +28,7 @@ class _BloqueoBiometricoState extends State<BloqueoBiometrico>
 
   final _biometria = BiometriaService();
 
-  /// Al arrancar todavía no se sabe si hay que bloquear: mientras se lee el
-  /// ajuste, la app queda tapada para que no se vea ni un instante.
+  /// Al arrancar todavía no se sabe si hay que bloquear.
   bool _verificando = true;
   bool _bloqueada = false;
   bool _autenticando = false;
@@ -113,8 +102,7 @@ class _BloqueoBiometricoState extends State<BloqueoBiometrico>
     if (ok) setState(() => _bloqueada = false);
   }
 
-  /// Entra con la contraseña de la sesión guardada. Devuelve el mensaje de error
-  /// para mostrarlo en la pantalla, o null si salió bien (y el candado se levanta).
+  /// Entra con la contraseña de la sesión guardada.
   Future<String?> _confirmarContrasena(String contrasena) async {
     try {
       await AuthRepository().reautenticar(contrasena);
@@ -131,8 +119,7 @@ class _BloqueoBiometricoState extends State<BloqueoBiometrico>
     return null;
   }
 
-  /// Último recurso: cierra la sesión y manda al inicio de sesión. Se pierde lo
-  /// que estuviera sin guardar.
+  /// Último recurso: cierra la sesión y manda al inicio de sesión. Se pierde lo que estuviera sin guardar.
   Future<void> _cerrarSesion() async {
     await AuthRepository().cerrarSesion();
     if (!mounted) return;
@@ -148,8 +135,7 @@ class _BloqueoBiometricoState extends State<BloqueoBiometrico>
         widget.child,
         if (_verificando || _bloqueada)
           Positioned.fill(
-            // Un Overlay propio: este widget vive arriba del Navigator de la app, y
-            // el campo de contraseña necesita un Overlay para funcionar.
+            // Overlay propio: este widget está sobre el Navigator y el campo de contraseña lo necesita.
             child: Overlay(
               key: ValueKey<bool>(_verificando),
               initialEntries: <OverlayEntry>[
@@ -185,8 +171,7 @@ class _Cargando extends StatelessWidget {
   }
 }
 
-/// Lo que se ve mientras la app está bloqueada: desbloquear con la huella o el
-/// bloqueo del celular, entrar con la contraseña, o cerrar sesión.
+/// Lo que se ve mientras la app está bloqueada.
 @visibleForTesting
 class PantallaDeBloqueo extends StatefulWidget {
   const PantallaDeBloqueo({

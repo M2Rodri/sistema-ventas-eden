@@ -8,14 +8,11 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-/**
- * DTO para respuestas de alertas de inventario
- */
+/** DTO para respuestas de alertas de inventario */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class AlertaInventarioResponse {
-
     private Long id;
     private Long idProducto;
     private String nombreProducto;

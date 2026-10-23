@@ -39,9 +39,7 @@ function ComprobanteContent() {
         throw new Error('ID de venta inválido');
       }
 
-      // Promise.all a proposito, no allSettled: un comprobante sin su venta
-      // (o al reves) seria un documento incompleto. Aca es preferible fallar
-      // entero y mostrar el error que emitir un comprobante a medias.
+      // Promise.all a proposito, no allSettled: un comprobante sin su venta (o al reves) seria un documento incompleto.
       const [comp, ventaData] = await Promise.all([
         getComprobanteByVenta(idVenta),
         getVentaById(idVenta)

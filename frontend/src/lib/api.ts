@@ -3,43 +3,23 @@ import { ImagenProducto } from '@/types/imagenProducto';
 import { esPorEntregar } from '@/lib/entrega';
 import { errorDeRespuesta } from '@/lib/errores';
 
-/**
- * URL pública del backend — se mantiene para `urlArchivo()` (fotos antiguas
- * con ruta relativa /uploads/...) y para que SesionExpiradaWatcher pueda
- * distinguir llamadas si hace falta. Las peticiones autenticadas ya NO van
- * aquí: pasan por el proxy BFF `/api/proxy/...`.
- */
+/** URL pública del backend, solo para urlArchivo() (fotos con ruta /uploads/...). */
 export const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL ?? 'https://backend-sistema-ventas-production-d0a4.up.railway.app';
 
-// Todas las rutas de la API van con la versión a través del proxy BFF.
-// El proxy reenvía /api/proxy/RUTA → BACKEND/api/v1/RUTA con el JWT inyectado.
+// Las rutas van con la versión a través del proxy BFF: /api/proxy/RUTA llega a BACKEND/api/v1/RUTA con el JWT.
 const API_URL = '/api/proxy';
 
 /**
- * Caché corta de lecturas (GET) de la API.
- *
- * Cada pantalla pide sus listas al entrar, así que volver a un módulo
- * repetía las mismas peticiones (y en producción cada una cuesta cientos de
- * milisegundos). Aquí una lectura reciente se reutiliza durante unos segundos
- * y las que se piden a la vez comparten una sola petición.
- *
- * Cualquier escritura (POST, PUT, PATCH, DELETE) vacía toda la caché, así
- * que lo que el propio usuario guarda se ve de inmediato. La clave incluye el
- * token: dos sesiones nunca comparten datos. Solo se guardan respuestas JSON
- * correctas; los archivos (comprobantes, PDF) pasan sin tocarse.
- *
- * Este módulo usa esta función en lugar del fetch global (ver la constante
- * `fetch` de abajo), por eso las funciones de más abajo no cambian.
+ * Caché corta de lecturas (GET): una lectura reciente se reutiliza unos segundos y las simultáneas comparten una petición.
+ * Cualquier escritura la vacía, la clave incluye el token y solo se guardan respuestas JSON correctas.
  */
 const CACHE_LECTURAS_MS = 60_000;
 const cacheLecturas = new Map<string, { vence: number; respuesta: Promise<Response> }>();
 
 export const vaciarCacheApi = (): void => cacheLecturas.clear();
 
-// Tras guardar algo, la caché queda vacía; se vuelve a llenar por detrás para
-// que el siguiente módulo que se abra tampoco espere. Se agrupan varias
-// escrituras seguidas en una sola precarga.
+// Tras guardar, la caché se vacía y se vuelve a llenar por detrás (varias escrituras seguidas, una sola precarga).
 let temporizadorPrecarga: ReturnType<typeof setTimeout> | undefined;
 const programarPrecarga = (): void => {
   if (typeof window === 'undefined') return;
@@ -83,11 +63,7 @@ const fetch = (input: RequestInfo | URL, init?: RequestInit): Promise<Response> 
   return respuesta.then((r) => r.clone());
 };
 
-/**
- * URL con la que se muestra un archivo subido. Los archivos nuevos vienen con la
- * URL completa (fotos públicas de Supabase, comprobantes con URL firmada); los
- * registros viejos traen una ruta relativa al backend (/uploads/...).
- */
+/** URL para mostrar un archivo subido: las nuevas ya vienen completas y las viejas traen una ruta relativa (/uploads/...). */
 export const urlArchivo = (url: string): string =>
   /^https?:\/\//i.test(url) ? url : `${BACKEND_URL}${url}`;
 
@@ -150,10 +126,7 @@ export const login = async (data: LoginData): Promise<AuthResponse> => {
   return response.json();
 };
 
-
-// ============================================
-// USUARIOS 
-// ============================================
+// Usuarios
 
 export interface User {
   id: number;
@@ -192,9 +165,7 @@ const getCsrfToken = (): string | undefined => {
     ?.split('=')[1];
 };
 
-// Headers para peticiones JSON. El token JWT lo inyecta el proxy BFF en el
-// servidor; el cliente solo necesita mandar el Content-Type y, para las
-// escrituras, el CSRF token.
+// Cabeceras JSON: el JWT lo inyecta el proxy BFF; el cliente manda el Content-Type y, en escrituras, el token CSRF.
 const getAuthHeaders = () => {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -212,7 +183,6 @@ const getAuthHeadersForFormData = () => {
   return headers;
 };
 
-// Listar todos los usuarios
 export const getAllUsers = async (): Promise<User[]> => {
   const response = await fetch(`${API_URL}/usuarios`, {
     headers: getAuthHeaders(),
@@ -225,7 +195,6 @@ export const getAllUsers = async (): Promise<User[]> => {
   return response.json();
 };
 
-// Obtener usuario por ID
 export const getUserById = async (id: number): Promise<User> => {
   const response = await fetch(`${API_URL}/usuarios/${id}`, {
     headers: getAuthHeaders(),
@@ -238,7 +207,6 @@ export const getUserById = async (id: number): Promise<User> => {
   return response.json();
 };
 
-// Crear usuario
 export const createUser = async (data: UserRequest): Promise<User> => {
   const response = await fetch(`${API_URL}/usuarios`, {
     method: 'POST',
@@ -253,7 +221,6 @@ export const createUser = async (data: UserRequest): Promise<User> => {
   return response.json();
 };
 
-// Actualizar usuario
 export const updateUser = async (id: number, data: UserRequest): Promise<User> => {
   const response = await fetch(`${API_URL}/usuarios/${id}`, {
     method: 'PUT',
@@ -268,7 +235,6 @@ export const updateUser = async (id: number, data: UserRequest): Promise<User> =
   return response.json();
 };
 
-// Eliminar usuario (desactivar)
 export const deleteUser = async (id: number): Promise<void> => {
   const response = await fetch(`${API_URL}/usuarios/${id}`, {
     method: 'DELETE',
@@ -294,8 +260,7 @@ export const toggleUserStatus = async (id: number): Promise<User> => {
   return response.json();
 };
 
-// Cerrar todas las sesiones abiertas de un usuario, en cualquier dispositivo (solo ADMIN).
-// Para cuando a alguien le roban o pierde el celular: sus tokens dejan de servir de inmediato.
+// Cierra las sesiones abiertas de un usuario en todos sus dispositivos (solo ADMIN).
 export const cerrarSesionesDeUsuario = async (id: number): Promise<void> => {
   const response = await fetch(`${API_URL}/usuarios/${id}/cerrar-sesiones`, {
     method: 'POST',
@@ -320,7 +285,6 @@ export const getUsersByRole = async (role: string): Promise<User[]> => {
   return response.json();
 };
 
-// Obtener estadísticas
 export const getUserStatistics = async () => {
   const response = await fetch(`${API_URL}/usuarios/estadisticas`, {
     headers: getAuthHeaders(),
@@ -333,12 +297,8 @@ export const getUserStatistics = async () => {
   return response.json();
 };
 
+// Categorías
 
-// ============================================
-// CATEGORÍAS 
-// ============================================
-
-// Listar todas las categorías
 export const getAllCategorias = async (): Promise<Categoria[]> => {
   const response = await fetch(`${API_URL}/categorias`, {
     headers: getAuthHeaders(),
@@ -351,7 +311,6 @@ export const getAllCategorias = async (): Promise<Categoria[]> => {
   return response.json();
 };
 
-// Listar categorías activas
 export const getActiveCategorias = async (): Promise<Categoria[]> => {
   const response = await fetch(`${API_URL}/categorias/activas`, {
     headers: getAuthHeaders(),
@@ -364,7 +323,6 @@ export const getActiveCategorias = async (): Promise<Categoria[]> => {
   return response.json();
 };
 
-// Crear categoría
 export const createCategoria = async (data: { nombre: string; descripcion?: string; activo: boolean }): Promise<Categoria> => {
   const response = await fetch(`${API_URL}/categorias`, {
     method: 'POST',
@@ -379,7 +337,6 @@ export const createCategoria = async (data: { nombre: string; descripcion?: stri
   return response.json();
 };
 
-// Actualizar categoría
 export const updateCategoria = async (id: number, data: { nombre: string; descripcion?: string; activo: boolean }): Promise<Categoria> => {
   const response = await fetch(`${API_URL}/categorias/${id}`, {
     method: 'PUT',
@@ -394,7 +351,6 @@ export const updateCategoria = async (id: number, data: { nombre: string; descri
   return response.json();
 };
 
-// Eliminar categoría
 export const deleteCategoria = async (id: number): Promise<void> => {
   const response = await fetch(`${API_URL}/categorias/${id}`, {
     method: 'DELETE',
@@ -420,12 +376,8 @@ export const toggleCategoriaStatus = async (id: number): Promise<Categoria> => {
   return response.json();
 };
 
+// Productos
 
-// ============================================
-// PRODUCTOS 
-// ============================================
-
-// Listar todos los productos
 // Ejemplo corregido y funcional para getAllProductos
 export const getAllProductos = async (): Promise<Producto[]> => {
   const response = await fetch(`${API_URL}/productos`, {
@@ -451,7 +403,6 @@ export const getAllProductos = async (): Promise<Producto[]> => {
   }
 };
 
-// Listar productos activos
 export const getActiveProductos = async (): Promise<Producto[]> => {
   const response = await fetch(`${API_URL}/productos/activos`, {
     headers: getAuthHeaders(),
@@ -464,7 +415,6 @@ export const getActiveProductos = async (): Promise<Producto[]> => {
   return response.json();
 };
 
-// Obtener producto por ID
 export const getProductoById = async (id: number): Promise<Producto> => {
   const response = await fetch(`${API_URL}/productos/${id}`, {
     headers: getAuthHeaders(),
@@ -477,7 +427,6 @@ export const getProductoById = async (id: number): Promise<Producto> => {
   return response.json();
 };
 
-// Obtener producto por SKU
 export const getProductoBySku = async (sku: string): Promise<Producto> => {
   const response = await fetch(`${API_URL}/productos/sku/${sku}`, {
     headers: getAuthHeaders(),
@@ -490,7 +439,6 @@ export const getProductoBySku = async (sku: string): Promise<Producto> => {
   return response.json();
 };
 
-// Crear producto
 export const createProducto = async (data: ProductoRequest): Promise<Producto> => {
   const response = await fetch(`${API_URL}/productos`, {
     method: 'POST',
@@ -505,7 +453,6 @@ export const createProducto = async (data: ProductoRequest): Promise<Producto> =
   return response.json();
 };
 
-// Actualizar producto
 export const updateProducto = async (id: number, data: ProductoRequest): Promise<Producto> => {
   const response = await fetch(`${API_URL}/productos/${id}`, {
     method: 'PUT',
@@ -520,7 +467,6 @@ export const updateProducto = async (id: number, data: ProductoRequest): Promise
   return response.json();
 };
 
-// Eliminar producto (desactivar)
 export const deleteProducto = async (id: number): Promise<void> => {
   const response = await fetch(`${API_URL}/productos/${id}`, {
     method: 'DELETE',
@@ -560,7 +506,6 @@ export const getProductosByCategoria = async (categoriaId: number): Promise<Prod
 };
 
 // Filtrar por tipo
-// Buscar productos
 export const searchProductos = async (nombre: string): Promise<Producto[]> => {
   const response = await fetch(`${API_URL}/productos/buscar?nombre=${encodeURIComponent(nombre)}`, {
     headers: getAuthHeaders(),
@@ -573,9 +518,7 @@ export const searchProductos = async (nombre: string): Promise<Producto[]> => {
   return response.json();
 };
 
-// ============================================
-// INVENTARIO 
-// ============================================
+// Inventario
 
 import { 
   Inventario, 
@@ -585,7 +528,6 @@ import {
   MovimientoInventarioRequest 
 } from '@/types/inventario';
 
-// Listar todo el inventario
 export const getAllInventario = async (): Promise<Inventario[]> => {
   const response = await fetch(`${API_URL}/inventario`, {
     headers: getAuthHeaders(),
@@ -598,7 +540,6 @@ export const getAllInventario = async (): Promise<Inventario[]> => {
   return response.json();
 };
 
-// Obtener inventario por ID
 export const getInventarioById = async (id: number): Promise<Inventario> => {
   const response = await fetch(`${API_URL}/inventario/${id}`, {
     headers: getAuthHeaders(),
@@ -611,7 +552,6 @@ export const getInventarioById = async (id: number): Promise<Inventario> => {
   return response.json();
 };
 
-// Obtener inventario por producto
 export const getInventarioByProducto = async (idProducto: number): Promise<Inventario> => {
   const response = await fetch(`${API_URL}/inventario/producto/${idProducto}`, {
     headers: getAuthHeaders(),
@@ -624,7 +564,6 @@ export const getInventarioByProducto = async (idProducto: number): Promise<Inven
   return response.json();
 };
 
-// Crear inventario
 export const createInventario = async (data: InventarioRequest): Promise<Inventario> => {
   const response = await fetch(`${API_URL}/inventario`, {
     method: 'POST',
@@ -639,7 +578,6 @@ export const createInventario = async (data: InventarioRequest): Promise<Inventa
   return response.json();
 };
 
-// Actualizar inventario
 export const updateInventario = async (id: number, data: InventarioRequest): Promise<Inventario> => {
   const response = await fetch(`${API_URL}/inventario/${id}`, {
     method: 'PUT',
@@ -669,7 +607,6 @@ export const ajustarInventario = async (data: MovimientoInventarioRequest): Prom
   return response.json();
 };
 
-// Obtener historial de ajustes de un producto
 export const getHistorialAjustes = async (idProducto: number): Promise<MovimientoInventario[]> => {
   const response = await fetch(`${API_URL}/inventario/producto/${idProducto}/historial`, {
     headers: getAuthHeaders(),
@@ -679,8 +616,7 @@ export const getHistorialAjustes = async (idProducto: number): Promise<Movimient
     throw await errorDeRespuesta(response, 'Error al obtener historial de ajustes');
   }
 
-  // Los movimientos viejos de una compra se guardaron como COMPRA: se muestran como ENTRADA,
-  // igual que los nuevos, para que el historial hable de entradas y salidas.
+  // Los movimientos viejos de compra se muestran como ENTRADA, igual que los nuevos.
   const movimientos: MovimientoInventario[] = await response.json();
   return movimientos.map((m) => (m.tipoMovimiento === 'COMPRA' ? { ...m, tipoMovimiento: 'ENTRADA' } : m));
 };
@@ -709,7 +645,6 @@ export const reactivarAlertaStock = async (idProducto: number): Promise<void> =>
   }
 };
 
-// Obtener últimos 50 ajustes
 export const getUltimosAjustes = async (): Promise<MovimientoInventario[]> => {
   const response = await fetch(`${API_URL}/inventario/ajustes/ultimos`, {
     headers: getAuthHeaders(),
@@ -722,7 +657,6 @@ export const getUltimosAjustes = async (): Promise<MovimientoInventario[]> => {
   return response.json();
 };
 
-// Obtener productos con stock bajo
 export const getProductosConStockBajo = async (): Promise<Inventario[]> => {
   const response = await fetch(`${API_URL}/inventario/stock-bajo`, {
     headers: getAuthHeaders(),
@@ -735,7 +669,6 @@ export const getProductosConStockBajo = async (): Promise<Inventario[]> => {
   return response.json();
 };
 
-// Obtener productos sin stock
 export const getProductosSinStock = async (): Promise<Inventario[]> => {
   const response = await fetch(`${API_URL}/inventario/sin-stock`, {
     headers: getAuthHeaders(),
@@ -748,7 +681,6 @@ export const getProductosSinStock = async (): Promise<Inventario[]> => {
   return response.json();
 };
 
-// Verificar disponibilidad de stock
 export const verificarDisponibilidad = async (idProducto: number, cantidad: number): Promise<{ disponible: boolean; idProducto: number; cantidadSolicitada: number }> => {
   const response = await fetch(`${API_URL}/inventario/verificar-disponibilidad?idProducto=${idProducto}&cantidad=${cantidad}`, {
     headers: getAuthHeaders(),
@@ -761,7 +693,6 @@ export const verificarDisponibilidad = async (idProducto: number, cantidad: numb
   return response.json();
 };
 
-// Obtener alertas pendientes
 export const getAlertasPendientes = async (): Promise<AlertaInventario[]> => {
   const response = await fetch(`${API_URL}/inventario/alertas/pendientes`, {
     headers: getAuthHeaders(),
@@ -774,7 +705,6 @@ export const getAlertasPendientes = async (): Promise<AlertaInventario[]> => {
   return response.json();
 };
 
-// Obtener estadísticas de inventario
 export const getInventarioStatistics = async () => {
   const response = await fetch(`${API_URL}/inventario/estadisticas`, {
     headers: getAuthHeaders(),
@@ -787,10 +717,7 @@ export const getInventarioStatistics = async () => {
   return response.json();
 };
 
-// ============================================
-// ============================================
-// VENTAS
-// ============================================
+// Ventas
 
 import {
   Venta,
@@ -801,9 +728,7 @@ import {
   Pago as PagoDeVenta
 } from '@/types/venta';
 
-/**
- * Listar todas las ventas
- */
+/** Listar todas las ventas */
 export const getAllVentas = async (): Promise<Venta[]> => {
   const response = await fetch(`${API_URL}/ventas`, {
     headers: getAuthHeaders(),
@@ -816,9 +741,7 @@ export const getAllVentas = async (): Promise<Venta[]> => {
   return response.json();
 };
 
-/**
- * Obtener venta por ID
- */
+/** Obtener venta por ID */
 export const getVentaById = async (id: number): Promise<Venta> => {
   const response = await fetch(`${API_URL}/ventas/${id}`, {
     headers: getAuthHeaders(),
@@ -831,10 +754,7 @@ export const getVentaById = async (id: number): Promise<Venta> => {
   return response.json();
 };
 
-/**
- * Crear venta directa con cliente rápido
- * Soporta tanto cliente registrado (idCliente) como cliente rápido (nombreClienteDirecto)
- */
+/** Crea una venta directa, con cliente registrado o rápido. */
 export const createVentaDirecta = async (
   request: VentaRequest
 ): Promise<Venta> => {
@@ -851,10 +771,7 @@ export const createVentaDirecta = async (
   return response.json();
 };
 
-/**
- * Cancelar venta (Solo ADMIN)
- * Restaura el stock de los productos
- */
+/** Cancela una venta y devuelve el stock (solo ADMIN). */
 export const cancelarVenta = async (id: number): Promise<Venta> => {
   const response = await fetch(`${API_URL}/ventas/${id}/cancelar`, {
     method: 'PATCH',
@@ -868,10 +785,7 @@ export const cancelarVenta = async (id: number): Promise<Venta> => {
   return response.json();
 };
 
-/**
- * Marcar la entrega de una venta como completada (ADMIN y EMPLEADO). El saldo
- * pendiente no bloquea la entrega.
- */
+/** Marca la entrega como completada (ADMIN y EMPLEADO); el saldo pendiente no la bloquea. */
 export const marcarVentaEntregada = async (id: number): Promise<Venta> => {
   const response = await fetch(`${API_URL}/ventas/${id}/entregar`, {
     method: 'PATCH',
@@ -885,11 +799,7 @@ export const marcarVentaEntregada = async (id: number): Promise<Venta> => {
   return response.json();
 };
 
-/**
- * Poner o cambiar la fecha límite del pago pendiente de una venta (ADMIN y
- * EMPLEADO). Se manda una de las dos: los días (el servidor calcula la fecha
- * con su reloj) o una fecha exacta yyyy-MM-dd.
- */
+/** Pone o cambia la fecha límite del pago pendiente: en N días o una fecha yyyy-MM-dd. */
 export const actualizarFechaLimitePago = async (
   id: number,
   datos: { plazoDiasPago?: number; fechaLimitePago?: string },
@@ -907,9 +817,7 @@ export const actualizarFechaLimitePago = async (
   return response.json();
 };
 
-/**
- * Corregir una entrega marcada por error: ENTREGADO -> PENDIENTE (solo ADMIN).
- */
+/** Corregir una entrega marcada por error: ENTREGADO -> PENDIENTE (solo ADMIN). */
 export const deshacerEntregaVenta = async (id: number): Promise<Venta> => {
   const response = await fetch(`${API_URL}/ventas/${id}/deshacer-entrega`, {
     method: 'PATCH',
@@ -923,10 +831,7 @@ export const deshacerEntregaVenta = async (id: number): Promise<Venta> => {
   return response.json();
 };
 
-/**
- * Completar o corregir la dirección, la transportadora y la guía de una venta
- * (solo ADMIN). Un valor vacío borra el dato.
- */
+/** Completa o corrige dirección, transportadora y guía (solo ADMIN); un valor vacío borra el dato. */
 export const actualizarDatosEntrega = async (
   id: number,
   datos: DatosEntrega
@@ -944,9 +849,7 @@ export const actualizarDatosEntrega = async (
   return response.json();
 };
 
-/**
- * Adjuntar (o reemplazar) la foto de comprobante de un pago ya registrado.
- */
+/** Adjuntar (o reemplazar) la foto de comprobante de un pago ya registrado. */
 export const adjuntarComprobantePago = async (idPago: number, file: File): Promise<PagoDeVenta> => {
   const formData = new FormData();
   formData.append('file', file);
@@ -964,9 +867,7 @@ export const adjuntarComprobantePago = async (idPago: number, file: File): Promi
   return response.json();
 };
 
-/**
- * Obtener ventas por cliente registrado
- */
+/** Obtener ventas por cliente registrado */
 export const getVentasByCliente = async (clienteId: number): Promise<Venta[]> => {
   const response = await fetch(`${API_URL}/ventas/cliente/${clienteId}`, {
     headers: getAuthHeaders(),
@@ -979,9 +880,7 @@ export const getVentasByCliente = async (clienteId: number): Promise<Venta[]> =>
   return response.json();
 };
 
-/**
- * Obtener ventas por estado
- */
+/** Obtener ventas por estado */
 export const getVentasByEstado = async (estado: string): Promise<Venta[]> => {
   const response = await fetch(`${API_URL}/ventas/estado/${estado}`, {
     headers: getAuthHeaders(),
@@ -994,9 +893,7 @@ export const getVentasByEstado = async (estado: string): Promise<Venta[]> => {
   return response.json();
 };
 
-/**
- * Obtener ventas del día actual
- */
+/** Obtener ventas del día actual */
 export const getVentasDelDia = async (): Promise<Venta[]> => {
   const response = await fetch(`${API_URL}/ventas/del-dia`, {
     headers: getAuthHeaders(),
@@ -1009,9 +906,7 @@ export const getVentasDelDia = async (): Promise<Venta[]> => {
   return response.json();
 };
 
-/**
- * Obtener últimas 10 ventas
- */
+/** Obtener últimas 10 ventas */
 export const getUltimasVentas = async (): Promise<Venta[]> => {
   const response = await fetch(`${API_URL}/ventas/ultimas`, {
     headers: getAuthHeaders(),
@@ -1024,9 +919,7 @@ export const getUltimasVentas = async (): Promise<Venta[]> => {
   return response.json();
 };
 
-/**
- * Obtener ventas por rango de fechas
- */
+/** Obtener ventas por rango de fechas */
 export const getVentasByFechas = async (inicio: string, fin: string): Promise<Venta[]> => {
   const response = await fetch(
     `${API_URL}/ventas/fechas?inicio=${encodeURIComponent(inicio)}&fin=${encodeURIComponent(fin)}`,
@@ -1042,9 +935,7 @@ export const getVentasByFechas = async (inicio: string, fin: string): Promise<Ve
   return response.json();
 };
 
-/**
- * Obtener total de ventas por rango de fechas
- */
+/** Obtener total de ventas por rango de fechas */
 export const getTotalVentasByFechas = async (inicio: string, fin: string): Promise<number> => {
   const response = await fetch(
     `${API_URL}/ventas/total-fechas?inicio=${encodeURIComponent(inicio)}&fin=${encodeURIComponent(fin)}`,
@@ -1061,10 +952,7 @@ export const getTotalVentasByFechas = async (inicio: string, fin: string): Promi
   return data.total;
 };
 
-/**
- * Obtener estadísticas de ventas (Solo ADMIN)
- * Incluye totales por estado y montos
- */
+/** Estadísticas de ventas con totales por estado y montos (solo ADMIN). */
 export const getVentasEstadisticas = async (): Promise<VentaEstadisticas> => {
   const response = await fetch(`${API_URL}/ventas/estadisticas`, {
     headers: getAuthHeaders(),
@@ -1076,16 +964,10 @@ export const getVentasEstadisticas = async (): Promise<VentaEstadisticas> => {
 
   const data = await response.json();
 
-  // Obtener ventas del día para estadísticas adicionales
   const ventasDelDia = await getVentasDelDia();
   const montoDelDia = ventasDelDia.reduce((sum, v) => sum + v.montoTotal, 0);
 
-  // Completadas y Monto Total son de los últimos 7 días, no de toda la
-  // vida del sistema: la pantalla es un "resumen del período" (RF-10), y un
-  // acumulado que solo crece deja de servir para ver cómo viene el negocio
-  // día a día. Pendientes sí se deja sin acotar: una deuda vieja sigue
-  // siendo plata por cobrar, no debería desaparecer de la vista por tener
-  // más de una semana.
+  // Completadas y Monto Total son de los últimos 7 días (RF-10); Pendientes no se acota porque una deuda vieja sigue por cobrar.
   const todasVentas = await getAllVentas();
   const inicioSemana = new Date();
   inicioSemana.setDate(inicioSemana.getDate() - 7);
@@ -1094,10 +976,7 @@ export const getVentasEstadisticas = async (): Promise<VentaEstadisticas> => {
   );
   const montoTotal = completadasSemana.reduce((sum, v) => sum + v.montoTotal, 0);
 
-  // RF-10 pide mostrar "las ventas hechas y las entregas pendientes" en el
-  // mismo resumen. "Por entregar" tiene una sola definición en backend, web y
-  // app: estado de entrega distinto de ENTREGADO y venta no cancelada.
-  // Retiro en tienda no aparece porque nace ENTREGADO.
+  // RF-10: "Por entregar" es estado de entrega distinto de ENTREGADO y venta no cancelada, igual en backend, web y app.
   const entregasPendientes = todasVentas.filter(esPorEntregar).length;
 
   return {
@@ -1112,8 +991,6 @@ export const getVentasEstadisticas = async (): Promise<VentaEstadisticas> => {
   };
 };
 
-
-
 // lib/api.ts - Agregar estas funciones al archivo existente
 
 import {
@@ -1123,14 +1000,9 @@ import {
   ClienteConEstadisticas
 } from '@/types/cliente';
 
-// ============================================
-// CLIENTES
-// ============================================
+// Clientes
 
-/**
- * Listar todos los clientes
- * CU: Gestionar Clientes - Interfaz P6.1
- */
+/** Lista todos los clientes. */
 export const getAllClientes = async (): Promise<ClienteResponse[]> => {
   const response = await fetch(`${API_URL}/clientes`, {
     headers: getAuthHeaders(),
@@ -1143,9 +1015,7 @@ export const getAllClientes = async (): Promise<ClienteResponse[]> => {
   return response.json();
 };
 
-/**
- * Obtener cliente por ID
- */
+/** Obtener cliente por ID */
 export const getClienteById = async (id: number): Promise<ClienteResponse> => {
   const response = await fetch(`${API_URL}/clientes/${id}`, {
     headers: getAuthHeaders(),
@@ -1158,9 +1028,7 @@ export const getClienteById = async (id: number): Promise<ClienteResponse> => {
   return response.json();
 };
 
-/**
- * Crear nuevo cliente
- */
+/** Crear nuevo cliente */
 export const createCliente = async (request: ClienteRequest): Promise<ClienteResponse> => {
   const response = await fetch(`${API_URL}/clientes`, {
     method: 'POST',
@@ -1175,10 +1043,7 @@ export const createCliente = async (request: ClienteRequest): Promise<ClienteRes
   return response.json();
 };
 
-/**
- * Actualizar cliente existente
- * CU: Modificar Cliente - Interfaz P6.2
- */
+/** Actualiza un cliente. */
 export const updateCliente = async (
   id: number,
   request: ClienteRequest
@@ -1196,10 +1061,7 @@ export const updateCliente = async (
   return response.json();
 };
 
-/**
- * Buscar clientes por nombre, teléfono o NIT/CI
- * CU: Buscar/Consultar Cliente - Interfaz P6.1
- */
+/** Busca clientes por nombre, teléfono o NIT/CI. */
 export const searchClientes = async (query: string): Promise<ClienteResponse[]> => {
   const response = await fetch(
     `${API_URL}/clientes/buscar?q=${encodeURIComponent(query)}`,
@@ -1215,10 +1077,7 @@ export const searchClientes = async (query: string): Promise<ClienteResponse[]> 
   return response.json();
 };
 
-/**
- * Obtener historial completo de compras de un cliente
- * CU: Ver Historial de Compras del Cliente - Interfaz P6.3
- */
+/** Historial completo de compras de un cliente. */
 export const getHistorialCompras = async (clienteId: number): Promise<HistorialComprasResponse> => {
   const response = await fetch(`${API_URL}/clientes/${clienteId}/historial-compras`, {
     headers: getAuthHeaders(),
@@ -1231,10 +1090,7 @@ export const getHistorialCompras = async (clienteId: number): Promise<HistorialC
   return response.json();
 };
 
-/**
- * Obtener historial de compras filtrado por fechas
- * CU: Ver Historial de Compras del Cliente - Filtro de fechas
- */
+/** Historial de compras de un cliente entre dos fechas. */
 export const getHistorialComprasFiltrado = async (
   clienteId: number,
   inicio: string,
@@ -1256,14 +1112,7 @@ export const getHistorialComprasFiltrado = async (
   return response.json();
 };
 
-/**
- * Clientes con sus estadísticas de compra (número de compras, monto total,
- * última compra), para la tabla de Clientes.
- *
- * Antes esto pedía la lista de clientes y después, por cada uno, su
- * historial completo (N+1 llamadas HTTP solo para dibujar la tabla). Ahora
- * el backend arma todo en una sola consulta agregada.
- */
+/** Clientes con número de compras, monto total y última compra, en una sola consulta. */
 export const getClientesConEstadisticas = async (): Promise<ClienteConEstadisticas[]> => {
   const response = await fetch(`${API_URL}/clientes/con-estadisticas`, {
     headers: getAuthHeaders(),
@@ -1276,11 +1125,7 @@ export const getClientesConEstadisticas = async (): Promise<ClienteConEstadistic
   return response.json();
 };
 
-
-
-// ============================================
-// PROVEEDORES 
-// ============================================
+// Proveedores
 
 import {
   Proveedor,
@@ -1289,7 +1134,6 @@ import {
   CompraRequest,
 } from '@/types/proveedor';
 
-// Listar todos los proveedores
 export const getAllProveedores = async (): Promise<Proveedor[]> => {
   const response = await fetch(`${API_URL}/proveedores`, {
     headers: getAuthHeaders(),
@@ -1302,7 +1146,6 @@ export const getAllProveedores = async (): Promise<Proveedor[]> => {
   return response.json();
 };
 
-// Listar proveedores activos
 export const getActiveProveedores = async (): Promise<Proveedor[]> => {
   const response = await fetch(`${API_URL}/proveedores/activos`, {
     headers: getAuthHeaders(),
@@ -1315,7 +1158,6 @@ export const getActiveProveedores = async (): Promise<Proveedor[]> => {
   return response.json();
 };
 
-// Obtener proveedor por ID
 export const getProveedorById = async (id: number): Promise<Proveedor> => {
   const response = await fetch(`${API_URL}/proveedores/${id}`, {
     headers: getAuthHeaders(),
@@ -1328,7 +1170,6 @@ export const getProveedorById = async (id: number): Promise<Proveedor> => {
   return response.json();
 };
 
-// Crear proveedor
 export const createProveedor = async (data: ProveedorRequest): Promise<Proveedor> => {
   const response = await fetch(`${API_URL}/proveedores`, {
     method: 'POST',
@@ -1343,7 +1184,6 @@ export const createProveedor = async (data: ProveedorRequest): Promise<Proveedor
   return response.json();
 };
 
-// Actualizar proveedor
 export const updateProveedor = async (id: number, data: ProveedorRequest): Promise<Proveedor> => {
   const response = await fetch(`${API_URL}/proveedores/${id}`, {
     method: 'PUT',
@@ -1358,8 +1198,7 @@ export const updateProveedor = async (id: number, data: ProveedorRequest): Promi
   return response.json();
 };
 
-// Activar/Desactivar proveedor. Es la única baja que existe (no hay un
-// "eliminar" aparte, ver ProveedorService).
+// Activa o desactiva un proveedor; es la única baja que existe.
 export const toggleProveedorStatus = async (id: number): Promise<Proveedor> => {
   const response = await fetch(`${API_URL}/proveedores/${id}/toggle-status`, {
     method: 'PATCH',
@@ -1373,7 +1212,6 @@ export const toggleProveedorStatus = async (id: number): Promise<Proveedor> => {
   return response.json();
 };
 
-// Buscar proveedores
 export const searchProveedores = async (nombre: string): Promise<Proveedor[]> => {
   const response = await fetch(`${API_URL}/proveedores/buscar?nombre=${encodeURIComponent(nombre)}`, {
     headers: getAuthHeaders(),
@@ -1386,11 +1224,8 @@ export const searchProveedores = async (nombre: string): Promise<Proveedor[]> =>
   return response.json();
 };
 
-// ============================================
-// COMPRAS
-// ============================================
+// Compras
 
-// Listar todas las compras
 export const getAllCompras = async (): Promise<Compra[]> => {
   const response = await fetch(`${API_URL}/compras`, {
     headers: getAuthHeaders(),
@@ -1403,7 +1238,6 @@ export const getAllCompras = async (): Promise<Compra[]> => {
   return response.json();
 };
 
-// Obtener compra por ID
 export const getCompraById = async (id: number): Promise<Compra> => {
   const response = await fetch(`${API_URL}/compras/${id}`, {
     headers: getAuthHeaders(),
@@ -1416,7 +1250,6 @@ export const getCompraById = async (id: number): Promise<Compra> => {
   return response.json();
 };
 
-// Crear compra
 export const createCompra = async (data: CompraRequest): Promise<Compra> => {
   const response = await fetch(`${API_URL}/compras`, {
     method: 'POST',
@@ -1445,9 +1278,7 @@ export const cancelarCompra = async (id: number): Promise<Compra> => {
   return response.json();
 };
 
-// ============================================
-// ENVÍOS 
-// ============================================
+// Envíos
 
 import { 
   Envio, 
@@ -1459,7 +1290,6 @@ import {
   TransportadoraRequest 
 } from '@/types/transportadora';
 
-// Listar todos los envíos
 export const getAllEnvios = async (): Promise<Envio[]> => {
   const response = await fetch(`${API_URL}/envios`, {
     headers: getAuthHeaders(),
@@ -1472,7 +1302,6 @@ export const getAllEnvios = async (): Promise<Envio[]> => {
   return response.json();
 };
 
-// Obtener envío por ID
 export const getEnvioById = async (id: number): Promise<Envio> => {
   const response = await fetch(`${API_URL}/envios/${id}`, {
     headers: getAuthHeaders(),
@@ -1485,8 +1314,6 @@ export const getEnvioById = async (id: number): Promise<Envio> => {
   return response.json();
 };
 
-
-// Obtener envío por venta
 export const getEnvioByVenta = async (idVenta: number): Promise<Envio> => {
   const response = await fetch(`${API_URL}/envios/venta/${idVenta}`, {
     headers: getAuthHeaders(),
@@ -1499,7 +1326,6 @@ export const getEnvioByVenta = async (idVenta: number): Promise<Envio> => {
   return response.json();
 };
 
-// Obtener envío por guía (público para tracking)
 export const getEnvioByGuia = async (guiaRemision: string): Promise<Envio> => {
   const response = await fetch(`${API_URL}/envios/guia/${guiaRemision}`);
 
@@ -1510,7 +1336,6 @@ export const getEnvioByGuia = async (guiaRemision: string): Promise<Envio> => {
   return response.json();
 };
 
-// Crear envío
 export const createEnvio = async (data: EnvioRequest): Promise<Envio> => {
   const response = await fetch(`${API_URL}/envios`, {
     method: 'POST',
@@ -1525,7 +1350,6 @@ export const createEnvio = async (data: EnvioRequest): Promise<Envio> => {
   return response.json();
 };
 
-// Actualizar envío
 export const updateEnvio = async (id: number, data: EnvioRequest): Promise<Envio> => {
   const response = await fetch(`${API_URL}/envios/${id}`, {
     method: 'PUT',
@@ -1633,7 +1457,6 @@ export const getEnviosPorEntregar = async (): Promise<Envio[]> => {
   return response.json();
 };
 
-// Obtener estadísticas de envíos
 export const getEnviosEstadisticas = async (): Promise<EnvioEstadisticas> => {
   const response = await fetch(`${API_URL}/envios/estadisticas`, {
     headers: getAuthHeaders(),
@@ -1646,11 +1469,8 @@ export const getEnviosEstadisticas = async (): Promise<EnvioEstadisticas> => {
   return response.json();
 };
 
-// ============================================
-// TRANSPORTADORAS 
-// ============================================
+// Transportadoras
 
-// Listar todas las transportadoras
 export const getAllTransportadoras = async (): Promise<Transportadora[]> => {
   const response = await fetch(`${API_URL}/transportadoras`, {
     headers: getAuthHeaders(),
@@ -1663,7 +1483,6 @@ export const getAllTransportadoras = async (): Promise<Transportadora[]> => {
   return response.json();
 };
 
-// Listar transportadoras activas
 export const getActiveTransportadoras = async (): Promise<Transportadora[]> => {
   const response = await fetch(`${API_URL}/transportadoras/activas`, {
     headers: getAuthHeaders(),
@@ -1676,7 +1495,6 @@ export const getActiveTransportadoras = async (): Promise<Transportadora[]> => {
   return response.json();
 };
 
-// Obtener transportadora por ID
 export const getTransportadoraById = async (id: number): Promise<Transportadora> => {
   const response = await fetch(`${API_URL}/transportadoras/${id}`, {
     headers: getAuthHeaders(),
@@ -1689,7 +1507,6 @@ export const getTransportadoraById = async (id: number): Promise<Transportadora>
   return response.json();
 };
 
-// Crear transportadora
 export const createTransportadora = async (data: TransportadoraRequest): Promise<Transportadora> => {
   const response = await fetch(`${API_URL}/transportadoras`, {
     method: 'POST',
@@ -1704,7 +1521,6 @@ export const createTransportadora = async (data: TransportadoraRequest): Promise
   return response.json();
 };
 
-// Actualizar transportadora
 export const updateTransportadora = async (id: number, data: TransportadoraRequest): Promise<Transportadora> => {
   const response = await fetch(`${API_URL}/transportadoras/${id}`, {
     method: 'PUT',
@@ -1719,7 +1535,6 @@ export const updateTransportadora = async (id: number, data: TransportadoraReque
   return response.json();
 };
 
-// Eliminar transportadora
 export const deleteTransportadora = async (id: number): Promise<void> => {
   const response = await fetch(`${API_URL}/transportadoras/${id}`, {
     method: 'DELETE',
@@ -1745,7 +1560,6 @@ export const toggleTransportadoraStatus = async (id: number): Promise<Transporta
   return response.json();
 };
 
-// Obtener estadísticas de transportadoras
 export const getTransportadoraStatistics = async () => {
   const response = await fetch(`${API_URL}/transportadoras/estadisticas`, {
     headers: getAuthHeaders(),
@@ -1758,10 +1572,7 @@ export const getTransportadoraStatistics = async () => {
   return response.json();
 };
 
-
-// ============================================
-// PAGOS 
-// ============================================
+// Pagos
 
 import { 
   Pago, 
@@ -1769,7 +1580,6 @@ import {
   PagoEstadisticas 
 } from '@/types/pago';
 
-// Listar todos los pagos
 export const getAllPagos = async (): Promise<Pago[]> => {
   const response = await fetch(`${API_URL}/pagos`, {
     headers: getAuthHeaders(),
@@ -1782,7 +1592,6 @@ export const getAllPagos = async (): Promise<Pago[]> => {
   return response.json();
 };
 
-// Obtener pago por ID
 export const getPagoById = async (id: number): Promise<Pago> => {
   const response = await fetch(`${API_URL}/pagos/${id}`, {
     headers: getAuthHeaders(),
@@ -1810,7 +1619,6 @@ export const registrarPago = async (data: PagoRequest): Promise<Pago> => {
   return response.json();
 };
 
-// Obtener pagos de una venta
 export const getPagosByVenta = async (ventaId: number): Promise<Pago[]> => {
   const response = await fetch(`${API_URL}/pagos/venta/${ventaId}`, {
     headers: getAuthHeaders(),
@@ -1836,7 +1644,6 @@ export const getPagosByEstado = async (estado: string): Promise<Pago[]> => {
   return response.json();
 };
 
-// Obtener estadísticas de pagos
 export const getPagosEstadisticas = async (): Promise<PagoEstadisticas> => {
   const response = await fetch(`${API_URL}/pagos/estadisticas`, {
     headers: getAuthHeaders(),
@@ -1849,7 +1656,6 @@ export const getPagosEstadisticas = async (): Promise<PagoEstadisticas> => {
   return response.json();
 };
 
-// Obtener total de pagos del día
 export const getTotalPagosHoy = async (): Promise<number> => {
   const pagos = await getAllPagos();
   const hoy = new Date().toISOString().split('T')[0];
@@ -1862,7 +1668,6 @@ export const getTotalPagosHoy = async (): Promise<number> => {
   return pagosHoy.reduce((total, pago) => total + pago.monto, 0);
 };
 
-// Obtener total de pagos del mes
 export const getTotalPagosMes = async (): Promise<number> => {
   const pagos = await getAllPagos();
   const hoy = new Date();
@@ -1879,10 +1684,7 @@ export const getTotalPagosMes = async (): Promise<number> => {
   return pagosMes.reduce((total, pago) => total + pago.monto, 0);
 };
 
-
-// ============================================
-// REPORTES 
-// ============================================
+// Reportes
 
 import {
   ReporteVentas,
@@ -2030,18 +1832,14 @@ export const getReporteInventarioStockBajo = async (): Promise<ReporteInventario
 
 // Reporte de Proveedores (construido desde datos existentes)
 export const getReporteProveedores = async (): Promise<ReporteProveedores> => {
-  // Promise.all a proposito: el reporte cruza las dos listas. Con datos
-  // parciales los totales por proveedor saldrian mal, y un numero equivocado
-  // es peor que un error visible.
+  // Promise.all: el reporte cruza las dos listas y con datos parciales los totales saldrían mal.
   const [proveedores, compras] = await Promise.all([
     getAllProveedores(),
     getAllCompras()
   ]);
 
   const proveedoresReporte = proveedores.map(proveedor => {
-    // Solo compras CONFIRMADA cuentan como compra real: una CANCELADA nunca
-    // pasó, y una POR_CONFIRMAR todavía puede editarse o no concretarse.
-    // Contarlas infla el total de plata gastada con un proveedor.
+    // Solo cuentan las compras CONFIRMADA; las canceladas o por confirmar inflarían el gasto con el proveedor.
     const comprasProveedor = compras.filter(c => c.idProveedor === proveedor.id && c.estado === 'CONFIRMADA');
     const montoTotal = comprasProveedor.reduce((sum, c) => sum + c.montoTotal, 0);
     const ultimaCompra = comprasProveedor.length > 0 
@@ -2071,8 +1869,7 @@ export const getReporteProveedores = async (): Promise<ReporteProveedores> => {
 
 // Reporte de Transportadoras (construido desde datos existentes)
 export const getReporteTransportadoras = async (): Promise<ReporteTransportadoras> => {
-  // Promise.all a proposito: sin la lista completa de envios, la tasa de
-  // entrega de cada transportadora daria un porcentaje falso.
+  // Promise.all: sin la lista completa de envíos, la tasa de entrega saldría falsa.
   const [transportadoras, envios] = await Promise.all([
     getAllTransportadoras(),
     getAllEnvios()
@@ -2109,9 +1906,7 @@ export const getReporteTransportadoras = async (): Promise<ReporteTransportadora
   };
 };
 
-// Reporte de Cuentas por Cobrar (ventas con saldo pendiente).
-// No es un reporte por período: es una foto del momento, así que no lleva
-// fechas. El cálculo vive en el backend.
+// Cuentas por cobrar: foto del momento, sin fechas; el cálculo vive en el backend.
 export const getReporteCuentasPorCobrar = async (): Promise<ReporteCuentasPorCobrar> => {
   const response = await fetch(
     `${API_URL}/reportes/cuentas-por-cobrar`,
@@ -2127,12 +1922,7 @@ export const getReporteCuentasPorCobrar = async (): Promise<ReporteCuentasPorCob
   return response.json();
 };
 
-// Reporte Financiero.
-// El cálculo vive en el backend (solo ADMIN puede pedir este endpoint): la
-// ganancia real sale de sumar, por cada línea de venta, precio menos costo
-// unitario por la cantidad. Ese costo por producto no debe llegarle al
-// frontend en ninguna respuesta que también pueda ver un EMPLEADO, así que
-// acá solo se recibe el resultado ya calculado.
+// Reporte financiero (solo ADMIN): el backend calcula la ganancia y aquí solo llega el resultado.
 export const getReporteFinanciero = async (fechaInicio: string, fechaFin: string): Promise<ReporteFinanciero> => {
   const response = await fetch(
     `${API_URL}/reportes/financiero?inicio=${encodeURIComponent(fechaInicio)}&fin=${encodeURIComponent(fechaFin)}`,
@@ -2148,15 +1938,10 @@ export const getReporteFinanciero = async (fechaInicio: string, fechaFin: string
   return response.json();
 };
 
-
-
-// ============================================
-// PROMOCIONES - PROMOCIONS 
-// ============================================
+// Promociones - promocions
 
 import { Promocion, PromocionRequest } from '@/types/promocion';
 
-// Listar todas las promociones (ADMIN)
 export const getAllPromociones = async (): Promise<Promocion[]> => {
   const response = await fetch(`${API_URL}/promociones`, {
     headers: getAuthHeaders(),
@@ -2169,7 +1954,6 @@ export const getAllPromociones = async (): Promise<Promocion[]> => {
   return response.json();
 };
 
-// Listar promociones activas (ADMIN)
 export const getActivePromociones = async (): Promise<Promocion[]> => {
   const response = await fetch(`${API_URL}/promociones/activas`, {
     headers: getAuthHeaders(),
@@ -2182,7 +1966,6 @@ export const getActivePromociones = async (): Promise<Promocion[]> => {
   return response.json();
 };
 
-// Listar promociones vigentes (público - tienda)
 export const getPromocionesVigentes = async (): Promise<Promocion[]> => {
   const response = await fetch(`${API_URL}/promociones/vigentes`);
 
@@ -2193,7 +1976,6 @@ export const getPromocionesVigentes = async (): Promise<Promocion[]> => {
   return response.json();
 };
 
-// Obtener promocion por ID
 export const getPromocionById = async (id: number): Promise<Promocion> => {
   const response = await fetch(`${API_URL}/promociones/${id}`, {
     headers: getAuthHeaders(),
@@ -2206,7 +1988,6 @@ export const getPromocionById = async (id: number): Promise<Promocion> => {
   return response.json();
 };
 
-// Crear promocion
 export const createPromocion = async (data: PromocionRequest): Promise<Promocion> => {
   const response = await fetch(`${API_URL}/promociones`, {
     method: 'POST',
@@ -2221,7 +2002,6 @@ export const createPromocion = async (data: PromocionRequest): Promise<Promocion
   return response.json();
 };
 
-// Actualizar promocion
 export const updatePromocion = async (id: number, data: PromocionRequest): Promise<Promocion> => {
   const response = await fetch(`${API_URL}/promociones/${id}`, {
     method: 'PUT',
@@ -2236,7 +2016,6 @@ export const updatePromocion = async (id: number, data: PromocionRequest): Promi
   return response.json();
 };
 
-// Eliminar promocion (desactivar)
 export const deletePromocion = async (id: number): Promise<void> => {
   const response = await fetch(`${API_URL}/promociones/${id}`, {
     method: 'DELETE',
@@ -2262,7 +2041,6 @@ export const togglePromocionStatus = async (id: number): Promise<Promocion> => {
   return response.json();
 };
 
-// Obtener estadísticas de promociones
 export const getPromocionStatistics = async () => {
   const response = await fetch(`${API_URL}/promociones/estadisticas`, {
     headers: getAuthHeaders(),
@@ -2275,14 +2053,10 @@ export const getPromocionStatistics = async () => {
   return response.json();
 };
 
-
-// ============================================
-// CONFIGURACIÓN 
-// ============================================
+// Configuración
 
 import { Configuracion, ConfiguracionRequest, Auditoria } from '@/types/configuracion';
 
-// Listar todas las configuraciones
 export const getAllConfiguraciones = async (): Promise<Configuracion[]> => {
   const response = await fetch(`${API_URL}/configuracion`, {
     headers: getAuthHeaders(),
@@ -2295,7 +2069,6 @@ export const getAllConfiguraciones = async (): Promise<Configuracion[]> => {
   return response.json();
 };
 
-// Obtener configuración por ID
 export const getConfiguracionById = async (id: number): Promise<Configuracion> => {
   const response = await fetch(`${API_URL}/configuracion/${id}`, {
     headers: getAuthHeaders(),
@@ -2308,7 +2081,6 @@ export const getConfiguracionById = async (id: number): Promise<Configuracion> =
   return response.json();
 };
 
-// Obtener configuración por clave
 export const getConfiguracionByClave = async (clave: string): Promise<Configuracion> => {
   const response = await fetch(`${API_URL}/configuracion/clave/${clave}`, {
     headers: getAuthHeaders(),
@@ -2321,7 +2093,6 @@ export const getConfiguracionByClave = async (clave: string): Promise<Configurac
   return response.json();
 };
 
-// Obtener solo el valor de una configuración
 export const getValorConfiguracion = async (clave: string): Promise<string> => {
   const response = await fetch(`${API_URL}/configuracion/valor/${clave}`, {
     headers: getAuthHeaders(),
@@ -2335,7 +2106,6 @@ export const getValorConfiguracion = async (clave: string): Promise<string> => {
   return data.valor;
 };
 
-// Crear configuración
 export const createConfiguracion = async (data: ConfiguracionRequest): Promise<Configuracion> => {
   const response = await fetch(`${API_URL}/configuracion`, {
     method: 'POST',
@@ -2350,7 +2120,6 @@ export const createConfiguracion = async (data: ConfiguracionRequest): Promise<C
   return response.json();
 };
 
-// Actualizar configuración
 export const updateConfiguracion = async (id: number, data: ConfiguracionRequest): Promise<Configuracion> => {
   const response = await fetch(`${API_URL}/configuracion/${id}`, {
     method: 'PUT',
@@ -2365,7 +2134,6 @@ export const updateConfiguracion = async (id: number, data: ConfiguracionRequest
   return response.json();
 };
 
-// Actualizar solo el valor por clave
 export const updateValorByClave = async (clave: string, nuevoValor: string): Promise<Configuracion> => {
   const response = await fetch(`${API_URL}/configuracion/clave/${clave}?nuevoValor=${encodeURIComponent(nuevoValor)}`, {
     method: 'PATCH',
@@ -2379,7 +2147,6 @@ export const updateValorByClave = async (clave: string, nuevoValor: string): Pro
   return response.json();
 };
 
-// Eliminar configuración
 export const deleteConfiguracion = async (id: number): Promise<void> => {
   const response = await fetch(`${API_URL}/configuracion/${id}`, {
     method: 'DELETE',
@@ -2403,11 +2170,8 @@ export const inicializarConfiguraciones = async (): Promise<void> => {
   }
 };
 
-// ============================================
-// AUDITORÍA 
-// ============================================
+// Auditoría
 
-// Listar todas las auditorías
 export const getAllAuditorias = async (): Promise<Auditoria[]> => {
   const response = await fetch(`${API_URL}/auditorias`, {
     headers: getAuthHeaders(),
@@ -2420,7 +2184,6 @@ export const getAllAuditorias = async (): Promise<Auditoria[]> => {
   return response.json();
 };
 
-// Obtener auditoría por ID
 export const getAuditoriaById = async (id: number): Promise<Auditoria> => {
   const response = await fetch(`${API_URL}/auditorias/${id}`, {
     headers: getAuthHeaders(),
@@ -2514,7 +2277,6 @@ export const getAuditoriasDelDia = async (): Promise<Auditoria[]> => {
   return response.json();
 };
 
-
 // Funciones para Imágenes de Producto
 export const getImagenesProducto = async (idProducto: number): Promise<ImagenProducto[]> => {
   const response = await fetch(`${API_URL}/imagenes-producto/producto/${idProducto}`, {
@@ -2528,8 +2290,6 @@ export const getImagenesProducto = async (idProducto: number): Promise<ImagenPro
   return response.json();
 };
 
-
-
 // Función corregida para subir imágenes
 export const addImagenProducto = async (idProducto: number, file: File, esPrincipal: boolean): Promise<ImagenProducto> => {
   const formData = new FormData();
@@ -2538,7 +2298,7 @@ export const addImagenProducto = async (idProducto: number, file: File, esPrinci
 
   const response = await fetch(`${API_URL}/imagenes-producto/producto/${idProducto}`, {
     method: 'POST',
-    headers: getAuthHeadersForFormData(), // ✅ USAR LA NUEVA FUNCIÓN
+    headers: getAuthHeadersForFormData(),
     body: formData,
   });
 
@@ -2572,11 +2332,7 @@ export const setImagenPrincipal = async (idImagen: number, idProducto: number): 
   // No hay cuerpo de respuesta para PUT
 };
 
-
-
-// ============================================
-// COMPROBANTES 
-// ============================================
+// Comprobantes
 
 export interface Comprobante {
   id: number;
@@ -2597,9 +2353,7 @@ export interface ComprobanteRequest {
   observaciones?: string;
 }
 
-/**
- * Obtener comprobante por venta
- */
+/** Obtener comprobante por venta */
 export const getComprobanteByVenta = async (idVenta: number): Promise<Comprobante> => {
   const response = await fetch(`${API_URL}/comprobantes/venta/${idVenta}`, {
     headers: getAuthHeaders(),
@@ -2612,9 +2366,7 @@ export const getComprobanteByVenta = async (idVenta: number): Promise<Comprobant
   return response.json();
 };
 
-/**
- * Crear comprobante manualmente (si no se creó automáticamente)
- */
+/** Crear comprobante manualmente (si no se creó automáticamente) */
 export const createComprobante = async (data: ComprobanteRequest): Promise<Comprobante> => {
   const response = await fetch(`${API_URL}/comprobantes`, {
     method: 'POST',
@@ -2631,13 +2383,10 @@ export const createComprobante = async (data: ComprobanteRequest): Promise<Compr
 
 // frontend/src/lib/api.ts (agregar al final de la sección de PRODUCTOS)
 
-// ============================================
-// MULTIMEDIA PRODUCTOS (MODELOS 3D)
-// ============================================
+// Multimedia productos (modelos 3d)
 
 import { MultimediaProducto } from '@/types/producto';
 
-// Obtener multimedia de un producto
 export const getMultimediaProducto = async (productoId: number): Promise<MultimediaProducto | null> => {
   try {
     const response = await fetch(`${API_URL}/multimedia-productos/producto/${productoId}`, {
@@ -2693,7 +2442,6 @@ export const subirModelo3D = async (
   return response.json();
 };
 
-// Eliminar multimedia
 export const eliminarMultimedia = async (multimediaId: number): Promise<void> => {
   const response = await fetch(`${API_URL}/multimedia-productos/${multimediaId}`, {
     method: 'DELETE',
@@ -2705,17 +2453,11 @@ export const eliminarMultimedia = async (multimediaId: number): Promise<void> =>
   }
 };
 
-// ============================================
-// DASHBOARD
-// ============================================
+// Dashboard
 
 import { DashboardEstadisticas, VentasSemanal } from '@/types/dashboard';
 
-/**
- * Estadísticas del panel de inicio.
- * El endpoint existía en el backend desde el principio; la pantalla de inicio
- * mostraba cifras escritas a mano en lugar de consultarlo.
- */
+/** Estadísticas del panel de inicio. */
 export const getDashboardEstadisticas = async (): Promise<DashboardEstadisticas> => {
   const response = await fetch(`${API_URL}/dashboard/estadisticas`, {
     headers: getAuthHeaders(),
@@ -2727,7 +2469,6 @@ export const getDashboardEstadisticas = async (): Promise<DashboardEstadisticas>
 
   return response.json();
 };
-
 
 // Ventas de la semana en curso (lunes a domingo), solo completadas.
 export const getVentasSemanal = async (): Promise<VentasSemanal> => {
@@ -2742,9 +2483,7 @@ export const getVentasSemanal = async (): Promise<VentasSemanal> => {
   return response.json();
 };
 
-// ============================================
-// DATOS PÚBLICOS DEL NEGOCIO
-// ============================================
+// Datos públicos del negocio
 
 export interface DatosNegocio {
   negocio_razon_social?: string;
@@ -2759,11 +2498,7 @@ export interface DatosNegocio {
   negocio_sitio_web?: string;
 }
 
-/**
- * Datos del negocio para la tienda pública (sin autenticación).
- * Se guardan en configuracion_sistema y se editan desde Configuración, así
- * que corregirlos no requiere tocar código.
- */
+/** Datos del negocio para la tienda pública (sin autenticación), editables desde Configuración. */
 export const getDatosNegocio = async (): Promise<DatosNegocio> => {
   const response = await fetch(`${API_URL}/configuracion/negocio`);
 
@@ -2774,10 +2509,7 @@ export const getDatosNegocio = async (): Promise<DatosNegocio> => {
   return response.json();
 };
 
-
-// ============================================
-// MENSAJES DE CONTACTO
-// ============================================
+// Mensajes de contacto
 
 export interface MensajeContactoRequest {
   nombre: string;
@@ -2801,10 +2533,7 @@ export interface MensajeContacto {
   fechaEnvio: string;
 }
 
-/**
- * Envía una consulta desde la tienda. No requiere sesión: es el único
- * endpoint de escritura público del sistema.
- */
+/** Envía una consulta desde la tienda; no requiere sesión. */
 export const enviarMensajeContacto = async (
   data: MensajeContactoRequest
 ): Promise<MensajeContacto> => {
@@ -2860,12 +2589,7 @@ export const eliminarMensajeContacto = async (id: number): Promise<void> => {
   }
 };
 
-
-/**
- * Cambia el stock mínimo de un producto: el umbral que dispara las alertas.
- * Antes la pantalla de inventario solo hacía console.log y el valor nunca
- * llegaba a la base.
- */
+/** Cambia el stock mínimo de un producto, el umbral que dispara las alertas. */
 export const actualizarStockMinimo = async (
   idProducto: number,
   stockMinimo: number
@@ -2882,14 +2606,7 @@ export const actualizarStockMinimo = async (
   return response.json();
 };
 
-/**
- * Precarga en segundo plano las listas de los módulos principales para que,
- * al abrirlos, ya estén en la caché de lecturas (ver más arriba). Se llama una
- * vez al entrar al panel. Va de a una petición para no competir con la
- * pantalla que el usuario está viendo, y cualquier fallo (por ejemplo un
- * módulo que su rol no puede ver) se ignora: la pantalla lo pedirá cuando
- * haga falta.
- */
+/** Precarga en segundo plano las listas principales en la caché; ignora los fallos. */
 export const precargarDatos = async (): Promise<void> => {
   const pedidos: Array<() => Promise<unknown>> = [
     getAllProductos,

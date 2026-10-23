@@ -9,47 +9,26 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-
-/**
- * Comprobante interno de la venta (recibo para el cliente).
- *
- * Solo quedan las dos rutas que usa la web en el detalle de la venta: consultar el comprobante
- * de una venta y crearlo. La creación automática al registrar la venta no pasa por acá.
- */
+/** Comprobante interno de la venta: consultarlo y crearlo desde el detalle de la venta. */
 @RestController
 @RequestMapping("/api/v1/comprobantes")
 @CrossOrigin(origins = "http://localhost:3000")
 @PreAuthorize("hasAnyRole('ADMIN', 'EMPLEADO')")
 public class ComprobanteController {
-
     private final ComprobanteService comprobanteService;
 
-    /**
-     * Inyeccion por constructor, no por campo.
-     *
-     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
-     * puede existir a medio construir, y una dependencia circular falla al
-     * arrancar en vez de aparecer en ejecucion.
-     */
     public ComprobanteController(ComprobanteService comprobanteService) {
         this.comprobanteService = comprobanteService;
     }
 
-
-    /**
-     * GET /api/v1/comprobantes/venta/{idVenta}
-     * Obtener comprobante por venta
-     */
+    /** Obtener comprobante por venta */
     @GetMapping("/venta/{idVenta}")
     public ResponseEntity<?> getComprobanteByVenta(@PathVariable Long idVenta) {
         ComprobanteResponse comprobante = comprobanteService.getComprobanteByVenta(idVenta);
         return ResponseEntity.ok(comprobante);
     }
 
-    /**
-     * POST /api/v1/comprobantes
-     * Crear comprobante
-     */
+    /** Crear comprobante */
     @PostMapping
     public ResponseEntity<?> createComprobante(@Valid @RequestBody ComprobanteRequest request) {
         ComprobanteResponse createdComprobante = comprobanteService.createComprobante(request);

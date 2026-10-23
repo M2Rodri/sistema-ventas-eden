@@ -7,19 +7,12 @@ import java.util.List;
 import java.util.Optional;
 
 public interface MultimediaProductoRepository extends JpaRepository<MultimediaProducto, Long> {
-
-    /**
-     * Obtener multimedia por producto
-     */
+    /** Obtener multimedia por producto */
     Optional<MultimediaProducto> findByProductoId(Long productoId);
 
-    /**
-     * Productos con RA habilitado
-     */
+    /** Productos con RA habilitado */
     List<MultimediaProducto> findByHabilitadoRaTrueAndActivoTrue();
 
-    /**
-     * Multimedia activa
-     */
+    /** Multimedia activa */
     List<MultimediaProducto> findByActivoTrue();
 }

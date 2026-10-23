@@ -5,18 +5,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 
-/**
- * Guarda los archivos en la carpeta uploads/ del servidor.
- *
- * Sirve para desarrollo sin conexión a Supabase. En Render el disco se borra
- * al redesplegar o suspender, así que no se debe usar en producción: ahí
- * AlmacenConfig exige las variables de Supabase.
- *
- * También se usa para borrar y leer los archivos de registros viejos, cuya
- * referencia empieza con /uploads/.
- */
+/** Guarda en la carpeta uploads/ (solo desarrollo; en Render el disco se borra) y lee los archivos viejos /uploads/. */
 public class AlmacenLocal implements AlmacenArchivos {
-
     private final Path raiz;
 
     public AlmacenLocal(Path raiz) {

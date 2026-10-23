@@ -21,7 +21,6 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Envio {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -63,17 +62,7 @@ public class Envio {
     @JoinColumn(name = "id_transportadora")
     private Transportadora transportadora;
 
-    /**
-     * Empleado responsable del envío ante el cliente.
-     *
-     * Distinto de ventas.id_usuario, que es quien registró la venta: el que
-     * cierra la venta y el que prepara la entrega no tienen por qué ser la
-     * misma persona. También es distinto del rastro de 'auditorias', que
-     * registra quién tocó el registro en el sistema; esto registra quién
-     * responde por el envío en el negocio.
-     *
-     * Admite nulo: un envío puede registrarse antes de asignarle responsable.
-     */
+    /** Empleado responsable del envío (distinto del vendedor de la venta); puede asignarse después. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_usuario_responsable")
     private Usuario usuarioResponsable;

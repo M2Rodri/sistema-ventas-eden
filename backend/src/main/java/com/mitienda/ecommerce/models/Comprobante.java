@@ -14,16 +14,13 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-/**
- * Entidad Comprobante - Recibos simples de venta
- */
+/** Entidad Comprobante - Recibos simples de venta */
 @Entity
 @Table(name = "comprobantes")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class Comprobante {
-
     @Id
     @GeneratedValue(generator = "id_comprobantes")
     @GenericGenerator(name = "id_comprobantes", type = GeneradorIdSinHuecos.class,

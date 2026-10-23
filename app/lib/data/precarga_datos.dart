@@ -5,21 +5,10 @@ import 'clientes_repository.dart';
 import 'dashboard_repository.dart';
 import 'ventas_repository.dart';
 
-/// Ancho al que se decodifican las miniaturas de los productos (lista del
-/// catálogo y selector de productos). Las dos pantallas usan el MISMO valor, así
-/// que comparten la imagen ya cargada en memoria.
+/// Ancho al que se decodifican las miniaturas de los productos (lista del catálogo y selector de productos).
 const int kAnchoMiniatura = 170;
 
-/// Pide por detrás los datos que las pantallas van a necesitar, para que al
-/// abrirlas ya estén en la caché de ApiClient y aparezcan al instante.
-///
-/// Se lanza al abrir el inicio y, solo, unos instantes después de guardar algo
-/// (ApiClient vacía la caché al escribir y llama a [precargar] para llenarla de
-/// nuevo). Va de a una petición para no competir con la pantalla que se está
-/// viendo, y un fallo se ignora: la pantalla pedirá el dato cuando lo necesite.
-///
-/// Para precargar algo nuevo (una pantalla futura), basta con agregar su
-/// lectura a la lista de [precargar].
+/// Pide por detrás los datos de las pantallas para dejarlos en la caché de ApiClient.
 class PrecargaDatos {
   PrecargaDatos._();
 
@@ -52,8 +41,7 @@ class PrecargaDatos {
     }
   }
 
-  /// Empieza a descargar las fotos de los productos para que, al abrir el
-  /// catálogo, ya estén en memoria y aparezcan sin esperar.
+  /// Descarga las fotos de los productos para que el catálogo las tenga en memoria.
   static void _precargarMiniaturas(Iterable<String?> urls) {
     var cuantas = 0;
     for (final url in urls) {

@@ -25,14 +25,7 @@ export default function ProveedoresPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // El buscador de la cabecera navega hasta aca con ?q=<texto>. Se copia al
-  // filtro de la pantalla para que el elemento que se eligio alla quede a la
-  // vista sin tener que volver a escribirlo.
-  //
-  // Se lee de window y no con useSearchParams a proposito: ese hook obliga a
-  // envolver la pagina en un <Suspense> y, sin eso, el build de produccion
-  // falla. Aca el valor solo hace falta despues de montar, asi que alcanza con
-  // mirar la URL dentro del efecto.
+  // El buscador de la cabecera navega con ?q=<texto>; se lee de window porque useSearchParams exige un Suspense.
   useEffect(() => {
     const q = new URLSearchParams(window.location.search).get('q');
     if (q) {
@@ -95,8 +88,7 @@ export default function ProveedoresPage() {
     setFilteredProveedores(filtered);
   }, [searchTerm, statusFilter, proveedores]);
 
-  // Los de éxito se cierran solos; los de error se quedan hasta que el
-  // usuario los cierra a mano (el botón X del banner).
+  // Los avisos de éxito se cierran solos; los de error esperan a que el usuario los cierre.
   const showMessage = (type: 'success' | 'error', text: string) => {
     setMessage({ type, text });
     if (type === 'success') {
@@ -114,9 +106,7 @@ export default function ProveedoresPage() {
     setIsModalOpen(true);
   };
 
-  // Click en el badge de Estado. Activar no tiene riesgo (un proveedor
-  // inactivo solo estaba escondido del selector de compras, nada se pierde),
-  // así que se aplica directo. Desactivar sí pide confirmar primero.
+  // Click en el badge de Estado.
   const handleClickEstado = (proveedor: Proveedor) => {
     if (proveedor.activo) {
       setProveedorADesactivar(proveedor);
@@ -150,8 +140,7 @@ export default function ProveedoresPage() {
     router.push(`/dashboard/compras?proveedor=${proveedor.id}`);
   };
 
-  // Arrastrar la tabla desde el encabezado, como si fuera una barra de
-  // scroll horizontal. Ver hooks/useDragScrollTable.ts.
+  // Arrastrar la tabla desde el encabezado (ver hooks/useDragScrollTable.ts).
   const {
     scrollContainerRef,
     tableRef,

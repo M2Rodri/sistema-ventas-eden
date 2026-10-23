@@ -6,23 +6,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Repositorio para operaciones con imágenes de productos
- */
+/** Repositorio para operaciones con imágenes de productos */
 public interface ImagenProductoRepository extends JpaRepository<ImagenProducto, Long> {
-
-    /**
-     * Obtener todas las imágenes de un producto
-     */
+    /** Obtener todas las imágenes de un producto */
     List<ImagenProducto> findByProductoIdOrderByOrdenAsc(Long productoId);
 
-    /**
-     * Obtener imagen principal de un producto
-     */
+    /** Obtener imagen principal de un producto */
     Optional<ImagenProducto> findByProductoIdAndEsPrincipalTrue(Long productoId);
 
-    /**
-     * Eliminar todas las imágenes de un producto
-     */
+    /** Eliminar todas las imágenes de un producto */
     void deleteByProductoId(Long productoId);
 }

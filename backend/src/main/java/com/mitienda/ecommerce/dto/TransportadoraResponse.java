@@ -8,14 +8,11 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-/**
- * DTO para respuestas de transportadora
- */
+/** DTO para respuestas de transportadora */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class TransportadoraResponse {
-
     private Long id;
     private String nombre;
     private String telefono;

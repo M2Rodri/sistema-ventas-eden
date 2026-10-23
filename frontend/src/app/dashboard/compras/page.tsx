@@ -19,25 +19,11 @@ import Paginacion from '@/components/Paginacion';
 
 const ITEMS_PER_PAGE = 30;
 
-/**
- * Compras a proveedores.
- *
- * El módulo existía completo en el backend desde el principio —incluida la
- * carga automática de stock al recibir— pero no tenía pantalla: las compras
- * solo se veían como un listado de lectura dentro de Proveedores.
- *
- * Vive dentro de Inventario porque ese es el recorrido real: se ve que falta
- * stock, se registra la compra, llega, y el stock sube.
- */
+/** Compras a proveedores. */
 function ComprasContent() {
   const searchParams = useSearchParams();
   const proveedorParam = searchParams.get('proveedor');
-  // Qué proveedor se sacó del filtro por última vez, guardado en
-  // sessionStorage (no en useState): el click en "Compras" del Sidebar a
-  // veces se resuelve con una navegación real del lado de Next (afuera de
-  // mi control) que puede llegar a remontar este componente antes de que
-  // termine de aplicarse el reset. Un useState se pierde en ese remount;
-  // sessionStorage no, sobrevive tanto a eso como a un F5.
+  // Último proveedor quitado del filtro; va en sessionStorage porque un remontaje del componente perdería un useState.
   const CLAVE_SUPRIMIDO = 'compras:proveedor-suprimido';
   const [proveedorSuprimido, setProveedorSuprimido] = useState(
     () => typeof window !== 'undefined' && sessionStorage.getItem(CLAVE_SUPRIMIDO) === proveedorParam
@@ -81,9 +67,7 @@ function ComprasContent() {
 
   useEffect(() => { cargar(); }, []);
 
-  // Clickear "Compras" en el menú, aunque ya estés en esta pantalla, tiene
-  // que volver todo a su estado normal (mismo mecanismo que Ventas e
-  // Inventario: ver Sidebar.tsx).
+  // Clic en "Compras" del menú estando aquí devuelve la pantalla a su estado normal (ver Sidebar.tsx).
   useEffect(() => {
     const resetearFiltros = () => {
       setBusqueda('');
@@ -99,8 +83,7 @@ function ComprasContent() {
     setCurrentPage(1);
   }, [busqueda, proveedorFiltroId]);
 
-  // Los de éxito se cierran solos; los de error se quedan hasta que el
-  // usuario los cierra a mano (el botón X del banner).
+  // Los avisos de éxito se cierran solos; los de error esperan a que el usuario los cierre.
   const avisar = (tipo: 'success' | 'error', texto: string) => {
     setMensaje({ tipo, texto });
     if (tipo === 'success') {
@@ -140,9 +123,7 @@ function ComprasContent() {
     ? compras.find((c) => c.idProveedor === Number(proveedorFiltroId))?.nombreProveedor
     : null;
 
-
-  // Arrastrar la tabla desde el encabezado, como si fuera una barra de
-  // scroll horizontal. Ver hooks/useDragScrollTable.ts.
+  // Arrastrar la tabla desde el encabezado (ver hooks/useDragScrollTable.ts).
   const {
     scrollContainerRef,
     tableRef,

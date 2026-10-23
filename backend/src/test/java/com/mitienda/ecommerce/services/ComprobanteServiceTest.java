@@ -33,7 +33,6 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class ComprobanteServiceTest {
-
     @Mock private ComprobanteRepository comprobanteRepository;
     @Mock private VentaRepository ventaRepository;
 

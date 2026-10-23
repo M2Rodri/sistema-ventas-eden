@@ -11,7 +11,6 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class MensajeContactoResponse {
-
     private Long id;
     private String nombre;
     private String email;
@@ -37,7 +36,6 @@ public class MensajeContactoResponse {
         this.nombreUsuarioAtiende = m.getUsuarioAtiende() != null
                 ? m.getUsuarioAtiende().getNombreCompleto() : null;
         this.fechaEnvio = m.getFechaEnvio();
-        // La IP no se expone: sirve para rastrear abuso del formulario público,
-        // no es información que el sistema necesite mostrar.
+        // La IP no se expone.
     }
 }

@@ -16,24 +16,13 @@ import java.util.Map;
 @RequestMapping("/api/v1/productos")
 @CrossOrigin(origins = "http://localhost:3000")
 public class ProductoController {
-
     private final ProductoService productoService;
 
-    /**
-     * Inyeccion por constructor, no por campo.
-     *
-     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
-     * puede existir a medio construir, y una dependencia circular falla al
-     * arrancar en vez de aparecer en ejecucion.
-     */
     public ProductoController(ProductoService productoService) {
         this.productoService = productoService;
     }
 
-
-    // ========================================
-    // LECTURA (ADMIN y EMPLEADO) — ver SecurityConfig
-    // ========================================
+    // Lectura (ADMIN y EMPLEADO), ver SecurityConfig
 
     @GetMapping
     public ResponseEntity<List<ProductoResponse>> getAllProductos() {
@@ -71,9 +60,7 @@ public class ProductoController {
         return ResponseEntity.ok(productos);
     }
 
-    // ========================================
-    // ENDPOINTS PROTEGIDOS (Solo ADMIN)
-    // ========================================
+    // Solo ADMIN
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
@@ -82,10 +69,7 @@ public class ProductoController {
         return ResponseEntity.status(HttpStatus.CREATED).body(createdProducto);
     }
 
-    /**
-     * PATCH /api/v1/productos/{id}/stock-minimo
-     * Cambia el umbral que dispara las alertas de stock bajo.
-     */
+    /** Cambia el umbral que dispara las alertas de stock bajo. */
     @PatchMapping("/{id}/stock-minimo")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> actualizarStockMinimo(@PathVariable Long id,

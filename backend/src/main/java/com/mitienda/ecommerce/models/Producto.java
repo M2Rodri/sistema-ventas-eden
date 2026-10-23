@@ -19,16 +19,13 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Entidad Producto - Representa los productos del catálogo
- */
+/** Entidad Producto - Representa los productos del catálogo */
 @Entity
 @Table(name = "productos")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class Producto {
-
     @Id
     @GeneratedValue(generator = "id_productos")
     @GenericGenerator(name = "id_productos", type = GeneradorIdSinHuecos.class,
@@ -50,11 +47,7 @@ public class Producto {
     @Column(length = 100)
     private String modelo;
 
-    /**
-     * Campos propios del rubro que la base ya tenía y la entidad no mapeaba.
-     * En camas y colchones son criterios de compra reales: el cliente pregunta
-     * por la marca, por qué tan firme es y de qué está hecho el núcleo.
-     */
+    /** Campos del rubro: marca, firmeza y material del núcleo. */
     @Column(length = 100)
     private String marca;
 
@@ -78,9 +71,7 @@ public class Producto {
     @Column(length = 50)
     private String calidad;
 
-    // Opcional a propósito: a veces se carga el producto rápido (compra por
-    // mayor, costo todavía sin definir) y se completa después editando. Sin
-    // este dato, el valor total del inventario simplemente lo dejan afuera del cálculo.
+    // Opcional: el producto puede cargarse sin costo y completarse después; sin él queda fuera del valor del inventario.
     @DecimalMin(value = "0.0", inclusive = false, message = "El precio de compra debe ser mayor a 0")
     @Column(precision = 10, scale = 2)
     private BigDecimal precioCompra;

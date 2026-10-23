@@ -1,9 +1,4 @@
 // types/dashboard.ts
-//
-// Tipos del panel de inicio. Reflejan DashboardResponse del backend.
-// Antes la pantalla de inicio mostraba cifras escritas a mano
-// ($250,000 en ventas, 1.200 productos, 350 usuarios y una calificación de
-// reseñas) mientras este endpoint existía sin usarse.
 
 export interface VentasStats {
   totalVentasHoy: number;

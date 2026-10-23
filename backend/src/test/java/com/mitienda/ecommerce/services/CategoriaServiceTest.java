@@ -23,7 +23,6 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class CategoriaServiceTest {
-
     @Mock private CategoriaRepository categoriaRepository;
 
     private CategoriaService servicio;

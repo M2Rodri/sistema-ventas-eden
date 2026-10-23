@@ -13,7 +13,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Renovación del token: conserva el usuario y el inicio de sesión, pone el rol vigente y respeta el tope. */
 class JwtUtilRenovacionTest {
-
     private static final String CLAVE = "clave-de-prueba-para-firmar-tokens-de-al-menos-64-caracteres-0123456789";
     private static final long HORA = 60L * 60 * 1000;
     private static final long CUATRO_HORAS = 4 * HORA;

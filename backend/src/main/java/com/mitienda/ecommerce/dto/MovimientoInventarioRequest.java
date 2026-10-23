@@ -7,14 +7,11 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * DTO para ajustes de inventario (entrada/salida manual)
- */
+/** DTO para ajustes de inventario (entrada/salida manual) */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class MovimientoInventarioRequest {
-
     @NotNull(message = "El producto es obligatorio")
     private Long idProducto;
 

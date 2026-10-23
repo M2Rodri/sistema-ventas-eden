@@ -15,24 +15,11 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Servicio de autenticación.
- *
- * Solo maneja el login. El registro público se eliminó: la tienda web es una
- * vitrina sin inicio de sesión, así que los únicos usuarios del sistema son el
- * dueño y los vendedores, y las altas las hace el ADMIN desde la gestión de
- * usuarios. Dejar abierto /api/v1/auth/register habría permitido que cualquiera
- * se creara una cuenta contra la API.
- */
+/** Inicio de sesión, renovación y corte de sesiones. No hay registro público: las altas las hace el ADMIN. */
 @Service
-// Lectura dentro de transacción por defecto: con spring.jpa.open-in-view=false
-// no hay sesión de Hibernate fuera de la transacción, y los DTO de respuesta se
-// arman recorriendo relaciones perezosas. Sin esto, los endpoints de lectura
-// fallaban con LazyInitializationException.
-// Los métodos que escriben llevan su propio @Transactional, que tiene precedencia.
+// Lectura en transacción: con open-in-view=false no hay sesión de Hibernate fuera de ella.
 @Transactional(readOnly = true)
 public class AuthService {
-
     private final UsuarioRepository usuarioRepository;
 
     private final JwtUtil jwtUtil;
@@ -43,13 +30,6 @@ public class AuthService {
 
     private final LimiteIntentosLogin limiteIntentos;
 
-    /**
-     * Inyeccion por constructor, no por campo.
-     *
-     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
-     * puede existir a medio construir, y una dependencia circular falla al
-     * arrancar en vez de aparecer en ejecucion.
-     */
     public AuthService(UsuarioRepository usuarioRepository,
                        JwtUtil jwtUtil,
                        AuthenticationManager authenticationManager,
@@ -62,25 +42,14 @@ public class AuthService {
         this.limiteIntentos = limiteIntentos;
     }
 
-
-    /**
-     * Login de un usuario del personal.
-     */
+    /** Login de un usuario del personal. */
     public AuthResponse login(LoginRequest request) {
-        // Valida credenciales. Si fallan, lanza AuthenticationException y el
-        // controlador responde 401.
-        //
-        // El intento fallido tambien se audita: saber que alguien probo entrar
-        // con una contrasena equivocada, y desde que IP, es justamente el tipo
-        // de cosa para la que sirve una tabla de auditoria.
-        // Normalizado a minúsculas: la comparación en la base distingue
-        // mayúsculas de minúsculas, y el celular autocapitaliza seguido.
+        // Si las credenciales fallan se lanza AuthenticationException (401). El intento fallido se audita con su IP.
+        // Usuario en minúsculas: la base distingue mayúsculas y el celular autocapitaliza.
         String usuarioNormalizado = request.getUsuario() == null
                 ? null : request.getUsuario().trim().toLowerCase();
 
-        // Cinco fallos en 15 minutos bloquean al usuario 15 minutos (429). Se revisa
-        // antes de mirar la contraseña, para que un usuario bloqueado no pueda seguir
-        // probando claves.
+        // Cinco fallos en 15 minutos bloquean 15 minutos (429); se revisa antes de la clave para no permitir seguir probando.
         limiteIntentos.verificar(usuarioNormalizado);
 
         try {
@@ -90,8 +59,7 @@ public class AuthService {
         } catch (RuntimeException e) {
             registroAuditoria.registrarPara(null, "LOGIN_FALLIDO", "usuarios", null,
                     "Intento fallido con el usuario " + request.getUsuario());
-            // Solo cuentan las credenciales malas: un error de base de datos o de otro tipo
-            // no es culpa de quien intenta entrar.
+            // Solo cuentan las credenciales malas, no los errores de base de datos.
             if (e instanceof AuthenticationException && limiteIntentos.registrarFallo(usuarioNormalizado)) {
                 registroAuditoria.registrarPara(null, "LOGIN_BLOQUEADO", "usuarios", null,
                         "Usuario " + request.getUsuario() + " bloqueado " + LimiteIntentosLogin.BLOQUEO.toMinutes()
@@ -111,14 +79,11 @@ public class AuthService {
             throw new DisabledException("Usuario inactivo");
         }
 
-        // El rol viaja en el token como texto ("ADMIN", "EMPLEADO"), igual que
-        // antes de normalizarlo en tabla. El contrato del token no cambia.
+        // El rol viaja como texto ("ADMIN", "EMPLEADO").
         String nombreRol = user.getRoleName();
         String token = jwtUtil.generateToken(user.getUsuario(), nombreRol, request.getPerfilSesion());
 
-        // registrarPara y no registrar: en este punto la autenticacion todavia
-        // no quedo guardada en el SecurityContext, asi que el usuario hay que
-        // pasarlo a mano.
+        // registrarPara: la autenticación aún no está en el SecurityContext, así que el usuario se pasa a mano.
         registroAuditoria.registrarPara(user.getId(), "LOGIN", "usuarios", user.getId(),
                 "Ingreso al sistema como " + nombreRol);
 
@@ -132,14 +97,7 @@ public class AuthService {
         );
     }
 
-    /**
-     * Renueva el token de una sesión que sigue viva.
-     *
-     * La ruta /api/v1/auth/** es pública, así que acá no se confía en el filtro: el propio
-     * token se verifica (firma y vencimiento). Se vuelve a leer al usuario en la base: si lo
-     * dieron de baja se rechaza, y el rol del token nuevo es el vigente hoy, no el del viejo.
-     * Cualquier falla responde 401 (AuthenticationException) y obliga a iniciar sesión de nuevo.
-     */
+    /** Renueva el token de una sesión viva (relee al usuario: baja y rol vigentes); si falla, 401. */
     public AuthResponse renovar(String authorization) {
         SesionVerificada sesion = verificarSesion(authorization);
         Usuario user = sesion.usuario();
@@ -162,11 +120,7 @@ public class AuthService {
         );
     }
 
-    /**
-     * Cierra todas las sesiones abiertas del usuario del token, en cualquier dispositivo, incluida
-     * la actual: desde este momento los tokens anteriores se rechazan y no se pueden renovar.
-     * Sirve cuando se pierde o le roban el celular a alguien.
-     */
+    /** Cierra todas las sesiones del usuario del token, incluida la actual; sus tokens anteriores dejan de servir. */
     @Transactional
     public void cerrarSesiones(String authorization) {
         Usuario user = verificarSesion(authorization).usuario();
@@ -179,11 +133,7 @@ public class AuthService {
     /** Una sesión que pasó todas las verificaciones: el token auténtico y el usuario que lo tiene. */
     private record SesionVerificada(String token, Usuario usuario) {}
 
-    /**
-     * Verifica el token de la cabecera Authorization: que exista y sea auténtico y vigente, que su
-     * usuario siga existiendo y activo, y que la sesión no haya sido cortada. Cualquier falla lanza
-     * una AuthenticationException, que se responde con 401.
-     */
+    /** Verifica el token de la cabecera: auténtico, vigente, usuario activo y sesión no cortada; si no, 401. */
     private SesionVerificada verificarSesion(String authorization) {
         if (authorization == null || !authorization.startsWith("Bearer ")) {
             throw new BadCredentialsException("Falta el token");

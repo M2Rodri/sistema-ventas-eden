@@ -6,14 +6,11 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * DTO para crear o actualizar configuraciones
- */
+/** DTO para crear o actualizar configuraciones */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class ConfiguracionRequest {
-
     @NotBlank(message = "La clave es obligatoria")
     @Size(max = 100, message = "La clave no puede exceder 100 caracteres")
     private String clave;

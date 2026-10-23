@@ -30,7 +30,6 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class AuthServiceLimiteIntentosTest {
-
     @Mock private UsuarioRepository usuarioRepository;
     @Mock private JwtUtil jwtUtil;
     @Mock private AuthenticationManager authenticationManager;

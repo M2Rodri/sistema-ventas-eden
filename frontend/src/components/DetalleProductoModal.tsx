@@ -36,8 +36,7 @@ export default function DetalleProductoModal({ inventario, onClose }: DetallePro
   const esEntrada = (tipo: string) =>
     ['ENTRADA', 'COMPRA', 'DEVOLUCION', 'AJUSTE_INICIAL'].includes(tipo);
 
-  // Arrastrar la tabla desde el encabezado, como si fuera una barra de
-  // scroll horizontal. Ver hooks/useDragScrollTable.ts.
+  // Arrastrar la tabla desde el encabezado (ver hooks/useDragScrollTable.ts).
   const { scrollContainerRef, tableRef, theadRef, hasOverflow, theadProps } =
     useDragScrollTable([movimientos]);
 

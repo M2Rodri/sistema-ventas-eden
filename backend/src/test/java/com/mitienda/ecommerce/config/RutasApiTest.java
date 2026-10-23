@@ -20,17 +20,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 
-/**
- * Las rutas de la API van con /api/v1, las viejas ya no existen y el acceso por
- * rol se sigue aplicando a las rutas nuevas.
- *
- * Usa la aplicación completa (con la seguridad real) y simula el usuario con
- * su rol: no hace falta iniciar sesión.
- */
+/** Las rutas van con /api/v1, las viejas ya no existen y el rol se sigue aplicando. */
 @SpringBootTest
 @AutoConfigureMockMvc
 class RutasApiTest {
-
     @Autowired
     private MockMvc mvc;
 

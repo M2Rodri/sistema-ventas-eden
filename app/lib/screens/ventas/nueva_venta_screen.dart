@@ -16,10 +16,7 @@ import '../../theme/app_colors.dart';
 
 enum _EstadoCarga { cargando, listo, error }
 
-/// Nueva venta: mismos campos, mismas validaciones y mismo endpoint que
-/// RegistrarVentaModal.tsx (frontend web). La disposición en secciones
-/// numeradas, los chips y el selector de catálogo en bottom sheet están
-/// tomados de record_form_screen.dart (Módulo 3).
+/// Nueva venta: mismos campos, mismas validaciones y mismo endpoint que RegistrarVentaModal.tsx (frontend web).
 class NuevaVentaScreen extends StatefulWidget {
   NuevaVentaScreen({super.key, required this.token, this.esAdmin = false});
 
@@ -68,8 +65,7 @@ class _NuevaVentaScreenState extends State<NuevaVentaScreen> {
 
   // Entrega
   ModalidadEntrega _modalidad = ModalidadEntrega.retiro;
-  // Domicilio y transportadora arrancan Pendiente; se pasa a Entregado cuando
-  // llega. En tienda no se elige.
+  // Domicilio y transportadora arrancan Pendiente; se pasa a Entregado cuando llega. En tienda no se elige.
   EstadoEntrega _estadoEntrega = EstadoEntrega.pendiente;
   final _direccionCtrl = TextEditingController();
   final _ciudadCtrl = TextEditingController();
@@ -79,8 +75,7 @@ class _NuevaVentaScreenState extends State<NuevaVentaScreen> {
   bool _enviando = false;
   String? _errorEnvio;
 
-  // Errores de validación, uno por campo, para mostrarlos junto al campo
-  // que los provoca en vez de en un único banner arriba del formulario.
+  // Errores de validación, uno por campo, para mostrarlos junto al campo.
   String? _errorCliente;
   String? _errorProductos;
   String? _errorSaldo;
@@ -185,13 +180,11 @@ class _NuevaVentaScreenState extends State<NuevaVentaScreen> {
     }
   }
 
-  /// Detalle de un producto que ya está en la venta: solo lectura, con un
-  /// botón OK. También se cierra tocando fuera de la hoja.
+  /// Detalle de un producto que ya está en la venta: solo lectura, con un botón OK.
   void _verDetalleProducto(int idProducto) {
     final producto = _catalogo.where((p) => p.id == idProducto).firstOrNull;
     if (producto == null) return;
-    // Ventana flotante en el centro: sin X ni asa; se cierra con OK o
-    // tocando fuera.
+    // Ventana flotante en el centro: sin X ni asa; se cierra con OK o tocando fuera.
     showDialog<void>(
       context: context,
       builder: (dialogContext) => Dialog(
@@ -243,10 +236,7 @@ class _NuevaVentaScreenState extends State<NuevaVentaScreen> {
     if (archivo != null) setState(() => _comprobante = File(archivo.path));
   }
 
-  /// Valida cada campo por separado y deja el mensaje correspondiente en su
-  /// propio `_errorX`, para mostrarlo junto al campo que falló. Devuelve el
-  /// grupo del primer campo con error (0 cliente, 1 productos, 2 saldo, 3 ciudad),
-  /// o null si todo está bien.
+  /// Valida cada campo y deja el mensaje en su propio `_errorX`.
   int? _validarCampos() {
     final sinCliente =
         _clienteSeleccionado == null && _nombreClienteCtrl.text.trim().isEmpty;
@@ -267,8 +257,7 @@ class _NuevaVentaScreenState extends State<NuevaVentaScreen> {
       _errorSaldo = null;
     }
 
-    // Solo el envío por transportadora exige un dato: la ciudad. La dirección,
-    // la transportadora y la guía se pueden completar después.
+    // Solo el envío por transportadora exige un dato: la ciudad.
     final requiereCiudad = _modalidad == ModalidadEntrega.transportadora;
     _errorCiudad = requiereCiudad && _ciudadCtrl.text.trim().isEmpty
         ? 'La ciudad es obligatoria para el envío por transportadora'
@@ -291,8 +280,7 @@ class _NuevaVentaScreenState extends State<NuevaVentaScreen> {
         _keySaldo,
         _keyCiudad,
       ][campoConError!];
-      // Se espera a que termine este frame para que el campo ya tenga su
-      // errorText dibujado antes de calcular hasta dónde desplazar la vista.
+      // Se espera al fin del frame para que el errorText ya esté dibujado antes de desplazar la vista.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final contexto = llave.currentContext;
         if (contexto != null) {
@@ -358,8 +346,7 @@ class _NuevaVentaScreenState extends State<NuevaVentaScreen> {
 
       final creada = await _ventasRepository.crearVenta(request, widget.token);
 
-      // Igual que el formulario web: la venta ya quedó registrada aunque
-      // esto falle, así que un error acá no revierte nada, solo avisa.
+      // Igual que la web: la venta ya está registrada aunque esto falle, solo se avisa.
       if (_comprobante != null && creada.pagos.isNotEmpty) {
         try {
           await _ventasRepository.adjuntarComprobante(
@@ -453,8 +440,7 @@ class _NuevaVentaScreenState extends State<NuevaVentaScreen> {
           onCambiarPrecio: (id, precio) {
             final i = _carrito.indexWhere((item) => item.idProducto == id);
             if (i == -1) return;
-            // Sin tope: si el precio supera el de catálogo, el servidor lo
-            // rechaza y se muestra el aviso (_avisarPrecioExcedido).
+            // Sin tope: si el precio supera el de catálogo, el servidor lo rechaza y se muestra el aviso (_avisarPrecioExcedido).
             setState(
               () => _carrito[i] = _carrito[i].copyWith(precioFinal: precio),
             );
@@ -658,9 +644,7 @@ class _Formulario extends StatelessWidget {
         : 0.0;
     const espacio = SizedBox(height: 12);
 
-    // Un solo formulario: cada grupo es una tarjeta sin título, y cada campo
-    // lleva su ícono. Solo el contenido se desplaza; abajo quedan fijos el
-    // total y los botones Cancelar / Registrar.
+    // Un solo formulario: cada grupo es una tarjeta sin título, y cada campo lleva su ícono.
     return Column(
       children: <Widget>[
         Expanded(
@@ -893,8 +877,7 @@ class _Formulario extends StatelessWidget {
                       TextField(
                         key: keySaldo,
                         controller: saldoCtrl,
-                        // Al activar el interruptor el campo ya está listo para
-                        // escribir (con el cursor adentro).
+                        // Al activar el interruptor el campo ya está listo para escribir (con el cursor adentro).
                         autofocus: true,
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
@@ -1121,8 +1104,7 @@ class _Formulario extends StatelessWidget {
                         ),
                       ),
                     ],
-                    // Transportadora: la ciudad es obligatoria; lo demás se
-                    // puede completar después desde el detalle de la venta.
+                    // Transportadora: la ciudad es obligatoria; lo demás se puede completar después desde el detalle de la venta.
                     if (modalidad ==
                         ModalidadEntrega.transportadora) ...<Widget>[
                       const SizedBox(height: 10),
@@ -1199,8 +1181,7 @@ class _Formulario extends StatelessWidget {
   }
 }
 
-/// Opción con el ícono y el texto en una sola fila (método de pago, entrega,
-/// estado): las tres caben lado a lado y ocupan poca altura.
+/// Opción con el ícono y el texto en una sola fila (método de pago, entrega, estado).
 class _OpcionIcono extends StatelessWidget {
   _OpcionIcono({
     required this.icono,
@@ -1271,9 +1252,7 @@ class _OpcionIcono extends StatelessWidget {
   }
 }
 
-/// Fecha límite del pago pendiente: tres botones rápidos (7, 15 y 30 días) y
-/// un calendario. Los botones mandan los DÍAS (el servidor calcula la fecha con
-/// su reloj); el calendario manda la fecha exacta, que el servidor valida.
+/// Fecha límite del pago pendiente: tres botones rápidos (7, 15 y 30 días) y un calendario.
 class _SelectorFechaLimite extends StatelessWidget {
   _SelectorFechaLimite({
     required this.fecha,
@@ -1637,8 +1616,7 @@ class _FilaCarrito extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 4),
-          // Precio unitario: es lo que más se toca, así que va en una caja
-          // destacada, con el lápiz y el número grande.
+          // Precio unitario: es lo que más se toca, así que va en una caja destacada, con el lápiz y el número grande.
           Padding(
             padding: const EdgeInsets.only(right: 6),
             child: Container(
@@ -1661,8 +1639,7 @@ class _FilaCarrito extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  // El número va dentro de un campo (fondo blanco y borde)
-                  // para que se note que se puede editar.
+                  // El número va dentro de un campo (fondo blanco y borde) para que se note que se puede editar.
                   Expanded(
                     child: Container(
                       margin: const EdgeInsets.symmetric(vertical: 6),
@@ -1673,8 +1650,7 @@ class _FilaCarrito extends StatelessWidget {
                         border: Border.all(color: const Color(0xFF3E9B94)),
                       ),
                       child: TextFormField(
-                        // La clave incluye el precio de catálogo: si el admin lo
-                        // actualiza, el campo se redibuja con el valor vigente.
+                        // La clave incluye el precio de catálogo: si el admin lo actualiza, el campo se redibuja con el valor vigente.
                         key: ValueKey<String>(
                           'precio-${item.idProducto}-${item.precioOriginal}',
                         ),
@@ -1771,8 +1747,7 @@ class _BotonPaso extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // El área tocable mide 48x48 (mínimo declarado), aunque el ícono se
-    // vea del mismo tamaño de siempre dentro de esa zona.
+    // El área tocable mide 48x48 aunque el ícono se vea del mismo tamaño.
     return SizedBox(
       width: 48,
       height: 48,
@@ -1801,9 +1776,7 @@ class _BotonPaso extends StatelessWidget {
   }
 }
 
-/// Selector de producto: chips de categoría siempre a la vista, buscador que
-/// se abre con la lupa, y el detalle del producto dentro de la misma hoja.
-/// Tocar la fila lo agrega directo; la cajita de la derecha abre el detalle.
+/// Selector de producto: chips de categoría, buscador con lupa y detalle en la misma hoja.
 class _SelectorProductoSheet extends StatefulWidget {
   _SelectorProductoSheet({required this.catalogo});
 
@@ -2044,8 +2017,7 @@ class _MiniImagen extends StatelessWidget {
   }
 }
 
-/// Detalle del producto dentro del selector, con Atrás (vuelve a la lista) y
-/// Agregar (lo pone en la venta).
+/// Detalle del producto dentro del selector, con Atrás (vuelve a la lista) y Agregar (lo pone en la venta).
 class _DetalleProductoVenta extends StatelessWidget {
   _DetalleProductoVenta({
     required this.producto,
@@ -2224,7 +2196,6 @@ class _DatoDetalle extends StatelessWidget {
 }
 
 /// Selector de cliente: mismo patrón, sobre la lista ya cargada.
-/// "Cel: 71234567 · CI: 9392342", o null si el cliente no tiene ninguno de los dos.
 String? _datosCliente(Cliente c) {
   final partes = <String>[
     if (c.telefono != null && c.telefono!.trim().isNotEmpty)
@@ -2326,9 +2297,7 @@ class _SelectorClienteSheetState extends State<_SelectorClienteSheet> {
   }
 }
 
-/// Contenedor común de los selectores: hoja con asa, título y una lupa. La
-/// lupa abre el campo de búsqueda en el lugar del título; cerrarlo lo deja
-/// como estaba. Los chips (si hay) quedan siempre a la vista.
+/// Contenedor común de los selectores: hoja con asa, título y una lupa.
 class _HojaSelector extends StatefulWidget {
   _HojaSelector({
     required this.titulo,

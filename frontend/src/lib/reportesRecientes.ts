@@ -3,11 +3,7 @@ import { ReporteReciente } from '@/types/reporte';
 const CLAVE = 'reportes:recientes';
 const MAXIMO = 8;
 
-/**
- * "Reportes recientes": los reportes personalizados que generó el administrador, guardados en este
- * navegador. No viajan al servidor: cada navegador ve los suyos. Si el navegador no deja guardar
- * (modo privado, datos bloqueados), la lista simplemente queda vacía.
- */
+/** "Reportes recientes": los reportes personalizados que generó el administrador, guardados en este navegador. */
 export function leerRecientes(): ReporteReciente[] {
   try {
     const crudo = window.localStorage.getItem(CLAVE);

@@ -10,32 +10,14 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @SpringBootApplication
 public class CamasColchonesApplication {
-
     public static void main(String[] args) {
-        // Render corre en UTC: sin esto "hoy" cambiaba a las 20:00 de Bolivia
-        // y las fechas (@CreationTimestamp, LocalDate.now()) quedaban 4 h
-        // adelantadas. Se fija acá para que valga igual en local y en prod.
+        // Render corre en UTC: se fija la zona de Bolivia para que "hoy" y las fechas coincidan en local y en producción.
         TimeZone.setDefault(TimeZone.getTimeZone("America/La_Paz"));
 
         SpringApplication.run(CamasColchonesApplication.class, args);
-        
-        //System.out.println(new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder().encode("REDACTADO"));
-
-        System.out.println("\n╔════════════════════════════════════════════════════════════╗");
-        System.out.println("║                                                            ║");
-        System.out.println("║   🛏️  API SISTEMA DE VENTA DE CAMAS Y COLCHONES 🛏️        ║");
-        System.out.println("║                                                            ║");
-        System.out.println("║   🚀 Servidor iniciado: http://localhost:8080             ║");
-        System.out.println("║   📊 Base de datos PostgreSQL: CONECTADA                  ║");
-        System.out.println("║   📖 Documentación API: http://localhost:8080/swagger-ui  ║");
-        System.out.println("║                                                            ║");
-        System.out.println("╚════════════════════════════════════════════════════════════╝\n");
     }
 
-    /**
-     * Configuración CORS para permitir peticiones desde el frontend (Next.js)
-     * En desarrollo: localhost:3000
-     */
+    /** CORS: permite las peticiones del frontend (localhost:3000 en desarrollo). */
     @Bean
     public WebMvcConfigurer corsConfigurer() {
         return new WebMvcConfigurer() {

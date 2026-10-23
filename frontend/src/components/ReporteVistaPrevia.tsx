@@ -50,8 +50,7 @@ interface ReporteVistaPreviaProps {
 
 const COLORS = ['#00a0a0', '#aa8f67', '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
-/** Reemplaza el gráfico/tabla de un reporte cuando el rango elegido no trae
- * ningún dato, en vez de dejar una tabla con encabezado y cero filas. */
+/** Se muestra cuando el rango elegido no trae datos. */
 function SinDatosReporte({ mensaje }: { mensaje?: string }) {
   return (
     <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
@@ -84,8 +83,7 @@ export default function ReporteVistaPrevia({
     try {
       setLoading(true);
       setError(null);
-      // Función auxiliar para ajustar la fecha final
-      // Formato ISO sin Z (hora local del servidor/BD)
+      // Ajusta la fecha final; formato ISO sin Z (hora local).
       const toLocalISOString = (dateStr: string): string => {
         // Ej: "2025-11-16" → "2025-11-16T00:00:00"
         return dateStr + 'T00:00:00';
@@ -187,10 +185,7 @@ export default function ReporteVistaPrevia({
     );
   }
 
-  // La hoja de estilos @media print de globals.css oculta todo salvo
-  // .area-impresion, así que basta con pedir la impresión: no hace falta
-  // armar una vista aparte ni un botón de descarga, "Guardar como PDF" ya
-  // está en el diálogo de impresión del navegador.
+  // El @media print de globals.css oculta todo salvo .area-impresion; "Guardar como PDF" ya está en el diálogo de impresión.
   const handleImprimir = () => {
     window.print();
   };

@@ -1,4 +1,3 @@
-// src/main/java/com/mitienda/ecommerce/services/InventarioService.java
 package com.mitienda.ecommerce.services;
 
 import com.mitienda.ecommerce.exception.ConflictoEstadoException;
@@ -25,18 +24,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * Servicio para gestión de inventario
- */
+/** Reglas de stock, ajustes manuales y alertas de inventario. */
 @Service
-// Lectura dentro de transacción por defecto: con spring.jpa.open-in-view=false
-// no hay sesión de Hibernate fuera de la transacción, y los DTO de respuesta se
-// arman recorriendo relaciones perezosas. Sin esto, los endpoints de lectura
-// fallaban con LazyInitializationException.
-// Los métodos que escriben llevan su propio @Transactional, que tiene precedencia.
+// Lectura en transacción: con open-in-view=false no hay sesión de Hibernate fuera de ella.
 @Transactional(readOnly = true)
 public class InventarioService {
-
     private final InventarioRepository inventarioRepository;
 
     private final AlertaInventarioRepository alertaInventarioRepository;
@@ -51,13 +43,6 @@ public class InventarioService {
 
     private final UsuarioActualService usuarioActualService;
 
-    /**
-     * Inyeccion por constructor, no por campo.
-     *
-     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
-     * puede existir a medio construir, y una dependencia circular falla al
-     * arrancar en vez de aparecer en ejecucion.
-     */
     public InventarioService(InventarioRepository inventarioRepository,
                              AlertaInventarioRepository alertaInventarioRepository,
                              ProductoRepository productoRepository,
@@ -74,19 +59,12 @@ public class InventarioService {
         this.usuarioActualService = usuarioActualService;
     }
 
-    /**
-     * GET /api/v1/inventario y sus variantes las puede llamar EMPLEADO.
-     * precioCompra no debe llegarle: el rol EMPLEADO existe justamente
-     * para no ver costos ni margenes.
-     */
+    /** EMPLEADO también consulta el inventario, pero no debe recibir precioCompra. */
     private InventarioResponse ocultarCostoSiNoEsAdmin(InventarioResponse response) {
         return ocultarCostoSiNoEsAdmin(response, usuarioActualService.esAdmin());
     }
 
-    /**
-     * Versión para listados: quien llama resuelve esAdmin() una sola vez en
-     * lugar de una consulta de usuario por fila.
-     */
+    /** Versión para listados: resuelve esAdmin() una sola vez en vez de una consulta por fila. */
     private InventarioResponse ocultarCostoSiNoEsAdmin(InventarioResponse response, boolean esAdmin) {
         if (!esAdmin) {
             response.setPrecioCompra(null);
@@ -94,11 +72,7 @@ public class InventarioService {
         return response;
     }
 
-    /**
-     * Listar todo el inventario
-     * ✅ CORREGIDO: Añadido @Transactional(readOnly = true)
-     */
-    @Transactional(readOnly = true) // <--- AÑADIDO ESTA ANOTACIÓN
+    @Transactional(readOnly = true)
     public List<InventarioResponse> getAllInventario() {
         Set<Long> conAlertaAtendida = new HashSet<>(
                 alertaInventarioRepository.findIdsProductoPorEstado(EstadoAlerta.ATENDIDA_MANUAL));
@@ -113,10 +87,7 @@ public class InventarioService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Catálogo con precio y stock para la app móvil (Catálogo, Alertas de
-     * stock y Nueva venta). Ver InventarioRepository#findCatalogoApp.
-     */
+    /** Catálogo con precio y stock para la app (ver InventarioRepository#findCatalogoApp). */
     public List<CatalogoProductoResponse> getCatalogoApp(String nombre, boolean soloBajoMinimo) {
         return inventarioRepository.findCatalogoApp(nombre, soloBajoMinimo)
                 .stream()
@@ -124,60 +95,40 @@ public class InventarioService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Obtener inventario por ID
-     * ✅ CORREGIDO: Añadido @Transactional(readOnly = true)
-     */
-    @Transactional(readOnly = true) // <--- AÑADIDO ESTA ANOTACIÓN
+    @Transactional(readOnly = true)
     public InventarioResponse getInventarioById(Long id) {
         Inventario inventario = inventarioRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("INVENTARIO_NO_ENCONTRADO", "Inventario no encontrado con ID: " + id));
         return ocultarCostoSiNoEsAdmin(new InventarioResponse(inventario));
     }
 
-    /**
-     * Obtener inventario por producto
-     * ✅ CORREGIDO: Añadido @Transactional(readOnly = true)
-     */
-    @Transactional(readOnly = true) // <--- AÑADIDO ESTA ANOTACIÓN
+    @Transactional(readOnly = true)
     public InventarioResponse getInventarioByProducto(Long idProducto) {
         Inventario inventario = inventarioRepository.findByProductoId(idProducto)
                 .orElseThrow(() -> new RecursoNoEncontradoException("INVENTARIO_NO_ENCONTRADO", "No existe inventario para el producto con ID: " + idProducto));
         return ocultarCostoSiNoEsAdmin(new InventarioResponse(inventario));
     }
 
-    /**
-     * Crear inventario para un producto
-     * (Ya tenía @Transactional implícito en el método de escritura)
-     */
     @Transactional
     public InventarioResponse createInventario(InventarioRequest request) {
-        // Validar que el producto exista
         Producto producto = productoRepository.findById(request.getIdProducto())
                 .orElseThrow(() -> new RecursoNoEncontradoException("PRODUCTO_NO_ENCONTRADO", "Producto no encontrado con ID: " + request.getIdProducto()));
 
-        // Validar que no exista inventario previo
         if (inventarioRepository.existsByProductoId(request.getIdProducto())) {
             throw new ConflictoEstadoException("INVENTARIO_YA_EXISTE", "Ya existe inventario para este producto");
         }
 
-        // Crear inventario
         Inventario inventario = new Inventario();
         inventario.setProducto(producto);
         inventario.setCantidadDisponible(request.getCantidadDisponible());
 
         Inventario savedInventario = inventarioRepository.save(inventario);
 
-        // Verificar si requiere alerta
         verificarYCrearAlerta(savedInventario);
 
         return ocultarCostoSiNoEsAdmin(new InventarioResponse(savedInventario));
     }
 
-    /**
-     * Actualizar inventario existente
-     * (Ya tenía @Transactional implícito en el método de escritura)
-     */
     @Transactional
     public InventarioResponse updateInventario(Long id, InventarioRequest request) {
         Inventario inventario = inventarioRepository.findById(id)
@@ -187,28 +138,18 @@ public class InventarioService {
 
         Inventario updatedInventario = inventarioRepository.save(inventario);
 
-        // Verificar si requiere alerta
         verificarYCrearAlerta(updatedInventario);
 
         return ocultarCostoSiNoEsAdmin(new InventarioResponse(updatedInventario));
     }
 
-    /**
-     * Ajustar inventario manualmente (entrada o salida).
-     *
-     * Antes existían dos caminos: este, que no dejaba rastro, y
-     * ajustarInventarioConAuditoria, que sí lo hacía pero confiaba en un
-     * idUsuario mandado por el cliente. Ahora hay uno solo: todo ajuste
-     * manual queda en movimientos_inventario, con el usuario que sale del
-     * token (ver UsuarioActualService), nunca de un parámetro.
-     */
+    /** Ajuste manual de stock; queda en movimientos_inventario con el usuario del token, nunca uno enviado por el cliente. */
     @Transactional
     public InventarioResponse ajustarInventario(MovimientoInventarioRequest request) {
         Inventario inventario = inventarioRepository.findByProductoId(request.getIdProducto())
                 .orElseThrow(() -> new RecursoNoEncontradoException("INVENTARIO_NO_ENCONTRADO", "No existe inventario para el producto con ID: " + request.getIdProducto()));
         Integer cantidadAnterior = inventario.getCantidadDisponible();
 
-        // Aplicar movimiento según tipo
         if ("ENTRADA".equalsIgnoreCase(request.getTipoMovimiento())) {
             inventario.aumentarStock(request.getCantidad());
         } else if ("SALIDA".equalsIgnoreCase(request.getTipoMovimiento())) {
@@ -218,7 +159,6 @@ public class InventarioService {
         }
         Inventario updatedInventario = inventarioRepository.save(inventario);
 
-        // Registrar auditoría
         Usuario usuario = usuarioActualService.obtenerRequerido();
         String tipoMovimiento = request.getTipoMovimiento().toUpperCase();
 
@@ -232,13 +172,9 @@ public class InventarioService {
         );
         movimientoInventarioRepository.save(movimiento);
 
-        // Verificar si requiere alerta
         verificarYCrearAlerta(updatedInventario);
 
-        // Solo se audita el ajuste manual. Los movimientos automaticos por venta
-        // o por compra ya quedan registrados en movimientos_inventario y ligados
-        // a su venta o compra, que a su vez estan auditadas; duplicarlos aca solo
-        // llenaria la auditoria de ruido.
+        // Solo se audita el ajuste manual: los movimientos de ventas y compras ya quedan ligados a su operación.
         registroAuditoria.registrar("AJUSTAR_INVENTARIO", "inventario", updatedInventario.getId(),
                 "Ajuste manual de " + inventario.getProducto().getSku() + ": " + cantidadAnterior
                         + " -> " + updatedInventario.getCantidadDisponible()
@@ -247,10 +183,7 @@ public class InventarioService {
         return ocultarCostoSiNoEsAdmin(new InventarioResponse(updatedInventario));
     }
 
-    /**
-     * Registrar movimiento automático (usado en compras/ventas)
-     * (Ya tenía @Transactional implícito en el método de escritura)
-     */
+    /** Movimiento automático de compras y ventas. */
     @Transactional
     public void registrarAjusteAutomatico(Long idProducto, Integer cantidadAnterior, Integer cantidadNueva,
                                       String tipoMovimiento, String motivo, Long idUsuario) {
@@ -270,11 +203,7 @@ public class InventarioService {
         movimientoInventarioRepository.save(movimiento);
     }
 
-    /**
-     * Obtener historial de ajustes de un producto
-     * ✅ CORREGIDO: Añadido @Transactional(readOnly = true)
-     */
-    @Transactional(readOnly = true) // <--- AÑADIDO ESTA ANOTACIÓN
+    @Transactional(readOnly = true)
     public List<MovimientoInventarioResponse> getHistorialAjustes(Long idProducto) {
         return movimientoInventarioRepository.findByProductoIdOrderByFechaDesc(idProducto)
                 .stream()
@@ -282,11 +211,7 @@ public class InventarioService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Obtener últimos ajustes
-     * ✅ CORREGIDO: Añadido @Transactional(readOnly = true)
-     */
-    @Transactional(readOnly = true) // <--- AÑADIDO ESTA ANOTACIÓN
+    @Transactional(readOnly = true)
     public List<MovimientoInventarioResponse> getUltimosAjustes() {
         return movimientoInventarioRepository.findTop50ByOrderByFechaDesc()
                 .stream()
@@ -294,10 +219,6 @@ public class InventarioService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Reducir stock (usado en ventas)
-     * (Ya tenía @Transactional implícito en el método de escritura)
-     */
     @Transactional
     public void reducirStock(Long idProducto, Integer cantidad) {
         Inventario inventario = inventarioRepository.findByProductoId(idProducto)
@@ -306,14 +227,9 @@ public class InventarioService {
         inventario.reducirStock(cantidad);
         inventarioRepository.save(inventario);
 
-        // Verificar si requiere alerta
         verificarYCrearAlerta(inventario);
     }
 
-    /**
-     * Aumentar stock (usado en compras)
-     * (Ya tenía @Transactional implícito en el método de escritura)
-     */
     @Transactional
     public void aumentarStock(Long idProducto, Integer cantidad) {
         Inventario inventario = inventarioRepository.findByProductoId(idProducto)
@@ -323,11 +239,7 @@ public class InventarioService {
         inventarioRepository.save(inventario);
     }
 
-    /**
-     * Productos con stock bajo
-     * ✅ CORREGIDO: Añadido @Transactional(readOnly = true)
-     */
-    @Transactional(readOnly = true) // <--- AÑADIDO ESTA ANOTACIÓN
+    @Transactional(readOnly = true)
     public List<InventarioResponse> getProductosConStockBajo() {
         boolean esAdmin = usuarioActualService.esAdmin();
         return inventarioRepository.findProductosConStockBajo()
@@ -336,11 +248,7 @@ public class InventarioService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Productos sin stock
-     * ✅ CORREGIDO: Añadido @Transactional(readOnly = true)
-     */
-    @Transactional(readOnly = true) // <--- AÑADIDO ESTA ANOTACIÓN
+    @Transactional(readOnly = true)
     public List<InventarioResponse> getProductosSinStock() {
         boolean esAdmin = usuarioActualService.esAdmin();
         return inventarioRepository.findProductosSinStock()
@@ -349,31 +257,18 @@ public class InventarioService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Verificar disponibilidad de stock
-     * (Método de solo lectura que devuelve un booleano, no necesita @Transactional si no accede a relaciones perezosas para serializarlas)
-     * PERO, como accede a inventario, y si se llama dentro de un contexto donde se va a serializar, es seguro tenerlo.
-     */
-    @Transactional(readOnly = true) // <--- AÑADIDO ESTA ANOTACIÓN (buen práctica para métodos de solo lectura que acceden a entidades)
+    @Transactional(readOnly = true)
     public boolean verificarDisponibilidad(Long idProducto, Integer cantidad) {
         Inventario inventario = inventarioRepository.findByProductoId(idProducto)
                 .orElseThrow(() -> new RecursoNoEncontradoException("INVENTARIO_NO_ENCONTRADO", "No existe inventario para el producto con ID: " + idProducto));
         return inventario.tieneStock(cantidad);
     }
 
-    /**
-     * Contar productos con stock bajo
-     * (Método de solo lectura que devuelve un Long, no necesita @Transactional)
-     */
     public Long countProductosConStockBajo() {
         return inventarioRepository.countProductosConStockBajo();
     }
 
-    /**
-     * Listar alertas pendientes
-     * ✅ CORREGIDO: Añadido @Transactional(readOnly = true)
-     */
-    @Transactional(readOnly = true) // <--- AÑADIDO ESTA ANOTACIÓN
+    @Transactional(readOnly = true)
     public List<AlertaInventarioResponse> getAlertasPendientes() {
         return alertaInventarioRepository.findByEstadoOrderByFechaAlertaDesc(EstadoAlerta.PENDIENTE)
                 .stream()
@@ -381,10 +276,7 @@ public class InventarioService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Marcar una alerta como atendida: deja de aparecer (lista y campana) y no vuelve a avisar de
-     * ese producto mientras siga bajo el mínimo. No obliga a comprar nada.
-     */
+    /** Marca la alerta como atendida: deja de mostrarse y no avisa de nuevo mientras siga bajo el mínimo. */
     @Transactional
     public void marcarAlertaAtendida(Long idAlerta) {
         AlertaInventario alerta = alertaInventarioRepository.findById(idAlerta)
@@ -398,10 +290,7 @@ public class InventarioService {
                 "Alerta de stock de " + alerta.getProducto().getSku() + " marcada como atendida");
     }
 
-    /**
-     * Volver a avisar de un producto cuya alerta se había marcado como atendida. Si ya no está bajo
-     * el mínimo no hay nada que reactivar: la alerta se cierra sola.
-     */
+    /** Reactiva una alerta atendida; si el producto ya no está bajo el mínimo, la cierra. */
     @Transactional
     public void reactivarAlerta(Long idProducto) {
         List<AlertaInventario> atendidas = alertaInventarioRepository
@@ -414,15 +303,7 @@ public class InventarioService {
         sincronizarAlerta(idProducto);
     }
 
-    /**
-     * La alerta guarda cantidadActual/cantidadMinima congelados desde que se
-     * creó. Con la desduplicación (ver verificarYCrearAlerta) una alerta
-     * puede seguir PENDIENTE mientras el producto sigue vendiéndose, así que
-     * esos números quedan viejos. Acá se pisan con los datos reales de
-     * inventario antes de responder, para que la campanita de notificaciones
-     * y cualquier otro consumidor de este endpoint muestren lo mismo que la
-     * tabla principal.
-     */
+    /** Refresca las cantidades congeladas de la alerta con el inventario real. */
     private AlertaInventarioResponse aResponseConDatosEnVivo(AlertaInventario alerta) {
         AlertaInventarioResponse response = new AlertaInventarioResponse(alerta);
         inventarioRepository.findByProductoId(alerta.getProducto().getId()).ifPresent(inv -> {
@@ -432,17 +313,10 @@ public class InventarioService {
         return response;
     }
 
-    /**
-     * Verificar y crear alerta si es necesario
-     * (Método privado, no es un CU hijo, pero es parte de la lógica de negocio de escritura)
-     * No necesita @Transactional, ya que se llama desde un método que sí lo tiene (@Transactional en createInventario, updateInventario, ajustarInventario, etc.).
-     */
+    /** Crea una alerta si el producto quedó bajo el mínimo y no tiene una pendiente. */
     private void verificarYCrearAlerta(Inventario inventario) {
         if (!inventario.estaBajoStockMinimo()) {
-            // El stock se repuso: si había alertas pendientes de cuando
-            // estaba bajo, ya no tiene sentido que sigan ahí esperando que
-            // alguien las marque a mano. Y una que el dueño había marcado como
-            // atendida se da por cerrada, para que avise de nuevo si vuelve a bajar.
+            // Con el stock repuesto se cierran las alertas pendientes y las atendidas, para que avise si vuelve a bajar.
             resolverAlertasPendientes(inventario);
             return;
         }
@@ -451,12 +325,7 @@ public class InventarioService {
                 inventario.getProducto().getId(), EstadoAlerta.ATENDIDA_MANUAL)) {
             return;
         }
-        // Sin este chequeo, cada venta o ajuste que deja al producto igual
-        // de bajo (o más bajo todavía) generaba una alerta nueva, y se
-        // apilaban varias pendientes para el mismo producto con números de
-        // stock distintos entre sí, sin que "Productos con Stock Bajo"
-        // (que sí cuenta en vivo) coincidiera nunca con la cantidad de
-        // alertas mostradas.
+        // Evita apilar alertas pendientes del mismo producto con cantidades distintas.
         boolean yaHayAlertaPendiente = alertaInventarioRepository
                 .existsByProductoIdAndEstado(inventario.getProducto().getId(), EstadoAlerta.PENDIENTE);
         if (yaHayAlertaPendiente) {
@@ -470,23 +339,14 @@ public class InventarioService {
         alertaInventarioRepository.save(alerta);
     }
 
-    /**
-     * Revisar la alerta de un producto después de un cambio que no pasó por
-     * este servicio, como editar el stock mínimo desde ProductoService: ese
-     * número también decide si el producto está bajo mínimo, así que un
-     * cambio ahí puede crear o resolver una alerta igual que un movimiento
-     * de stock.
-     */
+    /** Revisa la alerta tras un cambio externo al servicio (p. ej. editar el stock mínimo). */
     @Transactional
     public void sincronizarAlerta(Long idProducto) {
         inventarioRepository.findByProductoId(idProducto)
                 .ifPresent(this::verificarYCrearAlerta);
     }
 
-    /**
-     * Resolver solas las alertas pendientes de un producto cuyo stock ya
-     * volvió a estar por encima del mínimo.
-     */
+    /** Cierra las alertas pendientes de un producto cuyo stock ya superó el mínimo. */
     private void resolverAlertasPendientes(Inventario inventario) {
         List<AlertaInventario> pendientes = new ArrayList<>(alertaInventarioRepository
                 .findByProductoIdAndEstado(inventario.getProducto().getId(), EstadoAlerta.PENDIENTE));

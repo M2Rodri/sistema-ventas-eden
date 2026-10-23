@@ -1,9 +1,4 @@
-/**
- * Tiempos de la sesión de la web. Se importan desde el servidor (rutas /api) y desde el navegador.
- *
- * La vida real de cada token la fija el backend (`jwt.expiration`, 4 horas); la web la lee del propio
- * token. Acá quedan el valor de respaldo (por si no se pudiera leer) y los umbrales propios de la web.
- */
+/** Tiempos de la sesión de la web. Se importan desde el servidor (rutas /api) y desde el navegador. */
 
 /** Respaldo: igual a `jwt.expiration` del backend (4 horas). */
 export const DURACION_SESION_RESPALDO_SEGUNDOS = 4 * 60 * 60;

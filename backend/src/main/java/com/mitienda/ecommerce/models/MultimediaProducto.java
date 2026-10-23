@@ -10,16 +10,13 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
-/**
- * Entidad MultimediaProducto - Modelos 3D y Realidad Aumentada
- */
+/** Entidad MultimediaProducto - Modelos 3D y Realidad Aumentada */
 @Entity
 @Table(name = "multimedia_producto")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class MultimediaProducto {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

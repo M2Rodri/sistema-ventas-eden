@@ -30,11 +30,7 @@ function pedirRenovacion(token: string): Promise<Record<string, any> | null> {
   return promesa;
 }
 
-/**
- * Si al token le queda poco, pide uno nuevo al backend y deja las cookies al día en la respuesta.
- * El backend decide: rechaza si el usuario está dado de baja o si la sesión llegó a su tope,
- * y el token nuevo trae el rol vigente en la base. Cuando rechaza, no se toca nada.
- */
+/** Si al token le queda poco, pide uno nuevo al backend y deja las cookies al día en la respuesta. */
 async function renovarSesionSiHaceFalta(
   request: NextRequest,
   respuesta: NextResponse,

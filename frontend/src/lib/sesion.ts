@@ -1,13 +1,4 @@
-/**
- * Sesión de la web.
- *
- * El JWT viaja en una cookie HttpOnly que establece el servidor (API Route
- * /api/auth/login). El código del cliente nunca ve el token: solo conoce los
- * datos del usuario (nombre, rol) que vienen en la cookie legible `user_info`.
- *
- * guardarSesion() y borrarSesion() ya no tocan cookies directamente: llaman
- * a las API Routes del BFF.
- */
+/** Sesión de la web. */
 
 export interface DatosUsuario {
   id: number;

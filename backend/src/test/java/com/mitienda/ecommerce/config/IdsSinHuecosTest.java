@@ -17,14 +17,9 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/**
- * Los IDs salen de un contador que se revierte junto con la operación: si algo falla, el número
- * no se pierde y no queda un hueco. Todo corre en transacciones que se revierten, así que no deja
- * datos en la base.
- */
+/** Los IDs salen de un contador que se revierte con la operación, así que no quedan huecos. */
 @SpringBootTest
 class IdsSinHuecosTest {
-
     @Autowired private PlatformTransactionManager transacciones;
     @Autowired private JdbcTemplate jdbc;
     @Autowired private ClienteRepository clienteRepository;

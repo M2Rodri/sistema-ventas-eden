@@ -15,8 +15,7 @@ enum _EstadoVentas { cargando, conDatos, vacio, error }
 
 enum _Filtro { todas, porCobrar, porEntregar }
 
-/// Ventas y entregas: lista con filtros, mismo patrón que Catálogo
-/// (repositorio propio, mismos cuatro estados).
+/// Ventas y entregas: lista con filtros, mismo patrón que Catálogo (repositorio propio, mismos cuatro estados).
 class VentasScreen extends StatefulWidget {
   VentasScreen({super.key, required this.token, this.esAdmin = false});
 
@@ -49,8 +48,7 @@ class _VentasScreenState extends State<VentasScreen> {
   void initState() {
     super.initState();
     _cargarVentas();
-    // Si llegan datos nuevos por detrás (por ejemplo, una venta de otra persona),
-    // la lista se corrige sola, sin spinner.
+    // Si llegan datos nuevos por detrás (por ejemplo, una venta de otra persona), la lista se corrige sola, sin spinner.
     _suscripcion = ApiClient.actualizaciones.listen((ruta) {
       if (ruta == '/api/v1/ventas') _cargarVentas(silencioso: true);
     });
@@ -114,9 +112,7 @@ class _VentasScreenState extends State<VentasScreen> {
         ),
       ),
     );
-    // Al volver del detalle puede haber cambiado el saldo o la entrega
-    // (se registró un pago, se marcó como entregada): se recarga siempre,
-    // es más simple y seguro que tratar de adivinar si hizo falta.
+    // Al volver del detalle puede haber cambiado el saldo o la entrega (se registró un pago, se marcó como entregada).
     if (mounted) _cargarVentas();
   }
 
@@ -236,8 +232,7 @@ class _ChipFiltro extends StatelessWidget {
             color: seleccionado ? AppColors.verdeOscuro : AppColors.borde,
           ),
         ),
-        // widthFactor: 1 para que el chip mida lo que mide su texto: la fila
-        // de filtros se desplaza horizontalmente y no le da un ancho fijo.
+        // widthFactor: 1 hace que el chip mida lo que mide su texto.
         child: Center(
           widthFactor: 1,
           child: Text(

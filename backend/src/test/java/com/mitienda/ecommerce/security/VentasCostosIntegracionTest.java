@@ -26,18 +26,11 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
-/**
- * El costo y la ganancia de las ventas no llegan al Empleado en ninguna ruta de lectura, vistos desde
- * afuera, con la aplicación completa y la seguridad real. Es el escenario que antes dejaba pasar los costos:
- * la pantalla los ocultaba, pero viajaban en la respuesta.
- *
- * Usa las ventas que haya en la base local; si no hay ninguna, no tiene nada que comprobar y se omite.
- */
+/** El costo y la ganancia de las ventas no llegan al Empleado en ninguna ruta de lectura. */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
 class VentasCostosIntegracionTest {
-
     private static final String CLAVE = "clave-de-prueba-123";
     private static final List<String> CAMPOS_DE_COSTO = List.of("costoTotal", "ganancia", "costoUnitario");
 

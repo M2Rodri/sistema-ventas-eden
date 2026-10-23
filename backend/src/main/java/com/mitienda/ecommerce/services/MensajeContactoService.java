@@ -13,33 +13,19 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Consultas recibidas desde la tienda.
- */
+/** Consultas recibidas desde la tienda. */
 @Service
-// Lectura dentro de transacción por defecto: con spring.jpa.open-in-view=false
-// no hay sesión de Hibernate fuera de la transacción, y los DTO de respuesta se
-// arman recorriendo relaciones perezosas.
-// Los métodos que escriben llevan su propio @Transactional, que tiene precedencia.
+// Lectura en transacción: con open-in-view=false no hay sesión de Hibernate fuera de ella.
 @Transactional(readOnly = true)
 public class MensajeContactoService {
-
     private final MensajeContactoRepository mensajeContactoRepository;
 
     private final UsuarioRepository usuarioRepository;
 
-    /**
-     * Inyeccion por constructor, no por campo.
-     *
-     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
-     * puede existir a medio construir, y una dependencia circular falla al
-     * arrancar en vez de aparecer en ejecucion.
-     */
     public MensajeContactoService(MensajeContactoRepository mensajeContactoRepository, UsuarioRepository usuarioRepository) {
         this.mensajeContactoRepository = mensajeContactoRepository;
         this.usuarioRepository = usuarioRepository;
     }
-
 
     /** Recibe una consulta desde la tienda. No requiere sesión. */
     @Transactional
@@ -70,10 +56,7 @@ public class MensajeContactoService {
         return mensajeContactoRepository.countByAtendido(false);
     }
 
-    /**
-     * Marca la consulta como atendida y deja registrado quién se hizo cargo.
-     * La respuesta al cliente se hace por fuera del sistema (teléfono o correo).
-     */
+    /** Marca la consulta como atendida y registra quién se hizo cargo. */
     @Transactional
     public MensajeContactoResponse marcarAtendido(Long id, Long idUsuario) {
         MensajeContacto mensaje = mensajeContactoRepository.findById(id)

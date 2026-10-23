@@ -1,13 +1,10 @@
-// src/app/tienda/producto/[id]/page.tsx
 'use client';
 
 // Agrega useParams a la importación
 import { useParams } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-// Se usa el tipo compartido en lugar de una copia local: las interfaces
-// duplicadas de esta página habían quedado desactualizadas (seguían con
-// precioUnitario y sin marca, firmeza ni materialNucleo).
+// Se usa el tipo compartido en lugar de una copia local.
 import { Producto, ImagenProducto } from '@/types/producto';
 import { BACKEND_URL, urlArchivo } from '@/lib/api';
 import { MdStar, MdStarBorder, MdStarHalf, MdVisibility, MdViewInAr } from 'react-icons/md';

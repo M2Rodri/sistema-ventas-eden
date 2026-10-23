@@ -9,11 +9,7 @@ interface DesgloseValorInventarioModalProps {
   onClose: () => void;
 }
 
-/**
- * Detalle de cómo se arma "Valor Total del Inventario": cantidad × precio de
- * compra de cada producto, para que se pueda verificar a mano en vez de
- * confiar en el número de la tarjeta sin más.
- */
+/** Cómo se arma el "Valor Total del Inventario": cantidad × precio de compra de cada producto. */
 export default function DesgloseValorInventarioModal({ inventario, onClose }: DesgloseValorInventarioModalProps) {
   const filas = inventario
     .map((item) => ({

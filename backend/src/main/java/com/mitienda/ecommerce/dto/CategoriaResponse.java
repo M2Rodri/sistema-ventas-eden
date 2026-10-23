@@ -8,14 +8,11 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-/**
- * DTO para respuestas de categoría
- */
+/** DTO para respuestas de categoría */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class CategoriaResponse {
-
     private Long id;
     private String nombre;
     private String descripcion;

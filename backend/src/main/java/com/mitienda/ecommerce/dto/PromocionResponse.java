@@ -11,14 +11,11 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * DTO para respuestas de promocion
- */
+/** DTO para respuestas de promocion */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class PromocionResponse {
-
     private Long id;
     private String nombre;
     private String descripcion;
@@ -48,9 +45,7 @@ public class PromocionResponse {
         this.fechaActualizacion = promocion.getFechaActualizacion();
     }
 
-    /**
-     * DTO simple para productos dentro de promociones
-     */
+    /** DTO simple para productos dentro de promociones */
     @Data
     @NoArgsConstructor
     @AllArgsConstructor

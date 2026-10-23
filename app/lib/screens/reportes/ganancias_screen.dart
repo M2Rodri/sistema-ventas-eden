@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../data/api_client.dart';
 import '../../data/api_exception.dart';
 import '../../data/reporte_repository.dart';
 import '../../models/ganancia_producto.dart';
@@ -19,7 +18,6 @@ class GananciasScreen extends StatefulWidget {
 
 class _GananciasScreenState extends State<GananciasScreen> {
   // Primer día desde el que el sistema permite consultar registros.
-  // Se ajusta aquí cuando se confirme la fecha exacta de inicio del negocio.
   DateTime _fechaInicioRegistros = DateTime(2026, 1, 1);
 
   final _repository = ReporteRepository();

@@ -1,7 +1,4 @@
 // types/promocion.ts
-//
-// El módulo se llamaba "Oferta" en el frontend y "ofertas" en la API, pero la
-// tabla siempre se llamó 'promociones'. Se unificó el nombre en las tres capas.
 
 export interface Promocion {
   id: number;

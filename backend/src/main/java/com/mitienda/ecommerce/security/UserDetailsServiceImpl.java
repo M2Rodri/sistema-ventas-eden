@@ -12,32 +12,18 @@ import org.springframework.stereotype.Service;
 import java.util.Collection;
 import java.util.Collections;
 
-/**
- * Implementación de UserDetailsService para Spring Security
- * Carga los datos del usuario desde la base de datos
- */
+/** Carga el usuario desde la base para Spring Security. */
 @Service
 public class UserDetailsServiceImpl implements UserDetailsService {
-
     private final UsuarioRepository usuarioRepository;
 
-    /**
-     * Inyeccion por constructor, no por campo.
-     *
-     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
-     * puede existir a medio construir, y una dependencia circular falla al
-     * arrancar en vez de aparecer en ejecucion.
-     */
     public UserDetailsServiceImpl(UsuarioRepository usuarioRepository) {
         this.usuarioRepository = usuarioRepository;
     }
 
-
     @Override
     public UserDetails loadUserByUsername(String usuario) throws UsernameNotFoundException {
-        // Normalizado a minúsculas: la comparación en la base distingue
-        // mayúsculas de minúsculas, y el celular autocapitaliza seguido.
-        // Sin esto, "Juan" y "juan" serían usuarios distintos para el login.
+        // En minúsculas: la base distingue mayúsculas y el celular autocapitaliza.
         String normalizado = usuario == null ? null : usuario.trim().toLowerCase();
         Usuario user = usuarioRepository.findByUsuario(normalizado)
                 .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + usuario));
@@ -51,11 +37,8 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         );
     }
 
-    // Obtener authorities (roles) del usuario
     private Collection<? extends GrantedAuthority> getAuthorities(Usuario user) {
-        // El nombre del rol ahora viene de la tabla 'roles' en lugar del enum.
-        // El prefijo ROLE_ se mantiene porque es lo que esperan las reglas
-        // hasRole('ADMIN') / hasAnyRole(...) de los controladores.
+        // El prefijo ROLE_ lo esperan hasRole/hasAnyRole de los controladores.
         return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRoleName()));
     }
 }

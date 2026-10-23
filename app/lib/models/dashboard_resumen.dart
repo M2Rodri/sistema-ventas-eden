@@ -1,11 +1,4 @@
-/// Recorte del resumen del día que muestra la pantalla principal, leído de
-/// GET /api/v1/dashboard/estadisticas (DashboardResponse en el backend).
-///
-/// Los nombres de acá siguen a los del backend tal cual, aunque el DTO
-/// completo trae más campos que esta pantalla no usa:
-///   ventasStats.totalVentasHoy / montoVentasHoy  -> ventas y monto de hoy
-///   pagosStats.cuotasPendientes / montoCuotasPendientes -> por cobrar
-///   ventasPorEntregar (campo suelto, no anidado) -> por entregar
+/// Resumen del día de la pantalla principal (GET /api/v1/dashboard/estadisticas).
 class DashboardResumen {
   const DashboardResumen({
     required this.totalVentasHoy,

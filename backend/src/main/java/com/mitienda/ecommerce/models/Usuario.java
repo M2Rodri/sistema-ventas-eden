@@ -15,17 +15,13 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
-/**
- * Entidad Usuario - Representa los usuarios del sistema
- * Personal del negocio: los únicos que inician sesión (tabla 'usuarios')
- */
+/** Personal del negocio, los únicos que inician sesión (tabla 'usuarios'). */
 @Entity
 @Table(name = "usuarios")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class Usuario {
-
     @Id
     @GeneratedValue(generator = "id_usuarios")
     @GenericGenerator(name = "id_usuarios", type = GeneradorIdSinHuecos.class,
@@ -42,12 +38,7 @@ public class Usuario {
     @Column(nullable = false, length = 50)
     private String apellido;
 
-    /**
-     * Nombre de usuario para iniciar sesión. No es un correo: el sistema no
-     * manda ni recibe nada ahí, es solo la llave para entrar. Se guarda
-     * siempre en minúsculas (ver UsuarioService) porque la comparación en
-     * la base es sensible a mayúsculas y minúsculas.
-     */
+    /** Nombre para iniciar sesión (no es un correo); siempre en minúsculas, ver UsuarioService. */
     @NotBlank(message = "El usuario es obligatorio")
     @Size(min = 3, max = 30, message = "El usuario debe tener entre 3 y 30 caracteres")
     @Pattern(regexp = "^[a-zA-Z0-9._]+$", message = "El usuario solo puede tener letras, números, puntos y guiones bajos")
@@ -65,11 +56,7 @@ public class Usuario {
     @Column(length = 200)
     private String direccion;
 
-    /**
-     * Rol del usuario. Antes era un enum guardado como texto en users.role;
-     * ahora es una relación a la tabla 'roles'.
-     * EAGER porque el rol se necesita en cada autenticación.
-     */
+    /** Rol del usuario (tabla 'roles'); EAGER porque se necesita en cada autenticación. */
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "id_rol", nullable = false)
     private Role rol;
@@ -77,11 +64,7 @@ public class Usuario {
     @Column(nullable = false)
     private Boolean activo = true; // Usuario activo por defecto
 
-    /**
-     * Corte de sesiones: instante (milisegundos desde 1970, UTC) desde el que valen las sesiones
-     * de este usuario. Un token cuya sesión empezó antes se rechaza y no se puede renovar.
-     * Se actualiza al cerrar todas las sesiones y al cambiar la contraseña. Vacío = sin corte.
-     */
+    /** Corte de sesiones: instante (ms UTC) desde el que valen las sesiones; vacío = sin corte. */
     @Column(name = "sesiones_validas_desde")
     private Long sesionesValidasDesde;
 
@@ -103,11 +86,7 @@ public class Usuario {
         this.activo = true;
     }
 
-    /**
-     * Nombre técnico del rol (ADMIN, EMPLEADO).
-     * Mantiene el contrato de la API igual que cuando el rol era un enum:
-     * hacia afuera se sigue exponiendo como texto plano, no como objeto.
-     */
+    /** Nombre técnico del rol (ADMIN, EMPLEADO), expuesto como texto plano. */
     public String getRoleName() {
         return this.rol != null ? this.rol.getNombre() : null;
     }

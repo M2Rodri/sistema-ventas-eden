@@ -11,43 +11,17 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 /**
- * Deja constancia de quién hizo cada operación sensible y desde dónde.
- *
- * Existía AuditoriaService con todos sus métodos listos, pero ningún servicio
- * lo llamaba nunca: la tabla auditorias estaba vacía y la pantalla de auditoría
- * no mostraba nada. Esta clase es el enganche que faltaba.
- *
- * La idea es que registrar una acción cueste una sola línea en el servicio de
- * negocio, sin tener que arrastrar el id del usuario ni la IP por todas las
- * firmas de los métodos: ambos se sacan solos del contexto de la petición.
- *
- * Dos decisiones importantes:
- *
- * 1. Nada de lo que pase acá adentro puede tumbar la operación de negocio.
- *    Si falla el registro de auditoría, se deja el error en el log y la venta,
- *    la compra o el ajuste siguen su curso. Auditar es importante, pero no al
- *    punto de perder una venta real del negocio.
- *
- * 2. Se usa REQUIRES_NEW para que el insert vaya en su propia transacción. Si
- *    fuera en la misma, un fallo al auditar marcaría la transacción entera como
- *    rollback-only y revertiría la operación aunque atrapáramos la excepción.
+ * Deja constancia de quién hizo cada operación sensible y desde dónde (usuario e IP salen de la petición).
+ * Un fallo al auditar no tumba la operación de negocio y se guarda en su propia transacción (REQUIRES_NEW).
  */
 @Service
 public class RegistroAuditoria {
-
     private final AuditoriaRepository auditoriaRepository;
 
     private final UsuarioRepository usuarioRepository;
 
     private final UsuarioActualService usuarioActualService;
 
-    /**
-     * Inyeccion por constructor, no por campo.
-     *
-     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
-     * puede existir a medio construir, y una dependencia circular falla al
-     * arrancar en vez de aparecer en ejecucion.
-     */
     public RegistroAuditoria(AuditoriaRepository auditoriaRepository, UsuarioRepository usuarioRepository,
                               UsuarioActualService usuarioActualService) {
         this.auditoriaRepository = auditoriaRepository;
@@ -55,15 +29,7 @@ public class RegistroAuditoria {
         this.usuarioActualService = usuarioActualService;
     }
 
-
-    /**
-     * Registra una acción sobre una tabla.
-     *
-     * @param accion         qué se hizo, en mayúsculas (CREAR_PRODUCTO, CANCELAR_VENTA)
-     * @param tablaAfectada  nombre de la tabla tocada
-     * @param idRegistro     id del registro afectado, o null
-     * @param detalles       texto libre para que la pantalla sea legible
-     */
+    /** Registra una acción sobre una tabla: acción en mayúsculas, tabla, id del registro (o null) y detalle legible. */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void registrar(String accion, String tablaAfectada, Object idRegistro, String detalles) {
         try {
@@ -81,11 +47,7 @@ public class RegistroAuditoria {
         }
     }
 
-    /**
-     * Variante para cuando el usuario ya se conoce y no está en el contexto de
-     * seguridad, como en el login: en ese momento la autenticación todavía no
-     * quedó guardada en el SecurityContext.
-     */
+    /** Variante para cuando el usuario no está en el SecurityContext, como en el login. */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void registrarPara(Long idUsuario, String accion, String tablaAfectada,
                               Object idRegistro, String detalles) {
@@ -105,13 +67,7 @@ public class RegistroAuditoria {
         }
     }
 
-    /**
-     * IP desde la que llegó la petición.
-     *
-     * Se mira primero X-Forwarded-For por si algún día el sistema queda detrás
-     * de un proxy o de nginx; sin eso se registraría siempre la IP del proxy y
-     * no la del equipo que realmente hizo la operación.
-     */
+    /** IP de la petición; mira primero X-Forwarded-For por si hay un proxy. */
     private String ipActual() {
         try {
             ServletRequestAttributes atributos =

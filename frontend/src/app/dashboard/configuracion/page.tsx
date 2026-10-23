@@ -81,7 +81,6 @@ export default function ConfiguracionPage() {
     negocio_sitio_web: '',
   });
 
-
   // Filtros de auditoría
   const [searchAuditoria, setSearchAuditoria] = useState('');
   const [usuarioFilter, setUsuarioFilter] = useState<string>('TODOS');
@@ -192,7 +191,6 @@ export default function ConfiguracionPage() {
     setSaving(true);
 
     try {
-      // Actualizar cada configuración
       for (const [clave, valor] of Object.entries(configGeneral)) {
         await updateValorByClave(clave, valor);
       }
@@ -227,11 +225,7 @@ export default function ConfiguracionPage() {
     setIsDetalleModalOpen(true);
   };
 
-  // El backend registra acciones como CREAR_PRODUCTO o ACTUALIZAR_USUARIO, no
-  // CREATE ni UPDATE. Antes esta tabla buscaba coincidencia exacta contra los
-  // nombres en ingles, asi que toda la auditoria habria salido en gris.
-  // Se compara por prefijo porque cada accion lleva pegado el nombre de la
-  // entidad.
+  // El backend registra acciones como CREAR_PRODUCTO o ACTUALIZAR_USUARIO, no CREATE ni UPDATE.
   const getAccionBadge = (accion: string) => {
     if (accion.startsWith('LOGIN_FALLIDO') || accion.startsWith('LOGIN_RECHAZADO')) {
       // Un intento de ingreso rechazado es lo que mas conviene que salte a la vista.
@@ -267,7 +261,6 @@ export default function ConfiguracionPage() {
     });
   };
 
-  // Obtener tablas únicas
   const tablasUnicas = Array.from(new Set(auditorias.map(a => a.tablaAfectada))).sort();
   const accionesUnicas = Array.from(new Set(auditorias.map(a => a.accion))).sort();
 

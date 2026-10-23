@@ -12,32 +12,18 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Controlador REST para gestión de promociones
- */
+/** Controlador REST para gestión de promociones */
 @RestController
 @RequestMapping("/api/promociones")
 @CrossOrigin(origins = "http://localhost:3000")
 public class PromocionController {
-
     private final PromocionService promocionService;
 
-    /**
-     * Inyeccion por constructor, no por campo.
-     *
-     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
-     * puede existir a medio construir, y una dependencia circular falla al
-     * arrancar en vez de aparecer en ejecucion.
-     */
     public PromocionController(PromocionService promocionService) {
         this.promocionService = promocionService;
     }
 
-
-    /**
-     * GET /api/promociones
-     * Listar todas las promociones (ADMIN)
-     */
+    /** Listar todas las promociones (ADMIN) */
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<PromocionResponse>> getAllPromociones() {
@@ -45,30 +31,21 @@ public class PromocionController {
         return ResponseEntity.ok(promociones);
     }
 
-    /**
-     * GET /api/promociones/activas
-     * Listar solo promociones activas (público)
-     */
+    /** Listar solo promociones activas (público) */
     @GetMapping("/activas")
     public ResponseEntity<List<PromocionResponse>> getActivePromociones() {
         List<PromocionResponse> promociones = promocionService.getActivePromociones();
         return ResponseEntity.ok(promociones);
     }
 
-    /**
-     * GET /api/promociones/vigentes
-     * Listar promociones vigentes (público - para tienda virtual)
-     */
+    /** Listar promociones vigentes (público - para tienda virtual) */
     @GetMapping("/vigentes")
     public ResponseEntity<List<PromocionResponse>> getPromocionesVigentes() {
         List<PromocionResponse> promociones = promocionService.getPromocionesVigentes();
         return ResponseEntity.ok(promociones);
     }
 
-    /**
-     * GET /api/promociones/{id}
-     * Obtener promocion por ID (público)
-     */
+    /** Obtener promocion por ID (público) */
     @GetMapping("/{id}")
     public ResponseEntity<?> getPromocionById(@PathVariable Long id) {
         try {
@@ -80,10 +57,7 @@ public class PromocionController {
         }
     }
 
-    /**
-     * POST /api/promociones
-     * Crear nueva promocion (ADMIN)
-     */
+    /** Crear nueva promocion (ADMIN) */
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> createPromocion(@Valid @RequestBody PromocionRequest request) {
@@ -96,10 +70,7 @@ public class PromocionController {
         }
     }
 
-    /**
-     * PUT /api/promociones/{id}
-     * Actualizar promocion existente (ADMIN)
-     */
+    /** Actualizar promocion existente (ADMIN) */
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> updatePromocion(@PathVariable Long id, 
@@ -113,10 +84,7 @@ public class PromocionController {
         }
     }
 
-    /**
-     * DELETE /api/promociones/{id}
-     * Eliminar promocion (desactivar) (ADMIN)
-     */
+    /** Eliminar promocion (desactivar) (ADMIN) */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deletePromocion(@PathVariable Long id) {
@@ -129,10 +97,7 @@ public class PromocionController {
         }
     }
 
-    /**
-     * PATCH /api/promociones/{id}/toggle-status
-     * Activar/Desactivar promocion (ADMIN)
-     */
+    /** Activar/Desactivar promocion (ADMIN) */
     @PatchMapping("/{id}/toggle-status")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> togglePromocionStatus(@PathVariable Long id) {
@@ -145,10 +110,7 @@ public class PromocionController {
         }
     }
 
-    /**
-     * GET /api/promociones/estadisticas
-     * Obtener estadísticas de promociones (ADMIN)
-     */
+    /** Obtener estadísticas de promociones (ADMIN) */
     @GetMapping("/estadisticas")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getPromocionStatistics() {

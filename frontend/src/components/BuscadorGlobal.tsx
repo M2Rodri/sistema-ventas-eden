@@ -5,25 +5,9 @@ import { useRouter } from 'next/navigation';
 import { Search, Package, User, Truck, X } from 'lucide-react';
 import { searchProductos, searchClientes, searchProveedores } from '@/lib/api';
 
-/**
- * Buscador de la cabecera.
- *
- * Antes era un <input> suelto, sin onChange ni handler: se podía escribir y no
- * pasaba absolutamente nada.
- *
- * Busca en las tres entidades que uno quiere encontrar rápido desde cualquier
- * pantalla, usando los endpoints de búsqueda que el backend ya tenía. Al elegir
- * un resultado se va a la pantalla que corresponde, con el filtro ya puesto en
- * lo que se buscó (parámetro ?q=), así el elemento queda a la vista y no hay
- * que volver a buscarlo ahí adentro.
- */
+/** Buscador de la cabecera. */
 
-/**
- * Espera antes de consultar, en milisegundos.
- *
- * Sin esto se dispararían tres pedidos al backend por cada tecla. Con 350 ms
- * se consulta cuando la persona deja de escribir.
- */
+/** Espera antes de consultar, en milisegundos. */
 const ESPERA_ANTES_DE_BUSCAR = 350;
 
 /** Mínimo de caracteres para que valga la pena consultar. */

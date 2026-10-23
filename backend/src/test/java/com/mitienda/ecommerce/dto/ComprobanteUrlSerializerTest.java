@@ -17,13 +17,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/**
- * El comprobante se guarda como nombre de objeto y sale en el JSON como URL
- * firmada. Se prueba con el mismo mecanismo con el que Spring crea el
- * serializador, para asegurar que la anotación de PagoDTO funciona de verdad.
- */
+/** El comprobante se guarda como nombre de objeto y sale en el JSON como URL firmada. */
 class ComprobanteUrlSerializerTest {
-
     private AnnotationConfigApplicationContext contexto;
     private AlmacenArchivos almacen;
     private ObjectMapper mapper;

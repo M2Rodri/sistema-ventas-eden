@@ -45,14 +45,7 @@ export interface AlertaInventario {
   estado: EstadoAlerta;
 }
 
-/**
- * Movimiento de inventario.
- *
- * La entidad se llamaba AjusteInventario, pero la tabla siempre fue
- * 'movimientos_inventario': un movimiento puede ser entrada, salida, compra,
- * venta, devolución, merma o ajuste inicial — el ajuste es solo uno de los
- * siete casos. Se unificó el nombre en las tres capas.
- */
+/** Movimiento de inventario. */
 export interface MovimientoInventario {
   id: number;
   idProducto: number;

@@ -39,14 +39,7 @@ export default function ClientesPage() {
   const [busqueda, setBusqueda] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
-  // El buscador de la cabecera navega hasta aca con ?q=<texto>. Se copia al
-  // filtro de la pantalla para que el elemento que se eligio alla quede a la
-  // vista sin tener que volver a escribirlo.
-  //
-  // Se lee de window y no con useSearchParams a proposito: ese hook obliga a
-  // envolver la pagina en un <Suspense> y, sin eso, el build de produccion
-  // falla. Aca el valor solo hace falta despues de montar, asi que alcanza con
-  // mirar la URL dentro del efecto.
+  // El buscador de la cabecera navega con ?q=<texto>; se lee de window porque useSearchParams exige un Suspense.
   useEffect(() => {
     const q = new URLSearchParams(window.location.search).get('q');
     if (q) {
@@ -116,8 +109,7 @@ export default function ClientesPage() {
     });
   };
 
-  // Arrastrar la tabla desde el encabezado, como si fuera una barra de
-  // scroll horizontal. Ver hooks/useDragScrollTable.ts.
+  // Arrastrar la tabla desde el encabezado (ver hooks/useDragScrollTable.ts).
   const {
     scrollContainerRef,
     tableRef,

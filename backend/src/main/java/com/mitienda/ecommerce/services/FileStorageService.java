@@ -11,31 +11,10 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Servicio genérico para almacenamiento de archivos
- * Reutilizable para imágenes, modelos 3D, PDFs, etc.
- *
- * TODO (después del E2, antes del E3): migrar a Supabase Storage.
- * Hoy los archivos se guardan en el disco del contenedor. En Render (y en
- * cualquier plataforma similar sin disco persistente en el plan gratis) ese
- * disco se recrea vacío tanto al redesplegar como cada vez que el servicio
- * se duerme por inactividad y vuelve a levantarse -- lo que se suba se
- * pierde. La base ya vive en Supabase, que también ofrece Storage: mover
- * saveFile/deleteFile/fileExists/getFileSize a su API evita este problema
- * sin depender de un disco propio.
- */
+/** Almacenamiento de archivos en disco. TODO: migrar a Supabase Storage (el disco de Render se vacía). */
 @Service
 public class FileStorageService {
-
-    /**
-     * Guardar archivo en el sistema de archivos
-     * 
-     * @param file Archivo a guardar
-     * @param subdirectory Subdirectorio dentro de uploads/ (ej: "images", "modelos-3d")
-     * @param allowedExtensions Extensiones permitidas (ej: [".jpg", ".png"])
-     * @param maxSizeBytes Tamaño máximo en bytes
-     * @return Ruta relativa del archivo guardado (ej: "/uploads/modelos-3d/xyz.glb")
-     */
+    /** Guarda el archivo en el subdirectorio indicado de uploads/ y devuelve su ruta relativa. */
     public String saveFile(
             MultipartFile file, 
             String subdirectory,
@@ -48,12 +27,10 @@ public class FileStorageService {
         System.out.println("Extensiones permitidas: " + allowedExtensions);
         System.out.println("Tamaño máximo: " + (maxSizeBytes / (1024 * 1024)) + " MB");
         
-        // Validar que el archivo no esté vacío
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("El archivo no puede estar vacío");
         }
 
-        // Validar tamaño
         if (file.getSize() > maxSizeBytes) {
             long maxSizeMB = maxSizeBytes / (1024 * 1024);
             throw new IllegalArgumentException(
@@ -61,13 +38,11 @@ public class FileStorageService {
             );
         }
 
-        // Validar nombre del archivo
         String originalFilename = file.getOriginalFilename();
         if (originalFilename == null || originalFilename.trim().isEmpty()) {
             throw new IllegalArgumentException("El nombre del archivo no puede ser nulo o vacío");
         }
 
-        // Validar extensión
         String fileExtension = getFileExtension(originalFilename).toLowerCase();
         if (!allowedExtensions.contains(fileExtension)) {
             throw new IllegalArgumentException(
@@ -82,7 +57,6 @@ public class FileStorageService {
         System.out.println("Extensión: " + fileExtension);
         System.out.println("Tamaño: " + (file.getSize() / 1024) + " KB");
 
-        // Crear directorio si no existe
         String currentDir = System.getProperty("user.dir");
         Path uploadPath = Paths.get(currentDir, "uploads", subdirectory)
                                .toAbsolutePath()
@@ -98,24 +72,15 @@ public class FileStorageService {
             System.out.println("✅ Directorio ya existe");
         }
 
-        // Generar nombre unico.
-        //
-        // El nombre lo elige quien sube el archivo, asi que antes de usarlo hay
-        // que limpiarlo: se descarta cualquier componente de ruta. Sin esto, un
-        // nombre como "../../algo.glb" hacia que resolve() escribiera fuera de
-        // la carpeta de subidas.
+        // Nombre único; el nombre original se sanea antes para descartar cualquier ruta ("../../x").
         String uniqueFileName = UUID.randomUUID() + "_" + limpiarNombreArchivo(originalFilename);
         Path filePath = uploadPath.resolve(uniqueFileName).normalize();
 
-        // Cinturon y tirantes: aunque el nombre ya viene saneado, se comprueba
-        // que la ruta final siga estando dentro de la carpeta de destino. Es la
-        // verificacion que de verdad cierra el paso, porque no depende de haber
-        // previsto todas las formas de escribir una ruta.
+        // Se comprueba además que la ruta final siga dentro de la carpeta de destino.
         if (!filePath.startsWith(uploadPath)) {
             throw new IllegalArgumentException("Nombre de archivo no permitido: " + originalFilename);
         }
 
-        // Guardar archivo
         try {
             file.transferTo(filePath.toFile());
             System.out.println("✅ Archivo guardado exitosamente en disco");
@@ -124,7 +89,6 @@ public class FileStorageService {
             throw new IOException("Error al guardar el archivo: " + e.getMessage(), e);
         }
 
-        // Retornar ruta relativa
         String relativeUrl = "/uploads/" + subdirectory + "/" + uniqueFileName;
         System.out.println("URL relativa para BD: " + relativeUrl);
         System.out.println("=========================");
@@ -132,9 +96,7 @@ public class FileStorageService {
         return relativeUrl;
     }
 
-    /**
-     * Eliminar archivo del sistema de archivos
-     */
+    /** Eliminar archivo del sistema de archivos */
     public void deleteFile(String relativeUrl) {
         if (relativeUrl == null || relativeUrl.trim().isEmpty()) {
             System.out.println("⚠️  URL relativa nula o vacía, no se eliminará nada");
@@ -163,9 +125,7 @@ public class FileStorageService {
         }
     }
 
-    /**
-     * Verificar si un archivo existe
-     */
+    /** Verificar si un archivo existe */
     public boolean fileExists(String relativeUrl) {
         if (relativeUrl == null || relativeUrl.trim().isEmpty()) {
             return false;
@@ -183,18 +143,8 @@ public class FileStorageService {
         }
     }
 
-    /**
-     * Obtener extensión de un archivo
-     */
-    /**
-     * Deja solo el nombre del archivo, sin ninguna parte de ruta.
-     *
-     * Toma el ultimo segmento despues de / o de \\ (el cliente puede mandar
-     * separadores de Windows o de Unix) y reemplaza por guion bajo todo lo que
-     * no sea una letra, un numero, un punto, un guion o un guion bajo. Asi
-     * quedan fuera los ".." y cualquier caracter raro para el sistema de
-     * archivos, pero se conserva la extension, que se valida aparte.
-     */
+    /** Obtener extensión de un archivo */
+    /** Deja solo el nombre del archivo: último segmento, con caracteres raros reemplazados por _. */
     private String limpiarNombreArchivo(String filename) {
         String soloNombre = filename;
 
@@ -232,9 +182,7 @@ public class FileStorageService {
         return filename.substring(lastDotIndex);
     }
 
-    /**
-     * Obtener tamaño de un archivo en bytes
-     */
+    /** Obtener tamaño de un archivo en bytes */
     public long getFileSize(String relativeUrl) {
         if (relativeUrl == null || relativeUrl.trim().isEmpty()) {
             return -1;

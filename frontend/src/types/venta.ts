@@ -18,9 +18,7 @@ export enum ModalidadEntrega {
   TRANSPORTADORA = 'TRANSPORTADORA'
 }
 
-// ENTREGADO significa que el cliente ya recibió el producto, en cualquier
-// modalidad. RETIRO nace ENTREGADO; DOMICILIO y TRANSPORTADORA van de PENDIENTE
-// a ENTREGADO, y un ADMIN puede corregir un ENTREGADO a PENDIENTE.
+// ENTREGADO: el cliente ya recibió el producto. RETIRO nace ENTREGADO; un ADMIN puede corregir un ENTREGADO a PENDIENTE.
 export enum EstadoEntrega {
   PENDIENTE = 'PENDIENTE',
   ENTREGADO = 'ENTREGADO'
@@ -33,18 +31,7 @@ export interface ItemVentaRequest {
   descuentoPorcentaje?: number;
 }
 
-/**
- * Request para crear venta.
- *
- * Dos modos:
- *  1. Cliente registrado: enviar idCliente.
- *  2. Venta de mostrador: enviar nombreClienteInvitado (y opcionalmente el
- *     teléfono). El backend crea un cliente tipo INVITADO con esos datos, en
- *     lugar de guardar el nombre suelto dentro de la venta como antes.
- *
- * El metodoPago viaja acá porque alimenta el primer pago de la venta, no un
- * campo de la venta: una venta admite varios cobros con métodos distintos.
- */
+/** Crear venta: con idCliente (registrado) o con nombreClienteInvitado (mostrador); metodoPago alimenta el primer pago. */
 export interface VentaRequest {
   // MODO 1: Cliente registrado
   idCliente?: number;
@@ -69,8 +56,7 @@ export interface VentaRequest {
 
   // Entrega. Si no viene, el backend asume RETIRO.
   modalidadEntrega?: ModalidadEntrega;
-  // Estado con el que se registra. Si no viene queda PENDIENTE (RETIRO siempre
-  // queda ENTREGADO). ENTREGADO: DOMICILIO o TRANSPORTADORA, cualquier rol.
+  // Estado de entrega al registrar; si falta queda PENDIENTE (RETIRO siempre ENTREGADO).
   estadoEntrega?: EstadoEntrega;
   direccionDestino?: string; // opcional en DOMICILIO y TRANSPORTADORA
   ciudad?: string; // obligatoria solo en TRANSPORTADORA
@@ -143,11 +129,7 @@ export interface Venta {
   transportadora?: string;
   guiaRemision?: string;
 
-  /**
-   * Método de pago mostrado en los listados. Ya no es un campo de la venta:
-   * el backend lo deriva de los pagos y devuelve el método cuando hay uno
-   * solo, o "VARIOS" cuando hay más de uno. Por eso es string y no MetodoPago.
-   */
+  /** Método de pago del listado: el único, o "VARIOS" si hay más de uno (por eso string y no MetodoPago). */
   metodoPago?: string;
 
   idUsuario: number;
@@ -168,7 +150,6 @@ export interface VentaEstadisticas {
   montoTotal: number;
   ventasDelDia: number;
   montoDelDia: number;
-  /** Domicilio/Transportadora sin entregar todavía. No acotado a la semana:
-   * una entrega atrasada sigue siendo relevante aunque sea de hace tiempo. */
+  /** Domicilio o transportadora sin entregar, sin acotar a la semana. */
   entregasPendientes: number;
 }

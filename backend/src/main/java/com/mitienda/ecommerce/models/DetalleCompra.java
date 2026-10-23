@@ -10,16 +10,13 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
-/**
- * Entidad DetalleCompra - Productos dentro de una compra
- */
+/** Entidad DetalleCompra - Productos dentro de una compra */
 @Entity
 @Table(name = "detalle_compra")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class DetalleCompra {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

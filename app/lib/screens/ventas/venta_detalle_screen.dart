@@ -12,9 +12,7 @@ import 'estado_entrega_ui.dart';
 
 enum _EstadoDetalle { cargando, conDatos, error }
 
-/// Detalle de una venta: productos, pagos, entrega y sus acciones: registrar
-/// pago y marcar entregado (ADMIN y EMPLEADO); corregir a pendiente y editar los
-/// datos de entrega (solo ADMIN).
+/// Detalle de una venta: productos, pagos, entrega y sus acciones según el rol.
 class VentaDetalleScreen extends StatefulWidget {
   VentaDetalleScreen({
     super.key,
@@ -133,8 +131,7 @@ class _VentaDetalleScreenState extends State<VentaDetalleScreen> {
     }
   }
 
-  /// Corre una acción de entrega que devuelve la venta actualizada, avisa el
-  /// resultado y recarga el detalle.
+  /// Corre una acción de entrega que devuelve la venta actualizada, avisa el resultado y recarga el detalle.
   Future<void> _ejecutarAccionEntrega(
     Future<void> Function() accion, {
     required String mensajeOk,
@@ -163,8 +160,7 @@ class _VentaDetalleScreenState extends State<VentaDetalleScreen> {
     }
   }
 
-  /// Poner o cambiar la fecha límite del pago pendiente. Los botones mandan los
-  /// días (el servidor calcula la fecha con su reloj); el calendario, la fecha.
+  /// Poner o cambiar la fecha límite del pago pendiente.
   Future<void> _cambiarFechaLimite() async {
     final eleccion = await showModalBottomSheet<(int?, DateTime?)>(
       context: context,
@@ -194,8 +190,6 @@ class _VentaDetalleScreenState extends State<VentaDetalleScreen> {
   }
 
   /// Corregir una entrega marcada por error (solo ADMIN): ENTREGADO -> PENDIENTE.
-  /// Se llega tocando la etiqueta del estado, con confirmación; queda en la
-  /// auditoría del backend.
   Future<void> _corregirAPendiente() async {
     final confirmado = await showDialog<bool>(
       context: context,
@@ -224,8 +218,7 @@ class _VentaDetalleScreenState extends State<VentaDetalleScreen> {
     );
   }
 
-  /// Completar la dirección, la transportadora y la guía (solo ADMIN): el
-  /// dueño despacha estando en la transportadora y ahí recibe la guía.
+  /// Completar la dirección, la transportadora y la guía (solo ADMIN).
   Future<void> _editarEntrega() async {
     final venta = _venta;
     if (venta == null) return;
@@ -653,7 +646,6 @@ class _Contenido extends StatelessWidget {
 }
 
 /// Hoja para elegir la fecha límite: 7, 15 o 30 días, o una fecha del calendario.
-/// Devuelve (días, null) o (null, fecha); null si se cierra sin elegir.
 class _FechaLimiteSheet extends StatelessWidget {
   _FechaLimiteSheet();
 
@@ -724,9 +716,7 @@ class _FechaLimiteSheet extends StatelessWidget {
   }
 }
 
-/// Botones de la venta, fijos abajo y en una sola fila. Solo aparecen los que
-/// aplican: Registrar pago (hay saldo pendiente), Marcar como entregada (aún no
-/// se entregó) y Editar datos de entrega (ADMIN, domicilio o transportadora).
+/// Botones de la venta, fijos abajo y en una sola fila.
 class _BarraAccionesVenta extends StatelessWidget {
   _BarraAccionesVenta({
     required this.venta,
@@ -796,8 +786,7 @@ class _BarraAccionesVenta extends StatelessWidget {
   }
 }
 
-/// Un botón de la barra: el texto se achica si hace falta para que todos
-/// quepan en la misma fila.
+/// Un botón de la barra: el texto se achica si hace falta para que todos quepan en la misma fila.
 class _BotonBarra extends StatelessWidget {
   _BotonBarra({
     required this.texto,
@@ -852,8 +841,7 @@ class _BotonBarra extends StatelessWidget {
   }
 }
 
-/// Lo que ya se cobró. En una venta anulada el saldo queda en 0, así que no
-/// sirve restarlo: se suman los pagos registrados (no se sabe si se devolvió).
+/// Lo que ya se cobró.
 double _totalPagado(Venta venta, bool cancelada) {
   final total = cancelada
       ? venta.pagos.fold<double>(0, (suma, pago) => suma + pago.monto)
@@ -940,8 +928,7 @@ class _Badge extends StatelessWidget {
   }
 }
 
-/// Formulario de "registrar pago", en bottom sheet (mismo lenguaje visual
-/// que el detalle de producto de Catálogo).
+/// Formulario de "registrar pago", en bottom sheet (mismo lenguaje visual que el detalle de producto de Catálogo).
 class _FormularioPagoSheet extends StatefulWidget {
   _FormularioPagoSheet({
     required this.saldoPendiente,
@@ -1146,9 +1133,7 @@ class _FormularioPagoSheetState extends State<_FormularioPagoSheet> {
   }
 }
 
-/// Completar o corregir la dirección, la transportadora y la guía de una
-/// venta (solo ADMIN), en bottom sheet, con el mismo lenguaje visual que el de
-/// registrar pago. Un campo vacío borra el dato.
+/// Completa o corrige dirección, transportadora y guía (solo ADMIN), en una hoja.
 class _FormularioEntregaSheet extends StatefulWidget {
   _FormularioEntregaSheet({required this.venta, required this.onGuardar});
 

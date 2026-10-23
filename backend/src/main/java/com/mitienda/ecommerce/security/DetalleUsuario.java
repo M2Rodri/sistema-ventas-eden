@@ -5,14 +5,8 @@ import org.springframework.security.core.userdetails.User;
 
 import java.util.Collection;
 
-/**
- * Usuario de Spring Security que además trae el corte de sesiones.
- *
- * Así el filtro JWT, que ya carga al usuario en cada petición, puede comparar el inicio de la
- * sesión del token con el corte sin hacer otra consulta a la base.
- */
+/** Usuario de Spring Security con el corte de sesiones, para que el filtro JWT lo compare sin otra consulta. */
 public class DetalleUsuario extends User {
-
     private final Long sesionesValidasDesde;
 
     public DetalleUsuario(String usuario, String password, boolean activo,

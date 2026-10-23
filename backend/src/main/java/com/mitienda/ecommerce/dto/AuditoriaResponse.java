@@ -7,14 +7,11 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-/**
- * DTO para respuestas de auditoría
- */
+/** DTO para respuestas de auditoría */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class AuditoriaResponse {
-
     private Long id;
     private Long idUsuario;
     private String nombreUsuario;

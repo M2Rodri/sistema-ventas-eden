@@ -16,9 +16,7 @@ export default function DashboardLayout({
 }) {
   const { loading, isAdmin, user } = useAuth();
 
-  // Una vez dentro, deja listos los datos de los módulos mientras el usuario
-  // mira el inicio. Espera un momento para no competir con las peticiones del
-  // propio inicio.
+  // Una vez dentro, deja listos los datos de los módulos mientras el usuario mira el inicio.
   const haySesion = !loading && !!user;
   useEffect(() => {
     if (!haySesion) return;

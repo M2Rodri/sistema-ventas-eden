@@ -7,16 +7,11 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.util.List;
 
-/**
- * Ventas de una semana calendario (lunes a domingo), con el desglose por día.
- *
- * Cuenta solo ventas COMPLETADA, igual que ventasStats del dashboard.
- */
+/** Ventas COMPLETADA de una semana calendario con el desglose por día. */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class VentasSemanalResponse {
-
     /** Lunes de la semana, formato "2026-09-28". */
     private String fechaInicio;
 

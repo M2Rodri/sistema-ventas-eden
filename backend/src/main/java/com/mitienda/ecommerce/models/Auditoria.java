@@ -10,16 +10,13 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
-/**
- * Entidad Auditoria - Registro de acciones del sistema
- */
+/** Entidad Auditoria - Registro de acciones del sistema */
 @Entity
 @Table(name = "auditorias")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class Auditoria {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

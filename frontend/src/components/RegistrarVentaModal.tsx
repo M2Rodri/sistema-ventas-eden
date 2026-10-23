@@ -37,9 +37,7 @@ import {
   TEXTO_FORMATOS_COMPROBANTE,
 } from "@/lib/comprobanteImagen";
 
-// Redondea a centavos apenas se calcula un monto, para que dos totales que
-// deberían coincidir (venta vs. pagado) no queden desalineados por un
-// residuo de coma flotante (ej: 0.1 + 0.2 = 0.30000000000000004).
+// Redondea a centavos para que venta y pagado no se desalineen por la coma flotante (0.1 + 0.2).
 const redondear = (valor: number) => Math.round(valor * 100) / 100;
 
 interface ProductoCarrito {
@@ -92,9 +90,7 @@ export default function RegistrarVentaModal({
   const [modalidadEntrega, setModalidadEntrega] = useState<ModalidadEntrega>(
     ModalidadEntrega.RETIRO,
   );
-  // Estado con el que se registra la entrega. En tienda siempre nace
-  // entregada; en domicilio y transportadora arranca Pendiente (todavía hay que
-  // llevarla) y se puede cambiar a Entregado.
+  // Estado de la entrega al registrar: en tienda nace entregada; en domicilio y transportadora, Pendiente.
   const [estadoEntrega, setEstadoEntrega] = useState<EstadoEntrega>(
     EstadoEntrega.PENDIENTE,
   );
@@ -181,9 +177,7 @@ export default function RegistrarVentaModal({
 
   const cargarProductos = async () => {
     try {
-      // El stock no vive en Producto, vive en Inventario: sin este cruce,
-      // "producto.stock" queda undefined y el tope de cantidad del carrito
-      // no aplica (cualquier cantidad pasaba el chequeo silenciosamente).
+      // El stock vive en Inventario y no en Producto: sin este cruce el tope de cantidad del carrito no aplicaba.
       const [productosData, inventarioData] = await Promise.all([
         getAllProductos(),
         getAllInventario(),
@@ -210,8 +204,7 @@ export default function RegistrarVentaModal({
   };
 
   useEffect(() => {
-    // Sin quitar tildes, buscar "colchon" no encontraba "Colchón": nadie
-    // escribe tildes cuando busca rápido en un mostrador.
+    // Búsqueda sin tildes.
     const normalizar = (s: string) =>
       s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
     const texto = normalizar(busquedaProducto.trim());
@@ -271,10 +264,7 @@ export default function RegistrarVentaModal({
     setMostrarListaProductos(false);
   };
 
-  // Mientras se edita el campo se acepta vacío (se guarda como 0, que se
-  // muestra en blanco) para poder borrar y escribir otro número; recién al
-  // salir del campo (onBlur) se exige mínimo 1. El máximo nunca pasa del
-  // stock disponible.
+  // Al editar se acepta vacío; al salir del campo se exige mínimo 1 y el máximo es el stock disponible.
   const actualizarCantidad = (idProducto: number, valor: string) => {
     if (valor === "") {
       setCarrito(
@@ -307,8 +297,7 @@ export default function RegistrarVentaModal({
     );
   };
 
-  // Si el campo queda en 0 (vacío) al salir, se completa con 1 en vez de
-  // dejar una cantidad inválida.
+  // Un campo en 0 al salir se completa con 1.
   const confirmarCantidadMinima = (idProducto: number) => {
     setCarrito((prev) =>
       prev.map((item) =>
@@ -319,8 +308,7 @@ export default function RegistrarVentaModal({
     );
   };
 
-  // El precio acordado es lo que se escribe; el % de descuento sale solo,
-  // calculado a partir de la diferencia con el precio de catálogo.
+  // Se escribe el precio acordado y el % de descuento sale de la diferencia con el catálogo.
   const actualizarPrecioAcordado = (idProducto: number, valor: string) => {
     const item = carrito.find((i) => i.idProducto === idProducto);
     if (!item) return;
@@ -388,9 +376,7 @@ export default function RegistrarVentaModal({
     setCarrito(carrito.filter((item) => item.idProducto !== idProducto));
   };
 
-  // La rueda del mouse cambia el valor de un input numérico enfocado, aunque
-  // la intención sea solo desplazar el modal. Se le quita el foco antes de
-  // que el navegador aplique el scroll.
+  // La rueda del mouse cambia un input numérico enfocado: se le quita el foco antes del scroll.
   const evitarCambioPorRueda = (e: React.WheelEvent<HTMLInputElement>) => {
     e.currentTarget.blur();
   };
@@ -406,10 +392,7 @@ export default function RegistrarVentaModal({
   );
   const totalDescuento = redondear(totalOriginal - totalVenta);
 
-  // Por defecto se cobra el total. Mientras no se habilite el saldo
-  // pendiente, "Monto a cobrar hoy" queda fijo en el total (no se puede
-  // reducir): dejar algo a deber es una decisión explícita, no un
-  // descuido de tipeo.
+  // Se cobra el total por defecto; dejar saldo a deber es una decisión explícita.
   useEffect(() => {
     if (!saldoPendienteHabilitado && pagos.length === 1) {
       setPagos([{ ...pagos[0], monto: totalVenta }]);
@@ -442,8 +425,7 @@ export default function RegistrarVentaModal({
       return;
     }
 
-    // Solo el envío por transportadora exige un dato: la ciudad. La dirección,
-    // la transportadora y la guía se pueden completar después.
+    // Solo el envío por transportadora exige la ciudad; lo demás se completa después.
     if (modalidadEntrega === ModalidadEntrega.TRANSPORTADORA && !ciudad.trim()) {
       setError("La ciudad es obligatoria para el envío por transportadora");
       return;
@@ -475,9 +457,7 @@ export default function RegistrarVentaModal({
         referenciaPago: pagos[0].referencia || undefined,
         items,
         montoPagado,
-        // Solo cuenta si la venta queda con saldo pendiente.
-        // Solo cuenta si la venta queda con saldo pendiente. Los botones mandan
-        // los días; el calendario, la fecha. El servidor valida con su reloj.
+        // Solo cuenta si queda saldo pendiente.
         plazoDiasPago:
           saldoPendienteHabilitado && totalVenta - montoPagado > 0 && plazoDiasPago
             ? plazoDiasPago
@@ -512,9 +492,7 @@ export default function RegistrarVentaModal({
 
       const creada = await createVentaDirecta(request);
 
-      // El comprobante viaja aparte: la venta ya quedó registrada aunque
-      // esto falle. Si no hay pago (venta enteramente a crédito) no hay a
-      // qué pago adjuntarlo todavía; se hace después desde el detalle.
+      // El comprobante viaja aparte: la venta ya está registrada aunque falle; sin pago (todo a crédito) se adjunta después.
       if (comprobanteFile && creada.pagos && creada.pagos.length > 0) {
         try {
           await adjuntarComprobantePago(creada.pagos[0].id, comprobanteFile);
@@ -960,8 +938,7 @@ export default function RegistrarVentaModal({
                         const valor = e.target.value;
                         const montoIngresado =
                           valor === "" ? 0 : redondear(parseFloat(valor) || 0);
-                        // No puede cobrarse (entre todos los métodos) más
-                        // que el total de la venta.
+                        // No se puede cobrar más que el total de la venta.
                         const sumaOtrasFilas = pagos.reduce(
                           (acc, p, i) => (i === index ? acc : acc + p.monto),
                           0,

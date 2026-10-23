@@ -11,11 +11,7 @@ interface ReporteCardProps {
 
 export default function ReporteCard({ config, IconComponent, onGenerar }: ReporteCardProps) {
   return (
-    // Dos capas a propósito: la de afuera lleva la sombra y el levantado del
-    // hover, sin overflow-hidden (si lo tuviera, se recortaría su propia
-    // sombra contra su propio borde y no se vería nada). La de adentro lleva
-    // el overflow-hidden, para que la barra verde y la marca de agua queden
-    // recortadas contra las esquinas redondeadas.
+    // Dos capas: la de afuera lleva la sombra sin overflow-hidden (que la recortaría) y la de adentro recorta la barra y la marca de agua.
     <div
       className="reporte-card group relative h-full rounded-xl cursor-pointer"
       onClick={onGenerar}

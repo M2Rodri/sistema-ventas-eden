@@ -10,38 +10,21 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Servicio para gestión de configuraciones del sistema
- */
+/** Servicio para gestión de configuraciones del sistema */
 @Service
-// Lectura dentro de transacción por defecto: con spring.jpa.open-in-view=false
-// no hay sesión de Hibernate fuera de la transacción, y los DTO de respuesta se
-// arman recorriendo relaciones perezosas. Sin esto, los endpoints de lectura
-// fallaban con LazyInitializationException.
-// Los métodos que escriben llevan su propio @Transactional, que tiene precedencia.
+// Lectura en transacción: con open-in-view=false no hay sesión de Hibernate fuera de ella.
 @Transactional(readOnly = true)
 public class ConfiguracionService {
-
     private final ConfiguracionSistemaRepository configuracionRepository;
 
     private final RegistroAuditoria registroAuditoria;
 
-    /**
-     * Inyeccion por constructor, no por campo.
-     *
-     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
-     * puede existir a medio construir, y una dependencia circular falla al
-     * arrancar en vez de aparecer en ejecucion.
-     */
     public ConfiguracionService(ConfiguracionSistemaRepository configuracionRepository, RegistroAuditoria registroAuditoria) {
         this.configuracionRepository = configuracionRepository;
         this.registroAuditoria = registroAuditoria;
     }
 
-
-    /**
-     * Listar todas las configuraciones
-     */
+    /** Listar todas las configuraciones */
     public List<ConfiguracionResponse> getAllConfiguraciones() {
         return configuracionRepository.findAll()
                 .stream()
@@ -49,39 +32,30 @@ public class ConfiguracionService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Obtener configuración por ID
-     */
+    /** Obtener configuración por ID */
     public ConfiguracionResponse getConfiguracionById(Long id) {
         ConfiguracionSistema config = configuracionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Configuración no encontrada con ID: " + id));
         return new ConfiguracionResponse(config);
     }
 
-    /**
-     * Obtener configuración por clave
-     */
+    /** Obtener configuración por clave */
     public ConfiguracionResponse getConfiguracionByClave(String clave) {
         ConfiguracionSistema config = configuracionRepository.findByClave(clave)
                 .orElseThrow(() -> new RuntimeException("Configuración no encontrada con clave: " + clave));
         return new ConfiguracionResponse(config);
     }
 
-    /**
-     * Obtener valor de configuración por clave (solo el valor)
-     */
+    /** Obtener valor de configuración por clave (solo el valor) */
     public String getValorConfiguracion(String clave) {
         ConfiguracionSistema config = configuracionRepository.findByClave(clave)
                 .orElseThrow(() -> new RuntimeException("Configuración no encontrada con clave: " + clave));
         return config.getValor();
     }
 
-    /**
-     * Crear nueva configuración
-     */
+    /** Crear nueva configuración */
     @Transactional
     public ConfiguracionResponse createConfiguracion(ConfiguracionRequest request) {
-        // Validar que la clave no exista
         if (configuracionRepository.existsByClave(request.getClave())) {
             throw new RuntimeException("Ya existe una configuración con la clave: " + request.getClave());
         }
@@ -95,15 +69,12 @@ public class ConfiguracionService {
         return new ConfiguracionResponse(savedConfig);
     }
 
-    /**
-     * Actualizar configuración existente
-     */
+    /** Actualizar configuración existente */
     @Transactional
     public ConfiguracionResponse updateConfiguracion(Long id, ConfiguracionRequest request) {
         ConfiguracionSistema config = configuracionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Configuración no encontrada con ID: " + id));
 
-        // Validar clave única (si cambió)
         if (!config.getClave().equals(request.getClave()) && 
             configuracionRepository.existsByClave(request.getClave())) {
             throw new RuntimeException("Ya existe una configuración con la clave: " + request.getClave());
@@ -117,9 +88,7 @@ public class ConfiguracionService {
         return new ConfiguracionResponse(updatedConfig);
     }
 
-    /**
-     * Actualizar solo el valor de una configuración por clave
-     */
+    /** Actualizar solo el valor de una configuración por clave */
     @Transactional
     public ConfiguracionResponse updateValorByClave(String clave, String nuevoValor) {
         ConfiguracionSistema config = configuracionRepository.findByClave(clave)
@@ -129,9 +98,7 @@ public class ConfiguracionService {
         config.setValor(nuevoValor);
         ConfiguracionSistema updatedConfig = configuracionRepository.save(config);
 
-        // Se guarda el antes y el despues: aca viven los datos del negocio que
-        // salen impresos en los comprobantes, asi que conviene poder ver quien
-        // cambio que y volver atras si hace falta.
+        // Se guarda el antes y el después: estos datos salen impresos en los comprobantes.
         registroAuditoria.registrar("ACTUALIZAR_CONFIGURACION", "configuracion_sistema",
                 updatedConfig.getId(),
                 clave + ": \"" + valorAnterior + "\" -> \"" + nuevoValor + "\"");
@@ -139,9 +106,7 @@ public class ConfiguracionService {
         return new ConfiguracionResponse(updatedConfig);
     }
 
-    /**
-     * Eliminar configuración
-     */
+    /** Eliminar configuración */
     @Transactional
     public void deleteConfiguracion(Long id) {
         ConfiguracionSistema config = configuracionRepository.findById(id)
@@ -153,15 +118,10 @@ public class ConfiguracionService {
         configuracionRepository.delete(config);
     }
 
-    /**
-     * Inicializar configuraciones por defecto (llamar al inicio de la aplicación)
-     */
+    /** Inicializar configuraciones por defecto (llamar al inicio de la aplicación) */
     @Transactional
     public void inicializarConfiguracionesDefecto() {
-        // Solo crear si no existen
-        // La clave es negocio_razon_social, no negocio_nombre: es la que leen la
-        // tienda y la pantalla de Configuracion. Estaban las dos dando vueltas
-        // para lo mismo, y el valor por defecto ademas traia la marca vieja.
+        // Solo se crean si no existen; la clave es negocio_razon_social.
         if (!configuracionRepository.existsByClave("negocio_razon_social")) {
             configuracionRepository.save(new ConfiguracionSistema(
                 "negocio_razon_social",

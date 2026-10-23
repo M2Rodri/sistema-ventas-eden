@@ -12,38 +12,21 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Servicio para gestión de proveedores
- */
+/** Servicio para gestión de proveedores */
 @Service
-// Lectura dentro de transacción por defecto: con spring.jpa.open-in-view=false
-// no hay sesión de Hibernate fuera de la transacción, y los DTO de respuesta se
-// arman recorriendo relaciones perezosas. Sin esto, los endpoints de lectura
-// fallaban con LazyInitializationException.
-// Los métodos que escriben llevan su propio @Transactional, que tiene precedencia.
+// Lectura en transacción: con open-in-view=false no hay sesión de Hibernate fuera de ella.
 @Transactional(readOnly = true)
 public class ProveedorService {
-
     private final ProveedorRepository proveedorRepository;
 
     private final RegistroAuditoria registroAuditoria;
 
-    /**
-     * Inyeccion por constructor, no por campo.
-     *
-     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
-     * puede existir a medio construir, y una dependencia circular falla al
-     * arrancar en vez de aparecer en ejecucion.
-     */
     public ProveedorService(ProveedorRepository proveedorRepository, RegistroAuditoria registroAuditoria) {
         this.proveedorRepository = proveedorRepository;
         this.registroAuditoria = registroAuditoria;
     }
 
-
-    /**
-     * Listar todos los proveedores
-     */
+    /** Listar todos los proveedores */
     public List<ProveedorResponse> getAllProveedores() {
         return proveedorRepository.findAll()
                 .stream()
@@ -51,9 +34,7 @@ public class ProveedorService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Listar solo proveedores activos
-     */
+    /** Listar solo proveedores activos */
     public List<ProveedorResponse> getActiveProveedores() {
         return proveedorRepository.findByActivoTrue()
                 .stream()
@@ -61,21 +42,16 @@ public class ProveedorService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Obtener proveedor por ID
-     */
+    /** Obtener proveedor por ID */
     public ProveedorResponse getProveedorById(Long id) {
         Proveedor proveedor = proveedorRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("PROVEEDOR_NO_ENCONTRADO", "Proveedor no encontrado con ID: " + id));
         return new ProveedorResponse(proveedor);
     }
 
-    /**
-     * Crear nuevo proveedor
-     */
+    /** Crear nuevo proveedor */
     @Transactional
     public ProveedorResponse createProveedor(ProveedorRequest request) {
-        // Validar que el NIT no exista
         if (proveedorRepository.existsByNit(request.getNit())) {
             throw new ConflictoEstadoException("NIT_DUPLICADO", "Ya existe un proveedor con el NIT: " + request.getNit());
         }
@@ -97,15 +73,12 @@ public class ProveedorService {
         return new ProveedorResponse(savedProveedor);
     }
 
-    /**
-     * Actualizar proveedor existente
-     */
+    /** Actualizar proveedor existente */
     @Transactional
     public ProveedorResponse updateProveedor(Long id, ProveedorRequest request) {
         Proveedor proveedor = proveedorRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("PROVEEDOR_NO_ENCONTRADO", "Proveedor no encontrado con ID: " + id));
 
-        // Validar NIT único (si cambió)
         if (!proveedor.getNit().equals(request.getNit()) && 
             proveedorRepository.existsByNit(request.getNit())) {
             throw new ConflictoEstadoException("NIT_DUPLICADO", "Ya existe un proveedor con el NIT: " + request.getNit());
@@ -128,10 +101,7 @@ public class ProveedorService {
         return new ProveedorResponse(updatedProveedor);
     }
 
-    /**
-     * Activar/Desactivar proveedor. Es la única baja que existe: no hay un
-     * "eliminar" aparte (ver misma decisión en ClienteService).
-     */
+    /** Activa o desactiva un proveedor; es la única baja que existe. */
     @Transactional
     public ProveedorResponse toggleProveedorStatus(Long id) {
         Proveedor proveedor = proveedorRepository.findById(id)
@@ -147,9 +117,7 @@ public class ProveedorService {
         return new ProveedorResponse(updatedProveedor);
     }
 
-    /**
-     * Buscar proveedores por nombre
-     */
+    /** Buscar proveedores por nombre */
     public List<ProveedorResponse> searchProveedores(String nombre) {
         return proveedorRepository.searchByNombre(nombre)
                 .stream()

@@ -11,28 +11,12 @@ import java.sql.ResultSet;
 import java.util.Properties;
 
 /**
- * Genera el ID sumando 1 al contador de la tabla (contadores_id), con la conexión y la
- * transacción de la operación en curso. Se usa en las entidades así:
- * <pre>
- * &#64;Id
- * &#64;GeneratedValue(generator = "id_ventas")
- * &#64;GenericGenerator(name = "id_ventas", type = GeneradorIdSinHuecos.class,
- *         parameters = &#64;Parameter(name = "tabla", value = "ventas"))
- * </pre>
- *
- * La secuencia de PostgreSQL no devuelve el número si la operación se revierte, y por eso dejaba
- * huecos (1, 2, 4...). El contador sí:
- * - Si la operación falla y se revierte, el contador también: el número no se pierde.
- * - El UPDATE deja la fila del contador bloqueada hasta que la transacción termina, así dos
- *   operaciones simultáneas sobre la misma tabla nunca reciben el mismo número: la segunda espera
- *   a que la primera confirme o se revierta.
- * - Cada tabla tiene su propio contador y las operaciones guardan siempre en el mismo orden, así
- *   que no se bloquean entre sí.
- *
- * Necesita la tabla contadores_id (script 31_ids_sin_huecos.sql).
+ * Genera el ID sumando 1 al contador de la tabla (contadores_id, script 31) dentro de la transacción en curso.
+ * A diferencia de la secuencia de PostgreSQL, un rollback también revierte el contador, así que no quedan huecos;
+ * el UPDATE bloquea la fila del contador, por lo que dos operaciones simultáneas no reciben el mismo número.
+ * Uso: @GeneratedValue(generator = "id_ventas") con @GenericGenerator(type = GeneradorIdSinHuecos.class, parameters = @Parameter(name = "tabla", value = "ventas")).
  */
 public class GeneradorIdSinHuecos implements IdentifierGenerator {
-
     private String tabla;
 
     /** Hibernate (con Spring) lo crea sin argumentos y le pasa la tabla en {@link #configure}. */

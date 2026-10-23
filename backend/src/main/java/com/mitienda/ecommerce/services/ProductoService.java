@@ -1,4 +1,3 @@
-// src/main/java/com/mitienda/ecommerce/services/ProductoService.java
 package com.mitienda.ecommerce.services;
 
 import com.mitienda.ecommerce.exception.ConflictoEstadoException;
@@ -24,23 +23,15 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * Servicio para gestión de productos
- */
+/** Servicio para gestión de productos */
 @Service
-// Lectura dentro de transacción por defecto: con spring.jpa.open-in-view=false
-// no hay sesión de Hibernate fuera de la transacción, y los DTO de respuesta se
-// arman recorriendo relaciones perezosas. Sin esto, los endpoints de lectura
-// fallaban con LazyInitializationException.
-// Los métodos que escriben llevan su propio @Transactional, que tiene precedencia.
+// Lectura en transacción: con open-in-view=false no hay sesión de Hibernate fuera de ella.
 @Transactional(readOnly = true)
 public class ProductoService {
-
     private final ProductoRepository productoRepository;
 
     private final CategoriaRepository categoriaRepository;
 
-    // ✅ AGREGADO: Inyección de InventarioRepository
     private final InventarioRepository inventarioRepository;
 
     private final RegistroAuditoria registroAuditoria;
@@ -51,13 +42,6 @@ public class ProductoService {
 
     private final DetalleCompraRepository detalleCompraRepository;
 
-    /**
-     * Inyeccion por constructor, no por campo.
-     *
-     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
-     * puede existir a medio construir, y una dependencia circular falla al
-     * arrancar en vez de aparecer en ejecucion.
-     */
     public ProductoService(ProductoRepository productoRepository,
                            CategoriaRepository categoriaRepository,
                            InventarioRepository inventarioRepository,
@@ -74,17 +58,7 @@ public class ProductoService {
         this.detalleCompraRepository = detalleCompraRepository;
     }
 
-    /**
-     * GET /api/v1/productos y sus variantes son de lectura publica (los usa la
-     * tienda sin login) o EMPLEADO. Ninguno de los dos debe recibir
-     * precioCompra: el rol EMPLEADO existe justamente para no ver
-     * costos, y un visitante anonimo mucho menos.
-     *
-     * De paso marca si el producto ya tuvo alguna compra confirmada: antes
-     * de eso, precioCompra es solo una estimación cargada a mano en
-     * Productos y se puede seguir corrigiendo; después, pasa a ser propiedad
-     * de Compras y el frontend lo bloquea para editar.
-     */
+    /** Las lecturas no envían precioCompra; marca además si el producto ya tuvo compras confirmadas. */
     private ProductoResponse ocultarCostoSiNoEsAdmin(ProductoResponse response) {
         response.setTieneComprasConfirmadas(
                 detalleCompraRepository.existsByProducto_IdAndCompra_Estado(response.getId(), EstadoCompra.CONFIRMADA));
@@ -94,13 +68,7 @@ public class ProductoService {
         return response;
     }
 
-
-    /**
-     * Convierte una lista de productos a respuesta sin consultas por fila.
-     * Quien hace la petición se resuelve una sola vez y las compras
-     * confirmadas se traen en una sola consulta (antes eran dos consultas
-     * por cada producto del listado).
-     */
+    /** Convierte la lista a respuestas sin consultas por fila. */
     private List<ProductoResponse> aResponses(List<Producto> productos) {
         boolean esAdmin = usuarioActualService.esAdmin();
         Set<Long> conCompraConfirmada = new HashSet<>(
@@ -115,25 +83,19 @@ public class ProductoService {
         }).collect(Collectors.toList());
     }
 
-    /**
-     * Listar todos los productos
-     */
+    /** Listar todos los productos */
     @Transactional(readOnly = true)
     public List<ProductoResponse> getAllProductos() {
         return aResponses(productoRepository.findAll());
     }
 
-    /**
-     * Listar solo productos activos
-     */
+    /** Listar solo productos activos */
     @Transactional(readOnly = true)
     public List<ProductoResponse> getActiveProductos() {
         return aResponses(productoRepository.findByActivoTrue());
     }
 
-    /**
-     * Obtener producto por ID
-     */
+    /** Obtener producto por ID */
     @Transactional(readOnly = true)
     public ProductoResponse getProductoById(Long id) {
         Producto producto = productoRepository.findById(id)
@@ -141,9 +103,7 @@ public class ProductoService {
         return ocultarCostoSiNoEsAdmin(new ProductoResponse(producto));
     }
 
-    /**
-     * Obtener producto por SKU
-     */
+    /** Obtener producto por SKU */
     @Transactional(readOnly = true)
     public ProductoResponse getProductoBySku(String sku) {
         Producto producto = productoRepository.findBySku(sku)
@@ -151,27 +111,20 @@ public class ProductoService {
         return ocultarCostoSiNoEsAdmin(new ProductoResponse(producto));
     }
 
-    /**
-     * Crear nuevo producto con inventario automático
-     * ✅ MODIFICADO: Ahora crea inventario automáticamente
-     */
+    /** Crear nuevo producto con inventario automático */
     @Transactional
     public ProductoResponse createProducto(ProductoRequest request) {
-        // Validar que el SKU no exista
         if (productoRepository.existsBySku(request.getSku())) {
             throw new ConflictoEstadoException("SKU_DUPLICADO", "Ya existe un producto con el SKU: " + request.getSku());
         }
 
-        // Validar que la categoría exista
         Categoria categoria = categoriaRepository.findById(request.getIdCategoria())
                 .orElseThrow(() -> new RecursoNoEncontradoException("CATEGORIA_NO_ENCONTRADA", "Categoría no encontrada con ID: " + request.getIdCategoria()));
 
-        // Validar que la categoría esté activa
         if (!categoria.getActivo()) {
             throw new ReglaNegocioException("CATEGORIA_INACTIVA", "No se puede crear un producto en una categoría inactiva");
         }
 
-        // Crear producto
         Producto producto = new Producto();
         producto.setSku(request.getSku());
         producto.setNombre(request.getNombre());
@@ -188,24 +141,19 @@ public class ProductoService {
         producto.setPrecioVenta(request.getPrecioVenta());
         producto.setDimensiones(request.getDimensiones());
         producto.setStockMinimo(request.getStockMinimo());
-        // La categoría define el tipo, no el cliente: así ninguna llamada
-        // directa a la API puede dejar un producto con categoría y tipo
-        // desincronizados (por ejemplo invisible en los filtros por tipo
-        // de Compras aunque esté en la categoría correcta).
+        // La categoría define el tipo, nunca el cliente: evita productos con categoría y tipo desincronizados.
         producto.setTipoProducto(categoria.getTipoProducto());
         producto.setActivo(request.getActivo());
 
         Producto savedProducto = productoRepository.save(producto);
 
-        // ✅ CREAR INVENTARIO AUTOMÁTICAMENTE
         int stockInicial = request.getStockInicial() != null ? request.getStockInicial() : 0;
         Inventario inventario = new Inventario();
         inventario.setProducto(savedProducto);
         inventario.setCantidadDisponible(stockInicial);
         inventarioRepository.save(inventario);
 
-        // Si ya hay mercadería, el stock no puede aparecer sin origen: se deja
-        // un movimiento AJUSTE_INICIAL con el usuario que dio de alta el producto.
+        // Con stock inicial se deja un movimiento AJUSTE_INICIAL a nombre de quien dio de alta el producto.
         if (stockInicial > 0) {
             inventarioService.registrarAjusteAutomatico(
                     savedProducto.getId(), 0, stockInicial, "AJUSTE_INICIAL",
@@ -221,25 +169,20 @@ public class ProductoService {
         return ocultarCostoSiNoEsAdmin(new ProductoResponse(savedProducto));
     }
 
-    /**
-     * Actualizar producto existente
-     */
+    /** Actualizar producto existente */
     @Transactional
     public ProductoResponse updateProducto(Long id, ProductoRequest request) {
         Producto producto = productoRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("PRODUCTO_NO_ENCONTRADO", "Producto no encontrado con ID: " + id));
 
-        // Validar SKU único (si cambió)
         if (!producto.getSku().equals(request.getSku()) &&
             productoRepository.existsBySku(request.getSku())) {
             throw new ConflictoEstadoException("SKU_DUPLICADO", "Ya existe un producto con el SKU: " + request.getSku());
         }
 
-        // Validar categoría
         Categoria categoria = categoriaRepository.findById(request.getIdCategoria())
                 .orElseThrow(() -> new RecursoNoEncontradoException("CATEGORIA_NO_ENCONTRADA", "Categoría no encontrada con ID: " + request.getIdCategoria()));
 
-        // Actualizar campos
         producto.setSku(request.getSku());
         producto.setNombre(request.getNombre());
         producto.setDescripcion(request.getDescripcion());
@@ -251,10 +194,7 @@ public class ProductoService {
         producto.setMaterialArmazon(request.getMaterialArmazon());
         producto.setCategoria(categoria);
         producto.setCalidad(request.getCalidad());
-        // Una vez que el producto tuvo una compra confirmada, precioCompra
-        // pasa a ser propiedad de Compras (se actualiza solo al confirmar).
-        // El frontend ya bloquea el campo, pero sin este chequeo cualquiera
-        // que le pegue directo a la API podía pisarlo igual.
+        // Tras una compra confirmada, precioCompra lo maneja Compras; esto cubre las llamadas directas a la API.
         boolean yaConfirmoCompra = detalleCompraRepository
                 .existsByProducto_IdAndCompra_Estado(producto.getId(), EstadoCompra.CONFIRMADA);
         if (!yaConfirmoCompra) {
@@ -263,8 +203,7 @@ public class ProductoService {
         producto.setPrecioVenta(request.getPrecioVenta());
         producto.setDimensiones(request.getDimensiones());
         producto.setStockMinimo(request.getStockMinimo());
-        // Mismo criterio que al crear: la categoría define el tipo, nunca
-        // lo que mande el cliente.
+        // Igual que al crear: el tipo lo define la categoría.
         producto.setTipoProducto(categoria.getTipoProducto());
         producto.setActivo(request.getActivo());
 
@@ -276,16 +215,7 @@ public class ProductoService {
         return ocultarCostoSiNoEsAdmin(new ProductoResponse(updatedProducto));
     }
 
-    /**
-     * Cambia solo el stock mínimo de un producto.
-     *
-     * Existe como operación aparte porque es lo único que necesita la pantalla
-     * de inventario: obligarla a enviar el producto completo (SKU, precios,
-     * categoría) para tocar un número sería frágil y arriesga pisar datos.
-     *
-     * Este valor es el que dispara las alertas de stock bajo. Un mínimo de 0
-     * significa "sin alerta para este producto".
-     */
+    /** Cambia solo el stock mínimo (0 = sin alerta); es lo único que necesita la pantalla de inventario. */
     @Transactional
     public ProductoResponse actualizarStockMinimo(Long id, Integer stockMinimo) {
         if (stockMinimo == null || stockMinimo < 0) {
@@ -299,10 +229,7 @@ public class ProductoService {
         producto.setStockMinimo(stockMinimo);
         Producto guardado = productoRepository.save(producto);
 
-        // Este número también decide si el producto está bajo mínimo: subirlo
-        // puede dejar una alerta pendiente por crear, bajarlo puede dejar una
-        // ya sin motivo. Sin esto, la alerta quedaba desincronizada hasta el
-        // próximo movimiento de stock del producto.
+        // El mínimo decide si hay alerta: se revisa para crearla o cerrarla de inmediato.
         inventarioService.sincronizarAlerta(guardado.getId());
 
         registroAuditoria.registrar("ACTUALIZAR_STOCK_MINIMO", "productos", guardado.getId(),
@@ -311,9 +238,7 @@ public class ProductoService {
         return ocultarCostoSiNoEsAdmin(new ProductoResponse(guardado));
     }
 
-    /**
-     * Eliminar producto (desactivar)
-     */
+    /** Eliminar producto (desactivar) */
     @Transactional
     public void deleteProducto(Long id) {
         Producto producto = productoRepository.findById(id)
@@ -322,16 +247,12 @@ public class ProductoService {
         producto.setActivo(false);
         productoRepository.save(producto);
 
-        // Es una baja logica, no un DELETE: el producto sigue en la base porque
-        // lo referencian ventas viejas. Igual se audita como eliminacion, que es
-        // lo que el usuario percibe.
+        // Baja lógica: ventas viejas referencian el producto. Se audita como eliminación.
         registroAuditoria.registrar("ELIMINAR_PRODUCTO", "productos", producto.getId(),
                 "Baja de " + producto.getSku() + " - " + producto.getNombre());
     }
 
-    /**
-     * Activar/Desactivar producto
-     */
+    /** Activar/Desactivar producto */
     @Transactional
     public ProductoResponse toggleProductoStatus(Long id) {
         Producto producto = productoRepository.findById(id)
@@ -348,33 +269,25 @@ public class ProductoService {
         return ocultarCostoSiNoEsAdmin(new ProductoResponse(updatedProducto));
     }
 
-    /**
-     * Filtrar productos por categoría
-     */
+    /** Filtrar productos por categoría */
     @Transactional(readOnly = true)
     public List<ProductoResponse> getProductosByCategoria(Long categoriaId) {
         return aResponses(productoRepository.findByCategoriaId(categoriaId));
     }
 
-    /**
-     * Buscar productos por nombre
-     */
+    /** Buscar productos por nombre */
     @Transactional(readOnly = true)
     public List<ProductoResponse> searchProductos(String nombre) {
         return aResponses(productoRepository.searchByNombre(nombre));
     }
 
-    /**
-     * Contar productos activos
-     */
+    /** Contar productos activos */
     @Transactional(readOnly = true)
     public Long countActiveProductos() {
         return productoRepository.countByActivo(true);
     }
 
-    /**
-     * Contar productos por categoría
-     */
+    /** Contar productos por categoría */
     @Transactional(readOnly = true)
     public Long countProductosByCategoria(Long categoriaId) {
         return productoRepository.countByCategoriaId(categoriaId);

@@ -5,14 +5,11 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * DTO para imágenes de productos
- */
+/** DTO para imágenes de productos */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class ImagenProductoDTO {
-
     private Long id;
     private String urlImagen;
     private Boolean esPrincipal;

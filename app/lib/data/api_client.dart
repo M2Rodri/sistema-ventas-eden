@@ -10,16 +10,11 @@ import 'api_exception.dart';
 import 'jwt_utils.dart';
 import 'token_storage.dart';
 
-/// Envoltorio chico sobre http: arma la URL completa, pone el header de
-/// autorización cuando hay token, y traduce las respuestas de error del
-/// backend a ApiException para que las pantallas no tengan que lidiar con
-/// códigos HTTP ni parseo de JSON.
+/// Envoltorio sobre http: arma la URL, agrega el token y traduce los errores del backend a ApiException.
 class ApiClient {
   const ApiClient();
 
-  /// Qué hacer cuando una petición que llevaba sesión recibe 401 (token vencido
-  /// o inválido). Lo define la app al arrancar (main.dart): borra la sesión y
-  /// lleva al login. Un 403 no pasa por acá: es falta de permiso, no sesión vencida.
+  /// Qué hacer cuando una petición que llevaba sesión recibe 401 (token vencido o inválido).
   static void Function()? alVencerSesion;
 
   static bool _sesionVencidaAvisada = false;
@@ -27,18 +22,12 @@ class ApiClient {
   /// Se llama al iniciar sesión: desde ahí, un nuevo 401 vuelve a contar.
   static void sesionIniciada() => _sesionVencidaAvisada = false;
 
-  // ---------------------------------------------------------------------------
-  // Renovación del token. Las pantallas guardan el token con el que se abrió la
-  // sesión y lo pasan en cada llamada; cuando el token se renueva, acá se
-  // recuerda cuál es el vigente y se usa ese en el header, sin que ninguna
-  // pantalla tenga que enterarse.
-  // ---------------------------------------------------------------------------
+  // Renovación del token
 
   /// Cuando al token le queda esto o menos, la próxima llamada lo renueva.
   static Duration umbralRenovacion = const Duration(hours: 1);
 
-  /// Todos los tokens de la sesión actual (el de inicio y los renovados): las
-  /// pantallas pueden seguir pasando cualquiera de ellos.
+  /// Todos los tokens de la sesión actual (el de inicio y los renovados).
   static final Set<String> _tokensDeLaSesion = <String>{};
   static String? _tokenVigente;
   static Future<void>? _renovando;
@@ -52,8 +41,7 @@ class ApiClient {
     _tokenVigente = token;
   }
 
-  /// El token cambió dentro de la misma sesión (renovación o contraseña
-  /// confirmada en el candado): las pantallas siguen con el que tenían.
+  /// El token cambió dentro de la misma sesión (renovación o contraseña confirmada en el candado).
   static void reemplazarToken(String nuevo) {
     _tokensDeLaSesion.add(nuevo);
     _tokenVigente = nuevo;
@@ -74,9 +62,7 @@ class ApiClient {
     return token;
   }
 
-  /// Si al token vigente le queda poco, pide uno nuevo antes de seguir. Si falla
-  /// (sin conexión, sesión cortada, tope alcanzado) no hace nada: la llamada sigue
-  /// con el token que hay y, si ya no sirve, responde 401 como siempre.
+  /// Si al token vigente le queda poco, pide uno nuevo antes de seguir.
   Future<void> _renovarSiHaceFalta(String? token) async {
     final actual = _vigente(token);
     if (actual == null || actual != _tokenVigente) return;
@@ -109,19 +95,7 @@ class ApiClient {
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // Caché de lecturas (GET). Vale para TODA la app: cualquier pantalla, actual o
-  // futura, que lea con get / getList la aprovecha sin hacer nada.
-  //  - Fresca (menos de [vidaFresca]): se reutiliza sin pedirla otra vez.
-  //  - Algo vieja (hasta [vidaMaxima]): se muestra AL INSTANTE y se renueva por
-  //    detrás, para que la próxima vez ya sea nueva. Nunca se espera al servidor.
-  //  - Muy vieja o inexistente: se pide y se espera.
-  //  - Las lecturas que se piden a la vez comparten una sola petición.
-  //  - Cualquier escritura (POST, PUT, PATCH) vacía toda la caché, así que lo que
-  //    el usuario guarda se ve de inmediato, y vuelve a llenarla por detrás.
-  //  - La clave incluye el token: dos sesiones nunca comparten datos.
-  //  - Solo se guardan respuestas correctas; un error nunca se queda en caché.
-  // ---------------------------------------------------------------------------
+  // Caché de lecturas (GET)
   static Duration vidaFresca = const Duration(seconds: 60);
   static Duration vidaMaxima = const Duration(minutes: 3);
   static final Map<String, _EntradaCache> _cache = <String, _EntradaCache>{};
@@ -131,13 +105,10 @@ class ApiClient {
   static final StreamController<String> _actualizaciones =
       StreamController<String>.broadcast();
 
-  /// Avisa (con la ruta pedida) cada vez que una renovación por detrás trajo datos
-  /// DISTINTOS de los que ya se habían mostrado. Las pantallas abiertas se suscriben
-  /// y se recargan solas, sin spinner, para corregirse en cuanto llega lo nuevo.
+  /// Avisa cuando una renovación por detrás trajo datos distintos de los ya mostrados.
   static Stream<String> get actualizaciones => _actualizaciones.stream;
 
-  /// Qué volver a pedir por detrás después de guardar algo (lo define la app al
-  /// arrancar: PrecargaDatos.precargar).
+  /// Qué volver a pedir por detrás después de guardar algo (lo define la app al arrancar: PrecargaDatos.precargar).
   static Future<void> Function(String token)? precargar;
 
   /// Vacía la caché. Se usa al cerrar sesión y al tirar para refrescar una pantalla.
@@ -181,8 +152,7 @@ class ApiClient {
     return respuesta;
   }
 
-  /// Pide otra vez una lectura que ya se entregó, sin que nadie la espere. Si
-  /// sale bien reemplaza a la vieja; si falla, se queda la que había.
+  /// Pide otra vez una lectura que ya se entregó, sin que nadie la espere.
   void _renovar(String clave, String path, String token, _EntradaCache vieja) {
     if (vieja.renovando) return;
     vieja.renovando = true;
@@ -206,8 +176,7 @@ class ApiClient {
     }, onError: (Object _) => vieja.renovando = false);
   }
 
-  /// Toda escritura pasa por acá: al terminar (salga bien o mal) la caché queda
-  /// vacía y, pasado un momento, se vuelve a llenar por detrás.
+  /// Toda escritura pasa por acá: al terminar vacía la caché y la vuelve a llenar por detrás.
   Future<http.Response> _escribir(
     String path,
     String? token,
@@ -273,9 +242,7 @@ class ApiClient {
     return _decodificar(respuesta, path, token);
   }
 
-  /// PATCH sin body: alcanza para las acciones de estado que expone el
-  /// backend (marcar entregado, cancelar), que no reciben nada más que el id
-  /// en la ruta.
+  /// PATCH sin body, para las acciones de estado (marcar entregado, cancelar).
   Future<Map<String, dynamic>> patch(
     String path, {
     required String token,
@@ -288,8 +255,7 @@ class ApiClient {
     return _decodificar(respuesta, path, token);
   }
 
-  /// PATCH con body, para las acciones que llevan datos (por ejemplo,
-  /// completar la dirección, la transportadora y la guía de una venta).
+  /// PATCH con body, para las acciones que llevan datos (p. ej. completar la entrega).
   Future<Map<String, dynamic>> patchConCuerpo(
     String path,
     Map<String, dynamic> body, {
@@ -307,8 +273,7 @@ class ApiClient {
     return _decodificar(respuesta, path, token);
   }
 
-  /// Sube un único archivo como multipart/form-data, en el campo "file" (el
-  /// mismo nombre que espera POST /api/v1/pagos/{id}/comprobante).
+  /// Sube un archivo como multipart/form-data en el campo "file".
   Future<Map<String, dynamic>> postArchivo(
     String path, {
     required File archivo,
@@ -330,9 +295,7 @@ class ApiClient {
     return _decodificar(respuesta, path, token);
   }
 
-  /// Igual que [get], pero para endpoints que devuelven un array JSON
-  /// (`[...]`) en vez de un objeto (`{...}`), como los listados de
-  /// productos e inventario.
+  /// Como [get], pero para endpoints que devuelven un array JSON.
   Future<List<dynamic>> getList(String path, {required String token}) async {
     await _renovarSiHaceFalta(token);
     final respuesta = await _leerConCache(path, token);
@@ -380,9 +343,7 @@ class ApiClient {
     return jsonDecode(respuesta.body) as List<dynamic>;
   }
 
-  /// Traduce un status HTTP de error a ApiException. No devuelve nada: si la
-  /// respuesta está bien, simplemente vuelve y quien llamó sigue con el
-  /// decodificado (de objeto o de lista) que corresponda.
+  /// Traduce un status HTTP de error a ApiException.
   void _verificarError(http.Response respuesta, String path, String? token) {
     if (respuesta.statusCode == 401) {
       _avisarSiVencioLaSesion(path, token);
@@ -406,9 +367,7 @@ class ApiClient {
     }
   }
 
-  /// El 401 del login es "credenciales incorrectas", no una sesión vencida, y una
-  /// petición sin token tampoco tenía sesión que perder. Se avisa una sola vez,
-  /// aunque lleguen varios 401 juntos.
+  /// El 401 del login son credenciales incorrectas, no una sesión vencida.
   void _avisarSiVencioLaSesion(String path, String? token) {
     final llevabaSesion = token != null;
     final esLogin = path.endsWith('/auth/login');
@@ -420,8 +379,7 @@ class ApiClient {
   String? _extraerMensaje(String cuerpo) => extraerMensajeError(cuerpo);
 }
 
-/// Código de negocio de un cuerpo de error ({"error": {"codigo": "..."}}), o
-/// null si el cuerpo no lo trae.
+/// Código de negocio de un cuerpo de error ({"error": {"codigo": "..."}}), o null si el cuerpo no lo trae.
 String? extraerCodigoError(String cuerpo) {
   if (cuerpo.isEmpty) return null;
   try {
@@ -436,10 +394,7 @@ String? extraerCodigoError(String cuerpo) {
   return null;
 }
 
-/// Mensaje de un cuerpo de error de la API. Formato único:
-/// {"error": {"codigo": "...", "mensaje": "...", "campos": {...}}}. Mientras el
-/// backend publicado siga con el formato anterior ({"error": "texto"}) también
-/// se lee ese, igual que el {"message": "..."} de Spring y el texto plano.
+/// Mensaje de un cuerpo de error de la API.
 String? extraerMensajeError(String cuerpo) {
   if (cuerpo.isEmpty) return null;
   try {

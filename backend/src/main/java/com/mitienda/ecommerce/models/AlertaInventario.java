@@ -9,16 +9,13 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
-/**
- * Entidad AlertaInventario - Alertas de stock bajo
- */
+/** Entidad AlertaInventario - Alertas de stock bajo */
 @Entity
 @Table(name = "alertas_inventario")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class AlertaInventario {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

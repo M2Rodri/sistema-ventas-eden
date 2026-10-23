@@ -10,19 +10,9 @@ import org.springframework.core.env.Profiles;
 
 import java.nio.file.Path;
 
-/**
- * Elige dónde se guardan los archivos subidos.
- *
- *   SUPABASE_URL y SUPABASE_SERVICE_KEY definidas -> Supabase Storage.
- *   Sin ellas en desarrollo                        -> disco local (uploads/).
- *   Sin ellas en producción                        -> el backend no arranca.
- *
- * Las dos variables se leen solo del entorno (o de backend/.env en desarrollo).
- * Ningún archivo del repositorio contiene sus valores.
- */
+/** Elige el almacenamiento: Supabase si hay credenciales; disco local en desarrollo; error en producción. */
 @Configuration
 public class AlmacenConfig {
-
     private static final Logger log = LoggerFactory.getLogger(AlmacenConfig.class);
 
     @Bean

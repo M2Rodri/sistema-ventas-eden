@@ -10,16 +10,13 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
-/**
- * Entidad ConfiguracionSistema - Configuraciones generales del sistema
- */
+/** Entidad ConfiguracionSistema - Configuraciones generales del sistema */
 @Entity
 @Table(name = "configuracion_sistema")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class ConfiguracionSistema {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

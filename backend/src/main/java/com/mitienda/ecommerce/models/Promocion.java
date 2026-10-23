@@ -17,24 +17,18 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Entidad Promocion - Promociones y descuentos
- */
+/** Entidad Promocion - Promociones y descuentos */
 @Entity
 @Table(name = "promociones")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class Promocion {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /**
-     * Nombre de la promoción ("Liquidación de invierno"). Es NOT NULL en la
-     * base y la entidad no lo mapeaba: sin él, todo INSERT fallaba.
-     */
+    /** Nombre de la promoción (NOT NULL en la base). */
     @NotBlank(message = "El nombre es obligatorio")
     @Size(max = 150, message = "El nombre no puede exceder 150 caracteres")
     @Column(nullable = false, length = 150)
@@ -84,9 +78,7 @@ public class Promocion {
         this.activo = true;
     }
 
-    /**
-     * Verificar si la promocion está vigente
-     */
+    /** Verificar si la promocion está vigente */
     public boolean estaVigente() {
         LocalDate hoy = LocalDate.now();
         return this.activo && 

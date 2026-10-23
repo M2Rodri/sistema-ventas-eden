@@ -11,14 +11,7 @@ interface HistorialProductoModalProps {
   onClose: () => void;
 }
 
-/**
- * Historial de movimientos de un producto.
- *
- * Antes esta pantalla mostraba una lista inventada en el código: movimientos
- * de 2024, usuarios "Juan Pérez" y "María López", e incluso direcciones IP
- * falsas — todo idéntico para cualquier producto que se abriera. El endpoint
- * real existía sin usarse.
- */
+/** Historial de movimientos de un producto. */
 export default function HistorialProductoModal({ inventario, onClose }: HistorialProductoModalProps) {
   const [movimientos, setMovimientos] = useState<MovimientoInventario[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -59,8 +52,7 @@ export default function HistorialProductoModal({ inventario, onClose }: Historia
     ? movimientos
     : movimientos.filter((m) => m.tipoMovimiento === tipoFiltro);
 
-  // Arrastrar la tabla desde el encabezado, como si fuera una barra de
-  // scroll horizontal. Ver hooks/useDragScrollTable.ts.
+  // Arrastrar la tabla desde el encabezado (ver hooks/useDragScrollTable.ts).
   const { scrollContainerRef, tableRef, theadRef, hasOverflow, theadProps } =
     useDragScrollTable([visibles]);
 

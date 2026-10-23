@@ -9,18 +9,11 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Producto activo con precio y stock juntos, para GET /api/v1/inventario/catalogo.
- *
- * Antes la app móvil pedía /api/v1/productos/activos y /api/v1/inventario por
- * separado y los cruzaba en el cliente. Este DTO es ese cruce hecho en el
- * servidor, en una sola consulta (ver InventarioRepository#findCatalogoApp).
- */
+/** Producto activo con precio y stock juntos, para el catálogo de la app. */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class CatalogoProductoResponse {
-
     private Long id;
     private String sku;
     private String nombre;
@@ -33,8 +26,7 @@ public class CatalogoProductoResponse {
     private Integer stockMinimo;
     private Boolean bajoStockMinimo;
 
-    // Ficha técnica: los mismos campos (y nombres) que la ficha del producto en la web.
-    // El precio de compra NO se incluye: el empleado no debe ver costos.
+    // Ficha técnica como en la web; sin precio de compra.
     private String marca;
     private String modelo;
     private String calidad;

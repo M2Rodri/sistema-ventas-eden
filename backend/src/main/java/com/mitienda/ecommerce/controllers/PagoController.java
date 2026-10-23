@@ -16,63 +16,40 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Controlador REST para gestión de pagos
- */
+/** Controlador REST para gestión de pagos */
 @RestController
 @RequestMapping("/api/v1/pagos")
 @CrossOrigin(origins = "http://localhost:3000")
 @PreAuthorize("hasAnyRole('ADMIN', 'EMPLEADO')")
 public class PagoController {
-
     private final PagoService pagoService;
 
-    /**
-     * Inyeccion por constructor, no por campo.
-     *
-     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
-     * puede existir a medio construir, y una dependencia circular falla al
-     * arrancar en vez de aparecer en ejecucion.
-     */
     public PagoController(PagoService pagoService) {
         this.pagoService = pagoService;
     }
 
-
-    /**
-     * GET /api/v1/pagos
-     * Listar todos los pagos
-     */
+    /** Listar todos los pagos */
     @GetMapping
     public ResponseEntity<List<PagoDTO>> getAllPagos() {
         List<PagoDTO> pagos = pagoService.getAllPagos();
         return ResponseEntity.ok(pagos);
     }
 
-    /**
-     * GET /api/v1/pagos/{id}
-     * Obtener pago por ID
-     */
+    /** Obtener pago por ID */
     @GetMapping("/{id}")
     public ResponseEntity<?> getPagoById(@PathVariable Long id) {
         PagoDTO pago = pagoService.getPagoById(id);
         return ResponseEntity.ok(pago);
     }
 
-    /**
-     * POST /api/v1/pagos
-     * Registrar un nuevo pago
-     */
+    /** Registrar un nuevo pago */
     @PostMapping
     public ResponseEntity<?> registrarPago(@Valid @RequestBody PagoRequest request) {
         PagoDTO createdPago = pagoService.registrarPago(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdPago);
     }
 
-    /**
-     * POST /api/v1/pagos/{id}/comprobante
-     * Adjuntar (o reemplazar) la foto de comprobante de un pago ya registrado
-     */
+    /** Adjuntar (o reemplazar) la foto de comprobante de un pago ya registrado */
     @PostMapping("/{id}/comprobante")
     public ResponseEntity<?> adjuntarComprobante(@PathVariable Long id,
                                                   @RequestParam("file") MultipartFile file) throws IOException {
@@ -83,20 +60,14 @@ public class PagoController {
         return ResponseEntity.ok(pago);
     }
 
-    /**
-     * GET /api/v1/pagos/venta/{ventaId}
-     * Obtener pagos de una venta
-     */
+    /** Obtener pagos de una venta */
     @GetMapping("/venta/{ventaId}")
     public ResponseEntity<List<PagoDTO>> getPagosByVenta(@PathVariable Long ventaId) {
         List<PagoDTO> pagos = pagoService.getPagosByVenta(ventaId);
         return ResponseEntity.ok(pagos);
     }
 
-    /**
-     * GET /api/v1/pagos/estado/{estado}
-     * Filtrar pagos por estado
-     */
+    /** Filtrar pagos por estado */
     @GetMapping("/estado/{estado}")
     public ResponseEntity<?> getPagosByEstado(@PathVariable String estado) {
         EstadoPago estadoEnum;
@@ -109,10 +80,7 @@ public class PagoController {
         return ResponseEntity.ok(pagos);
     }
 
-    /**
-     * GET /api/v1/pagos/estadisticas
-     * Obtener estadísticas de pagos
-     */
+    /** Obtener estadísticas de pagos */
     @GetMapping("/estadisticas")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getPagoStatistics() {

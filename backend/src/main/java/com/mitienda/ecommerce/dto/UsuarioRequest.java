@@ -8,14 +8,11 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * DTO para crear o actualizar usuarios
- */
+/** DTO para crear o actualizar usuarios */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class UsuarioRequest {
-
     @NotBlank(message = "El nombre es obligatorio")
     @Size(min = 2, max = 50, message = "El nombre debe tener entre 2 y 50 caracteres")
     private String nombre;
@@ -39,10 +36,7 @@ public class UsuarioRequest {
     @Size(max = 200, message = "La dirección no puede exceder 200 caracteres")
     private String direccion;
 
-    /**
-     * Nombre del rol: "ADMIN" o "EMPLEADO". Al crear, si no se envía, el usuario
-     * queda como EMPLEADO. Al editar sigue siendo obligatorio (lo exige el servicio).
-     */
+    /** "ADMIN" o "EMPLEADO"; al crear, si falta, es EMPLEADO; al editar es obligatorio. */
     private String role;
 
     @NotNull(message = "El estado es obligatorio")

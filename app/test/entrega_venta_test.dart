@@ -1,9 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:muebleria_eden_app/models/venta.dart';
 
-/// Reglas de entrega del lado de la app: la definición única de "por
-/// entregar", la etiqueta "Falta completar" y qué datos viajan al backend
-/// según la modalidad.
+/// Reglas de entrega en la app: "por entregar", "Falta completar" y los datos que viajan al backend.
 Venta _venta({
   String estado = 'COMPLETADA',
   String modalidad = 'DOMICILIO',

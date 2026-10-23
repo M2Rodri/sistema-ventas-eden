@@ -16,18 +16,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * Un recurso que no existe responde 404 con el código propio de cada módulo, y también
- * cuando se intenta modificarlo (PUT, PATCH, DELETE). Antes varias de estas rutas
- * respondían 400 o 500.
- *
- * Usa las rutas, la validación y los servicios reales con un id que no existe, así que
- * no escribe nada en la base de datos.
- */
+/** Un recurso inexistente responde 404 con el código de su módulo, también en PUT, PATCH y DELETE. */
 @SpringBootTest
 @AutoConfigureMockMvc
 class RecursoInexistenteApiTest {
-
     private static final long INEXISTENTE = 999_999_999L;
     private static final RequestPostProcessor ADMIN = user("admin").roles("ADMIN");
 

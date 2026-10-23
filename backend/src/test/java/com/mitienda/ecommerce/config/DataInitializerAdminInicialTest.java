@@ -38,7 +38,6 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class DataInitializerAdminInicialTest {
-
     private static final String CLAVE = "Clave-Inicial-Segura-9";
 
     @Mock private RoleRepository roleRepository;

@@ -5,30 +5,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
 
-/**
- * Repositorio para operaciones de base de datos con la entidad Usuario
- * Spring Data JPA genera automáticamente las implementaciones
- */
+/** Acceso a la tabla de usuarios. */
 public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
-
-    /**
-     * Buscar usuario por nombre de usuario (login)
-     * @param usuario Nombre de usuario
-     * @return Optional con el usuario si existe
-     */
+    /** Busca por nombre de usuario (login). */
     Optional<Usuario> findByUsuario(String usuario);
 
-    /**
-     * Verificar si existe un usuario con ese nombre de usuario
-     * @param usuario Nombre de usuario a verificar
-     * @return true si existe, false si no
-     */
+    /** Si existe un usuario con ese nombre. */
     Boolean existsByUsuario(String usuario);
 
-    /**
-     * Contar usuarios activos
-     * @param activo Estado del usuario
-     * @return Cantidad de usuarios activos
-     */
+    /** Cuenta los usuarios según su estado activo. */
     Long countByActivo(Boolean activo);
 }

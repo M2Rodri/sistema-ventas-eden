@@ -82,8 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
   DashboardResumen? _resumen;
   VentasSemanal? _semana;
 
-  /// Productos agotados o por debajo de su stock mínimo, los más urgentes
-  /// primero. Alimentan la campana de notificaciones.
+  /// Productos agotados o por debajo de su stock mínimo, los más urgentes primero.
   List<ProductoCatalogo> _alertasStock = const <ProductoCatalogo>[];
   String? _errorMensaje;
 
@@ -93,16 +92,14 @@ class _HomeScreenState extends State<HomeScreen> {
     _cargarResumen();
     // Al cambiar de tema (claro/oscuro) desde Ajustes, el inicio se vuelve a dibujar.
     TemaService.modoOscuro.addListener(_alCambiarTema);
-    // Si llegan datos nuevos por detrás (resumen, semana, stock bajo), el inicio
-    // se corrige solo, sin spinner.
+    // Si llegan datos nuevos por detrás (resumen, semana, stock bajo), el inicio se corrige solo, sin spinner.
     _suscripcion = ApiClient.actualizaciones.listen((ruta) {
       if (ruta.startsWith('/api/v1/dashboard/') ||
           ruta.contains('soloBajoMinimo')) {
         _cargarResumen(silencioso: true);
       }
     });
-    // Con el inicio ya pidiendo lo suyo, deja listos por detrás los datos de las
-    // demás pantallas (ventas, catálogo, clientes) para que abran al instante.
+    // Deja listos por detrás los datos de las demás pantallas para que abran al instante.
     Future<void>.delayed(const Duration(milliseconds: 1500), () {
       if (mounted) PrecargaDatos.precargar(widget.sesion.token);
     });
@@ -124,8 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _cargarResumen({bool silencioso = false}) async {
-    // Al abrir la app, muestra AL INSTANTE lo último que se vio mientras llegan
-    // los números nuevos (que reemplazan a estos apenas llegan).
+    // Muestra al instante lo último visto mientras llegan los números nuevos.
     if (_resumen == null) {
       final guardado = await _dashboardRepository.resumenGuardado();
       if (guardado != null && mounted && _resumen == null) {
@@ -154,17 +150,12 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     try {
-      // Las tres peticiones salen a la vez: antes se esperaban una tras otra
-      // y el inicio tardaba la suma de las tres.
-      //
-      // La semana es un extra de la pantalla: si falla no tumba el resumen
-      // del día, la tarjeta simplemente queda sin cifra.
+      // Las tres peticiones salen a la vez: antes se esperaban una tras otra y el inicio tardaba la suma de las tres.
       final semanaFuture = _dashboardRepository
           .obtenerVentasSemanal(widget.sesion.token)
           .then<VentasSemanal?>((valor) => valor)
           .catchError((_) => null);
-      // Igual que la semana: si falla, la campana queda sin avisos en vez de
-      // tumbar el resumen del día.
+      // Igual que la semana: si falla, la campana queda sin avisos en vez de tumbar el resumen del día.
       final alertasFuture = _catalogoRepository
           .obtenerBajoMinimo(widget.sesion.token)
           .then<List<ProductoCatalogo>>(
@@ -215,7 +206,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /// Notificaciones: ventana flotante bajo la campana, más ancha que un menú.
-  /// Tocar una fila abre el detalle del producto.
   void _abrirNotificaciones() {
     showDialog<void>(
       context: context,
@@ -290,16 +280,14 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Al tocar una tarjeta cuando el resumen no pudo cargar no se abre nada:
-  /// aparece un mensaje corto abajo con el motivo y la opción de reintentar.
+  /// Al tocar una tarjeta cuando el resumen no pudo cargar no se abre nada.
   void _mostrarErrorResumen() {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          // Con un botón de acción Flutter lo deja fijo hasta que se cierre a
-          // mano; acá se quiere que se vaya solo a los 3 segundos.
+          // Con un botón de acción Flutter lo deja fijo hasta que se cierre a mano.
           persist: false,
           duration: const Duration(seconds: 3),
           backgroundColor: AppColors.textoPrincipal,
@@ -329,9 +317,7 @@ class _HomeScreenState extends State<HomeScreen> {
       );
   }
 
-  /// Nueva venta como formulario flotante sobre el inicio, no como otra
-  /// pantalla. Se cierra solo con la X (o al registrar la venta): sin deslizar
-  /// ni tocar afuera, para no perder lo que ya se escribió por accidente.
+  /// Nueva venta como formulario flotante sobre el inicio, no como otra pantalla.
   Future<void> _abrirNuevaVenta() async {
     final registrada = await showModalBottomSheet<bool>(
       context: context,
@@ -354,8 +340,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (registrada == true && mounted) _cargarResumen();
   }
 
-  /// Tarjeta "Ventas hoy": arriba el total facturado del día y debajo las
-  /// ventas registradas hoy.
+  /// Tarjeta "Ventas hoy": arriba el total facturado del día y debajo las ventas registradas hoy.
   void _mostrarVentasHoy() {
     final hoy = DateTime.now();
     final ventasFuture = _ventasRepository.obtenerVentas(widget.sesion.token);
@@ -446,8 +431,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Una sola lista que se desplaza junta: la tarjeta de total y, debajo, las
-  /// ventas COMPLETADA de hoy (las mismas que cuenta la tarjeta del inicio).
+  /// Lista única: la tarjeta de total y, debajo, las ventas COMPLETADA de hoy.
   Widget _contenidoVentasHoy(
     BuildContext modalCtx,
     ScrollController scrollController,
@@ -605,8 +589,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Una venta de hoy: cliente, hora, estado del pago y de la entrega, y monto.
-  /// Al tocarla se abre su detalle.
+  /// Una venta de hoy: cliente, hora, estado del pago y de la entrega, y monto. Al tocarla se abre su detalle.
   Widget _tarjetaVentaHoy(BuildContext modalCtx, Venta v) {
     return InkWell(
       onTap: () {
@@ -750,8 +733,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Tarjeta "Ventas semanales": acumulado de lunes a domingo, con navegación
-  /// a semanas anteriores.
+  /// Tarjeta "Ventas semanales": acumulado de lunes a domingo, con navegación a semanas anteriores.
   void _mostrarVentasSemanales() {
     showModalBottomSheet<void>(
       context: context,
@@ -1421,9 +1403,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        // Menú de 3 barras con el mismo diseño que el de la app anterior (un
-        // botón cuadrado blanco que abre un menú debajo). Por ahora las
-        // opciones no llevan a ninguna pantalla.
+        // Menú de 3 barras con el mismo diseño que el de la app anterior (un botón cuadrado blanco que abre un menú debajo).
         leading: PopupMenuButton<String>(
           tooltip: 'Menú',
           offset: const Offset(0, 48),
@@ -1526,8 +1506,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         title: const Text('Mueblería Edén'),
         actions: <Widget>[
-          // Notificaciones: se abre justo debajo de la campana. Por ahora avisa
-          // del stock bajo.
+          // Notificaciones: se abre justo debajo de la campana. Por ahora avisa del stock bajo.
           IconButton(
             tooltip: 'Notificaciones',
             icon: _CampanaConAviso(
@@ -1682,8 +1661,7 @@ class _CuerpoResumen extends StatelessWidget {
         );
 
       case _EstadoResumen.error:
-        // Las cuatro tarjetas se quedan en su lugar, con "—" en vez de un cero
-        // que parecería un dato real, y un solo aviso arriba con el reintento.
+        // Las tarjetas quedan con "—" en vez de un cero falso y un solo aviso con reintento.
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
@@ -1744,8 +1722,7 @@ class _CuerpoResumen extends StatelessWidget {
     );
   }
 
-  /// Las cuatro tarjetas. Con [datos] nulo (error) muestran "—" y, al tocarlas,
-  /// abren el detalle del error en vez de su hoja.
+  /// Las cuatro tarjetas.
   Widget _rejilla(DashboardResumen? datos) {
     final sinDatos = datos == null;
 
@@ -1890,8 +1867,7 @@ class _MetricaResumen extends StatelessWidget {
   }
 }
 
-/// Acceso a un módulo como botón suelto, cuadrado de esquinas redondeadas y de
-/// un solo color.
+/// Acceso a un módulo como botón suelto, cuadrado de esquinas redondeadas y de un solo color.
 class _BotonModulo extends StatelessWidget {
   _BotonModulo({
     required this.icono,
@@ -1943,8 +1919,7 @@ class _BotonModulo extends StatelessWidget {
   }
 }
 
-/// Contenido de la hoja "Ventas semanales": resumen de la semana (lunes a
-/// domingo), desglose por día y flechas para ir a semanas anteriores.
+/// Hoja "Ventas semanales": resumen de la semana, desglose por día y navegación entre semanas.
 class _HojaVentasSemanales extends StatefulWidget {
   _HojaVentasSemanales({
     required this.repositorio,
@@ -1965,8 +1940,7 @@ class _HojaVentasSemanales extends StatefulWidget {
   /// Se llama al tocar una venta dentro de un día desplegado.
   final void Function(Venta venta) onAbrirVenta;
 
-  /// La semana en curso ya cargada en la pantalla principal, para no volver a
-  /// pedirla al abrir la hoja.
+  /// La semana en curso ya cargada en la pantalla principal, para no volver a pedirla al abrir la hoja.
   final VentasSemanal? semanaInicial;
 
   @override
@@ -1977,22 +1951,19 @@ class _HojaVentasSemanalesState extends State<_HojaVentasSemanales> {
   final _formatoDiaMes = DateFormat('dd/MM');
 
   /// Semanas rápidas del desplegable: esta, la anterior y hace 2 y 3 semanas.
-  /// Para cualquier otra se usa "Elegir otra fecha…".
   static const _totalSemanas = 4;
 
   /// Valores propios del desplegable que no son una semana rápida.
   static const _semanaPersonalizada = 4;
   static const _accionElegirFecha = 99;
 
-  /// 0 = esta semana, 1 = semana anterior, 2 = hace 2 semanas, 3 = hace 3
-  /// semanas, 4 = una semana elegida en el calendario.
+  /// 0 = esta semana, 1 = semana anterior, 2 = hace 2 semanas, 3 = hace 3 semanas, 4 = una semana elegida en el calendario.
   int _indice = 0;
 
   /// Lunes de la semana elegida en el calendario (solo con _indice == 4).
   DateTime? _lunesElegido;
 
-  /// Día desplegado (solo uno a la vez) y la lista de ventas que se pide la
-  /// primera vez que se despliega alguno.
+  /// Día desplegado (solo uno a la vez) y la lista de ventas que se pide la primera vez que se despliega alguno.
   DateTime? _diaAbierto;
   Future<List<Venta>>? _ventasFuture;
 
@@ -2018,8 +1989,7 @@ class _HojaVentasSemanalesState extends State<_HojaVentasSemanales> {
     });
   }
 
-  /// Semana lejana elegida en el calendario: queda como una opción más del
-  /// desplegable, con sus fechas.
+  /// Semana lejana elegida en el calendario: queda como una opción más del desplegable, con sus fechas.
   void _elegirLunes(DateTime lunes) {
     setState(() {
       _indice = _semanaPersonalizada;
@@ -2032,8 +2002,7 @@ class _HojaVentasSemanalesState extends State<_HojaVentasSemanales> {
     });
   }
 
-  /// Ventana centrada para ir a cualquier semana: se toca un día y se pinta la
-  /// fila completa (lunes a domingo) que lo contiene.
+  /// Ventana para ir a cualquier semana: se toca un día y se pinta la semana completa.
   Future<void> _abrirCalendario() async {
     final lunes = await showDialog<DateTime>(
       context: context,
@@ -2549,8 +2518,7 @@ class _FilaDiaSemana extends StatelessWidget {
         children: <Widget>[
           InkWell(
             onTap: onTap,
-            // Mientras el día está desplegado, su encabezado lleva un toque de
-            // verde; al cerrarlo (o abrir otro día) vuelve a su color normal.
+            // Mientras el día está desplegado, su encabezado lleva un toque de verde.
             child: Ink(
               color: abierto
                   ? (esHoy ? AppColors.tintVerdeHoy : AppColors.tintVerde)
@@ -2627,10 +2595,7 @@ class _FilaDiaSemana extends StatelessWidget {
   }
 }
 
-/// Ventana "Elegir semana", centrada en la pantalla: un calendario mensual
-/// donde al tocar un día se pinta la semana completa (lunes a domingo) que lo
-/// contiene. Arriba tiene desplegables de año, mes y día para saltar rápido.
-/// Devuelve el lunes de la semana elegida, o null si se cierra con la X.
+/// Ventana "Elegir semana", centrada en la pantalla.
 class _SelectorSemanaDialog extends StatefulWidget {
   _SelectorSemanaDialog({required this.lunesInicial, required this.hoy});
 
@@ -2679,10 +2644,7 @@ class _SelectorSemanaDialogState extends State<_SelectorSemanaDialog> {
     final domingo = DateTime(_lunes.year, _lunes.month, _lunes.day + 6);
     // Al abrir se marca hoy si cae en la semana elegida; si no, el lunes.
     _dia = !_hoy.isBefore(_lunes) && !_hoy.isAfter(domingo) ? _hoy : _lunes;
-    // Se abre en el mes donde cae el jueves de la semana elegida, que es el
-    // mes al que la semana "pertenece" cuando cruza de un mes a otro. Nunca en
-    // un mes futuro: la semana en curso puede terminar en el mes siguiente,
-    // pero ese mes no se puede consultar todavía.
+    // Se abre en el mes del jueves de la semana elegida, al que ella pertenece si cruza de mes.
     final jueves = DateTime(_lunes.year, _lunes.month, _lunes.day + 3);
     final mesDelJueves = DateTime(jueves.year, jueves.month);
     final mesActual = DateTime(_hoy.year, _hoy.month);
@@ -2699,12 +2661,10 @@ class _SelectorSemanaDialogState extends State<_SelectorSemanaDialog> {
 
   bool get _puedeAvanzar => _mes.isBefore(DateTime(_hoy.year, _hoy.month));
 
-  /// Último mes que se puede elegir en [anio]: diciembre, o el mes actual si
-  /// es el año en curso.
+  /// Último mes que se puede elegir en [anio]: diciembre, o el mes actual si es el año en curso.
   int _ultimoMesDe(int anio) => anio == _hoy.year ? _hoy.month : 12;
 
-  /// Último día que se puede elegir en el mes que se está viendo: el fin de
-  /// mes, o hoy si es el mes en curso.
+  /// Último día que se puede elegir en el mes que se está viendo: el fin de mes, o hoy si es el mes en curso.
   int get _ultimoDiaDelMes {
     final finDeMes = DateTime(_mes.year, _mes.month + 1, 0).day;
     return _mes.year == _hoy.year && _mes.month == _hoy.month
@@ -2821,8 +2781,7 @@ class _SelectorSemanaDialogState extends State<_SelectorSemanaDialog> {
           width: 34,
           height: 34,
           alignment: Alignment.center,
-          // El día tocado va en un círculo relleno (verde agua), distinto de la
-          // banda de la semana y del aro de "hoy".
+          // El día tocado va en un círculo relleno (verde agua), distinto de la banda de la semana y del aro de "hoy".
           decoration: diaElegido
               ? const BoxDecoration(
                   shape: BoxShape.circle,
@@ -3062,9 +3021,7 @@ class _SelectorSemanaDialogState extends State<_SelectorSemanaDialog> {
   }
 }
 
-/// Campana de notificaciones con su aviso: un número rojo con los productos
-/// agotados, o solo un punto naranja si hay stock bajo pero ninguno agotado.
-/// Sin alertas, la campana va sola.
+/// Campana de notificaciones: número rojo si hay agotados, punto naranja si solo hay stock bajo.
 class _CampanaConAviso extends StatelessWidget {
   _CampanaConAviso({required this.agotados, required this.hayBajos});
 
@@ -3119,8 +3076,7 @@ class _CampanaConAviso extends StatelessWidget {
   }
 }
 
-/// Lo que muestra la campana al abrirse: el stock bajo, con los agotados
-/// primero, o un mensaje de que todo está en orden.
+/// Lo que muestra la campana al abrirse: el stock bajo, con los agotados primero, o un mensaje de que todo está en orden.
 class _PanelNotificaciones extends StatelessWidget {
   _PanelNotificaciones({required this.alertas, required this.onTapProducto});
 
@@ -3189,8 +3145,7 @@ class _PanelNotificaciones extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 6),
-              // Se ven 5 filas completas y, si hay más, asoma la mitad de la sexta
-              // para que se note que la lista se desliza.
+              // Se ven 5 filas completas y, si hay más, asoma la mitad de la sexta para que se note que la lista se desliza.
               ConstrainedBox(
                 constraints: const BoxConstraints(maxHeight: 248),
                 child: SingleChildScrollView(

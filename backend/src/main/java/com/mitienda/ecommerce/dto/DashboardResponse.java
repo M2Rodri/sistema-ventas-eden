@@ -8,14 +8,11 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
-/**
- * DTO para respuesta del dashboard con todas las estadísticas
- */
+/** DTO para respuesta del dashboard con todas las estadísticas */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class DashboardResponse {
-
     // Estadísticas de Ventas
     private VentasStats ventasStats;
 
@@ -37,15 +34,10 @@ public class DashboardResponse {
     // Ventas por día (últimos 7 días)
     private List<VentaPorDiaDTO> ventasUltimosDias;
 
-    /**
-     * Ventas por entregar: estado de entrega distinto de ENTREGADO y venta no
-     * cancelada (misma definición que la web y la app).
-     */
+    /** Ventas por entregar: entrega distinta de ENTREGADO y venta no cancelada. */
     private Long ventasPorEntregar;
 
-    /**
-     * Clase interna para estadísticas de ventas
-     */
+    /** Clase interna para estadísticas de ventas */
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
@@ -59,9 +51,7 @@ public class DashboardResponse {
         private BigDecimal promedioVentaDiaria;
     }
 
-    /**
-     * Clase interna para estadísticas de productos
-     */
+    /** Clase interna para estadísticas de productos */
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
@@ -72,9 +62,7 @@ public class DashboardResponse {
         private Long productosBajoStock;
     }
 
-    /**
-     * Clase interna para estadísticas de inventario
-     */
+    /** Clase interna para estadísticas de inventario */
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
@@ -84,9 +72,7 @@ public class DashboardResponse {
         private Integer ajustesDelMes;
     }
 
-    /**
-     * Clase interna para estadísticas de clientes
-     */
+    /** Clase interna para estadísticas de clientes */
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
@@ -97,9 +83,7 @@ public class DashboardResponse {
         private Long clientesActivos;
     }
 
-    /**
-     * Clase interna para estadísticas de pagos
-     */
+    /** Clase interna para estadísticas de pagos */
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
@@ -108,9 +92,7 @@ public class DashboardResponse {
         private BigDecimal montoCuotasPendientes;
     }
 
-    /**
-     * DTO para productos más vendidos
-     */
+    /** DTO para productos más vendidos */
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
@@ -122,9 +104,7 @@ public class DashboardResponse {
         private BigDecimal montoTotal;
     }
 
-    /**
-     * DTO para ventas por día
-     */
+    /** DTO para ventas por día */
     @Data
     @NoArgsConstructor
     @AllArgsConstructor

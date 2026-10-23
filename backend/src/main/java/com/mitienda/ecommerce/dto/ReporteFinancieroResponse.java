@@ -8,23 +8,11 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * DTO para el reporte financiero.
- *
- * Separa dos cosas que antes se mezclaban en un solo numero:
- * - gananciaVentas: la ganancia real de lo vendido (precio menos costo de
- *   cada producto, por la cantidad). Sale de detalle_venta.costo_unitario,
- *   el costo que quedo fijo al momento de cada venta.
- * - ingresosTotales / gastosTotales / saldoPeriodo: flujo de caja del
- *   periodo (ventas contra compras), que no es ganancia. Un mes en que el
- *   negocio compra para abastecerse puede dar saldo negativo aunque haya
- *   vendido con margen positivo.
- */
+/** Reporte financiero: ganancia de las ventas y flujo de caja (ingresos, gastos, saldo), que no es ganancia. */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class ReporteFinancieroResponse {
-
     private LocalDateTime fechaInicio;
     private LocalDateTime fechaFin;
 

@@ -12,64 +12,40 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Controlador REST para gestión de usuarios
- * Solo accesible por usuarios con rol ADMIN
- */
+/** Gestión de usuarios; solo ADMIN. */
 @RestController
 @RequestMapping("/api/v1/usuarios")
 @CrossOrigin(origins = "http://localhost:3000")
 @PreAuthorize("hasRole('ADMIN')")
 public class UsuarioController {
-
     private final UsuarioService usuarioService;
 
-    /**
-     * Inyeccion por constructor, no por campo.
-     *
-     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
-     * puede existir a medio construir, y una dependencia circular falla al
-     * arrancar en vez de aparecer en ejecucion.
-     */
     public UsuarioController(UsuarioService usuarioService) {
         this.usuarioService = usuarioService;
     }
 
-
-    /**
-     * GET /api/v1/usuarios
-     * Listar todos los usuarios
-     */
+    /** Listar todos los usuarios */
     @GetMapping
     public ResponseEntity<List<UsuarioResponse>> getAllUsers() {
         List<UsuarioResponse> users = usuarioService.getAllUsers();
         return ResponseEntity.ok(users);
     }
 
-    /**
-     * GET /api/v1/usuarios/{id}
-     * Obtener usuario por ID
-     */
+    /** Obtener usuario por ID */
     @GetMapping("/{id}")
     public ResponseEntity<?> getUserById(@PathVariable Long id) {
         UsuarioResponse user = usuarioService.getUserById(id);
         return ResponseEntity.ok(user);
     }
 
-    /**
-     * POST /api/v1/usuarios
-     * Crear nuevo usuario
-     */
+    /** Crear nuevo usuario */
     @PostMapping
     public ResponseEntity<?> createUser(@Valid @RequestBody UsuarioRequest request) {
         UsuarioResponse createdUser = usuarioService.createUser(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
     }
 
-    /**
-     * PUT /api/v1/usuarios/{id}
-     * Actualizar usuario existente
-     */
+    /** Actualizar usuario existente */
     @PutMapping("/{id}")
     public ResponseEntity<?> updateUser(@PathVariable Long id, 
                                        @Valid @RequestBody UsuarioRequest request) {
@@ -77,72 +53,50 @@ public class UsuarioController {
         return ResponseEntity.ok(updatedUser);
     }
 
-    /**
-     * DELETE /api/v1/usuarios/{id}
-     * Eliminar usuario (desactivar)
-     */
+    /** Eliminar usuario (desactivar) */
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable Long id) {
         usuarioService.deleteUser(id);
         return ResponseEntity.ok(Map.of("message", "Usuario desactivado correctamente"));
     }
 
-    /**
-     * PATCH /api/v1/usuarios/{id}/toggle-status
-     * Activar/Desactivar usuario
-     */
+    /** Activar/Desactivar usuario */
     @PatchMapping("/{id}/toggle-status")
     public ResponseEntity<?> toggleUserStatus(@PathVariable Long id) {
         UsuarioResponse user = usuarioService.toggleUserStatus(id);
         return ResponseEntity.ok(user);
     }
 
-    /**
-     * POST /api/v1/usuarios/{id}/cerrar-sesiones
-     * Cierra todas las sesiones abiertas de un usuario, en cualquier dispositivo (ADMIN).
-     * Para cuando a alguien del personal le roban o pierde el celular.
-     */
+    /** Cierra las sesiones abiertas de un usuario en todos sus dispositivos (ADMIN), p. ej. por un celular perdido. */
     @PostMapping("/{id}/cerrar-sesiones")
     public ResponseEntity<Void> cerrarSesiones(@PathVariable Long id) {
         usuarioService.cerrarSesiones(id);
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * GET /api/v1/usuarios/activos
-     * Listar solo usuarios activos
-     */
+    /** Listar solo usuarios activos */
     @GetMapping("/activos")
     public ResponseEntity<List<UsuarioResponse>> getActiveUsers() {
         List<UsuarioResponse> users = usuarioService.getActiveUsers();
         return ResponseEntity.ok(users);
     }
 
-    /**
-     * GET /api/v1/usuarios/rol/{role}
-     * Filtrar usuarios por rol
-     */
+    /** Filtrar usuarios por rol */
     @GetMapping("/rol/{role}")
     public ResponseEntity<?> getUsersByRole(@PathVariable String role) {
-        // El rol ya no es un enum: se compara contra el nombre guardado en la
-        // tabla 'roles', así que un rol agregado por el ADMIN funciona acá sin
-        // tocar código.
+        // El rol es el nombre guardado en la tabla 'roles', no un enum.
         List<UsuarioResponse> users = usuarioService.getUsersByRole(role);
         return ResponseEntity.ok(users);
     }
 
-    /**
-     * GET /api/v1/usuarios/estadisticas
-     * Obtener estadísticas de usuarios
-     */
+    /** Obtener estadísticas de usuarios */
     @GetMapping("/estadisticas")
     public ResponseEntity<?> getUserStatistics() {
         Long totalActivos = usuarioService.countActiveUsers();
         Long totalAdmins = usuarioService.countUsersByRole("ADMIN");
         Long totalEmpleados = usuarioService.countUsersByRole("EMPLEADO");
 
-        // Ya no se cuentan CLIENTE: ese rol se eliminó. Los clientes no son
-        // usuarios del sistema, viven en la tabla 'clientes' y no tienen acceso.
+        // Los clientes no son usuarios del sistema: viven en la tabla 'clientes'.
         return ResponseEntity.ok(Map.of(
             "activos", totalActivos,
             "admins", totalAdmins,

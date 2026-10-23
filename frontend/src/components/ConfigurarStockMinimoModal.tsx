@@ -18,9 +18,7 @@ export default function ConfigurarStockMinimoModal({ inventario, onClose, onSucc
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
 
-  // Antes esto era un console.log: la pantalla decía que había guardado y el
-  // valor nunca llegaba a la base. Como el stock mínimo es el umbral que
-  // dispara las alertas, cambiarlo no tenía ningún efecto real.
+  // Como el stock mínimo es el umbral que dispara las alertas, cambiarlo no tenía ningún efecto real.
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 

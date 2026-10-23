@@ -13,10 +13,7 @@ const COLORES = ['Blanco', 'Negro', 'Gris', 'Beige', 'Café', 'Roble', 'Cedro', 
 
 const OTRO = '__otro__';
 
-/**
- * Selector con una salida: elegís de la lista, o "Otro…" para escribir un valor que no está.
- * Un valor ya guardado que no está en la lista (producto viejo) se muestra directo como "Otro".
- */
+/** Selector con salida: elige de la lista o "Otro…" para escribir un valor que no está. */
 function SelectorConOtro({
   value,
   opciones,
@@ -76,9 +73,7 @@ const MEDIDAS_ESTANDAR = [
   { value: 'KING', label: 'King Size', ancho: 180, largo: 200 },
 ] as const;
 
-/** El prefijo del SKU son las tres primeras letras de la categoría, en mayúscula
- * (Camas → CAM, Veladores → VEL, Roperos → ROP). Así cada categoría tiene su propia
- * serie, también las que crea el dueño. */
+/** Prefijo del SKU: las tres primeras letras de la categoría en mayúscula (Camas → CAM). */
 function prefijoDeSku(nombreCategoria: string): string {
   const letras = nombreCategoria
     .normalize('NFD')
@@ -88,12 +83,7 @@ function prefijoDeSku(nombreCategoria: string): string {
   return letras.slice(0, 3).padEnd(3, 'X');
 }
 
-/**
- * Propone el siguiente número de la serie mirando TODOS los productos que
- * ya existen (incluidos los dados de baja: siguen en la base y su SKU
- * sigue siendo suyo, así que no hay que repetirlo). No hay endpoint nuevo:
- * usa la misma lista que ya está cargada en la pantalla de Productos.
- */
+/** Propone el siguiente número de la serie mirando todos los productos, también los dados de baja. */
 function sugerirSiguienteSku(nombreCategoria: string, productos: Producto[]): string {
   const prefijo = prefijoDeSku(nombreCategoria);
   const regex = new RegExp(`^${prefijo}-(\\d+)$`);
@@ -108,8 +98,7 @@ function sugerirSiguienteSku(nombreCategoria: string, productos: Producto[]): st
   return `${prefijo}-${String(maxNumero + 1).padStart(3, '0')}`;
 }
 
-/** Fecha + hora tal cual las guarda la base (fecha_creacion/fecha_actualizacion
- * son timestamp, no date: incluyen hora aunque no se mostraran hasta ahora). */
+/** Fecha y hora tal como las guarda la base (timestamp). */
 function formatearFechaHora(fechaIso: string): string {
   return new Date(fechaIso).toLocaleString('es-BO', {
     day: '2-digit',
@@ -121,16 +110,7 @@ function formatearFechaHora(fechaIso: string): string {
   });
 }
 
-/**
- * "Dimensiones" se guarda como un solo texto (no se agregaron columnas
- * nuevas: nada en el sistema necesita filtrar por ancho/largo todavía).
- * Este texto lo arma siempre este mismo componente con un formato fijo
- * ("Etiqueta (AxLxA cm)" o "Medida especial (AxLxA cm)"), así que se puede
- * reconocer con certeza al reabrir el formulario. Lo que no venga en ese
- * formato es dato de antes del selector: se deja sin reconocer en vez de
- * arriesgar a interpretarlo mal (el orden de los números en los datos
- * viejos no era consistente).
- */
+/** "Dimensiones" se guarda como un solo texto con formato fijo; lo que no tenga ese formato se deja sin reconocer. */
 function parseDimensiones(texto?: string) {
   if (!texto) return null;
   const estandar = MEDIDAS_ESTANDAR.find((m) => texto.startsWith(`${m.label} (`));
@@ -145,8 +125,7 @@ function parseDimensiones(texto?: string) {
   };
 }
 
-/** Lee lo que se escribe en el campo Medida: "105x190", "105x190x25" o con
- * el nombre completo, "1 Plaza y Media (105x190 cm)". */
+/** Lee el campo Medida: "105x190", "105x190x25" o con el nombre completo. */
 function leerMedidaEscrita(texto: string) {
   const entreParentesis = texto.match(/\(([^)]*)\)/);
   const match = (entreParentesis ? entreParentesis[1] : texto).trim().match(/^(\d+)\s*[xX×]\s*(\d+)(?:\s*[xX×]\s*(\d+))?\s*(?:cm)?$/);
@@ -154,8 +133,7 @@ function leerMedidaEscrita(texto: string) {
   return { ancho: match[1], largo: match[2], alto: match[3] ?? '' };
 }
 
-/** Arma el texto que se guarda. Si ancho y largo coinciden con una medida
- * estándar se guarda con su nombre; si no, como "Medida especial". */
+/** Arma el texto guardado: con el nombre de la medida estándar si coincide, o "Medida especial". */
 function componerDimensiones(ancho: string, largo: string, alto: string, usaEstandar = true): string {
   const estandar = usaEstandar
     ? MEDIDAS_ESTANDAR.find((m) => String(m.ancho) === ancho && String(m.largo) === largo)
@@ -168,9 +146,7 @@ function componerDimensiones(ancho: string, largo: string, alto: string, usaEsta
 interface ProductoModalProps {
   producto: Producto | null;
   productoParaEditar: Producto | null;
-  /** Cantidad real de Inventario. Solo para mostrar (de solo lectura acá);
-   * cargarla se hace desde Inventario o recibiendo una Compra, no desde
-   * este formulario. undefined mientras se está creando (todavía no existe). */
+  /** Cantidad real de Inventario, solo de lectura; es undefined mientras se crea el producto. */
   stockActual?: number;
   /** Solo se usa la primera (o ninguna): un producto tiene a lo sumo una imagen. */
   imagenesActuales: ImagenProducto[];
@@ -180,8 +156,7 @@ interface ProductoModalProps {
   onEliminarImagen: (id: number) => Promise<void>;
   loadingImages: boolean;
   categorias: Categoria[];
-  /** Todos los productos (activos e inactivos): se usa nomás para calcular
-   * el siguiente SKU de la serie, mirando los que ya existen. */
+  /** Todos los productos (activos e inactivos), para calcular el siguiente SKU. */
   productos: Producto[];
   onClose: () => void;
   /** Se dibuja como un panel al costado (dentro de otro modal) en vez de como un modal a pantalla completa. */
@@ -205,19 +180,14 @@ export default function ProductoModal({
   modoPanel = false,
   onSuccess
 }: ProductoModalProps) {
-
-  // El Tipo de Producto ya no se elige a mano: lo hereda de la Categoría
-  // elegida (cada categoría tiene su tipo fijo, ver CategoriaModal). En este
-  // negocio categoría y tipo eran el mismo dato pedido dos veces.
+  // El tipo de producto lo hereda de la categoría elegida (ver CategoriaModal).
   const idCategoriaInicial = productoParaEditar?.idCategoria || categorias[0]?.id || 0;
   const tipoDeCategoria = (idCategoria: number) =>
     categorias.find((c) => c.id === idCategoria)?.tipoProducto;
   const nombreDeCategoria = (idCategoria: number) =>
     categorias.find((c) => c.id === idCategoria)?.nombre ?? '';
   const tipoInicial = tipoDeCategoria(idCategoriaInicial) || productoParaEditar?.tipoProducto || 'CAMA';
-  // El SKU se sugiere solo al crear, y solo mientras el usuario no haya
-  // escrito el suyo a mano (acá arranca en true porque al editar el campo
-  // ya trae el SKU real, no hay nada que sugerir).
+  // El SKU se sugiere solo al crear y mientras el usuario no escriba el suyo; al editar arranca en true porque ya trae el real.
   const [skuTocado, setSkuTocado] = useState(!!productoParaEditar);
 
   const [formData, setFormData] = useState<ProductoRequest>({
@@ -230,16 +200,13 @@ export default function ProductoModal({
     calidad: productoParaEditar?.calidad || '',
     precioCompra: productoParaEditar?.precioCompra,
     precioVenta: productoParaEditar?.precioVenta || 0,
-    // El stock mínimo ya no se pide acá: al crear nace en 1 y se ajusta
-    // desde Inventario. Al editar se reenvía el valor que ya tenía.
+    // El stock mínimo nace en 1 al crear y se ajusta desde Inventario; al editar se reenvía el que ya tenía.
     stockMinimo: productoParaEditar ? productoParaEditar.stockMinimo : 1,
-    // Solo en el alta desde Productos: con stock inicial 0 por defecto. Al editar y en
-    // el panel de Nueva compra no se envía (en la compra, el stock entra con la compra).
+    // Solo en el alta desde Productos (stock inicial 0 por defecto); en la compra, el stock entra con la compra.
     stockInicial: !productoParaEditar && !modoPanel ? 0 : undefined,
     tipoProducto: tipoInicial,
     activo: productoParaEditar?.activo !== undefined ? productoParaEditar.activo : true,
 
-    // ✅ CAMPOS CONDICIONALES
     firmeza: productoParaEditar?.firmeza || undefined,
     materialNucleo: productoParaEditar?.materialNucleo || undefined,
     materialArmazon: productoParaEditar?.materialArmazon || undefined,
@@ -250,19 +217,13 @@ export default function ProductoModal({
 
   const [error, setError] = useState<string | null>(null);
 
-  // Marca/Modelo/Calidad/Descripción son secundarios: plegado por defecto
-  // para un producto nuevo, pero si ya traían algo cargado (al editar) no
-  // conviene esconderlo sin que se note.
+  // Marca, modelo, calidad y descripción van plegados al crear, salvo que ya traigan datos.
   const [mostrarMasDetalles, setMostrarMasDetalles] = useState(
     !!(productoParaEditar?.marca || productoParaEditar?.modelo ||
        productoParaEditar?.calidad || productoParaEditar?.descripcion)
   );
 
-  // Dimensiones: se arma a partir de estos tres, no es un input directo.
-  // Si el producto ya tenía un texto con el formato nuevo (generado por
-  // este mismo componente), se reconstruye; si es dato de antes del
-  // selector, queda sin reconocer (dimensionesSinReconocer) y hay que
-  // volver a cargarlo a mano.
+  // Dimensiones: se arma con estos tres campos; un texto con otro formato queda sin reconocer (dimensionesSinReconocer).
   const dimensionesParseadas = parseDimensiones(productoParaEditar?.dimensiones);
   const dimensionesSinReconocer =
     productoParaEditar?.dimensiones && !dimensionesParseadas ? productoParaEditar.dimensiones : null;
@@ -272,37 +233,26 @@ export default function ProductoModal({
   const [listaMedidasAbierta, setListaMedidasAbierta] = useState(false);
   // Solo al crear: al editar el stock se cambia desde Inventario.
 
-  // Imagen del producto: elegir/arrastrar un archivo, cambiarlo o quitarlo
-  // solo queda en memoria acá. Nada de esto pega contra el backend hasta
-  // que se aprieta "Crear Producto" / "Guardar Cambios" — igual que
-  // cualquier otro campo del formulario. Si se cierra con Cancelar o la X,
-  // no quedó nada guardado.
+  // La imagen elegida, cambiada o quitada queda en memoria y solo se aplica al guardar.
   const [archivoImagenPendiente, setArchivoImagenPendiente] = useState<File | null>(null);
   const [previewImagenPendiente, setPreviewImagenPendiente] = useState<string | null>(null);
   const [quitarImagenAlGuardar, setQuitarImagenAlGuardar] = useState(false);
   const [mostrarVistaGrande, setMostrarVistaGrande] = useState(false);
-  // "Cambiar imagen" no abre el explorador directo: primero vuelve a
-  // mostrar el recuadro para arrastrar/elegir, igual que cuando no hay
-  // ninguna imagen todavía.
+  // "Cambiar imagen" vuelve a mostrar el recuadro para elegir o arrastrar.
   const [reemplazandoImagen, setReemplazandoImagen] = useState(false);
-  // Reemplazar o quitar una imagen que ya existe se confirma antes (aunque
-  // el cambio real recién se aplique al guardar). Elegir una imagen por
-  // primera vez no hace falta confirmarlo.
+  // Reemplazar o quitar una imagen existente se confirma antes; elegir la primera no.
   const [confirmacionImagen, setConfirmacionImagen] = useState<'cambiar' | 'quitar' | null>(null);
   const imagenActual = imagenesActuales[0] ?? null;
   const urlImagenMostrada = previewImagenPendiente
     ?? (quitarImagenAlGuardar || !imagenActual ? null : urlArchivo(imagenActual.urlImagen));
   const mostrarRecuadroVacio = !urlImagenMostrada || reemplazandoImagen;
-  // Dimensiones solo tiene sentido para Cama y Colchón: una almohada o un
-  // accesorio no se describen por su medida de la misma forma.
+  // Las dimensiones solo aplican a Cama y Colchón.
   const tipoTieneDimensiones =
     formData.tipoProducto === 'CAMA' || formData.tipoProducto === 'COLCHON' || formData.tipoProducto === 'MUEBLE';
   // Las medidas estándar (1 Plaza, Queen...) son de camas y colchones; un mueble se mide a mano.
   const tipoUsaMedidasDeCama = formData.tipoProducto === 'CAMA' || formData.tipoProducto === 'COLCHON';
 
-  // Ejemplos de los placeholders según el tipo elegido: no tiene sentido
-  // sugerir "Colchones del Oriente" como ejemplo de Marca cuando la
-  // categoría es Cama.
+  // Los ejemplos de los placeholders dependen del tipo elegido.
   const EJEMPLOS_MARCA: Record<string, string> = {
     CAMA: 'Ej: Muebles del Oriente',
     COLCHON: 'Ej: Colchones del Oriente',
@@ -328,14 +278,9 @@ export default function ProductoModal({
       setSkuTocado(true);
     }
 
-    // La categoría trae su tipo de producto pegado: cambiarla puede cambiar
-    // el tipo también, así que se limpian los campos condicionales igual
-    // que antes se hacía al cambiar el Tipo a mano. También recalcula la
-    // sugerencia de SKU, pero solo si el usuario todavía no escribió el
-    // suyo a mano.
+    // Cambiar la categoría puede cambiar el tipo: se limpian los campos condicionales y se recalcula el SKU.
     if (name === 'precioCompra') {
-      // Opcional: un campo vacío tiene que quedar en undefined, no en 0 ni
-      // en un string vacío, para que el backend lo reciba como "sin dato".
+      // Opcional: un campo vacío queda en undefined, no en 0 ni en texto vacío.
       setFormData(prev => ({ ...prev, precioCompra: value === '' ? undefined : Number(value) }));
     } else if (name === 'stockInicial') {
       // Cantidad entera y no negativa; vacío queda en undefined y el campo obligatorio lo frena.
@@ -369,7 +314,6 @@ export default function ProductoModal({
       return;
     }
 
-    // ✅ VALIDACIÓN: Limpiar campos condicionales según tipo
     const dataToSend = { ...formData };
     if (formData.tipoProducto !== 'COLCHON') {
       delete dataToSend.firmeza;
@@ -385,9 +329,7 @@ export default function ProductoModal({
     try {
       if (producto) {
         await updateProducto(producto.id, dataToSend);
-        // Recién acá se confirma el guardado: es el momento de aplicar lo
-        // que haya quedado pendiente sobre la imagen (nueva, reemplazo o
-        // quitar). Si no se tocó nada, ninguna de las tres corre.
+        // Aquí se confirma el guardado y se aplica la imagen pendiente (nueva, reemplazo o quitar).
         if (archivoImagenPendiente) {
           if (imagenActual) {
             await onReemplazarImagen(imagenActual.id, producto.id, archivoImagenPendiente);
@@ -399,8 +341,7 @@ export default function ProductoModal({
         }
       } else {
         const nuevo = await createProducto(dataToSend);
-        // Recién acá el producto tiene id: es el primer momento en que se
-        // puede subir la imagen que se eligió en el formulario.
+        // Recién ahora el producto tiene id y se puede subir la imagen.
         if (archivoImagenPendiente) {
           await onAgregarImagen(nuevo.id, archivoImagenPendiente);
         }
@@ -415,9 +356,7 @@ export default function ProductoModal({
 
   const isEditing = !!productoParaEditar;
 
-  // Valida el archivo y lo deja en memoria, sin importar si vino de
-  // elegirlo con clic o de soltarlo arrastrado: mismo camino para los dos.
-  // No pega contra el backend — eso lo resuelve handleSubmit al guardar.
+  // Valida el archivo y lo deja en memoria (clic o arrastre); handleSubmit lo sube al guardar.
   const procesarArchivoImagen = (file: File) => {
     if (file.size > 5 * 1024 * 1024) {
       setError('La imagen excede el tamaño máximo permitido de 5MB');
@@ -460,9 +399,7 @@ export default function ProductoModal({
     if (file) procesarArchivoImagen(file);
   };
 
-  // Si hay una imagen ya guardada de por medio, se confirma antes de
-  // tocarla (aunque el borrado real recién pasa al guardar el formulario).
-  // Si es solo una selección que todavía no se guardó, se limpia nomás.
+  // Una imagen ya guardada se confirma antes de tocarla; una selección sin guardar se limpia directo.
   const handleQuitarImagen = () => {
     if (imagenActual) {
       setConfirmacionImagen('quitar');
@@ -582,7 +519,7 @@ export default function ProductoModal({
                 </div>
               )}
 
-              {/* ✅ CAMPOS CONDICIONALES - COLCHON */}
+              {/* Campos de colchón */}
               {formData.tipoProducto === 'COLCHON' && (
                 <>
                   <div>
@@ -611,7 +548,7 @@ export default function ProductoModal({
                 </>
               )}
 
-              {/* ✅ CAMPOS CONDICIONALES - CAMA */}
+              {/* Campos de cama */}
               {formData.tipoProducto === 'CAMA' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Material del Armazón</label>

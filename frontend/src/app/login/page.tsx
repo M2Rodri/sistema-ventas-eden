@@ -21,10 +21,7 @@ export default function LoginPage() {
   // Asegurar que el componente está montado en el cliente
   useEffect(() => {
     setMounted(true);
-    // El motivo lo deja SesionExpiradaWatcher (el backend rechazó el token por
-    // vencido) o InactividadWatcher (30 minutos sin tocar la pantalla). Va en
-    // sessionStorage y no en la URL porque useAuth también redirige acá y
-    // pisaría cualquier parámetro.
+    // El motivo lo dejan SesionExpiradaWatcher o InactividadWatcher; va en sessionStorage porque useAuth también redirige aquí.
     if (typeof window !== "undefined") {
       const motivo = sessionStorage.getItem("motivoSalida");
       if (motivo === "sesion-expirada") {

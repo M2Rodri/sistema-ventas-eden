@@ -12,8 +12,7 @@ import 'screens/login/login_screen.dart';
 import 'theme/app_colors.dart';
 import 'theme/app_theme.dart';
 
-/// Llave del navegador: el candado de huella la necesita para llevar al login
-/// desde fuera de cualquier pantalla.
+/// Llave del navegador: el candado de huella la necesita para llevar al login desde fuera de cualquier pantalla.
 final navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
@@ -24,8 +23,7 @@ void main() async {
   runApp(MuebleriaEdenApp());
 }
 
-/// Una petición con sesión recibió 401: se borra la sesión guardada y se lleva
-/// al login con un aviso, sacando todas las pantallas anteriores.
+/// Ante un 401 borra la sesión y lleva al login con un aviso, sacando las pantallas anteriores.
 Future<void> _alVencerLaSesion() async {
   await AuthRepository().cerrarSesion();
   final navigator = navigatorKey.currentState;
@@ -63,9 +61,7 @@ class MuebleriaEdenApp extends StatelessWidget {
   }
 }
 
-/// Decide con qué pantalla abre la app: si hay una sesión guardada y su
-/// token todavía no venció, entra directo a la pantalla principal (sin
-/// pasar por el formulario de login); si no, muestra el login.
+/// Decide la pantalla de arranque: la principal si hay sesión vigente, el login si no.
 class _Arranque extends StatefulWidget {
   _Arranque();
 
@@ -87,19 +83,14 @@ class _ArranqueState extends State<_Arranque> {
     if (!mounted) return;
 
     if (sesion != null) {
-      // Acá sí es seguro usar el context de _Arranque: todavía no se navegó
-      // a ningún lado, esta pantalla sigue siendo la actual.
+      // Aquí el context de _Arranque es seguro: todavía no se navegó a ningún lado.
       Navigator.of(context).pushReplacement(
         MaterialPageRoute<void>(builder: (_) => HomeScreen(sesion: sesion)),
       );
     } else {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute<void>(
-          // Mismo cuidado que en HomeScreen._cerrarSesion: el login es
-          // async, así que para cuando el usuario complete el formulario,
-          // pushReplacement ya sacó a _Arranque del árbol y su context dejó
-          // de servir. Se usa el context de esta ruta (el de LoginScreen),
-          // que sigue vivo en ese momento.
+          // Mismo cuidado que en HomeScreen._cerrarSesion.
           builder: (routeContext) => LoginScreen(
             onSesionIniciada: (sesion) {
               Navigator.of(routeContext).pushReplacement(
@@ -116,9 +107,7 @@ class _ArranqueState extends State<_Arranque> {
 
   @override
   Widget build(BuildContext context) {
-    // Solo el verde de la marca, igual al de la pantalla de entrada de Android
-    // y al fondo del login: así no aparece una pantalla intermedia con el logo
-    // o con un indicador de carga antes del login.
+    // Solo el verde de la marca, igual al de la pantalla de entrada de Android y al fondo del login.
     return Scaffold(backgroundColor: AppColors.verdeOscuro);
   }
 }

@@ -7,33 +7,20 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * Repositorio para ajustes de inventario
- */
+/** Repositorio para ajustes de inventario */
 public interface MovimientoInventarioRepository extends JpaRepository<MovimientoInventario, Long> {
-
-    /**
-     * Historial de ajustes de un producto
-     */
+    /** Historial de ajustes de un producto */
     List<MovimientoInventario> findByProductoIdOrderByFechaDesc(Long productoId);
 
-    /**
-     * Ajustes realizados por un usuario
-     */
+    /** Ajustes realizados por un usuario */
     List<MovimientoInventario> findByUsuarioIdOrderByFechaDesc(Long usuarioId);
 
-    /**
-     * Ajustes por tipo
-     */
+    /** Ajustes por tipo */
     List<MovimientoInventario> findByTipoMovimientoOrderByFechaDesc(String tipoMovimiento);
 
-    /**
-     * Ajustes entre fechas
-     */
+    /** Ajustes entre fechas */
     List<MovimientoInventario> findByFechaBetweenOrderByFechaDesc(LocalDateTime inicio, LocalDateTime fin);
 
-    /**
-     * Últimos ajustes
-     */
+    /** Últimos ajustes */
     List<MovimientoInventario> findTop50ByOrderByFechaDesc();
 }

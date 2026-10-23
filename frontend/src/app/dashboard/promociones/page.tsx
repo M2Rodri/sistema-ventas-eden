@@ -155,7 +155,6 @@ export default function PromocionesPage() {
     }
   };
 
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-BO', {
       day: '2-digit',

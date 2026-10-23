@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/actualizacion_repository.dart';
 import '../theme/app_colors.dart';
 
-/// Busca en silencio si hay una versión nueva y, si la hay, avisa. Se llama al
-/// abrir la app: si no hay internet o ya está al día, no muestra nada.
+/// Busca en silencio si hay una versión nueva y, si la hay, avisa.
 Future<void> revisarActualizacionAlAbrir(
   BuildContext context, {
   ActualizacionRepository? repositorio,
@@ -18,8 +17,7 @@ Future<void> revisarActualizacionAlAbrir(
   }
 }
 
-/// Aviso de versión nueva: "Más tarde" lo cierra; "Actualizar" descarga el APK
-/// con barra de avance y abre el instalador de Android.
+/// Aviso de versión nueva: "Más tarde" lo cierra y "Actualizar" descarga el APK y abre el instalador.
 Future<void> mostrarDialogoActualizacion(
   BuildContext context,
   ActualizacionRepository repositorio,

@@ -9,6 +9,8 @@ Todas las rutas de la API van con el prefijo `/api/v1`. Una ruta con `/api/` sin
 
 ## Auditoria
 
+El sistema **sí registra** la auditoría: cada acción sensible (crear, editar, cancelar, iniciar sesión, cerrar sesiones...) se guarda en la tabla `auditorias` con el usuario, la fecha y la IP. Lo que quedó fuera del alcance es la **consulta** desde la web o la app, por eso estas rutas están apagadas; los registros se pueden leer directamente en la base.
+
 | Método | Ruta anterior | Ruta nueva | Estado |
 |---|---|---|---|
 | GET | `/api/auditorias` | — | apagada (404) |

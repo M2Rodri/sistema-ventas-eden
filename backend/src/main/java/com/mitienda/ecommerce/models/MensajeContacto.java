@@ -8,20 +8,13 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
-/**
- * Consulta enviada desde el formulario de la tienda.
- *
- * Antes el formulario simulaba el envío y no guardaba nada. Como la tienda no
- * tiene carrito ni pedidos, este es el único canal por el que un cliente puede
- * comunicarse con el negocio.
- */
+/** Consulta enviada desde el formulario de contacto. */
 @Entity
 @Table(name = "mensajes_contacto")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class MensajeContacto {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

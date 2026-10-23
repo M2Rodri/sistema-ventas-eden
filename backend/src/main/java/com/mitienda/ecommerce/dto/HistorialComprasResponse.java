@@ -8,15 +8,11 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * DTO para respuesta de historial de compras de un cliente
- * Usado en CU: Ver Historial de Compras del Cliente - Interfaz P6.3
- */
+/** Historial de compras de un cliente. */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class HistorialComprasResponse {
-
     // Información del cliente
     private ClienteResponse cliente;
 
@@ -26,9 +22,7 @@ public class HistorialComprasResponse {
     // Historial de ventas
     private List<VentaResponse> ventas;
 
-    /**
-     * Clase interna para estadísticas de compra
-     */
+    /** Clase interna para estadísticas de compra */
     @Data
     @NoArgsConstructor
     @AllArgsConstructor

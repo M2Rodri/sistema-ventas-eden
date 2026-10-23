@@ -38,18 +38,10 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
-/**
- * La respuesta de registrar una venta tiene que incluir el pago y los productos
- * recién guardados.
- *
- * La web sube la foto del comprobante a pagos[0] de esa respuesta apenas se
- * registra la venta. Antes la respuesta salía con la lista de pagos vacía y la
- * foto nunca se subía, sin ningún aviso.
- */
+/** La respuesta de registrar una venta tiene que incluir el pago y los productos recién guardados. */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class VentaServiceRespuestaTest {
-
     @Mock private VentaRepository ventaRepository;
     @Mock private DetalleVentaRepository detalleVentaRepository;
     @Mock private PagoRepository pagoRepository;

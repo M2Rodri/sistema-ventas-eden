@@ -12,8 +12,7 @@ import '../../theme/app_colors.dart';
 
 enum _EstadoCatalogo { cargando, conDatos, vacio, error }
 
-/// Catálogo de consulta: precio y stock de cada producto. No edita nada,
-/// es para mirar en el salón o con el cliente en el teléfono.
+/// Catálogo de consulta: precio y stock de cada producto.
 class CatalogoScreen extends StatefulWidget {
   CatalogoScreen({super.key, required this.token});
 
@@ -429,8 +428,7 @@ class _ImagenProducto extends StatelessWidget {
         width: tamano,
         height: tamano,
         fit: BoxFit.cover,
-        // Se decodifica a tamaño de miniatura (y se comparte con lo precargado):
-        // mucho más liviano que dibujar la foto completa.
+        // Se decodifica a tamaño de miniatura (y se comparte con lo precargado): mucho más liviano que dibujar la foto completa.
         cacheWidth: tamano <= 100 ? kAnchoMiniatura : (tamano * 2.5).round(),
         errorBuilder: (_, _, _) => Container(
           width: tamano,
@@ -491,8 +489,7 @@ class _ChipsCategoria extends StatelessWidget {
   }
 }
 
-/// Detalle del producto: foto, precio, stock, ficha técnica (solo los datos que
-/// tenga registrados, como en la web) y descripción.
+/// Detalle del producto: foto, precio, stock, ficha técnica y descripción.
 class DetalleProductoSheet extends StatelessWidget {
   DetalleProductoSheet({
     super.key,
@@ -617,8 +614,7 @@ class DetalleProductoSheet extends StatelessWidget {
                       const SizedBox(height: 8),
                       for (var i = 0; i < ficha.length; i += 2) ...<Widget>[
                         if (i > 0) const SizedBox(height: 8),
-                        // IntrinsicHeight: las dos casillas de la fila miden lo
-                        // mismo sin pedir altura infinita dentro del scroll.
+                        // IntrinsicHeight: las dos casillas de la fila miden lo mismo sin pedir altura infinita dentro del scroll.
                         IntrinsicHeight(
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.stretch,

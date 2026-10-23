@@ -7,23 +7,16 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * DTO para crear o actualizar clientes
- */
+/** DTO para crear o actualizar clientes */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class ClienteRequest {
-
     @NotBlank(message = "El nombre es obligatorio")
     @Size(min = 2, max = 100, message = "El nombre debe tener entre 2 y 100 caracteres")
     private String nombre;
 
-    /**
-     * Opcional: una empresa no tiene apellido. La base lo permite nulo y la
-     * entidad también; este DTO era el único que seguía exigiéndolo, y por eso
-     * no se podía registrar un cliente como "Hotel Las Palmeras".
-     */
+    /** Opcional: una empresa no tiene apellido. */
     @Size(max = 100, message = "El apellido no puede exceder 100 caracteres")
     private String apellido;
 

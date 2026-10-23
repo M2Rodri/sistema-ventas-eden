@@ -7,14 +7,11 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-/**
- * DTO para respuestas de cliente
- */
+/** DTO para respuestas de cliente */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class ClienteResponse {
-
     private Long id;
     private String nombre;
     private String apellido;

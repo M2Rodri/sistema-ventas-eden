@@ -12,74 +12,45 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Repositorio para operaciones con ventas
- * Soporta búsquedas tanto por cliente registrado como cliente directo
- */
+/** Consultas de ventas. */
 public interface VentaRepository extends JpaRepository<Venta, Long> {
-
-    /**
-     * Listar ventas por cliente registrado
-     */
+    /** Listar ventas por cliente registrado */
     List<Venta> findByClienteIdOrderByFechaVentaDesc(Long clienteId);
 
-    /**
-     * Buscar ventas por nombre de cliente.
-     * Ya no hace falta buscar en dos lugares: la venta de mostrador también
-     * tiene su cliente (tipo INVITADO), así que basta con mirar 'clientes'.
-     */
+    /** Ventas por nombre de cliente; la venta de mostrador también tiene cliente (INVITADO). */
     @Query("SELECT v FROM Venta v WHERE " +
            "LOWER(v.cliente.nombre) LIKE LOWER(CONCAT('%', :nombre, '%')) OR " +
            "LOWER(v.cliente.apellido) LIKE LOWER(CONCAT('%', :nombre, '%')) " +
            "ORDER BY v.fechaVenta DESC")
     List<Venta> findByNombreClienteContaining(@Param("nombre") String nombre);
 
-    /**
-     * Buscar ventas por teléfono del cliente.
-     */
+    /** Buscar ventas por teléfono del cliente. */
     @Query("SELECT v FROM Venta v WHERE " +
            "v.cliente.telefono LIKE CONCAT('%', :telefono, '%') " +
            "ORDER BY v.fechaVenta DESC")
     List<Venta> findByTelefonoClienteContaining(@Param("telefono") String telefono);
 
-    /**
-     * Filtrar ventas por estado
-     */
+    /** Filtrar ventas por estado */
     List<Venta> findByEstadoOrderByFechaVentaDesc(EstadoVenta estado);
 
-    /**
-     * Ventas entre fechas
-     */
+    /** Ventas entre fechas */
     List<Venta> findByFechaVentaBetweenOrderByFechaVentaDesc(LocalDateTime inicio, LocalDateTime fin);
 
-    /**
-     * Contar ventas por estado
-     */
+    /** Contar ventas por estado */
     Long countByEstado(EstadoVenta estado);
 
-    /**
-     * Ventas del día
-     */
+    /** Ventas del día */
     @Query("SELECT v FROM Venta v WHERE CAST(v.fechaVenta AS date) = CAST(CURRENT_DATE AS date) ORDER BY v.fechaVenta DESC")
     List<Venta> findVentasDelDia();
 
-    /**
-     * Últimas ventas (límite)
-     */
+    /** Últimas ventas (límite) */
     List<Venta> findTop10ByOrderByFechaVentaDesc();
 
-    /**
-     * Total de ventas en un rango de fechas
-     */
+    /** Total de ventas en un rango de fechas */
     @Query("SELECT SUM(v.montoTotal) FROM Venta v WHERE v.fechaVenta BETWEEN :inicio AND :fin AND v.estado = 'COMPLETADA'")
     BigDecimal sumMontoTotalByFechaVentaBetween(@Param("inicio") LocalDateTime inicio, @Param("fin") LocalDateTime fin);
 
-    /**
-     * Cantidad de ventas, monto total y fecha de la última compra, agrupado
-     * por cliente, en una sola consulta. Reemplaza el patrón anterior de
-     * pedir el historial completo de cada cliente por separado (N+1) solo
-     * para armar la tabla de Clientes.
-     */
+    /** Cantidad de ventas, monto total y última compra por cliente en una sola consulta (evita N+1). */
     @Query("SELECT v.cliente.id, COUNT(v), COALESCE(SUM(v.montoTotal), 0), MAX(v.fechaVenta) " +
            "FROM Venta v GROUP BY v.cliente.id")
     List<Object[]> aggregarEstadisticasPorCliente();
@@ -87,14 +58,7 @@ public interface VentaRepository extends JpaRepository<Venta, Long> {
     // Obtiene una venta por ID, cargando también su cliente en una sola consulta para evitar errores de lazy loading.
     @Query("SELECT v FROM Venta v LEFT JOIN FETCH v.cliente WHERE v.id = :id")
     Optional<Venta> findByIdWithCliente(@Param("id") Long id);
-    /**
-     * Buscar ventas que tengan al menos un pago con el método indicado.
-     *
-     * El método de pago dejó de ser un campo de 'ventas' y vive en 'pagos',
-     * porque una venta admite varios cobros con métodos distintos. Por eso la
-     * consulta se hace por EXISTS sobre los pagos en lugar de comparar un
-     * campo de la venta.
-     */
+    /** Ventas con al menos un pago del método indicado; el método vive en 'pagos'. */
     @Query("SELECT DISTINCT v FROM Venta v JOIN v.pagos p " +
            "WHERE p.metodoPago = :metodoPago AND v.fechaVenta BETWEEN :inicio AND :fin " +
            "ORDER BY v.fechaVenta DESC")
@@ -104,33 +68,20 @@ public interface VentaRepository extends JpaRepository<Venta, Long> {
         @Param("fin") LocalDateTime fin
     );
 
-    /**
-     * Ventas por cobrar: quedó saldo pendiente o nunca se completó el pago.
-     */
+    /** Ventas por cobrar: quedó saldo pendiente o nunca se completó el pago. */
     @Query("SELECT COUNT(v) FROM Venta v WHERE v.saldoPendiente > 0 OR v.estado = com.mitienda.ecommerce.models.EstadoVenta.PENDIENTE_PAGO")
     Long countVentasPorCobrar();
 
-    /**
-     * Monto total por cobrar de esas mismas ventas.
-     */
+    /** Monto total por cobrar de esas mismas ventas. */
     @Query("SELECT COALESCE(SUM(v.saldoPendiente), 0) FROM Venta v WHERE v.saldoPendiente > 0 OR v.estado = com.mitienda.ecommerce.models.EstadoVenta.PENDIENTE_PAGO")
     BigDecimal sumSaldoPendientePorCobrar();
 
-    /**
-     * Ventas por entregar: una sola definición para el backend, la web y la app.
-     * Estado de entrega distinto de ENTREGADO (o sea PENDIENTE) y
-     * venta no cancelada. RETIRO no aparece porque nace ENTREGADO.
-     */
+    /** Ventas por entregar (entrega distinta de ENTREGADO y no cancelada); una sola definición para backend, web y app. */
     @Query("SELECT COUNT(v) FROM Venta v WHERE v.estadoEntrega <> com.mitienda.ecommerce.models.EstadoEntrega.ENTREGADO " +
            "AND v.estado <> com.mitienda.ecommerce.models.EstadoVenta.CANCELADA")
     Long countVentasPorEntregar();
 
-    /**
-     * Cifras de ventas COMPLETADAS de hoy, del mes y del año en UNA sola
-     * consulta (el panel de Inicio las pedía en seis, y cada ida y vuelta a la
-     * base cuesta en producción).
-     * Una fila: [cantHoy, montoHoy, cantMes, montoMes, cantAnio, montoAnio].
-     */
+    /** Cifras COMPLETADAS de hoy, mes y año en una consulta: [cantHoy, montoHoy, cantMes, montoMes, cantAnio, montoAnio]. */
     @Query("SELECT COUNT(CASE WHEN v.fechaVenta BETWEEN :hoy AND :finHoy THEN 1 END), "
             + "COALESCE(SUM(CASE WHEN v.fechaVenta BETWEEN :hoy AND :finHoy THEN v.montoTotal END), 0), "
             + "COUNT(CASE WHEN v.fechaVenta BETWEEN :inicioMes AND :finHoy THEN 1 END), "
@@ -143,18 +94,12 @@ public interface VentaRepository extends JpaRepository<Venta, Long> {
                                             @Param("inicioMes") LocalDateTime inicioMes,
                                             @Param("inicioAnio") LocalDateTime inicioAnio);
 
-    /**
-     * Cantidad y saldo de lo que está por cobrar, en una sola consulta.
-     * Una fila: [cantidad, saldo].
-     */
+    /** Cantidad y saldo por cobrar en una consulta: [cantidad, saldo]. */
     @Query("SELECT COUNT(v), COALESCE(SUM(v.saldoPendiente), 0) FROM Venta v "
             + "WHERE v.saldoPendiente > 0 OR v.estado = com.mitienda.ecommerce.models.EstadoVenta.PENDIENTE_PAGO")
     List<Object[]> resumenPorCobrar();
 
-    /**
-     * Fecha, estado y monto de las ventas de un rango, sin armar las ventas
-     * completas: lo usa el gráfico de los últimos días en una sola consulta.
-     */
+    /** Fecha, estado y monto de las ventas de un rango, sin armar las ventas completas. */
     @Query("SELECT v.fechaVenta, v.estado, v.montoTotal FROM Venta v WHERE v.fechaVenta BETWEEN :inicio AND :fin")
     List<Object[]> findResumenVentasEntre(@Param("inicio") LocalDateTime inicio, @Param("fin") LocalDateTime fin);
 }

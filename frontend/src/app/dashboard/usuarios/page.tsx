@@ -9,10 +9,17 @@ import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 import { mensajeError } from '@/lib/errores';
 import { useDragScrollTable } from '@/hooks/useDragScrollTable';
 import Paginacion from '@/components/Paginacion';
+import { useAuth } from '@/hooks/useAuth';
 
 const ITEMS_PER_PAGE = 15;
 
+// Solo el administrador principal (usuario "admin") puede modificar su propia cuenta; el backend responde 403 a
+// cualquier otro, y acá directamente no se le muestran los botones.
+const ADMIN_PRINCIPAL = 'admin';
+
 export default function UsuariosPage() {
+  const { user: yo } = useAuth();
+  const esAdminPrincipalAjeno = (u: User) => u.usuario === ADMIN_PRINCIPAL && yo?.usuario !== ADMIN_PRINCIPAL;
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,8 +86,7 @@ export default function UsuariosPage() {
     setFilteredUsers(filtered);
   }, [searchTerm, roleFilter, statusFilter, users]);
 
-  // Los de éxito se cierran solos; los de error se quedan hasta que el
-  // usuario los cierra a mano (el botón X del banner).
+  // Los avisos de éxito se cierran solos; los de error esperan a que el usuario los cierre.
   const showMessage = (type: 'success' | 'error', text: string) => {
     setMessage({ type, text });
     if (type === 'success') {
@@ -156,8 +162,7 @@ export default function UsuariosPage() {
     });
   };
 
-  // Arrastrar la tabla desde el encabezado, como si fuera una barra de
-  // scroll horizontal. Ver hooks/useDragScrollTable.ts.
+  // Arrastrar la tabla desde el encabezado (ver hooks/useDragScrollTable.ts).
   const {
     scrollContainerRef,
     tableRef,
@@ -272,66 +277,75 @@ export default function UsuariosPage() {
               {...theadProps}
             >
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre Completo</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuario</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Teléfono</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rol</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha de creación</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre Completo</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuario</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Teléfono</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rol</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha de creación</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {usersPaginados.map((user) => (
                 <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-[7px] whitespace-nowrap text-sm text-gray-900">{user.id}</td>
-                  <td className="px-6 py-[7px] whitespace-nowrap">
+                  <td className="px-4 py-[7px] whitespace-nowrap text-sm text-gray-900">{user.id}</td>
+                  <td className="px-4 py-[7px] whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">{user.nombreCompleto}</div>
                   </td>
-                  <td className="px-6 py-[7px] whitespace-nowrap text-sm text-gray-600">{user.usuario}</td>
-                  <td className="px-6 py-[7px] whitespace-nowrap text-sm text-gray-600">{user.telefono || '-'}</td>
-                  <td className="px-6 py-[7px] whitespace-nowrap">
+                  <td className="px-4 py-[7px] whitespace-nowrap text-sm text-gray-600">{user.usuario}</td>
+                  <td className="px-4 py-[7px] whitespace-nowrap text-sm text-gray-600">{user.telefono || '-'}</td>
+                  <td className="px-4 py-[7px] whitespace-nowrap">
                     <span className={`px-2.5 py-[3px] inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleBadge(user.role)}`}>
                       {user.role}
                     </span>
                   </td>
-                  <td className="px-6 py-[7px] whitespace-nowrap">
-                    <button
-                      onClick={() => handleToggleStatus(user)}
-                      className={`inline-flex items-center gap-1 px-2.5 py-[3px] rounded-full text-xs font-semibold transition-colors ${
-                        user.activo ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-red-100 text-red-800 hover:bg-red-200'
-                      }`}
-                    >
-                      <Power size={13} />
-                      {user.activo ? 'Activo' : 'Inactivo'}
-                    </button>
+                  <td className="px-4 py-[7px] whitespace-nowrap">
+                    {esAdminPrincipalAjeno(user) ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-[3px] rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                        <Power size={13} />
+                        {user.activo ? 'Activo' : 'Inactivo'}
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => handleToggleStatus(user)}
+                        className={`inline-flex items-center gap-1 px-2.5 py-[3px] rounded-full text-xs font-semibold transition-colors ${
+                          user.activo ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-red-100 text-red-800 hover:bg-red-200'
+                        }`}
+                      >
+                        <Power size={13} />
+                        {user.activo ? 'Activo' : 'Inactivo'}
+                      </button>
+                    )}
                   </td>
-                  <td className="px-6 py-[7px] whitespace-nowrap text-sm text-gray-600">{formatDate(user.fechaCreacion)}</td>
-                  <td className="px-6 py-[7px] whitespace-nowrap text-sm font-medium">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleEditUser(user)}
-                        className="p-1 text-primary-600 hover:bg-primary-50 rounded transition-colors"
-                        title="Editar"
-                      >
-                        <Edit size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleCerrarSesiones(user)}
-                        className="p-1 text-amber-600 hover:bg-amber-50 rounded transition-colors"
-                        title="Cerrar sesiones (por ejemplo, si le robaron el celular)"
-                      >
-                        <LogOut size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteClick(user)}
-                        className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
-                        title="Eliminar"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
+                  <td className="px-4 py-[7px] whitespace-nowrap text-sm text-gray-600">{formatDate(user.fechaCreacion)}</td>
+                  <td className="px-4 py-[7px] whitespace-nowrap text-sm font-medium">
+                    {!esAdminPrincipalAjeno(user) && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleEditUser(user)}
+                          className="p-1 text-primary-600 hover:bg-primary-50 rounded transition-colors"
+                          title="Editar"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleCerrarSesiones(user)}
+                          className="p-1 text-amber-600 hover:bg-amber-50 rounded transition-colors"
+                          title="Cerrar sesiones abiertas"
+                        >
+                          <LogOut size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClick(user)}
+                          className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                          title="Eliminar"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}

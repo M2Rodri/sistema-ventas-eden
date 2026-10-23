@@ -13,12 +13,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-/**
- * Utilidad para generar y validar tokens JWT
- */
+/** Utilidad para generar y validar tokens JWT */
 @Component
 public class JwtUtil {
-
     /** Perfil de sesión de la app móvil cuyo celular tiene un candado (huella o bloqueo de pantalla). */
     public static final String PERFIL_MOVIL_CON_CANDADO = "MOVIL_CON_CANDADO";
     /** Perfil de sesión de la app móvil cuyo celular no tiene ningún candado. */
@@ -31,10 +28,7 @@ public class JwtUtil {
     @Value("${jwt.expiration}")
     private Long expiration;
 
-    /**
-     * Tope de una sesión desde el inicio de sesión, aunque se renueve el token: es el de la web.
-     * Sin un tope, un token robado y renovado una y otra vez no vencería nunca.
-     */
+    /** Tope de sesión (el de la web) aunque se renueve el token: sin él, un token robado no vencería nunca. */
     @Value("${jwt.sesion-maxima:28800000}")
     private Long sesionMaxima;
 
@@ -86,7 +80,6 @@ public class JwtUtil {
                 .getPayload();
     }
 
-    // Verificar si el token expiró
     private Boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
     }
@@ -96,15 +89,11 @@ public class JwtUtil {
         return generateToken(usuario, role, null);
     }
 
-    /**
-     * Genera el token de un inicio de sesión. El perfil dice desde dónde entra el usuario y fija el
-     * tope de la sesión; null o desconocido = la web.
-     */
+    /** Genera el token de un inicio de sesión; el perfil (web o app) fija el tope, y null o desconocido es la web. */
     public String generateToken(String usuario, String role, String perfilSesion) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", role);
-        // Cuándo empezó la sesión (el inicio de sesión). Las renovaciones lo conservan,
-        // y con él se calcula el tope de duración de la sesión y el corte de sesiones.
+        // Inicio de la sesión: las renovaciones lo conservan y con él se calculan el tope y el corte de sesiones.
         claims.put("inicio", System.currentTimeMillis());
         // Tope de esta sesión según el perfil; las renovaciones lo conservan.
         claims.put("tope", topeDelPerfil(perfilSesion));
@@ -127,13 +116,7 @@ public class JwtUtil {
         return sesionMaxima;
     }
 
-    /**
-     * Renueva un token que todavía es válido: mismo usuario y mismo inicio de sesión, con un
-     * vencimiento nuevo y el rol vigente en la base (no el que traía el token viejo).
-     * El vencimiento nunca pasa del tope de la sesión. Si el token ya venció o no es auténtico,
-     * extractAllClaims lanza una JwtException; si la sesión llegó a su tope, se lanza
-     * CredentialsExpiredException. En ambos casos hay que volver a iniciar sesión.
-     */
+    /** Renueva un token válido sin pasar del tope de la sesión; si venció o llegó al tope, hay que iniciar sesión de nuevo. */
     public String renovarToken(String token, String rolActual) {
         Claims actuales = extractAllClaims(token);
         long ahora = System.currentTimeMillis();
@@ -159,7 +142,6 @@ public class JwtUtil {
         return claims.getIssuedAt() != null ? claims.getIssuedAt().getTime() : System.currentTimeMillis();
     }
 
-    // Crear el token JWT
     private String createToken(Map<String, Object> claims, String subject) {
         return createToken(claims, subject, System.currentTimeMillis() + expiration);
     }
@@ -174,7 +156,6 @@ public class JwtUtil {
                 .compact();
     }
 
-    // Validar token
     public Boolean validateToken(String token, UserDetails userDetails) {
         final String usuario = extractUsuario(token);
         return (usuario.equals(userDetails.getUsername()) && !isTokenExpired(token));

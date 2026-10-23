@@ -7,24 +7,17 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-/**
- * DTO para respuestas de inventario
- */
+/** DTO para respuestas de inventario */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class InventarioResponse {
-
     private Long id;
     private Long idProducto;
     private String nombreProducto;
     private String skuProducto;
 
-    /**
-     * Categoría real del producto. Antes no viajaba en la respuesta y la
-     * pantalla la adivinaba buscando texto en el nombre ("colchon"), lo que
-     * fallaba con las tildes y mostraba "Otro" en todos los colchones.
-     */
+    /** Categoría real del producto, para no adivinarla por el nombre. */
     private Long idCategoria;
     private String nombreCategoria;
 

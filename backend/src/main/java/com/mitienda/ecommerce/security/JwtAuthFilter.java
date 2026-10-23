@@ -15,28 +15,18 @@ import java.io.IOException;
 
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
-
     private final JwtUtil jwtUtil;
 
     private final UserDetailsServiceImpl userDetailsService;
 
-    /**
-     * Inyeccion por constructor, no por campo.
-     *
-     * Es lo que recomienda Spring: las dependencias quedan final, la clase no
-     * puede existir a medio construir, y una dependencia circular falla al
-     * arrancar en vez de aparecer en ejecucion.
-     */
     public JwtAuthFilter(JwtUtil jwtUtil, UserDetailsServiceImpl userDetailsService) {
         this.jwtUtil = jwtUtil;
         this.userDetailsService = userDetailsService;
     }
 
-
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-
         final String authorizationHeader = request.getHeader("Authorization");
 
         String usuario = null;
@@ -52,25 +42,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             }
         }
 
-        // Validar el token y establecer la autenticación
         if (usuario != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = userDetailsService.loadUserByUsername(usuario);
 
-            // Además de que el token sea auténtico y no haya vencido: la cuenta tiene que seguir
-            // activa (si dan de baja a alguien, su token deja de servir de inmediato) y su sesión
-            // no puede haber sido cortada ("cerrar sesiones" o cambio de contraseña).
+            // El token debe ser válido y la cuenta seguir activa (una baja corta el acceso de inmediato) y sin sesión cortada.
             if (userDetails.isEnabled()
                     && jwtUtil.validateToken(jwt, userDetails)
                     && !sesionCortada(jwt, userDetails)) {
-                // El rol se toma de la base (los userDetails que se acaban de cargar), no del
-                // token: si a alguien le cambian el rol, el cambio rige desde la próxima petición
-                // y no recién cuando venza el token que ya tenía.
-
-                // Aca habia un bloque de println que imprimia usuario, rol y ruta en
-                // CADA peticion autenticada. Se quito: dejaba un rastro de quien
-                // uso el sistema y para que en la consola del servidor, que no es
-                // el lugar para eso. Lo que hay que auditar se guarda en la tabla
-                // auditorias, con usuario, IP y fecha.
+                // El rol sale de la base y no del token: un cambio de rol rige desde la próxima petición.
 
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                         userDetails,

@@ -11,15 +11,11 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-/**
- * DTO para crear o actualizar envíos
- */
+/** DTO para crear o actualizar envíos */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class EnvioRequest {
-
-
     private Long idVenta;
 
     @NotBlank(message = "La dirección de destino es obligatoria")
