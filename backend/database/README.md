@@ -31,6 +31,8 @@ después.
 | 25 | Tipo de producto `MUEBLE` (categoría "Muebles de dormitorio") y restricción de `categorias.tipo_producto` |
 | 26 | Se quita el estado de entrega `DESPACHADO`: quedan `PENDIENTE` y `ENTREGADO` |
 | 35 | Fecha límite del pago pendiente: `ventas.fecha_limite_pago` (opcional) |
+| 36 | Corte de sesiones: `usuarios.sesiones_validas_desde` |
+| 37 | Quita los datos de prueba de Newman y deja los IDs sin huecos (pide confirmación; hacer antes un respaldo) |
 
 Los scripts 16 al 23 existen en esta carpeta pero todavía no están en esta
 tabla.
@@ -45,8 +47,7 @@ y 31 numeración sin huecos (contadores de ID; hay que correrlo antes de publica
 
 ## Respaldos
 
-`respaldo_supabase_20260913/` tiene el contenido en CSV de las tablas que
-tocaron los scripts 12 y 13, tomado justo antes de modificarlas.
+Los respaldos de la base de producción se hacen con `scripts/respaldar-base.mjs` (ver `scripts/programar-respaldo.ps1` para que corra solo cada día) y no se suben al repositorio. Los CSV del respaldo del 13/09, tomado antes de los scripts 12 y 13, se quitaron del repositorio porque traían nombres de demostración.
 
 ## Dos bases, dos perfiles
 

@@ -1,0 +1,116 @@
+Resolving dependencies...
+Downloading packages...
+  clock 1.1.2 (1.1.3 available)
+  code_assets 1.2.1 (2.1.0 available)
+  cross_file 0.3.5+5 (0.4.0 available)
+  cupertino_icons 1.0.9 (2.0.0 available)
+  file_selector_macos 0.9.5+1 (0.9.5+2 available)
+  flutter_secure_storage 9.2.4 (11.2.0 available)
+  flutter_secure_storage_linux 1.2.3 (3.0.3 available)
+  flutter_secure_storage_macos 3.1.3 (4.0.0 available)
+  flutter_secure_storage_platform_interface 1.1.2 (2.1.1 available)
+  flutter_secure_storage_web 1.2.1 (2.1.1 available)
+  flutter_secure_storage_windows 3.1.2 (4.2.2 available)
+  hooks 2.0.2 (2.2.0 available)
+  image_picker 1.2.3 (1.2.4 available)
+  image_picker_android 0.8.13+23 (0.8.13+25 available)
+  image_picker_ios 0.8.13+7 (0.8.13+12 available)
+  image_picker_platform_interface 2.11.1 (2.11.2 available)
+  intl 0.20.2 (0.20.3 available)
+  jni 1.0.3 (1.1.0 available)
+  jni_flutter 1.0.3 (1.0.4+1 available)
+  js 0.6.7 (0.7.2 available)
+  local_auth_android 2.2.0 (2.3.0 available)
+  local_auth_darwin 2.0.4 (2.0.5 available)
+  matcher 0.12.19 (0.12.20 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  meta 1.18.0 (1.19.0 available)
+  objective_c 9.5.0 (9.6.2 available)
+  open_filex 4.7.0 (5.0.0 available)
+  package_info_plus 9.0.1 (10.2.2 available)
+  package_info_plus_platform_interface 3.2.1 (4.1.0 available)
+  record_use 0.6.0 (1.1.1 available)
+  stack_trace 1.12.1 (1.12.2 available)
+  test_api 0.7.11 (0.7.15 available)
+  vector_math 2.2.0 (2.4.3 available)
+  vm_service 15.3.0 (15.4.0 available)
+  win32 5.15.0 (6.4.0 available)
+Got dependencies!
+35 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+00:00 +0: loading D:/ProyectoFinal/sistema-ventas-eden/app/test/actualizacion_test.dart
+00:00 +0: D:/ProyectoFinal/sistema-ventas-eden/app/test/actualizacion_test.dart: version.json se lee con sus datos
+00:00 +1: D:/ProyectoFinal/sistema-ventas-eden/app/test/actualizacion_test.dart: version.json sin versionCode o sin apkUrl no sirve
+00:00 +2: D:/ProyectoFinal/sistema-ventas-eden/app/test/actualizacion_test.dart: comparaciones solo una versión mayor es nueva
+00:00 +3: D:/ProyectoFinal/sistema-ventas-eden/app/test/actualizacion_test.dart: comparaciones la huella del APK tiene que coincidir si se publicó
+00:00 +4: D:/ProyectoFinal/sistema-ventas-eden/app/test/actualizacion_test.dart: buscar hay una versión más nueva
+00:00 +5: D:/ProyectoFinal/sistema-ventas-eden/app/test/actualizacion_test.dart: buscar la publicada es la misma que la instalada: está al día
+00:00 +6: D:/ProyectoFinal/sistema-ventas-eden/app/test/actualizacion_test.dart: buscar la publicada es más vieja: está al día
+00:00 +7: D:/ProyectoFinal/sistema-ventas-eden/app/test/actualizacion_test.dart: buscar si el archivo no existe, no molesta
+00:00 +8: D:/ProyectoFinal/sistema-ventas-eden/app/test/actualizacion_test.dart: buscar si el archivo está roto, no molesta
+00:00 +9: D:/ProyectoFinal/sistema-ventas-eden/app/test/actualizacion_test.dart: buscar sin internet, no molesta
+00:01 +10: D:/ProyectoFinal/sistema-ventas-eden/app/test/bloqueo_pantalla_test.dart: al principio ofrece desbloquear, usar la contraseña o cerrar sesión
+00:02 +11: D:/ProyectoFinal/sistema-ventas-eden/app/test/bloqueo_pantalla_test.dart: al principio ofrece desbloquear, usar la contraseña o cerrar sesión
+00:02 +12: D:/ProyectoFinal/sistema-ventas-eden/app/test/bloqueo_pantalla_test.dart: al principio ofrece desbloquear, usar la contraseña o cerrar sesión
+00:02 +13: D:/ProyectoFinal/sistema-ventas-eden/app/test/bloqueo_pantalla_test.dart: al principio ofrece desbloquear, usar la contraseña o cerrar sesión
+00:02 +14: D:/ProyectoFinal/sistema-ventas-eden/app/test/bloqueo_pantalla_test.dart: al principio ofrece desbloquear, usar la contraseña o cerrar sesión
+00:02 +15: D:/ProyectoFinal/sistema-ventas-eden/app/test/bloqueo_pantalla_test.dart: al principio ofrece desbloquear, usar la contraseña o cerrar sesión
+00:02 +16: D:/ProyectoFinal/sistema-ventas-eden/app/test/bloqueo_pantalla_test.dart: al principio ofrece desbloquear, usar la contraseña o cerrar sesión
+00:03 +17: D:/ProyectoFinal/sistema-ventas-eden/app/test/cache_api_test.dart: después de guardar algo se vuelve a llenar por detrás con el token de la sesión
+00:03 +18: D:/ProyectoFinal/sistema-ventas-eden/app/test/cache_api_test.dart: después de guardar algo se vuelve a llenar por detrás con el token de la sesión
+00:03 +19: D:/ProyectoFinal/sistema-ventas-eden/app/test/bloqueo_pantalla_test.dart: "Usar mi contraseña" muestra el campo y de quién es la sesión
+00:04 +20: D:/ProyectoFinal/sistema-ventas-eden/app/test/cache_api_test.dart: el login no dispara la precarga
+00:05 +21: D:/ProyectoFinal/sistema-ventas-eden/app/test/bloqueo_pantalla_test.dart: con la contraseña vacía avisa y no consulta al servidor
+00:05 +22: D:/ProyectoFinal/sistema-ventas-eden/app/test/cache_api_test.dart: una lectura algo vieja se entrega al instante y se renueva por detrás
+00:05 +23: D:/ProyectoFinal/sistema-ventas-eden/app/test/bloqueo_pantalla_test.dart: una contraseña incorrecta muestra el mensaje y deja reintentar
+00:05 +24: D:/ProyectoFinal/sistema-ventas-eden/app/test/bloqueo_pantalla_test.dart: una contraseña incorrecta muestra el mensaje y deja reintentar
+00:05 +25: D:/ProyectoFinal/sistema-ventas-eden/app/test/cache_api_test.dart: una renovación con datos distintos avisa a las pantallas abiertas
+00:05 +26: D:/ProyectoFinal/sistema-ventas-eden/app/test/bloqueo_pantalla_test.dart: una contraseña correcta se envía y no queda ningún error
+00:06 +27: D:/ProyectoFinal/sistema-ventas-eden/app/test/cache_api_test.dart: una renovación con los mismos datos no avisa (no hay nada que corregir)
+00:06 +28: D:/ProyectoFinal/sistema-ventas-eden/app/test/bloqueo_pantalla_test.dart: "Volver" regresa a las opciones y borra lo escrito
+00:06 +29: D:/ProyectoFinal/sistema-ventas-eden/app/test/bloqueo_pantalla_test.dart: cerrar sesión pide confirmación antes de hacerlo
+00:06 +30: D:/ProyectoFinal/sistema-ventas-eden/app/test/bloqueo_pantalla_test.dart: cancelar la confirmación no cierra la sesión
+00:08 +31: D:/ProyectoFinal/sistema-ventas-eden/app/test/entrega_venta_test.dart: estado de entrega reconoce los dos valores del backend
+00:09 +32: D:/ProyectoFinal/sistema-ventas-eden/app/test/entrega_venta_test.dart: estado de entrega un valor desconocido se trata como pendiente
+00:09 +33: D:/ProyectoFinal/sistema-ventas-eden/app/test/entrega_venta_test.dart: estado de entrega los valores de la API coinciden con los del backend
+00:09 +34: D:/ProyectoFinal/sistema-ventas-eden/app/test/entrega_venta_test.dart: por entregar (definición única) pendiente cuenta
+00:09 +35: D:/ProyectoFinal/sistema-ventas-eden/app/test/entrega_venta_test.dart: por entregar (definición única) entregada no cuenta
+00:09 +36: D:/ProyectoFinal/sistema-ventas-eden/app/test/entrega_venta_test.dart: por entregar (definición única) una venta cancelada no cuenta
+00:09 +37: D:/ProyectoFinal/sistema-ventas-eden/app/test/entrega_venta_test.dart: por entregar (definición única) en tienda no cuenta porque nace entregada
+00:09 +38: D:/ProyectoFinal/sistema-ventas-eden/app/test/entrega_venta_test.dart: falta completar transportadora sin nombre o sin guía
+00:09 +39: D:/ProyectoFinal/sistema-ventas-eden/app/test/entrega_venta_test.dart: falta completar transportadora con nombre y guía está completa
+00:09 +40: D:/ProyectoFinal/sistema-ventas-eden/app/test/entrega_venta_test.dart: falta completar un espacio en blanco cuenta como vacío
+00:09 +41: D:/ProyectoFinal/sistema-ventas-eden/app/test/entrega_venta_test.dart: falta completar domicilio y en tienda no lo necesitan
+00:09 +42: D:/ProyectoFinal/sistema-ventas-eden/app/test/entrega_venta_test.dart: falta completar una venta cancelada no avisa
+00:09 +43: D:/ProyectoFinal/sistema-ventas-eden/app/test/entrega_venta_test.dart: lo que viaja al backend al registrar en tienda no manda datos de entrega ni estado
+00:09 +44: D:/ProyectoFinal/sistema-ventas-eden/app/test/entrega_venta_test.dart: lo que viaja al backend al registrar domicilio manda la dirección si la hay y nunca la ciudad
+00:09 +45: D:/ProyectoFinal/sistema-ventas-eden/app/test/entrega_venta_test.dart: lo que viaja al backend al registrar se puede registrar ya entregada
+00:09 +46: D:/ProyectoFinal/sistema-ventas-eden/app/test/entrega_venta_test.dart: lo que viaja al backend al registrar transportadora manda la ciudad y solo los opcionales que se llenaron
+00:10 +47: D:/ProyectoFinal/sistema-ventas-eden/app/test/error_api_test.dart: lee error.mensaje del formato único de la API
+00:10 +48: D:/ProyectoFinal/sistema-ventas-eden/app/test/error_api_test.dart: con errores de validación lee el mensaje y no falla por "campos"
+00:10 +49: D:/ProyectoFinal/sistema-ventas-eden/app/test/error_api_test.dart: sigue leyendo el formato anterior, el de Spring y el texto plano
+00:11 +50: D:/ProyectoFinal/sistema-ventas-eden/app/test/imagen_producto_url_test.dart: URL de la foto del producto una foto nueva viene con la URL completa de Supabase y se usa tal cual
+00:11 +51: D:/ProyectoFinal/sistema-ventas-eden/app/test/imagen_producto_url_test.dart: URL de la foto del producto una foto vieja viene relativa al backend y se le antepone la URL base
+00:11 +52: D:/ProyectoFinal/sistema-ventas-eden/app/test/imagen_producto_url_test.dart: URL de la foto del producto sin fotos no hay URL
+00:12 +53: D:/ProyectoFinal/sistema-ventas-eden/app/test/precio_venta_test.dart: sin precio escrito no se manda precio: vale el de catálogo
+00:12 +54: D:/ProyectoFinal/sistema-ventas-eden/app/test/precio_venta_test.dart: un precio menor se manda con su descuento
+00:13 +55: D:/ProyectoFinal/sistema-ventas-eden/app/test/precio_venta_test.dart: un precio mayor se manda igual, para que el servidor lo rechace
+00:13 +56: D:/ProyectoFinal/sistema-ventas-eden/app/test/precio_venta_test.dart: lee el código de negocio del error de la API
+00:13 +57: D:/ProyectoFinal/sistema-ventas-eden/app/test/renovacion_token_test.dart: lectura del token segundosRestantes cuenta lo que falta para vencer
+00:13 +58: D:/ProyectoFinal/sistema-ventas-eden/app/test/renovacion_token_test.dart: lectura del token segundosRestantes es negativo si ya venció y null si no se puede leer
+00:13 +59: D:/ProyectoFinal/sistema-ventas-eden/app/test/renovacion_token_test.dart: lectura del token inicioDeSesion usa el dato "inicio" y, si no está, la emisión
+00:13 +60: D:/ProyectoFinal/sistema-ventas-eden/app/test/renovacion_token_test.dart: renovación automática con poco tiempo por delante renueva y usa el token nuevo
+00:13 +61: D:/ProyectoFinal/sistema-ventas-eden/app/test/renovacion_token_test.dart: renovación automática la pantalla sigue pasando el token viejo y el cliente usa el vigente
+00:13 +62: D:/ProyectoFinal/sistema-ventas-eden/app/test/renovacion_token_test.dart: renovación automática con tiempo de sobra no renueva
+00:13 +63: D:/ProyectoFinal/sistema-ventas-eden/app/test/renovacion_token_test.dart: renovación automática si la renovación falla, la llamada sigue con el token que hay
+00:13 +64: D:/ProyectoFinal/sistema-ventas-eden/app/test/renovacion_token_test.dart: renovación automática varias llamadas juntas piden una sola renovación
+00:14 +65: D:/ProyectoFinal/sistema-ventas-eden/app/test/renovacion_token_test.dart: renovación automática sin sesión registrada no renueva nada
+00:15 +66: D:/ProyectoFinal/sistema-ventas-eden/app/test/rutas_api_test.dart: ninguna ruta de la app usa /api/ sin la versión /api/v1
+00:16 +67: D:/ProyectoFinal/sistema-ventas-eden/app/test/rutas_api_test.dart: la app usa las rutas versionadas que existen en el servidor
+00:17 +68: D:/ProyectoFinal/sistema-ventas-eden/app/test/sesion_vencida_test.dart: un 401 con token avisa una vez y sigue lanzando el error
+00:17 +69: D:/ProyectoFinal/sistema-ventas-eden/app/test/sesion_vencida_test.dart: varios 401 juntos avisan una sola vez, y de nuevo después de iniciar sesión
+00:17 +70: D:/ProyectoFinal/sistema-ventas-eden/app/test/sesion_vencida_test.dart: el 401 del login (credenciales incorrectas) no cierra nada
+00:17 +71: D:/ProyectoFinal/sistema-ventas-eden/app/test/sesion_vencida_test.dart: una petición sin token no tenía sesión que perder
+00:17 +72: D:/ProyectoFinal/sistema-ventas-eden/app/test/sesion_vencida_test.dart: un 403 no cierra la sesión
+00:18 +73: D:/ProyectoFinal/sistema-ventas-eden/app/test/widget_test.dart: La app arranca mostrando el indicador de carga inicial
+00:21 +74: All tests passed!

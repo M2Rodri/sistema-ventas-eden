@@ -139,3 +139,6 @@ docs/Tarea_E2_VerticalFuncional.docx
 
 # Documento de perfil (versión vieja): no va al repositorio
 docs/Mamani_Perfil_Proyecto_v1.docx
+
+# Respaldo antiguo en CSV (traía nombres de demostración): no va al repositorio
+backend/database/respaldo_supabase_20260913/
