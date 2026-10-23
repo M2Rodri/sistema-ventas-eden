@@ -188,7 +188,7 @@ La auditoría es un caso aparte: el registro funciona (cada acción sensible que
   401, 403, 404, 409, 422, 429 y 500. La tabla de códigos está en [`docs/errores-api.md`](docs/errores-api.md).
 - Cada token dura 4 horas y se renueva solo mientras se usa el sistema (`POST /api/v1/auth/renovar`, con el
   rol vigente en la base). El tope de una sesión desde el inicio de sesión es de 8 horas en la web, 12 en la
-  app con candado (huella o bloqueo de pantalla) y 4 en la app sin candado. La web cierra la sesión tras
+  app con candado (huella, que viene apagado y se activa en Ajustes) y 4 en la app sin candado. La web cierra la sesión tras
   30 minutos sin actividad. Una cuenta dada de baja pierde el acceso en la siguiente petición, y el rol se
   lee de la base en cada una. Se pueden cortar todas las sesiones de un usuario (botón "Cerrar sesiones" en
   Usuarios, o `POST /api/v1/auth/cerrar-sesiones`), y cambiar la contraseña de alguien también las corta

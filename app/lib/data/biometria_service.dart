@@ -1,10 +1,14 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:local_auth_android/local_auth_android.dart';
 
-/// Candado de la app: huella, rostro o, si no responden, el bloqueo de pantalla del celular (PIN, patrón o contraseña).
+/// Candado de la app con la huella o el rostro. Viene apagado: solo se activa desde Ajustes.
 class BiometriaService {
   BiometriaService();
+
+  /// Si es true, además de la huella se acepta el PIN o patrón del celular. Está apagado a propósito: la app no los ofrece.
+  static const bool permitirBloqueoDelCelular = false;
 
   static const _clave = 'biometria_activada';
 
@@ -20,7 +24,7 @@ class BiometriaService {
     activa.value = await _storage.read(key: _clave) == 'true';
   }
 
-  /// La preferencia guardada: true (activado), false (apagado a propósito) o null (todavía sin decidir).
+  /// La preferencia guardada: true (activado), false (apagado desde Ajustes) o null (nunca se activó, equivale a apagado).
   Future<bool?> preferencia() async {
     final valor = await _storage.read(key: _clave);
     if (valor == null) return null;
@@ -32,7 +36,7 @@ class BiometriaService {
     activa.value = true;
   }
 
-  /// El usuario apagó el candado a propósito: se recuerda para no volver a activarlo solo al iniciar sesión.
+  /// El usuario apagó el candado desde Ajustes.
   Future<void> apagar() async {
     await _storage.write(key: _clave, value: 'false');
     activa.value = false;
@@ -56,21 +60,29 @@ class BiometriaService {
     }
   }
 
-  /// El celular tiene algún candado que usar: huella, rostro o bloqueo de pantalla (PIN, patrón, contraseña).
+  /// El celular tiene con qué proteger la app: una huella o rostro registrado (o, si se permite, el bloqueo de pantalla).
   Future<bool> candadoDisponible() async {
     try {
-      return await _auth.isDeviceSupported();
+      if (permitirBloqueoDelCelular) return await _auth.isDeviceSupported();
+      return await _auth.canCheckBiometrics && (await _auth.getAvailableBiometrics()).isNotEmpty;
     } catch (_) {
       return false;
     }
   }
 
-  /// Pide la huella o el rostro y, si no responden (humedad, sensor), deja usar el PIN o el patrón del celular.
+  /// Pide la huella o el rostro; el diálogo de Android trae el botón "Cancelar".
   Future<bool> autenticar(String motivo) async {
     try {
       return await _auth.authenticate(
         localizedReason: motivo,
-        biometricOnly: false,
+        authMessages: const <AuthMessages>[
+          AndroidAuthMessages(
+            signInTitle: 'Candado de la app',
+            signInHint: 'Toca el sensor de huellas',
+            cancelButton: 'Cancelar',
+          ),
+        ],
+        biometricOnly: !permitirBloqueoDelCelular,
         persistAcrossBackgrounding: true,
       );
     } catch (_) {

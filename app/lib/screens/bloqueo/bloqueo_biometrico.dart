@@ -274,7 +274,7 @@ class _PantallaDeBloqueoState extends State<PantallaDeBloqueo> {
                     Text(
                       _confirmandoCierre
                           ? 'Si cierras sesión, perderás lo que no hayas guardado.'
-                          : 'Usa tu huella o el bloqueo del celular para continuar',
+                          : 'Usa tu huella para continuar',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.8),

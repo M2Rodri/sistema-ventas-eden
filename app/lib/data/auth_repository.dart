@@ -27,10 +27,10 @@ class AuthRepository {
   /// Sin candado, la sesión de la app no pasa de este tiempo desde que se inició.
   static const topeSinCandado = Duration(hours: 4);
 
-  /// La sesión tendrá candado si el celular lo permite y el usuario no lo apagó a propósito.
+  /// La sesión tendrá candado solo si el usuario lo activó en Ajustes y el celular lo permite.
   Future<bool> _habraCandado() async {
     if (!await _biometria.candadoDisponible()) return false;
-    return await _biometria.preferencia() != false;
+    return await _biometria.preferencia() == true;
   }
 
   Future<Sesion> iniciarSesion({
@@ -47,10 +47,6 @@ class AuthRepository {
     await _storage.guardarSesion(sesion);
     ApiClient.nuevaSesion(sesion.token);
 
-    // El candado se activa solo la primera vez, salvo que el usuario lo haya apagado a propósito.
-    if (conCandado && await _biometria.preferencia() == null) {
-      await _biometria.activar();
-    }
     return sesion;
   }
 

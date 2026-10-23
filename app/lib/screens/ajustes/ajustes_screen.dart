@@ -85,7 +85,7 @@ class _AjustesScreenState extends State<AjustesScreen> {
     });
   }
 
-  /// Activar y desactivar piden la huella (o el bloqueo del celular).
+  /// Activar y desactivar piden la huella.
   Future<void> _cambiar(bool activar) async {
     final ok = await _biometria.autenticar(
       activar
@@ -106,7 +106,6 @@ class _AjustesScreenState extends State<AjustesScreen> {
     if (activar) {
       await _biometria.activar();
     } else {
-      // Se recuerda que lo apagó él, para no volver a activarlo solo al iniciar sesión.
       await _biometria.apagar();
       if (!mounted) return;
       ScaffoldMessenger.of(context)
@@ -174,8 +173,8 @@ class _AjustesScreenState extends State<AjustesScreen> {
                   ),
                   subtitle: Text(
                     _cargando || _disponible
-                        ? 'Protege la app con tu huella, PIN o patrón.'
-                        : 'Este celular no tiene bloqueo de pantalla. Actívalo para proteger la app.',
+                        ? 'Protege la app con tu huella.'
+                        : 'Este celular no tiene una huella registrada. Regístrala en los ajustes del celular para proteger la app.',
                     style: TextStyle(color: colorTextoSecundario),
                   ),
                   trailing: Switch(
