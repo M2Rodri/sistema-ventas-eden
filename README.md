@@ -23,9 +23,9 @@ Ni la web ni la app se conectan a la base de datos: toda la lógica, los permiso
 
 | Parte | Tecnología y versión |
 |---|---|
-| Backend (`backend/`) | Java 17 · Spring Boot 3.5.7 (Web, Data JPA, Security, Validation) · JWT con jjwt 0.12.3 · Lombok · ModelMapper 3.2.6 · springdoc-openapi 2.3.0 · Maven (incluye `mvnw`) |
+| Backend (`backend/`) | Java 17 · Spring Boot 3.5.16 (Web, Data JPA, Security, Validation) · JWT con jjwt 0.12.7 · Lombok · ModelMapper 3.2.6 · springdoc-openapi 2.8.17 · Maven (incluye `mvnw`) |
 | Base de datos | PostgreSQL 17 (Supabase) · el esquema se valida al arrancar (`ddl-auto=validate`): el backend nunca modifica la estructura |
-| Frontend (`frontend/`) | Next.js 16.2.6 · React 19.2.6 · TypeScript 5.9 · Tailwind CSS 3.4 · Recharts 3.8 · lucide-react |
+| Frontend (`frontend/`) | Next.js 16.4.1 · React 19.2.6 · TypeScript 5.9 · Tailwind CSS 3.4 · Recharts 3.8 · lucide-react |
 | App móvil (`app/`) | Flutter 3.44.8 · Dart 3.12.2 · `http` · `flutter_secure_storage` · `local_auth` (huella) |
 | Archivos | Supabase Storage (fotos de productos y comprobantes de pago) |
 | Pruebas | JUnit 5.12 · Mockito 5.17 · Spring Boot Test · `flutter_test` · Newman 6.2 (colección de Postman) |
@@ -53,7 +53,7 @@ createdb -U postgres muebleria_eden_db
 psql -U postgres -d muebleria_eden_db -v ON_ERROR_STOP=1 -f backend/database/00_esquema.sql
 ```
 
-`00_esquema.sql` es el estado final de la base. Los scripts numerados `01` a `36` de `backend/database/` son
+`00_esquema.sql` es el estado final de la base. Los scripts numerados `01` a `37` de `backend/database/` son
 los cambios históricos que llevaron hasta ahí: **no se corren encima del esquema**. Detalle en
 [`backend/database/README.md`](backend/database/README.md).
 
@@ -151,7 +151,7 @@ Cada parte trae un `.env.example` con todas sus variables explicadas y **sin val
 ```
 sistema-ventas-eden/
 ├── backend/
-│   ├── database/        00_esquema.sql, scripts 01 a 36 y carga_inicial/
+│   ├── database/        00_esquema.sql, scripts 01 a 37 y carga_inicial/
 │   ├── src/main/java/com/mitienda/ecommerce/
 │   │   ├── controllers/ services/ repositories/ models/ dto/
 │   │   ├── security/ config/ exception/ storage/
@@ -167,10 +167,11 @@ sistema-ventas-eden/
 │   ├── lib/             config/ data/ models/ screens/ theme/ widgets/
 │   ├── test/            pruebas de la app
 │   └── android/
-├── scripts/             publicar-apk.mjs (publica el APK), respaldar-storage.mjs (respaldo de Storage),
+├── scripts/             publicar-apk.mjs (publica el APK), respaldar-base.mjs y programar-respaldo.ps1 (respaldo diario
+│                        de la base), respaldar-storage.mjs (respaldo de Storage),
 │                        generar-icono-adaptativo.mjs e instalar-icono.mjs (ícono de la app) y sus pruebas
 ├── evidencia/           reportes de pruebas: api/ (Newman), backend/, app/, rendimiento/
-├── docs/                rutas-api-v1.md, errores-api.md, análisis de requisitos y documentos del proyecto
+├── docs/                rutas-api-v1.md y errores-api.md
 ├── .gitignore
 └── README.md
 ```
@@ -205,6 +206,8 @@ La auditoría es un caso aparte: el registro funciona (cada acción sensible que
 | **Administrador** (`ADMIN`) | El dueño del negocio | Todo: usuarios, productos, categorías, inventario, compras, proveedores, reportes y anulaciones |
 | **Empleado** (`EMPLEADO`) | Personal de venta | Registrar ventas y cobros, gestionar clientes y marcar entregas; consultar productos e inventario. No ve costos de compra ni accede a usuarios, compras, proveedores y reportes |
 
+El usuario `admin` es el administrador principal: solo él puede editarse, darse de baja o cerrarse las sesiones; los demás administradores reciben 403.
+
 Los permisos se definen y se aplican en el backend (`SecurityConfig.java` y `@PreAuthorize`) y se verifican con
 pruebas automáticas (`RutasApiTest`); la web y la app solo ocultan lo que el rol no puede usar.
 Las credenciales de acceso **se entregan por canal privado**.
@@ -222,9 +225,10 @@ Las credenciales de acceso **se entregan por canal privado**.
 - `ejecutar.mjs` corre la colección de Postman contra el servidor y mide el rendimiento. Las credenciales de
   los usuarios de prueba se leen de las variables de entorno `ADMIN_USER`, `ADMIN_PASS`, `EMP_USER` y `EMP_PASS`;
   `BASE_URL` es opcional (por defecto, el servidor de producción). Opciones: `--api` (solo la colección) y
-  `--rendimiento` (solo los tiempos). Crea datos de prueba en el servidor y los anula al terminar.
-- **Rendimiento (RNF-01, umbral 2 s)**, medido el 07/10/2026 en producción: `GET /api/v1/productos` 300 ms de
-  promedio y 401 ms de máximo; `GET /api/v1/inventario/catalogo` 320 ms y 512 ms.
+  `--rendimiento` (solo los tiempos). Crea datos de prueba en el servidor y los anula al terminar (quedan anulados, no borrados: el script
+  `backend/database/37_limpiar_pruebas_y_renumerar.sql` los quita y deja la numeración sin huecos).
+- **Rendimiento (RNF-01, umbral 2 s)**, medido el 23/10/2026 en producción: `GET /api/v1/productos` 401 ms de
+  promedio y 731 ms de máximo; `GET /api/v1/inventario/catalogo` 527 ms y 1273 ms.
 - Los reportes están en [`evidencia/`](evidencia/) con la fecha en el nombre.
 
 ## 9. Despliegue

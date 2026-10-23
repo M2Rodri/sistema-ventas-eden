@@ -142,3 +142,6 @@ docs/Mamani_Perfil_Proyecto_v1.docx
 
 # Respaldo antiguo en CSV (traía nombres de demostración): no va al repositorio
 backend/database/respaldo_supabase_20260913/
+
+# Apoyo para el documento de la defensa (análisis de requisitos): no va al repositorio
+docs/Analisis_Requisitos_desde_Sistema.md

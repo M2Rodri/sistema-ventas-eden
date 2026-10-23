@@ -30,6 +30,7 @@ que no existen. Todas las respuestas de error llevan las cabeceras CORS, para qu
 | 405 | El método HTTP no está permitido en esa ruta |
 | 409 | La operación choca con el estado actual (compra ya anulada, venta ya cancelada, dato duplicado) |
 | 422 | La petición es válida pero viola una regla de negocio (stock insuficiente, pago mayor al saldo) |
+| 429 | Demasiados intentos de inicio de sesión: la cuenta queda bloqueada unos minutos |
 | 500 | Error interno: sin detalles internos ni traza (el detalle queda solo en el registro del servidor) |
 | 503 | La base de datos no responde (solo lo devuelve `/api/v1/salud`) |
 
@@ -48,6 +49,7 @@ que no existen. Todas las respuestas de error llevan las cabeceras CORS, para qu
 | 405 | `METODO_NO_PERMITIDO` | Se usa un método HTTP que la ruta no acepta | `El método HTTP no está permitido en esta ruta` |
 | 409 | `CONFLICTO_DATOS` | La base rechaza el dato por un duplicado o porque está en uso y ninguna regla lo detectó antes | `La operación choca con datos que ya existen o están en uso` |
 | 415 | `TIPO_NO_SOPORTADO` | El cuerpo no es JSON (o el tipo de contenido no corresponde) | `El tipo de contenido enviado no está soportado` |
+| 429 | `DEMASIADOS_INTENTOS` | Cinco inicios de sesión fallidos del mismo usuario en 15 minutos: se bloquea 15 minutos, sin revisar la contraseña | `Demasiados intentos fallidos. Intentá de nuevo en 15 minutos.` |
 | 500 | `ERROR_INTERNO` | Cualquier falla no prevista | `Ocurrió un error inesperado. Intentá de nuevo en un momento.` |
 | 503 | `BASE_NO_DISPONIBLE` | `GET /api/v1/salud` no logra consultar la base de datos (`SELECT 1`) | `La base de datos no está disponible` |
 
@@ -65,9 +67,17 @@ que no existen. Todas las respuestas de error llevan las cabeceras CORS, para qu
 | 400 | `IMAGEN_INVALIDA` | El archivo no es del tipo permitido. Fotos de producto: JPG, PNG o WebP. Comprobante de pago: JPG, JPEG, JFIF, PNG, WebP o PDF. Se revisa el contenido real, no solo la extensión | `Tipo de archivo no permitido. Solo se aceptan archivos JPG, JPEG, JFIF, PNG, WebP o PDF` |
 | 400 | `STOCK_MINIMO_INVALIDO` | Stock mínimo negativo | `El stock mínimo no puede ser negativo` |
 | 400 | `MOVIMIENTO_INVALIDO` | Tipo de movimiento de inventario que no es ENTRADA ni SALIDA | `Tipo de movimiento inválido. Use 'ENTRADA' o 'SALIDA'` |
+| 400 | `FECHA_REQUERIDA` | Se pone la fecha límite de un pago pendiente sin indicar la fecha ni los días de plazo | `Indica la fecha límite o los días de plazo` |
+| 400 | `FECHA_LIMITE_INVALIDA` | La fecha límite de pago es anterior a hoy | `La fecha límite de pago no puede ser anterior a hoy` |
 | 400 | `ROL_REQUERIDO` | Edición de un usuario sin rol. Al crear un usuario sin rol no hay error: queda como EMPLEADO | `El rol es obligatorio` |
 | 400 | `ROL_INVALIDO` | Rol que no existe | `Rol no válido: SUPERVISOR` |
 | 400 | `PASSWORD_REQUERIDA` | Alta de usuario sin contraseña | `La contraseña es obligatoria al crear un usuario` |
+
+### 403: el rol sirve, pero no sobre este recurso
+
+| HTTP | Código de error | Cuándo ocurre | Ejemplo de `mensaje` |
+|---|---|---|---|
+| 403 | `ADMIN_PRINCIPAL_PROTEGIDO` | Un administrador que no es el principal (`admin`) intenta editarlo, darlo de baja o cerrarle las sesiones | `Solo el administrador principal puede modificar su propia cuenta.` |
 
 ### 404: el recurso no existe (también en PUT, PATCH y DELETE)
 
@@ -118,6 +128,8 @@ que no existen. Todas las respuestas de error llevan las cabeceras CORS, para qu
 | 422 | `PAGO_EXCEDE_SALDO` | Un cobro posterior supera el saldo pendiente | `El monto supera el saldo pendiente de la venta (Bs. 100.00)` |
 | 422 | `VENTA_EN_TIENDA_SIN_ENTREGA` | Se corrigen o editan datos de entrega de una venta en tienda | `Una venta en tienda no tiene datos de entrega` |
 | 422 | `CATEGORIA_INACTIVA` | Se crea un producto en una categoría inactiva | `No se puede crear un producto en una categoría inactiva` |
+| 422 | `SIN_PAGO_PENDIENTE` | Se pone fecha límite de pago a una venta que ya no tiene saldo pendiente | `La venta no tiene pago pendiente` |
+| 422 | `ADMIN_PRINCIPAL_NO_RENOMBRABLE` | El administrador principal intenta cambiarse el nombre de usuario | `El administrador principal no puede cambiar su nombre de usuario.` |
 | 422 | `ULTIMO_ADMINISTRADOR` | Se desactiva al único administrador activo | `Es el único administrador activo. No se puede desactivar.` |
 
 ## Ejemplos completos
