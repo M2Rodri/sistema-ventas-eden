@@ -2,6 +2,7 @@ package com.mitienda.ecommerce.services;
 
 import com.mitienda.ecommerce.dto.AuthResponse;
 import com.mitienda.ecommerce.dto.LoginRequest;
+import com.mitienda.ecommerce.exception.AccesoProhibidoException;
 import com.mitienda.ecommerce.models.Usuario;
 import com.mitienda.ecommerce.repositories.UsuarioRepository;
 import com.mitienda.ecommerce.security.JwtUtil;
@@ -20,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 // Lectura en transacción: con open-in-view=false no hay sesión de Hibernate fuera de ella.
 @Transactional(readOnly = true)
 public class AuthService {
+    static final String MENSAJE_APP_SOLO_ADMIN = "La app móvil es solo para administradores. Usá la versión web.";
+
     private final UsuarioRepository usuarioRepository;
 
     private final JwtUtil jwtUtil;
@@ -81,6 +84,12 @@ public class AuthService {
 
         // El rol viaja como texto ("ADMIN", "EMPLEADO").
         String nombreRol = user.getRoleName();
+        // La app móvil es solo para administradores: el Empleado usa la web.
+        if (JwtUtil.esPerfilMovil(request.getPerfilSesion()) && !"ADMIN".equalsIgnoreCase(nombreRol)) {
+            registroAuditoria.registrarPara(user.getId(), "LOGIN_RECHAZADO", "usuarios", user.getId(),
+                    "Intento de ingreso a la app móvil con el rol " + nombreRol);
+            throw new AccesoProhibidoException("APP_SOLO_ADMIN", MENSAJE_APP_SOLO_ADMIN);
+        }
         String token = jwtUtil.generateToken(user.getUsuario(), nombreRol, request.getPerfilSesion());
 
         // registrarPara: la autenticación aún no está en el SecurityContext, así que el usuario se pasa a mano.
@@ -103,6 +112,10 @@ public class AuthService {
         Usuario user = sesion.usuario();
 
         String nombreRol = user.getRoleName();
+        // Un administrador al que le quitaron el rol pierde también la sesión de la app.
+        if (jwtUtil.esSesionMovil(sesion.token()) && !"ADMIN".equalsIgnoreCase(nombreRol)) {
+            throw new BadCredentialsException(MENSAJE_APP_SOLO_ADMIN);
+        }
         String nuevoToken;
         try {
             nuevoToken = jwtUtil.renovarToken(sesion.token(), nombreRol);

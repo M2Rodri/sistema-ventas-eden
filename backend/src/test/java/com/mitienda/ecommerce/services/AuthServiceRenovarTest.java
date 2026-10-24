@@ -157,9 +157,9 @@ class AuthServiceRenovarTest {
 
     @Test
     void elLoginPasaElPerfilDeSesionAlToken() {
-        Usuario ana = usuario("ana", true, "EMPLEADO");
+        Usuario ana = usuario("ana", true, "ADMIN");
         when(usuarioRepository.findByUsuario("ana")).thenReturn(Optional.of(ana));
-        when(jwtUtil.generateToken("ana", "EMPLEADO", JwtUtil.PERFIL_MOVIL_CON_CANDADO)).thenReturn("token-movil");
+        when(jwtUtil.generateToken("ana", "ADMIN", JwtUtil.PERFIL_MOVIL_CON_CANDADO)).thenReturn("token-movil");
         LoginRequest pedido = new LoginRequest();
         pedido.setUsuario("ana");
         pedido.setPassword("clave");

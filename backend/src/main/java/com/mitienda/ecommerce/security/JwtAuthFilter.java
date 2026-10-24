@@ -48,7 +48,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             // El token debe ser válido y la cuenta seguir activa (una baja corta el acceso de inmediato) y sin sesión cortada.
             if (userDetails.isEnabled()
                     && jwtUtil.validateToken(jwt, userDetails)
-                    && !sesionCortada(jwt, userDetails)) {
+                    && !sesionCortada(jwt, userDetails)
+                    && !appMovilSinPermiso(jwt, userDetails)) {
                 // El rol sale de la base y no del token: un cambio de rol rige desde la próxima petición.
 
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
@@ -62,6 +63,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    /** true si el token es de la app móvil y la cuenta ya no es de administrador (la app es solo para ellos). */
+    private boolean appMovilSinPermiso(String jwt, UserDetails userDetails) {
+        return jwtUtil.esSesionMovil(jwt)
+                && userDetails.getAuthorities().stream().noneMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
     }
 
     /** true si el dueño de la cuenta cortó las sesiones después de que empezó la de este token. */

@@ -195,6 +195,40 @@ class SesionesIntegracionTest {
         assertEquals("EMPLEADO", json.readTree(renovado.getResponse().getContentAsString()).get("role").asText());
     }
 
+    // ---------- la app móvil es solo para administradores ----------
+
+    @Test
+    void unEmpleadoNoPuedeIniciarSesionEnLaApp() throws Exception {
+        for (String perfil : new String[] {JwtUtil.PERFIL_MOVIL_CON_CANDADO, JwtUtil.PERFIL_MOVIL_SIN_CANDADO}) {
+            String cuerpo = json.writeValueAsString(java.util.Map.of(
+                    "usuario", empleado.getUsuario(), "password", CLAVE, "perfilSesion", perfil));
+            MvcResult resultado = mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON).content(cuerpo))
+                    .andExpect(status().isForbidden())
+                    .andReturn();
+            assertEquals("APP_SOLO_ADMIN",
+                    json.readTree(resultado.getResponse().getContentAsString()).get("error").get("codigo").asText());
+        }
+    }
+
+    @Test
+    void elEmpleadoSiEntraALaWebYElAdminALaApp() throws Exception {
+        assertEquals(403, estadoDeGet(SOLO_ADMIN, iniciarSesion(empleado)));
+        assertEquals(200, estadoDeGet(SOLO_ADMIN, iniciarSesion(admin, JwtUtil.PERFIL_MOVIL_CON_CANDADO)));
+    }
+
+    @Test
+    void siLeQuitanElRolAUnAdminSuSesionDeLaAppDejaDeServir() throws Exception {
+        String tokenApp = iniciarSesion(admin, JwtUtil.PERFIL_MOVIL_CON_CANDADO);
+        assertEquals(200, estadoDeGet(SOLO_ADMIN, tokenApp));
+
+        admin.setRol(roles.findByNombre("EMPLEADO").orElseThrow());
+        usuarios.saveAndFlush(admin);
+
+        assertEquals(401, estadoDeGet("/api/v1/productos", tokenApp));
+        mvc.perform(post("/api/v1/auth/renovar").header("Authorization", "Bearer " + tokenApp))
+                .andExpect(status().isUnauthorized());
+    }
+
     // ---------- dar de baja ----------
 
     @Test

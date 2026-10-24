@@ -20,6 +20,8 @@ public class JwtUtil {
     public static final String PERFIL_MOVIL_CON_CANDADO = "MOVIL_CON_CANDADO";
     /** Perfil de sesión de la app móvil cuyo celular no tiene ningún candado. */
     public static final String PERFIL_MOVIL_SIN_CANDADO = "MOVIL_SIN_CANDADO";
+    /** Marca que llevan los tokens de la app móvil; las renovaciones la conservan. */
+    private static final String MARCA_MOVIL = "MOVIL";
 
     @Value("${jwt.secret}")
     private String secret;
@@ -39,6 +41,16 @@ public class JwtUtil {
     /** Tope para la app móvil cuyo celular no tiene candado: sin protección extra, más corto. */
     @Value("${jwt.sesion-maxima-movil-sin-candado:14400000}")
     private Long sesionMaximaMovilSinCandado;
+
+    /** true si el perfil de sesión es el de la app móvil (con o sin candado). */
+    public static boolean esPerfilMovil(String perfilSesion) {
+        return PERFIL_MOVIL_CON_CANDADO.equals(perfilSesion) || PERFIL_MOVIL_SIN_CANDADO.equals(perfilSesion);
+    }
+
+    /** true si el token se emitió para la app móvil, que es solo para administradores. */
+    public boolean esSesionMovil(String token) {
+        return MARCA_MOVIL.equals(extractClaim(token, claims -> claims.get("app", String.class)));
+    }
 
     // Generar clave secreta
     private SecretKey getSigningKey() {
@@ -97,6 +109,9 @@ public class JwtUtil {
         claims.put("inicio", System.currentTimeMillis());
         // Tope de esta sesión según el perfil; las renovaciones lo conservan.
         claims.put("tope", topeDelPerfil(perfilSesion));
+        if (esPerfilMovil(perfilSesion)) {
+            claims.put("app", MARCA_MOVIL);
+        }
         return createToken(claims, usuario);
     }
 
@@ -130,6 +145,9 @@ public class JwtUtil {
         claims.put("role", rolActual);
         claims.put("inicio", inicio);
         claims.put("tope", tope);
+        if (MARCA_MOVIL.equals(actuales.get("app", String.class))) {
+            claims.put("app", MARCA_MOVIL);
+        }
         return createToken(claims, actuales.getSubject(), Math.min(ahora + expiration, limite));
     }
 

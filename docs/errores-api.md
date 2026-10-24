@@ -77,6 +77,7 @@ que no existen. Todas las respuestas de error llevan las cabeceras CORS, para qu
 
 | HTTP | Código de error | Cuándo ocurre | Ejemplo de `mensaje` |
 |---|---|---|---|
+| 403 | `APP_SOLO_ADMIN` | Un usuario que no es administrador inicia sesión desde la app móvil (`perfilSesion` `MOVIL_CON_CANDADO` o `MOVIL_SIN_CANDADO`); la web no se afecta | `La app móvil es solo para administradores. Usá la versión web.` |
 | 403 | `ADMIN_PRINCIPAL_PROTEGIDO` | Un administrador que no es el principal (`admin`) intenta editarlo, darlo de baja o cerrarle las sesiones | `Solo el administrador principal puede modificar su propia cuenta.` |
 
 ### 404: el recurso no existe (también en PUT, PATCH y DELETE)

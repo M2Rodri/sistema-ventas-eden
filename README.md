@@ -8,7 +8,7 @@
 Sistema de ventas e inventario para **Mueblería Edén**, un negocio familiar de camas, colchones y muebles de dormitorio ubicado en Santa Cruz de la Sierra, Bolivia. Tiene dos partes que hablan con un único backend:
 
 - **Web administrativa:** ventas, cobros, clientes, productos, inventario, compras, proveedores, usuarios y reportes.
-- **App móvil (Android):** consulta de catálogo y de ventas, registro de ventas y cobros para el día a día.
+- **App móvil (Android):** consulta de catálogo y de ventas, registro de ventas y cobros para el día a día. Es solo para administradores: el Empleado usa la web.
 
 | Qué | Dónde |
 |-----|-------|
@@ -204,8 +204,10 @@ La auditoría es un caso aparte: el registro funciona (cada acción sensible que
 
 | Rol | Quién | Qué puede hacer |
 |---|---|---|
-| **Administrador** (`ADMIN`) | El dueño del negocio | Todo: usuarios, productos, categorías, inventario, compras, proveedores, reportes y anulaciones |
-| **Empleado** (`EMPLEADO`) | Personal de venta | Registrar ventas y cobros, gestionar clientes y marcar entregas; consultar productos e inventario. No ve costos de compra ni accede a usuarios, compras, proveedores y reportes |
+| **Administrador** (`ADMIN`) | El dueño del negocio | Todo: usuarios, productos, categorías, inventario, compras, proveedores, reportes y anulaciones. Usa la web y la app móvil |
+| **Empleado** (`EMPLEADO`) | Personal de venta | Registrar ventas y cobros, gestionar clientes y marcar entregas; consultar productos e inventario. No ve costos de compra ni accede a usuarios, compras, proveedores y reportes. Usa solo la web: **no puede iniciar sesión en la app móvil** |
+
+La app móvil es solo para administradores. El backend rechaza el inicio de sesión de la app de cualquier otro rol (403 `APP_SOLO_ADMIN`, queda como `LOGIN_RECHAZADO` en la auditoría), y si a un administrador le quitan el rol, su sesión de la app deja de servir de inmediato (401) y no se renueva. La app, además, descarta una sesión guardada que no sea de administrador.
 
 El usuario `admin` es el administrador principal: solo él puede editarse, darse de baja o cerrarse las sesiones; los demás administradores reciben 403.
 
@@ -217,8 +219,8 @@ Las credenciales de acceso **se entregan por canal privado**.
 
 | Qué | Comando | Total actual |
 |---|---|---|
-| Backend | `cd backend && ./mvnw test` | **271** pruebas, 0 fallos |
-| App móvil | `cd app && flutter test` | **74** pruebas, 0 fallos |
+| Backend | `cd backend && ./mvnw test` | **285** pruebas, 0 fallos |
+| App móvil | `cd app && flutter test` | **79** pruebas, 0 fallos |
 | API (Newman) | `cd evidencia/api && npm install && node ejecutar.mjs` | **38** casos, todos aprobados |
 
 - Las pruebas del backend construyen la aplicación completa y validan las entidades contra la base, así que

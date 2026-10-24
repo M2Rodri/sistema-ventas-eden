@@ -68,6 +68,33 @@ class JwtAuthFilterTest {
     }
 
     @Test
+    void elTokenDeLaAppDeUnaCuentaQueYaNoEsAdminNoAutentica() throws Exception {
+        when(detalles.loadUserByUsername(anyString())).thenReturn(usuario(true, "EMPLEADO", null));
+
+        pasarPeticionConToken(jwtUtil.generateToken("ana", "ADMIN", JwtUtil.PERFIL_MOVIL_CON_CANDADO));
+
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
+    }
+
+    @Test
+    void elTokenDeLaAppDeUnAdminAutentica() throws Exception {
+        when(detalles.loadUserByUsername(anyString())).thenReturn(usuario(true, "ADMIN", null));
+
+        pasarPeticionConToken(jwtUtil.generateToken("ana", "ADMIN", JwtUtil.PERFIL_MOVIL_SIN_CANDADO));
+
+        assertNotNull(SecurityContextHolder.getContext().getAuthentication());
+    }
+
+    @Test
+    void elTokenWebDeUnEmpleadoAutentica() throws Exception {
+        when(detalles.loadUserByUsername(anyString())).thenReturn(usuario(true, "EMPLEADO", null));
+
+        pasarPeticionConToken(jwtUtil.generateToken("ana", "EMPLEADO"));
+
+        assertNotNull(SecurityContextHolder.getContext().getAuthentication());
+    }
+
+    @Test
     void unUsuarioDadoDeBajaNoAutenticaAunqueSuTokenSigaVigente() throws Exception {
         when(detalles.loadUserByUsername(anyString())).thenReturn(usuario(false, "ADMIN", null));
 

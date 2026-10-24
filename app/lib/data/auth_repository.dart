@@ -24,6 +24,11 @@ class AuthRepository {
   static const perfilConCandado = 'MOVIL_CON_CANDADO';
   static const perfilSinCandado = 'MOVIL_SIN_CANDADO';
 
+  /// La app móvil es solo para administradores; el Empleado usa la web.
+  static const rolPermitido = 'ADMIN';
+  static const mensajeSoloAdmin =
+      'La app móvil es solo para administradores. Usá la versión web.';
+
   /// Sin candado, la sesión de la app no pasa de este tiempo desde que se inició.
   static const topeSinCandado = Duration(hours: 4);
 
@@ -44,6 +49,14 @@ class AuthRepository {
       'perfilSesion': conCandado ? perfilConCandado : perfilSinCandado,
     });
     final sesion = Sesion.fromLoginResponse(json);
+    if (sesion.usuario.role != rolPermitido) {
+      // No se guarda nada: la sesión de un rol sin permiso no debe quedar en el celular.
+      throw const ApiException(
+        mensajeSoloAdmin,
+        ApiErrorTipo.desconocido,
+        codigo: 'APP_SOLO_ADMIN',
+      );
+    }
     await _storage.guardarSesion(sesion);
     ApiClient.nuevaSesion(sesion.token);
 
@@ -76,7 +89,10 @@ class AuthRepository {
     final sesion = await _storage.leerSesion();
     if (sesion == null) return null;
 
-    if (tokenExpirado(sesion.token) || await _pasoElTopeSinCandado(sesion)) {
+    // Una sesión guardada de otro rol (de antes de esta regla) se descarta.
+    if (sesion.usuario.role != rolPermitido ||
+        tokenExpirado(sesion.token) ||
+        await _pasoElTopeSinCandado(sesion)) {
       await _storage.borrarSesion();
       await _biometria.desactivar();
       ApiClient.olvidarSesion();
