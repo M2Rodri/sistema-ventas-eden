@@ -34,6 +34,7 @@ export default function UsuariosPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [userToCloseSessions, setUserToCloseSessions] = useState<User | null>(null);
 
   // Mensajes
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -133,10 +134,10 @@ export default function UsuariosPage() {
     }
   };
 
-  const handleCerrarSesiones = async (user: User) => {
-    const aviso = `Se cerrarán todas las sesiones abiertas de ${user.usuario} en cualquier dispositivo `
-      + '(celular y computadora). Tendrá que volver a iniciar sesión. ¿Continuar?';
-    if (!window.confirm(aviso)) return;
+  const handleCerrarSesionesConfirm = async () => {
+    if (!userToCloseSessions) return;
+    const user = userToCloseSessions;
+    setUserToCloseSessions(null);
 
     try {
       await cerrarSesionesDeUsuario(user.id);
@@ -331,7 +332,7 @@ export default function UsuariosPage() {
                           <Edit size={16} />
                         </button>
                         <button
-                          onClick={() => handleCerrarSesiones(user)}
+                          onClick={() => setUserToCloseSessions(user)}
                           className="p-1 text-amber-600 hover:bg-amber-50 rounded transition-colors"
                           title="Cerrar sesiones abiertas"
                         >
@@ -398,6 +399,16 @@ export default function UsuariosPage() {
             setIsDeleteModalOpen(false);
             setUserToDelete(null);
           }}
+        />
+      )}
+
+      {userToCloseSessions && (
+        <DeleteConfirmModal
+          title="Cerrar sesiones abiertas"
+          message={`Se cerrarán todas las sesiones abiertas de ${userToCloseSessions.usuario} en cualquier dispositivo (celular y computadora).\nTendrá que volver a iniciar sesión.`}
+          confirmLabel="Cerrar sesiones"
+          onConfirm={handleCerrarSesionesConfirm}
+          onCancel={() => setUserToCloseSessions(null)}
         />
       )}
     </div>
