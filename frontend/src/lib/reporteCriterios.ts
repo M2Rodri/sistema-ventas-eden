@@ -30,7 +30,6 @@ export const CAMPOS_POR_TIPO: Record<TipoReporte, CampoCriterio[]> = {
   VENTAS_POR_PRODUCTO: ['producto', 'categoria'],
   INVENTARIO_STOCK_BAJO: ['categoria'],
   PROVEEDORES: ['proveedor', 'soloActivos'],
-  TRANSPORTADORAS: [],
   FINANCIERO: [],
   // Cuentas por cobrar ya es una lista corta y ordenada por antigüedad: solo se busca por cliente.
   CUENTAS_POR_COBRAR: ['cliente'],

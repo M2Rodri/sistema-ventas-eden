@@ -10,7 +10,6 @@ export type TipoReporte =
   | 'VENTAS_POR_PRODUCTO'
   | 'INVENTARIO_STOCK_BAJO'
   | 'PROVEEDORES'
-  | 'TRANSPORTADORAS'
   | 'FINANCIERO'
   | 'CUENTAS_POR_COBRAR';
 
@@ -158,24 +157,6 @@ export interface ReporteProveedores {
   proveedoresActivos: number;
   montoTotalCompras: number;
   proveedores: ProveedorReporte[];
-}
-
-// Reporte de transportadoras
-export interface TransportadoraReporte {
-  idTransportadora: number;
-  nombreTransportadora: string;
-  cantidadEnvios: number;
-  enviosEntregados: number;
-  enviosPendientes: number;
-  tasaEntrega: number;
-  activo: boolean;
-}
-
-export interface ReporteTransportadoras {
-  totalTransportadoras: number;
-  transportadorasActivas: number;
-  totalEnvios: number;
-  transportadoras: TransportadoraReporte[];
 }
 
 // Reporte de cuentas por cobrar

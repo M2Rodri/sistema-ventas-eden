@@ -159,7 +159,7 @@ sistema-ventas-eden/
 │   ├── Dockerfile       imagen para Render
 │   └── pom.xml
 ├── frontend/
-│   ├── middleware.ts    protege /dashboard y redirige las rutas fuera de alcance
+│   ├── middleware.ts    protege /dashboard y manda /tienda al inicio de sesión
 │   └── src/
 │       ├── app/         páginas: login y dashboard (panel administrativo)
 │       ├── components/ contexts/ hooks/ lib/ types/
@@ -176,8 +176,9 @@ sistema-ventas-eden/
 └── README.md
 ```
 
-El repositorio conserva código de módulos que quedaron fuera del alcance del trabajo. No forman parte del
-sistema entregado: sus rutas de API responden 404 y sus páginas redirigen al inicio de sesión.
+Los módulos que quedaron fuera del alcance del trabajo (tienda pública, envíos, transportadoras, promociones,
+configuración, mensajes de contacto y multimedia) se sacaron del repositorio el 24/10/2026; siguen en el historial de git.
+Sus rutas de API responden 404 y la dirección /tienda redirige al inicio de sesión.
 
 La auditoría es un caso aparte: el registro funciona (cada acción sensible queda en la tabla `auditorias` con usuario, fecha e IP), pero la consulta desde la web o la app quedó fuera del alcance y sus rutas están apagadas (ver [`docs/rutas-api-v1.md`](docs/rutas-api-v1.md)).
 

@@ -176,7 +176,7 @@ Sin permiso (`GET /api/v1/reportes/financiero` con un EMPLEADO, 403):
   convierte en respuesta.
 - Los 401 y 403 de las reglas por ruta y el 404 de las rutas sin `/api/v1` los escriben `SecurityConfig` y
   `RutasSinVersionFilter` con el mismo formato (`RespuestaError`).
-- Los módulos fuera de alcance (envíos, transportadoras, promociones, configuración, auditorías, mensajes de contacto y
-  multimedia) están apagados y responden 404.
+- Los módulos fuera de alcance (envíos, transportadoras, promociones, configuración, mensajes de contacto y multimedia)
+  se sacaron del repositorio y sus rutas responden 404; la consulta de auditorías sigue apagada y también responde 404.
 - Pruebas: `FormatoErrorApiTest` (cada código HTTP y CORS), `RecursoInexistenteApiTest` (404 en GET, PUT, PATCH y
   DELETE de cada módulo) y `ErroresNegocioTest` (409, 422 y 400 de cada regla).

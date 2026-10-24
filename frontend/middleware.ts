@@ -1,20 +1,10 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-/**
- * Páginas que quedaron fuera del alcance del proyecto. El código sigue en el repositorio,
- * pero nadie llega a ellas: la tienda pública (/tienda) manda al login y las del panel
- * (envíos, transportadoras, promociones y configuración) mandan al inicio del panel.
- */
-const PAGINAS_FUERA_DE_ALCANCE = [
-  '/dashboard/envios', // incluye /dashboard/envios/transportadoras
-  '/dashboard/promociones',
-  '/dashboard/configuracion',
-];
-
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
+  // La tienda pública quedó fuera del alcance: sus direcciones mandan al login.
   if (pathname === '/tienda' || pathname.startsWith('/tienda/')) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
@@ -36,13 +26,6 @@ export function middleware(request: NextRequest) {
       respuesta.cookies.delete('role');
       respuesta.cookies.delete('csrf-token');
       return respuesta;
-    }
-
-    const fueraDeAlcance = PAGINAS_FUERA_DE_ALCANCE.some(
-      (ruta) => pathname === ruta || pathname.startsWith(ruta + '/'),
-    );
-    if (fueraDeAlcance) {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
     }
 
     return NextResponse.next();

@@ -5,7 +5,10 @@ Todas las rutas de la API van con el prefijo `/api/v1`. Una ruta con `/api/` sin
 - **versionada**: sigue existiendo, ahora con `/api/v1`.
 - **nueva**: se creó después de versionar la API; nunca existió sin `/api/v1`, por eso no tiene ruta anterior.
 - **eliminada**: se quitó del sistema (no la usaba ninguna pantalla, era de prueba, o dejó de existir al quitar el estado y la edición de las compras).
-- **apagada (404)**: módulo fuera de alcance; su código sigue en el repositorio pero la ruta no responde.
+- **apagada (404)**: la ruta existe en el código pero no responde (solo la consulta de auditorías).
+- Los módulos de envíos, transportadoras, promociones, configuración, mensajes de contacto y multimedia se sacaron del
+  repositorio el 24/10/2026; sus rutas (/api/envios, /api/transportadoras, /api/promociones, /api/configuracion,
+  /api/mensajes-contacto y /api/multimedia-productos) ya no existen y responden 404.
 
 ## Auditoria
 
@@ -86,46 +89,12 @@ El sistema **sí registra** la auditoría: cada acción sensible (crear, editar,
 | GET | `/api/comprobantes/ultimos` | — | eliminada |
 | GET | `/api/comprobantes/estadisticas` | — | eliminada |
 
-## Configuracion
-
-| Método | Ruta anterior | Ruta nueva | Estado |
-|---|---|---|---|
-| GET | `/api/configuracion/negocio` | — | apagada (404) |
-| GET | `/api/configuracion` | — | apagada (404) |
-| GET | `/api/configuracion/{id}` | — | apagada (404) |
-| GET | `/api/configuracion/clave/{clave}` | — | apagada (404) |
-| GET | `/api/configuracion/valor/{clave}` | — | apagada (404) |
-| POST | `/api/configuracion` | — | apagada (404) |
-| PUT | `/api/configuracion/{id}` | — | apagada (404) |
-| PATCH | `/api/configuracion/clave/{clave}` | — | apagada (404) |
-| DELETE | `/api/configuracion/{id}` | — | apagada (404) |
-| POST | `/api/configuracion/inicializar` | — | apagada (404) |
-
 ## Dashboard
 
 | Método | Ruta anterior | Ruta nueva | Estado |
 |---|---|---|---|
 | GET | `/api/dashboard/estadisticas` | `/api/v1/dashboard/estadisticas` | versionada |
 | GET | `/api/dashboard/ventas-semanal` | `/api/v1/dashboard/ventas-semanal` | versionada |
-
-## Envio
-
-| Método | Ruta anterior | Ruta nueva | Estado |
-|---|---|---|---|
-| GET | `/api/envios` | — | apagada (404) |
-| GET | `/api/envios/{id}` | — | apagada (404) |
-| GET | `/api/envios/venta/{idVenta}` | — | apagada (404) |
-| GET | `/api/envios/guia/{guiaRemision}` | — | apagada (404) |
-| POST | `/api/envios` | — | apagada (404) |
-| PUT | `/api/envios/{id}` | — | apagada (404) |
-| PATCH | `/api/envios/{id}/estado` | — | apagada (404) |
-| PATCH | `/api/envios/{id}/entregar` | — | apagada (404) |
-| GET | `/api/envios/estado/{estado}` | — | apagada (404) |
-| GET | `/api/envios/transportadora/{idTransportadora}` | — | apagada (404) |
-| GET | `/api/envios/pendientes` | — | apagada (404) |
-| GET | `/api/envios/en-camino` | — | apagada (404) |
-| GET | `/api/envios/por-entregar` | — | apagada (404) |
-| GET | `/api/envios/estadisticas` | — | apagada (404) |
 
 ## ImagenProducto
 
@@ -157,29 +126,6 @@ El sistema **sí registra** la auditoría: cada acción sensible (crear, editar,
 | PATCH | — | `/api/v1/inventario/producto/{idProducto}/reactivar-alerta` | nueva |
 | GET | `/api/inventario/estadisticas` | `/api/v1/inventario/estadisticas` | versionada |
 
-## MensajeContacto
-
-| Método | Ruta anterior | Ruta nueva | Estado |
-|---|---|---|---|
-| POST | `/api/mensajes-contacto` | — | apagada (404) |
-| GET | `/api/mensajes-contacto` | — | apagada (404) |
-| GET | `/api/mensajes-contacto/pendientes` | — | apagada (404) |
-| GET | `/api/mensajes-contacto/pendientes/cantidad` | — | apagada (404) |
-| PATCH | `/api/mensajes-contacto/{id}/atender` | — | apagada (404) |
-| DELETE | `/api/mensajes-contacto/{id}` | — | apagada (404) |
-
-## MultimediaProducto
-
-| Método | Ruta anterior | Ruta nueva | Estado |
-|---|---|---|---|
-| POST | `/api/multimedia-productos/subir-modelo/{productoId}` | — | apagada (404) |
-| POST | `/api/multimedia-productos` | — | apagada (404) |
-| GET | `/api/multimedia-productos/producto/{productoId}` | — | apagada (404) |
-| PUT | `/api/multimedia-productos/{id}` | — | apagada (404) |
-| DELETE | `/api/multimedia-productos/{id}` | — | apagada (404) |
-| GET | `/api/multimedia-productos/ra-habilitados` | — | apagada (404) |
-| GET | `/api/multimedia-productos/health` | — | apagada (404) |
-
 ## Pago
 
 | Método | Ruta anterior | Ruta nueva | Estado |
@@ -208,20 +154,6 @@ El sistema **sí registra** la auditoría: cada acción sensible (crear, editar,
 | DELETE | `/api/productos/{id}` | `/api/v1/productos/{id}` | versionada |
 | PATCH | `/api/productos/{id}/toggle-status` | `/api/v1/productos/{id}/toggle-status` | versionada |
 | GET | `/api/productos/estadisticas` | `/api/v1/productos/estadisticas` | versionada |
-
-## Promocion
-
-| Método | Ruta anterior | Ruta nueva | Estado |
-|---|---|---|---|
-| GET | `/api/promociones` | — | apagada (404) |
-| GET | `/api/promociones/activas` | — | apagada (404) |
-| GET | `/api/promociones/vigentes` | — | apagada (404) |
-| GET | `/api/promociones/{id}` | — | apagada (404) |
-| POST | `/api/promociones` | — | apagada (404) |
-| PUT | `/api/promociones/{id}` | — | apagada (404) |
-| DELETE | `/api/promociones/{id}` | — | apagada (404) |
-| PATCH | `/api/promociones/{id}/toggle-status` | — | apagada (404) |
-| GET | `/api/promociones/estadisticas` | — | apagada (404) |
 
 ## Proveedor
 
@@ -254,19 +186,6 @@ El sistema **sí registra** la auditoría: cada acción sensible (crear, editar,
 | Método | Ruta anterior | Ruta nueva | Estado |
 |---|---|---|---|
 | GET | `/api/v1/salud` | `/api/v1/salud` | sin cambio de ruta; ahora también consulta la base de datos y responde 503 `BASE_NO_DISPONIBLE` si no contesta |
-
-## Transportadora
-
-| Método | Ruta anterior | Ruta nueva | Estado |
-|---|---|---|---|
-| GET | `/api/transportadoras` | — | apagada (404) |
-| GET | `/api/transportadoras/activas` | — | apagada (404) |
-| GET | `/api/transportadoras/{id}` | — | apagada (404) |
-| POST | `/api/transportadoras` | — | apagada (404) |
-| PUT | `/api/transportadoras/{id}` | — | apagada (404) |
-| DELETE | `/api/transportadoras/{id}` | — | apagada (404) |
-| PATCH | `/api/transportadoras/{id}/toggle-status` | — | apagada (404) |
-| GET | `/api/transportadoras/estadisticas` | — | apagada (404) |
 
 ## Usuario
 

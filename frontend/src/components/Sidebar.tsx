@@ -10,11 +10,7 @@ import {
   Boxes,
   ShoppingCart,
   DollarSign,
-  Truck,
-  CreditCard,
   BarChart3,
-  Tag,
-  Settings,
   Building2,
   Contact,
   ChevronLeft,
@@ -38,13 +34,8 @@ const menuItems: MenuItem[] = [
   { name: 'Compras', icon: <ShoppingCart size={20} />, href: '/dashboard/compras', adminOnly: true },
   { name: 'Proveedores', icon: <Building2 size={20} />, href: '/dashboard/proveedores', adminOnly: true },
   { name: 'Clientes', icon: <Contact size={20} />, href: '/dashboard/clientes' },
-  // Envíos y Transportadoras salen del menú: la entrega vive en la venta (modalidadEntrega/estadoEntrega).
-  // { name: 'Envíos', icon: <Truck size={20} />, href: '/dashboard/envios' },
-  // { name: 'Pagos', icon: <CreditCard size={20} />, href: '/dashboard/pagos' },
+  // La entrega vive en la venta (modalidadEntrega/estadoEntrega).
   { name: 'Reportes', icon: <BarChart3 size={20} />, href: '/dashboard/reportes', adminOnly: true },
-  // Promociones y Configuración salen del menú pero sus pantallas siguen existiendo.
-  // { name: 'Promociones', icon: <Tag size={20} />, href: '/dashboard/promociones' },
-  // { name: 'Configuración', icon: <Settings size={20} />, href: '/dashboard/configuracion', adminOnly: true },
 ];
 
 interface SidebarProps {

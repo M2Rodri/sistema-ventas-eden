@@ -1,7 +1,6 @@
 'use client';
 
-import { LogOut, Menu, Store } from 'lucide-react';
-import Link from 'next/link';
+import { LogOut, Menu } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import BuscadorGlobal from '@/components/BuscadorGlobal';
 import NotificacionesMenu from '@/components/NotificacionesMenu';
@@ -25,24 +24,6 @@ export default function Header() {
 
       {/* Usuario y acciones */}
       <div className="flex flex-shrink-0 items-center gap-1 sm:gap-2 md:gap-4">
-        {/*
-          La tienda publica queda fuera del alcance de este trabajo: no debe
-          ser alcanzable desde el panel de administracion. Se comenta el
-          acceso sin borrar el codigo, mismo patron que Envios/Promociones
-          en Sidebar.tsx.
-
-          <Link
-            href="/tienda"
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Ver la tienda online (se abre en otra pestana)"
-            className="flex items-center gap-2 rounded-lg px-3 py-2 text-gray-600 transition-colors hover:bg-primary-50 hover:text-primary-700"
-          >
-            <Store size={20} />
-            <span className="hidden text-sm font-medium lg:inline">Ver tienda</span>
-          </Link>
-        */}
-
         {/* Notificaciones */}
         <NotificacionesMenu />
 

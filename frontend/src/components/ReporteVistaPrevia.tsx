@@ -14,7 +14,6 @@ import {
   getReporteVentasPorProducto,
   getReporteInventarioStockBajo,
   getReporteProveedores,
-  getReporteTransportadoras,
   getReporteFinanciero,
   getReporteCuentasPorCobrar,
 } from '@/lib/api';
@@ -125,9 +124,6 @@ export default function ReporteVistaPrevia({
           break;
         case 'PROVEEDORES':
           resultado = await getReporteProveedores();
-          break;
-        case 'TRANSPORTADORAS':
-          resultado = await getReporteTransportadoras();
           break;
         case 'FINANCIERO':
           resultado = await getReporteFinanciero(inicio, fin);
@@ -756,64 +752,6 @@ export default function ReporteVistaPrevia({
           )
         )}
 
-        {/* REPORTE DE TRANSPORTADORAS */}
-        {tipoReporte === 'TRANSPORTADORAS' && data && (
-          data.transportadoras.length === 0 ? (
-            <SinDatosReporte />
-          ) : (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
-                <p className="text-sm text-teal-700 mb-1">Total Transportadoras</p>
-                <p className="text-2xl font-bold text-teal-900">{data.totalTransportadoras}</p>
-              </div>
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <p className="text-sm text-green-700 mb-1">Activas</p>
-                <p className="text-2xl font-bold text-green-900">{data.transportadorasActivas}</p>
-              </div>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-sm text-blue-700 mb-1">Total Envíos</p>
-                <p className="text-2xl font-bold text-blue-900">{data.totalEnvios}</p>
-              </div>
-            </div>
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Transportadora</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Envíos</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Entregados</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pendientes</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tasa Entrega (%)</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Activo</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {data.transportadoras.map((t: any) => (
-                    <tr key={t.idTransportadora}>
-                      <td className="px-4 py-3 text-sm font-medium">{t.nombreTransportadora}</td>
-                      <td className="px-4 py-3 text-sm">{t.cantidadEnvios}</td>
-                      <td className="px-4 py-3 text-sm text-green-600">{t.enviosEntregados}</td>
-                      <td className="px-4 py-3 text-sm text-orange-600">{t.enviosPendientes}</td>
-                      <td className="px-4 py-3 text-sm font-semibold">
-                        {t.tasaEntrega.toFixed(1)}%
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        <span className={`px-2 py-1 text-xs rounded-full ${
-                          t.activo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`}>
-                          {t.activo ? 'Activo' : 'Inactivo'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
-          )
-        )}
-
         {/* REPORTE DE CUENTAS POR COBRAR */}
         {tipoReporte === 'CUENTAS_POR_COBRAR' && data && (
           data.ventas.length === 0 ? (
@@ -964,7 +902,6 @@ export default function ReporteVistaPrevia({
           'VENTAS_POR_PRODUCTO',
           'INVENTARIO_STOCK_BAJO',
           'PROVEEDORES',
-          'TRANSPORTADORAS',
           'FINANCIERO',
           'CUENTAS_POR_COBRAR'
         ].includes(tipoReporte) && (
