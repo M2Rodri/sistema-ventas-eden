@@ -1,0 +1,14 @@
+Entorno: local (backend 8081, base p3_prueba), 2026-10-24T16:41:14.625Z
+alta empleado de prueba: HTTP 201, rol EMPLEADO
+categoría usada: id 2 (COLCHON)
+CP-52 con precio de compra, stock 7: crear HTTP 201; precioCompra=300; stockMinimo=1; inventario=7; movimientos=AJUSTE_INICIAL:7
+CP-52 sin precio de compra, stock 4: crear HTTP 201; precioCompra=null; stockMinimo=1; inventario=4; movimientos=AJUSTE_INICIAL:4
+CP-52 sin stockInicial: crear HTTP 201; precioCompra=null; stockMinimo=1; inventario=0; movimientos=(sin movimientos)
+precio pactado 0: HTTP 400, código PRECIO_INVALIDO, mensaje "El precio unitario debe ser mayor a 0"
+precio pactado -10: HTTP 400, código PRECIO_INVALIDO, mensaje "El precio unitario debe ser mayor a 0"
+control precio 650 (catálogo 500): HTTP 201, total 650, detalle 650
+venta producto sin precio de compra: HTTP 201, costoUnitario=0, ganancia=500
+ganancias-por-producto ADMIN: HTTP 200, 9 filas; campos: precioUnitario,skuProducto,subtotal,idProducto,cantidad,costoUnitario,ganancia,idVenta,fechaVenta,nombreProducto; con ganancia no nula: 9
+ganancias-por-producto EMPLEADO: HTTP 403, código SIN_PERMISO
+APP: empleado con perfil móvil: HTTP 403, código APP_SOLO_ADMIN
+APP: administrador con perfil móvil: HTTP 200, rol ADMIN

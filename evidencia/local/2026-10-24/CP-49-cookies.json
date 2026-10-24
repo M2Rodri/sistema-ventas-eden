@@ -1,0 +1,39 @@
+{
+  "fecha": "2026-10-24T16:40:21.659Z",
+  "entorno": "local (puerto 3001)",
+  "document_cookie_nombres": [
+    "user_info",
+    "role",
+    "csrf-token"
+  ],
+  "cookies": [
+    {
+      "nombre": "token",
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax",
+      "path": "/"
+    },
+    {
+      "nombre": "user_info",
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax",
+      "path": "/"
+    },
+    {
+      "nombre": "role",
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax",
+      "path": "/"
+    },
+    {
+      "nombre": "csrf-token",
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax",
+      "path": "/"
+    }
+  ]
+}

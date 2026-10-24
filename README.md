@@ -137,6 +137,7 @@ Cada parte trae un `.env.example` con todas sus variables explicadas y **sin val
 | Variable | Qué hace |
 |---|---|
 | `NEXT_PUBLIC_BACKEND_URL` | Dirección del backend. Termina dentro del JavaScript del navegador: nunca poner claves aquí |
+| `BACKEND_URL_INTERNAL` | Dirección del backend que usa el servidor de la web para llamarlo (rutas `/api/auth` y `/api/proxy`). No llega al navegador y tiene prioridad sobre la anterior |
 | `NEXT_DIST_DIR` | Opcional. Carpeta de compilación, para verificar una compilación sin pisar la del servidor de desarrollo |
 
 ### App (`app/.env`, se pasan con `--dart-define`)
@@ -232,7 +233,7 @@ Las credenciales de acceso **se entregan por canal privado**.
   `backend/database/37_limpiar_pruebas_y_renumerar.sql` los quita y deja la numeración sin huecos).
 - **Rendimiento (RNF-01, umbral 2 s)**, medido el 23/10/2026 en producción: `GET /api/v1/productos` 401 ms de
   promedio y 731 ms de máximo; `GET /api/v1/inventario/catalogo` 527 ms y 1273 ms.
-- Los reportes están en [`evidencia/`](evidencia/) con la fecha en el nombre.
+- Los reportes están en [`evidencia/`](evidencia/) con la fecha en el nombre. Las pruebas del 24/10/2026 están en `evidencia/backend/surefire-2026-10-24` (285), `evidencia/app/flutter-test-2026-10-24.txt` (79) y `evidencia/local/2026-10-24` (cookie HttpOnly, CSRF, stock inicial, precio inválido, ganancias por producto y app solo para administradores, ejecutadas en local).
 
 ## 9. Despliegue
 
@@ -241,7 +242,7 @@ El backend (Render) y el frontend (Vercel) se despliegan solos al hacer push a `
 | Parte | Servicio | Notas |
 |---|---|---|
 | Backend | **Render** (Docker, `backend/Dockerfile`: Maven 3.9 y Java 17) | Plan gratuito: si nadie lo usa un rato, el servicio se duerme y la primera petición puede tardar más de un minuto. Variables de entorno de la sección 5 |
-| Frontend | **Vercel** | Variable `NEXT_PUBLIC_BACKEND_URL` apuntando al backend |
+| Frontend | **Vercel** | Variables `BACKEND_URL_INTERNAL` y `NEXT_PUBLIC_BACKEND_URL` apuntando al backend |
 | Base de datos y archivos | **Supabase** (PostgreSQL 17, Storage) | Buckets `productos` (público), `comprobantes` (privado) y `app` (público, con `version.json`) |
 | App Android | **GitHub Releases** | El APK se publica como `muebleria-eden.apk` |
 | Disponibilidad | **UptimeRobot** | Página de estado: https://stats.uptimerobot.com/CLc5bJEPlk |

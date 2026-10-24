@@ -1,0 +1,9 @@
+CP-50 CSRF — entorno local (web en puerto 3001, backend 8081, base descartable), 24/10/2026. Valores de cookies omitidos.
+[a] POST /api/proxy/clientes sin cabecera X-CSRF-Token      -> HTTP 403  {"error":"Token CSRF inválido o faltante"}
+[b] POST con X-CSRF-Token distinto al de la cookie           -> HTTP 403  {"error":"Token CSRF inválido o faltante"}
+[c] POST con X-CSRF-Token igual al de la cookie              -> HTTP 201  (cliente creado)
+[d] GET /api/proxy/clientes/con-estadisticas (sin cabecera)  -> HTTP 200  (las lecturas no exigen CSRF)
+[e] POST sin cookie de sesión ni cabecera                    -> HTTP 403  {"error":"Token CSRF inválido o faltante"}
+Pantalla (P5): al borrar la cookie csrf-token y pulsar "Marcar entregado", la web muestra un aviso rojo "Token CSRF inválido o faltante" sobre la tabla, con una X para cerrarlo (P5-csrf-pantalla.png).
+Atributos de las cookies al iniciar sesión (curl, valores omitidos): token: Path=/; Max-Age=14398; HttpOnly; SameSite=lax | user_info, role, csrf-token: Path=/; Max-Age=14398; SameSite=lax (sin HttpOnly). Sin Secure porque corre en desarrollo (http).
+El cuerpo de la respuesta del login trae: role, tipo, id, nombre, apellido, usuario. No trae el token.

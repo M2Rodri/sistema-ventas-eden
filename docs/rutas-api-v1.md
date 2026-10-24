@@ -177,6 +177,7 @@ El sistema **sí registra** la auditoría: cada acción sensible (crear, editar,
 | GET | `/api/reportes/inventario-valorizado` | `/api/v1/reportes/inventario-valorizado` | versionada |
 | GET | `/api/reportes/ventas-por-categoria` | `/api/v1/reportes/ventas-por-categoria` | versionada |
 | GET | — | `/api/v1/reportes/ventas-por-producto` | nueva |
+| GET | — | `/api/v1/reportes/ganancias-por-producto` | nueva (solo Administrador; la usa la pantalla Ganancias de la app) |
 | GET | `/api/reportes/ventas-por-metodo-pago` | `/api/v1/reportes/ventas-por-metodo-pago` | versionada |
 | GET | `/api/reportes/cuentas-por-cobrar` | `/api/v1/reportes/cuentas-por-cobrar` | versionada |
 | GET | `/api/reportes/financiero` | `/api/v1/reportes/financiero` | versionada |
