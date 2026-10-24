@@ -217,7 +217,7 @@ Las credenciales de acceso **se entregan por canal privado**.
 
 | Qué | Comando | Total actual |
 |---|---|---|
-| Backend | `cd backend && ./mvnw test` | **270** pruebas, 0 fallos |
+| Backend | `cd backend && ./mvnw test` | **271** pruebas, 0 fallos |
 | App móvil | `cd app && flutter test` | **74** pruebas, 0 fallos |
 | API (Newman) | `cd evidencia/api && npm install && node ejecutar.mjs` | **38** casos, todos aprobados |
 
